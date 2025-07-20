@@ -1,0 +1,80 @@
+# **************************************************************************
+# *
+# * Authors:     Grigory Sharov (gsharov@mrc-lmb.cam.ac.uk) [1]
+# *
+# * [1] MRC Laboratory of Molecular Biology (MRC-LMB)
+# *
+# * This program is free software; you can redistribute it and/or modify
+# * it under the terms of the GNU General Public License as published by
+# * the Free Software Foundation; either version 3 of the License, or
+# * (at your option) any later version.
+# *
+# * This program is distributed in the hope that it will be useful,
+# * but WITHOUT ANY WARRANTY; without even the implied warranty of
+# * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# * GNU General Public License for more details.
+# *
+# * You should have received a copy of the GNU General Public License
+# * along with this program; if not, write to the Free Software
+# * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+# * 02111-1307  USA
+# *
+# *  All comments concerning this program package may be sent to the
+# *  e-mail address 'gsharov@mrc-lmb.cam.ac.uk'
+# *
+# **************************************************************************
+
+import logging
+import time
+from functools import wraps
+
+try:
+    from memory_profiler import memory_usage
+except ImportError:
+    pass
+
+
+DEBUG = True
+
+logger = logging.getLogger(__name__)
+fmt = logging.Formatter(
+    fmt='[%(levelname)s] %(asctime)s %(message)s',
+    datefmt='%d-%m-%Y %H:%M:%S'
+)
+
+file_handler = logging.FileHandler("emhealth.log", mode="a", encoding="utf-8")
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(fmt)
+
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.INFO)
+stream_handler.setFormatter(fmt)
+
+logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO,
+                    datefmt='%d-%m-%Y %H:%M:%S',
+                    format='[%(levelname)s] %(asctime)s %(message)s',
+                    handlers=[file_handler, stream_handler])
+
+
+def profile(fn):
+    """ Decorator for profiling functions.
+    See https://hakibenita.com/fast-load-data-python-postgresql
+    """
+    @wraps(fn)
+    def inner(*args, **kwargs):
+        fn_kwargs_str = ', '.join(f'{k}={v}' for k, v in kwargs.items())
+        print(f'\n{fn.__name__}({fn_kwargs_str})')
+
+        # Measure time
+        t = time.perf_counter()
+        retval = fn(*args, **kwargs)
+        elapsed = time.perf_counter() - t
+        print(f'Time   {elapsed:0.4} s')
+
+        # Measure memory
+        mem, retval = memory_usage((fn, args, kwargs), retval=True, timeout=3600, interval=0.1)
+
+        print(f'Memory {max(mem) - min(mem)} MB')
+        return retval
+
+    return inner

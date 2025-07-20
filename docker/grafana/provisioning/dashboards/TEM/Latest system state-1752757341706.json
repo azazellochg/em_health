@@ -1,0 +1,430 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${sourceTEM}"
+        },
+        "enable": true,
+        "filter": {
+          "exclude": false,
+          "ids": [
+            14,
+            15,
+            24,
+            12,
+            3,
+            2
+          ]
+        },
+        "hide": false,
+        "iconColor": "red",
+        "name": "TEM off",
+        "target": {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH target_instrument AS (\n  SELECT id, name\n  FROM instruments\n  WHERE id IN ($instrument)\n)\n\nSELECT\n  o.start_time AS time,\n  o.end_time AS timeEnd,\n  t.name || ' OFF' AS title,\n  'TEM server offline' AS text\nFROM tem_off o\nJOIN target_instrument t\n  ON o.instrument_id = t.id\n",
+          "refId": "Anno",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 53,
+  "links": [
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": [
+        "module"
+      ],
+      "targetBlank": true,
+      "title": "Modules",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    }
+  ],
+  "panels": [
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceTEM}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 7,
+        "x": 0,
+        "y": 0
+      },
+      "id": 25,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": false
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH info AS (\n  SELECT \n    '${instrument:text}' AS microscope,\n    \n    -- Get platform (ProductFamily)\n    (\n      SELECT e.name\n      FROM data d\n      JOIN parameters p ON d.param_id = p.param_id\n      JOIN enumerations e ON e.enum_id = p.enum_id AND e.value = d.value_num\n      WHERE d.instrument_id = $instrument\n        AND p.instrument_id = $instrument\n        AND p.param_name = 'ProductFamily'\n        AND d.value_num > 0\n        AND e.instrument_id = $instrument\n      LIMIT 1\n    ) AS platform,\n\n    -- Get serial number\n    (\n      SELECT d.value_num\n      FROM data d\n      JOIN parameters p ON d.param_id = p.param_id\n      WHERE d.instrument_id = $instrument\n        AND p.instrument_id = $instrument\n        AND p.param_name = 'SerialNumber'\n        AND d.value_num > 0\n      LIMIT 1\n    ) AS serial,\n\n    -- Get D-number\n    (\n      SELECT d.value_num\n      FROM data d\n      JOIN parameters p ON d.param_id = p.param_id\n      WHERE d.instrument_id = $instrument\n        AND p.instrument_id = $instrument\n        AND p.param_name = 'ProductID'\n        AND d.value_num > 0\n      LIMIT 1\n    ) AS dnumber,\n\n    -- Time range\n    (\n      SELECT MAX(time) FROM data WHERE instrument_id = $instrument\n    ) AS latest_data,\n\n    (\n      SELECT MIN(time) FROM data WHERE instrument_id = $instrument\n    ) AS oldest_data\n)\n\n-- Pivot output\nSELECT 'Microscope' AS label, microscope AS value FROM info\nUNION ALL\nSELECT 'Platform', platform FROM info\nUNION ALL\nSELECT 'Serial #', serial::text FROM info\nUNION ALL\nSELECT 'D-number', dnumber::text FROM info\nUNION ALL\nSELECT 'Latest data', latest_data::text FROM info\nUNION ALL\nSELECT 'Oldest data', oldest_data::text FROM info;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "System details",
+      "type": "table"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 9,
+        "x": 7,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "alertInstanceLabelFilter": "",
+        "alertName": "",
+        "dashboardAlerts": true,
+        "groupBy": [],
+        "groupMode": "default",
+        "maxItems": 20,
+        "showInactiveAlerts": false,
+        "sortOrder": 1,
+        "stateFilter": {
+          "error": true,
+          "firing": true,
+          "noData": false,
+          "normal": false,
+          "pending": false,
+          "recovering": false
+        },
+        "viewMode": "list"
+      },
+      "pluginVersion": "12.0.1",
+      "title": "Module alerts",
+      "type": "alertlist"
+    }
+  ],
+  "preload": false,
+  "schemaVersion": 41,
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "tem",
+          "value": "P1F7BE6908B217B4A"
+        },
+        "hide": 2,
+        "name": "sourceTEM",
+        "options": [],
+        "query": "grafana-postgresql-datasource",
+        "refresh": 1,
+        "regex": "/^tem$/",
+        "type": "datasource"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "Krios 4 [Titan Krios G4] (4248)",
+          "value": "5"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${sourceTEM}"
+        },
+        "definition": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
+        "name": "instrument",
+        "options": [],
+        "query": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "315",
+          "value": "315"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${sourceTEM}"
+        },
+        "definition": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Value'\n    AND component = 'Server'\n    AND subsystem = 'Software'",
+        "hide": 2,
+        "name": "param_id_server",
+        "options": [],
+        "query": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Value'\n    AND component = 'Server'\n    AND subsystem = 'Software'",
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "568",
+          "value": "568"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${sourceTEM}"
+        },
+        "definition": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'FegState'\n    AND display_name = 'Feg State'\n    AND subsystem IN ('MdlGunBrick', 'MdlTemFegBrick')",
+        "hide": 2,
+        "name": "param_id_feg",
+        "options": [],
+        "query": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'FegState'\n    AND display_name = 'Feg State'\n    AND subsystem IN ('MdlGunBrick', 'MdlTemFegBrick')",
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "334",
+          "value": "334"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${sourceTEM}"
+        },
+        "definition": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'HTTankState'\n    AND component = 'HTTank'\n    AND subsystem IN ('MdlGunBrick', 'MdlHighTensionBrick')",
+        "hide": 2,
+        "name": "param_id_ht",
+        "options": [],
+        "query": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'HTTankState'\n    AND component = 'HTTank'\n    AND subsystem IN ('MdlGunBrick', 'MdlHighTensionBrick')",
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "132",
+          "value": "132"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${sourceTEM}"
+        },
+        "definition": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name IN ('Status', 'CompuStageStatus')\n    AND subsystem IN ('Compustage', 'MdlSmc')",
+        "hide": 2,
+        "name": "param_id_stage",
+        "options": [],
+        "query": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name IN ('Status', 'CompuStageStatus')\n    AND subsystem IN ('Compustage', 'MdlSmc')",
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "474",
+          "value": "474"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${sourceTEM}"
+        },
+        "definition": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name in ('OpticsOperationalState', 'Optics_OperationalState')",
+        "hide": 2,
+        "name": "param_id_optics",
+        "options": [],
+        "query": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name in ('OpticsOperationalState', 'Optics_OperationalState')",
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "1608",
+          "value": "1608"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${sourceTEM}"
+        },
+        "definition": "SELECT COALESCE((\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem = 'EnergyFilterBrick'\n    AND param_name = 'EnergyFilterIsAvailable'\n  LIMIT 1\n), -1)",
+        "hide": 2,
+        "name": "param_id_filter",
+        "options": [],
+        "query": "SELECT COALESCE((\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem = 'EnergyFilterBrick'\n    AND param_name = 'EnergyFilterIsAvailable'\n  LIMIT 1\n), -1)",
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "158",
+          "value": "158"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${sourceTEM}"
+        },
+        "definition": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'AutoloaderUpStatus'",
+        "hide": 2,
+        "name": "param_id_autoloader",
+        "options": [],
+        "query": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'AutoloaderUpStatus'",
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "439",
+          "value": "439"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${sourceTEM}"
+        },
+        "definition": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'TemperatureControlUpStatus'",
+        "hide": 2,
+        "name": "param_id_tempctrl",
+        "options": [],
+        "query": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'TemperatureControlUpStatus'",
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "179",
+          "value": "179"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${sourceTEM}"
+        },
+        "definition": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Availability'\n    AND display_name IN ('Camera availability', 'Availability')",
+        "hide": 2,
+        "name": "param_id_detectors",
+        "options": [],
+        "query": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Availability'\n    AND display_name IN ('Camera availability', 'Availability')",
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "2025-04-23T18:08:48.864Z",
+    "to": "2025-05-30T12:03:23.236Z"
+  },
+  "timepicker": {
+    "refresh_intervals": []
+  },
+  "timezone": "Europe/London",
+  "title": "Latest system state",
+  "uid": "4395e67b-0280-47fd-94a8-6840b3f1d893",
+  "version": 4
+}

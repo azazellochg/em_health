@@ -1,0 +1,66 @@
+services:
+  timescaledb:
+    image: timescale/timescaledb-ha:pg17
+    container_name: timescaledb
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_GRAFANA_PASSWORD: ${POSTGRES_GRAFANA_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/home/postgres/pgdata
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    command: >
+      postgres
+      -c shared_preload_libraries=timescaledb,pg_stat_statements,auto_explain
+      -c pg_stat_statements.max=10000
+      -c pg_stat_statements.track=all
+      -c track_io_timing=on
+      -c logging_collector=on
+      -c log_destination='csvlog'
+      -c log_rotation_size=0
+      -c log_directory='log'
+      -c log_filename='postgresql-%Y-%m-%d.log'
+      -c log_line_prefix=''
+      -c log_autovacuum_min_duration=0
+      -c auto_explain.log_format='json'
+      -c auto_explain.log_min_duration=1000
+      -c auto_explain.log_analyze=on
+      -c auto_explain.log_buffers=on
+      -c auto_explain.log_timing=off
+      -c auto_explain.log_triggers=on
+      -c auto_explain.log_verbose=on
+      -c auto_explain.log_nested_statements=on
+      -c auto_explain.sample_rate=1
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  grafana:
+    image: grafana/grafana-oss
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    environment:
+      - POSTGRES_GRAFANA_PASSWORD=${POSTGRES_GRAFANA_PASSWORD}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_SERVER_ENABLE_GZIP=true
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+
+volumes:
+  pgdata:
+    name: pgdata
+  grafana-storage:
+    name: grafana-storage

@@ -1,0 +1,1885 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${sourceTEM}"
+        },
+        "enable": false,
+        "filter": {
+          "exclude": false,
+          "ids": [
+            14,
+            15,
+            24,
+            12,
+            3,
+            2
+          ]
+        },
+        "hide": false,
+        "iconColor": "red",
+        "name": "TEM off",
+        "target": {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH target_instrument AS (\n  SELECT id, name\n  FROM instruments\n  WHERE id IN ($instrument)\n)\n\nSELECT\n  o.start_time AS time,\n  o.end_time AS timeEnd,\n  t.name || ' OFF' AS title,\n  'TEM server offline' AS text\nFROM tem_off o\nJOIN target_instrument t\n  ON o.instrument_id = t.id\n",
+          "refId": "Anno",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 59,
+  "links": [
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": [
+        "module"
+      ],
+      "targetBlank": false,
+      "title": "Modules",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    }
+  ],
+  "panels": [
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 9,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "alertInstanceLabelFilter": "",
+        "alertName": "",
+        "dashboardAlerts": true,
+        "groupBy": [],
+        "groupMode": "default",
+        "maxItems": 20,
+        "showInactiveAlerts": false,
+        "sortOrder": 1,
+        "stateFilter": {
+          "error": true,
+          "firing": true,
+          "noData": false,
+          "normal": false,
+          "pending": false,
+          "recovering": false
+        },
+        "viewMode": "list"
+      },
+      "pluginVersion": "12.0.1",
+      "title": "Module alerts",
+      "type": "alertlist"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "id": 30,
+      "panels": [],
+      "title": "Pressure",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceTEM}"
+      },
+      "description": "Venting events (Vn2al open) are annotated",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#808080",
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Pa",
+            "axisPlacement": "left",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "log": 10,
+              "type": "log"
+            },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 2,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "sci"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "id": 24,
+      "options": {
+        "legend": {
+          "calcs": [
+            "min",
+            "max",
+            "median"
+          ],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'PPal'\n    AND subsystem = 'Krios Parameters'\n    AND component = 'Vacuum'\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', v.time) AS time,\n  avg(v.value_num) AS \"PPal pressure\"\nFROM\n  data v\nWHERE\n  $__timeFilter(v.time)\n  AND v.instrument_id = $instrument\n  AND v.param_id = (\n    SELECT\n      param_id\n    FROM\n      matching_param\n  )\nGROUP BY\n  time\nORDER BY\n  time",
+          "refId": "PPal pressure",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "PPal pressure",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceTEM}"
+      },
+      "description": "Pa per 30 minutes",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#808080",
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Pa",
+            "axisPlacement": "left",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "log": 10,
+              "type": "log"
+            },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "decimals": 2,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "#EAB839",
+                "value": 0.015
+              },
+              {
+                "color": "red",
+                "value": 0.03
+              }
+            ]
+          },
+          "unit": "sci"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "id": 31,
+      "options": {
+        "legend": {
+          "calcs": [
+            "min",
+            "max",
+            "median"
+          ],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'VacuumLeakFactor'\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', v.time) AS time,\n  avg(v.value_num) AS \"Vacuum Leak Factor\"\nFROM\n  data v\nWHERE\n  $__timeFilter(v.time)\n  AND v.instrument_id = $instrument\n  AND v.param_id = (\n    SELECT\n      param_id\n    FROM\n      matching_param\n  )\nGROUP BY\n  time\nORDER BY\n  time",
+          "refId": "PPal pressure",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Vacuum leak factor",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "id": 20,
+      "panels": [],
+      "title": "Mechanics",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceTEM}"
+      },
+      "description": "Max values for all motion types are monitored",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "mode": "lcd",
+              "type": "gauge",
+              "valueDisplayMode": "text"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "lengthmm"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max Controller Output"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "volt"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 15
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green"
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 12
+                    },
+                    {
+                      "color": "orange",
+                      "value": 14
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Settling Time"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green"
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.6
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.8
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Motion Error"
+            },
+            "properties": [
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 0.15
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green"
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.08
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.12
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Position Error"
+            },
+            "properties": [
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 0.15
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green"
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.08
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.12
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 0,
+        "y": 18
+      },
+      "id": 22,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "time"
+          }
+        ]
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Autoloader', 'X', 'X.MaxControllerOut'),\n    ('Autoloader', 'X', 'X.SettlingDuration'),\n    ('Autoloader', 'X', 'X.MaxPositionError'),\n    ('Autoloader', 'X', 'X.PositionError'),\n    \n    ('Autoloader', 'ALX', 'ALX_MoveStopped_MaxControllerOut'),\n    ('Autoloader', 'ALX', 'ALX_MoveStopped_SettlingTime'),\n    ('Autoloader', 'ALX', 'ALX_MoveStopped_MaxPositionError'),\n    ('Autoloader', 'ALX', 'ALX_MoveStopped_PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.MaxControllerOut', 'Max Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Motion Error'),\n    ('X.PositionError', 'Position Error'),\n\n    ('ALX_MoveStopped_MaxControllerOut', 'Max Controller Output'),\n    ('ALX_MoveStopped_SettlingTime', 'Settling Time'),\n    ('ALX_MoveStopped_MaxPositionError', 'Motion Error'),\n    ('ALX_MoveStopped_PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nmax_values AS (\n  SELECT\n    param_name,\n    MAX(value_num) AS raw_max\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, mv.param_name) AS parameter,\n  CASE\n    WHEN mv.param_name ~* 'Position' THEN mv.raw_max * 1000  -- convert to mm\n    ELSE mv.raw_max\n  END AS max_value\nFROM max_values mv\nLEFT JOIN label_map lm ON mv.param_name = lm.param_name\nORDER BY parameter;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Cartridge axis",
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {}
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceTEM}"
+      },
+      "description": "Max values for all motion types are monitored",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "mode": "lcd",
+              "type": "gauge",
+              "valueDisplayMode": "text"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "lengthmm"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max Controller Output"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "volt"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 15
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green"
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 12
+                    },
+                    {
+                      "color": "orange",
+                      "value": 14
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Settling Time"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green"
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.6
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.8
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Motion Error"
+            },
+            "properties": [
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 0.15
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green"
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.08
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.12
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Position Error"
+            },
+            "properties": [
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 0.15
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green"
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.08
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.12
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 18
+      },
+      "id": 23,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "time"
+          }
+        ]
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Autoloader', 'Z', 'Z.MaxControllerOut'),\n    ('Autoloader', 'Z', 'Z.SettlingDuration'),\n    ('Autoloader', 'Z', 'Z.MaxPositionError'),\n    ('Autoloader', 'Z', 'Z.PositionError'),\n\n    ('Autoloader', 'ALZ', 'ALZ_MoveStopped_MaxControllerOut'),\n    ('Autoloader', 'ALZ', 'ALZ_MoveStopped_SettlingTime'),\n    ('Autoloader', 'ALZ', 'ALZ_MoveStopped_MaxPositionError'),\n    ('Autoloader', 'ALZ', 'ALZ_MoveStopped_PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Z.MaxControllerOut', 'Max Controller Output'),\n    ('Z.SettlingDuration', 'Settling Duration'),\n    ('Z.MaxPositionError', 'Motion Error'),\n    ('Z.PositionError', 'Position Error'),\n\n    ('ALZ_MoveStopped_MaxControllerOut', 'Max Controller Output'),\n    ('ALZ_MoveStopped_SettlingTime', 'Settling Time'),\n    ('ALZ_MoveStopped_MaxPositionError', 'Motion Error'),\n    ('ALZ_MoveStopped_PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.subsystem = t.subsystem\n   AND p.component = t.component\n   AND p.param_name = t.param_name\n  WHERE instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n  AND $__timeFilter(v.time)\n),\n\nmax_values AS (\n  SELECT\n    param_name,\n    MAX(value_num) AS raw_max\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, mv.param_name) AS parameter,\n  CASE\n    WHEN mv.param_name ~* 'Position' THEN mv.raw_max * 1000  -- meters to mm\n    ELSE mv.raw_max\n  END AS max_value\nFROM max_values mv\nLEFT JOIN label_map lm ON mv.param_name = lm.param_name\nORDER BY parameter;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Cassette axis",
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {}
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "id": 26,
+      "panels": [],
+      "title": "Temperatures and LN",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceTEM}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "left",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": 3600000,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "kelvin"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 23
+      },
+      "id": 27,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH matching_params AS (\n  SELECT\n    param_id,\n    display_name\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'KriosTemperatures'\n    AND param_name IN('TSample', 'Tcldwr', 'Taldwr', 'Tdocker', 'Tcassette', 'Tcartridge')\n)\n\nSELECT\n  time_bucket(INTERVAL '$__interval', v.time) AS time,\n  p.display_name,\n  AVG(v.value_num) AS temperature\nFROM\n  data v\n  JOIN matching_params p ON v.param_id = p.param_id\nWHERE\n  v.instrument_id = $instrument\n  AND $__timeFilter(v.time)\n  AND v.value_num != 0 -- filter bad values early\nGROUP BY\n  time,\n  p.display_name\nORDER BY\n  time;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Temperature",
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^temperature (.+)$",
+            "renamePattern": "$1"
+          }
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceTEM}"
+      },
+      "description": "Count any temperature outliers <70K or above 310K",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Count"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green"
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 3
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 23
+      },
+      "id": 34,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "/.*/",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": false
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH matching_params AS (\n  SELECT\n    param_id, param_name\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'KriosTemperatures'\n    AND param_name IN ('TSample', 'Tcldwr', 'Taldwr', 'Tdocker', 'Tcassette', 'Tcartridge')\n)\n\nSELECT COUNT(*) AS \"Count\",\n MAX(time) AS \"Last outlier\"\nFROM data v\nJOIN matching_params p ON v.param_id = p.param_id\nWHERE\n  v.instrument_id = $instrument\n  AND $__timeFilter(v.time)\n  AND (v.value_num < 70 OR v.value_num > 310)\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Temperature outliers",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceTEM}"
+      },
+      "description": "1) Max CRT temperature after cassette load. Time window is 3 min before cassette load counter event\n2) Avg temperature increase during load. Same time window\n3) Avg temperature recovery shows the difference between the CRT temperature 10 min after loading and the min temperature before loading. Values close to 0 indicate optimal recovery",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "kelvin"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Avg CRT temperature increase during load"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green"
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 135
+                    },
+                    {
+                      "color": "orange",
+                      "value": 145
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Avg temperature recovery 10 min after load"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green"
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 10
+                    },
+                    {
+                      "color": "orange",
+                      "value": 15
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 23
+      },
+      "id": 35,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH\n-- Get parameter IDs\ncounter_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'LoadCassetteCounter'\n),\ntemperature_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Tcartridge'\n),\n\n-- Detect counter increments (cassette load events)\ncounter_events AS (\n  SELECT\n    v.time AS event_time,\n    v.value_num,\n    LAG(v.value_num) OVER (ORDER BY v.time) AS prev_value\n  FROM data v\n  JOIN counter_param p ON v.param_id = p.param_id\n  WHERE v.instrument_id = $instrument\n    AND $__timeFilter(v.time)\n),\n\n-- Keep only the last 10 increment events\nload_events AS (\n  SELECT event_time\n  FROM (\n    SELECT event_time\n    FROM counter_events\n    WHERE prev_value IS NOT NULL AND value_num > prev_value\n    ORDER BY event_time DESC\n    LIMIT 10\n  ) sub\n),\n\n-- Pre-event temperature data (-3min to 0min)\npre_window AS (\n  SELECT\n    l.event_time,\n    t.value_num AS temperature\n  FROM load_events l\n  JOIN data t ON t.instrument_id = $instrument\n  JOIN temperature_param tp ON t.param_id = tp.param_id\n  WHERE t.time BETWEEN l.event_time - INTERVAL '3 minutes' AND l.event_time\n),\n\n-- Final result per event (with post +10 min temp via LATERAL)\nevent_metrics AS (\n  SELECT\n    l.event_time,\n    MIN(p.temperature) AS temp_min_pre,\n    MAX(p.temperature) AS temp_max_pre,\n    MAX(p.temperature) - MIN(p.temperature) AS temp_diff_pre,\n    post.temperature_at_plus10,\n    post.temperature_at_plus10 - MIN(p.temperature) AS delta_temp_plus10_minus_min_pre\n  FROM load_events l\n  LEFT JOIN pre_window p ON l.event_time = p.event_time\n  LEFT JOIN LATERAL (\n    SELECT t.value_num AS temperature_at_plus10\n    FROM data t\n    JOIN temperature_param tp ON t.param_id = tp.param_id\n    WHERE t.instrument_id = $instrument\n      AND t.time >= l.event_time + INTERVAL '10 minutes'\n    ORDER BY t.time\n    LIMIT 1\n  ) post ON TRUE\n  GROUP BY l.event_time, post.temperature_at_plus10\n)\n\n-- Final aggregated summary\nSELECT\n  MAX(temp_max_pre) AS \"Max T after cassette load\",\n  AVG(temp_diff_pre) AS \"Avg T increase during load\",\n  AVG(delta_temp_plus10_minus_min_pre) AS \"Avg T recovery 10 min after load\"\nFROM event_metrics",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "CRT temperature recovery after cassette load (last 10 loads)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceTEM}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 12,
+        "y": 28
+      },
+      "id": 29,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'CryoCycles'\n    AND param_name = 'AutoloaderCryoCycleDuration'\n),\nvalue_data AS (\n  SELECT\n    v.time,\n    v.value_num,\n    LAG(v.value_num) OVER (\n      ORDER BY\n        v.time\n    ) AS prev_value\n  FROM\n    data v\n    JOIN matching_param p ON v.param_id = p.param_id\n  WHERE\n    v.instrument_id = $instrument\n    AND $__timeFilter(v.time)\n),\nresets AS (\n  SELECT\n    time,\n    prev_value\n  FROM\n    value_data\n  WHERE\n    value_num = 0\n    AND prev_value IS NOT NULL\n    AND prev_value > 0\n)\nSELECT\n  AVG(prev_value) AS avg_max_before_reset\nFROM\n  resets",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Avg cryo cycle duration",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceTEM}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Refill"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "points"
+              },
+              {
+                "id": "custom.pointSize",
+                "value": 8
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 30
+      },
+      "id": 32,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'TempCtrl'\n    AND param_name = 'Laldwr'\n),\n\nbucketed AS (\n  SELECT\n    time_bucket('30 seconds', v.time) AS bucket,\n    AVG(v.value_num) AS avg_value\n  FROM data v\n  JOIN matching_param p ON v.param_id = p.param_id\n  WHERE v.instrument_id = $instrument\n    AND $__timeFilter(v.time)\n  GROUP BY bucket\n),\n\nlagged AS (\n  SELECT\n    bucket,\n    avg_value,\n    LAG(avg_value, 1) OVER (ORDER BY bucket) AS val_1,\n    LAG(avg_value, 2) OVER (ORDER BY bucket) AS val_2,\n    LAG(avg_value, 3) OVER (ORDER BY bucket) AS val_3\n  FROM bucketed\n),\n\nlabeled AS (\n  SELECT *,\n    CASE\n      WHEN val_3 < val_2 AND val_2 < val_1 AND val_1 < avg_value THEN true\n      ELSE false\n    END AS is_peak\n  FROM lagged\n),\n\nwith_peak_groups AS (\n  SELECT *,\n    CASE\n      WHEN is_peak AND NOT LAG(is_peak, 1, false) OVER (ORDER BY bucket) THEN 1\n      ELSE 0\n    END AS new_peak_start\n  FROM labeled\n),\n\npeak_groups AS (\n  SELECT *,\n    SUM(new_peak_start) OVER (ORDER BY bucket) AS peak_group_id\n  FROM with_peak_groups\n),\n\nranked_peaks AS (\n  SELECT\n    bucket AS time,\n    avg_value,\n    peak_group_id,\n    RANK() OVER (PARTITION BY peak_group_id ORDER BY avg_value DESC) AS val_rank\n  FROM peak_groups\n  WHERE is_peak\n),\n\ncollapsed_peaks AS (\n  SELECT\n    time,\n    avg_value AS value,\n    'Refill' AS type\n  FROM ranked_peaks\n  WHERE val_rank = 1 AND avg_value > 90\n),\n\nraw_values AS (\n  SELECT\n    bucket AS time,\n    avg_value AS value,\n    'LN level' AS type\n  FROM bucketed\n)\n\n-- Final combined output\nSELECT * FROM raw_values\nUNION ALL\nSELECT * FROM collapsed_peaks\nORDER BY time;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "AL dewar LN level",
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "value (.*)",
+            "renamePattern": "$1"
+          }
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceTEM}"
+      },
+      "description": "1) Max docker temperature after cassette load. Time window is 3 min before cassette load counter event\n2) Avg temperature increase during load. Same time window\n3) Avg temperature recovery shows the difference between the docker temperature 10 min after loading and the min temperature before loading. Values close to 0 indicate optimal recovery",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "kelvin"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Avg CRT temperature increase during load"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green"
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 135
+                    },
+                    {
+                      "color": "orange",
+                      "value": 145
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Avg temperature recovery 10 min after load"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green"
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 10
+                    },
+                    {
+                      "color": "orange",
+                      "value": 15
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 30
+      },
+      "id": 36,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH\n-- Get parameter IDs\ncounter_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'LoadCassetteCounter'\n),\ntemperature_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Tdocker'\n),\n\n-- Detect counter increments (cassette load events)\ncounter_events AS (\n  SELECT\n    v.time AS event_time,\n    v.value_num,\n    LAG(v.value_num) OVER (ORDER BY v.time) AS prev_value\n  FROM data v\n  JOIN counter_param p ON v.param_id = p.param_id\n  WHERE v.instrument_id = $instrument\n    AND $__timeFilter(v.time)\n),\n\n-- Keep only the last 10 increment events\nload_events AS (\n  SELECT event_time\n  FROM (\n    SELECT event_time\n    FROM counter_events\n    WHERE prev_value IS NOT NULL AND value_num > prev_value\n    ORDER BY event_time DESC\n    LIMIT 10\n  ) sub\n),\n\n-- Pre-event temperature data (-3min to 0min)\npre_window AS (\n  SELECT\n    l.event_time,\n    t.value_num AS temperature\n  FROM load_events l\n  JOIN data t ON t.instrument_id = $instrument\n  JOIN temperature_param tp ON t.param_id = tp.param_id\n  WHERE t.time BETWEEN l.event_time - INTERVAL '3 minutes' AND l.event_time\n),\n\n-- Final result per event (with post +10 min temp via LATERAL)\nevent_metrics AS (\n  SELECT\n    l.event_time,\n    MIN(p.temperature) AS temp_min_pre,\n    MAX(p.temperature) AS temp_max_pre,\n    MAX(p.temperature) - MIN(p.temperature) AS temp_diff_pre,\n    post.temperature_at_plus10,\n    post.temperature_at_plus10 - MIN(p.temperature) AS delta_temp_plus10_minus_min_pre\n  FROM load_events l\n  LEFT JOIN pre_window p ON l.event_time = p.event_time\n  LEFT JOIN LATERAL (\n    SELECT t.value_num AS temperature_at_plus10\n    FROM data t\n    JOIN temperature_param tp ON t.param_id = tp.param_id\n    WHERE t.instrument_id = $instrument\n      AND t.time >= l.event_time + INTERVAL '10 minutes'\n    ORDER BY t.time\n    LIMIT 1\n  ) post ON TRUE\n  GROUP BY l.event_time, post.temperature_at_plus10\n)\n\n-- Final aggregated summary\nSELECT\n  MAX(temp_max_pre) AS \"Max T after cassette load\",\n  AVG(temp_diff_pre) AS \"Avg T increase during load\",\n  AVG(delta_temp_plus10_minus_min_pre) AS \"Avg T recovery 10 min after load\"\nFROM event_metrics",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Docker temperature recovery after cassette load (last 10 loads)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceTEM}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 12,
+        "y": 31
+      },
+      "id": 33,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^avg_sec_between_refills$/",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'TempCtrl'\n    AND param_name = 'Laldwr'\n),\n\nbucketed AS (\n  SELECT\n    time_bucket('30 seconds', v.time) AS bucket,\n    AVG(v.value_num) AS avg_value\n  FROM data v\n  JOIN matching_param p ON v.param_id = p.param_id\n  WHERE v.instrument_id = $instrument\n    AND $__timeFilter(v.time)\n  GROUP BY bucket\n),\n\nlagged AS (\n  SELECT\n    bucket,\n    avg_value,\n    LAG(avg_value, 1) OVER (ORDER BY bucket) AS val_1,\n    LAG(avg_value, 2) OVER (ORDER BY bucket) AS val_2,\n    LAG(avg_value, 3) OVER (ORDER BY bucket) AS val_3\n  FROM bucketed\n),\n\nlabeled AS (\n  SELECT *,\n    CASE\n      WHEN val_3 < val_2 AND val_2 < val_1 AND val_1 < avg_value THEN true\n      ELSE false\n    END AS is_peak\n  FROM lagged\n),\n\nwith_peak_groups AS (\n  SELECT *,\n    CASE\n      WHEN is_peak AND NOT LAG(is_peak, 1, false) OVER (ORDER BY bucket) THEN 1\n      ELSE 0\n    END AS new_peak_start\n  FROM labeled\n),\n\npeak_groups AS (\n  SELECT *,\n    SUM(new_peak_start) OVER (ORDER BY bucket) AS peak_group_id\n  FROM with_peak_groups\n),\n\nranked_peaks AS (\n  SELECT\n    bucket AS time,\n    avg_value,\n    peak_group_id,\n    RANK() OVER (PARTITION BY peak_group_id ORDER BY avg_value DESC) AS val_rank\n  FROM peak_groups\n  WHERE is_peak\n),\n\ncollapsed_peaks AS (\n  SELECT\n    time\n  FROM ranked_peaks\n  WHERE val_rank = 1 AND avg_value > 95\n),\n\nwith_deltas AS (\n  SELECT\n    time,\n    LAG(time) OVER (ORDER BY time) AS prev_time\n  FROM collapsed_peaks\n),\n\ndeltas AS (\n  SELECT\n    EXTRACT(EPOCH FROM (time - prev_time)) AS sec_between\n  FROM with_deltas\n  WHERE prev_time IS NOT NULL\n)\n\nSELECT AVG(sec_between) AS avg_sec_between_refills\nFROM deltas;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Avg time between LN refills",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceTEM}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "#EAB839",
+                "value": 30
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 12,
+        "y": 34
+      },
+      "id": 37,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^cassette_loads_since_cryocycle$/",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH last_cryo AS (\n  SELECT\n    p.param_name,\n    (\n      SELECT\n        time\n      FROM\n        (\n          SELECT\n            time,\n            value_num,\n            LAG(value_num) OVER (\n              ORDER BY\n                time\n            ) AS prev_value\n          FROM\n            data\n          WHERE\n            instrument_id = $instrument\n            AND param_id = p.param_id\n        ) sub\n      WHERE\n        value_num = 0\n        AND prev_value IS DISTINCT\n      FROM\n        0\n      ORDER BY\n        time DESC\n      LIMIT\n        1\n    ) AS cryo_start_time\n  FROM\n    parameters p\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'AutoloaderCryoCycleDuration'\n),\ncassette_counter_param AS (\n  SELECT\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'LoadCassetteCounter'\n)\nSELECT\n  (max_val - min_val) AS cassette_loads_since_cryocycle\nFROM\n  last_cryo lc\n  CROSS JOIN cassette_counter_param ccp\n  CROSS JOIN LATERAL (\n    SELECT\n      MAX(value_num) AS max_val,\n      MIN(value_num) AS min_val\n    FROM\n      data\n    WHERE\n      instrument_id = $instrument\n      AND param_id = ccp.param_id\n      AND time >= lc.cryo_start_time\n  ) sub\n  ",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Cassette loads since last cryo cycle",
+      "type": "stat"
+    }
+  ],
+  "preload": false,
+  "schemaVersion": 41,
+  "tags": [
+    "module"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "tem",
+          "value": "P1F7BE6908B217B4A"
+        },
+        "hide": 2,
+        "name": "sourceTEM",
+        "options": [],
+        "query": "grafana-postgresql-datasource",
+        "refresh": 1,
+        "regex": "/^tem$/",
+        "type": "datasource"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "Krios 4 [Titan Krios G4] (4248)",
+          "value": "5"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${sourceTEM}"
+        },
+        "definition": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
+        "name": "instrument",
+        "options": [],
+        "query": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "158",
+          "value": "158"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${sourceTEM}"
+        },
+        "definition": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'AutoloaderUpStatus'",
+        "hide": 2,
+        "name": "param_id_autoloader",
+        "options": [],
+        "query": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'AutoloaderUpStatus'",
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "439",
+          "value": "439"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${sourceTEM}"
+        },
+        "definition": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'TemperatureControlUpStatus'",
+        "hide": 2,
+        "name": "param_id_tempctrl",
+        "options": [],
+        "query": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'TemperatureControlUpStatus'",
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "2025-04-25T18:23:24.306Z",
+    "to": "2025-05-29T15:37:18.691Z"
+  },
+  "timepicker": {
+    "refresh_intervals": []
+  },
+  "timezone": "Europe/London",
+  "title": "Module | Autoloader",
+  "uid": "4395e67b-0280-47fd-94a8-655603f10800",
+  "version": 4
+}

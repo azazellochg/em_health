@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "em_health"
+dynamic = ["version"]
+authors = [{name = "Grigory Sharov", email = "gsharov@mrc-lmb.cam.ac.uk"}]
+description = "See https://github.com/azazellochg/em_health for more details"
+readme = {file = "README.rst", content-type = "text/x-rst"}
+requires-python = "<3.13"
+keywords = ["microscope", "health monitoring", "TEM", "SEM"]
+classifiers=[
+    'Development Status :: 3 - Alpha',
+    'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+    'Programming Language :: Python :: 3',
+    'Operating System :: POSIX :: Linux',
+]
+license = {file = "LICENSE"}
+dependencies = [
+    'psycopg2',
+    'watchdog'
+]
+
+[project.optional-dependencies]
+dev = ["mypy", "memory-profiler"]
+
+[project.urls]
+Homepage = "https://github.com/azazellochg/em_health"
+Issues = "https://github.com/azazellochg/em_health/issues"
+
+[project.scripts]
+import_xml = "em_health.utils.import_xml:main"
+create_task = "em_health.utils.create_task:main"
+watch_xml = "em_health.utils.watcher:main"
+db_manager = "em_health.db_manager:main"
+db_analyze = "em_health.db_performance.db_analyze:main"
+
+[tool.setuptools.packages.find]
+where = ["em_health"]
+
+[tool.setuptools.package-data]
+db_performance = ["*.sql"]
+
+[tool.setuptools.dynamic]
+version = {attr = "em_health.__version__"}

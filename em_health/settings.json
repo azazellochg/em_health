@@ -1,0 +1,74 @@
+[
+    {
+        "instrument": "3299, Titan KRIOS",
+        "serial": 3299,
+        "model": "Titan Krios G2",
+        "name": "Krios 1",
+        "type": "tem",
+        "template": "krios",
+        "server": "192.168.69.2"
+    },
+    {
+        "instrument": "3413, Titan Krios",
+        "serial": 3413,
+        "model": "Titan Krios G2",
+        "name": "Krios 2",
+        "type": "tem",
+        "template": "krios",
+        "server": "192.168.70.2"
+    },
+    {
+        "instrument": "3593, Titan Krios G3i (3.1)",
+        "serial": 3593,
+        "model": "Titan Krios G3i",
+        "name": "Krios 3",
+        "type": "tem",
+        "template": "krios",
+        "server": "192.168.68.2"
+    },
+    {
+        "instrument": "4248, Krios G4 (4.1)",
+        "serial": 4248,
+        "model": "Titan Krios G4",
+        "name": "Krios 4",
+        "type": "tem",
+        "template": "krios",
+        "server": "192.168.76.2"
+    },
+    {
+        "instrument": "9952833, Glacios",
+        "serial": 9952833,
+        "model": "Glacios",
+        "name": "Glacios",
+        "type": "tem",
+        "template": "talos",
+        "server": "192.168.72.2"
+    },
+    {
+        "instrument": "9923526, Scios",
+        "serial": 9923526,
+        "model": "Scios",
+        "name": "Scios",
+        "type": "sem",
+        "template": "sem",
+        "server": "192.168.75.2"
+    },
+    {
+        "instrument": "9960381, Aquilos",
+        "serial": 9960381,
+        "model": "Aquilos 2+",
+        "name": "Aquilos",
+        "type": "sem",
+        "template": "sem",
+        "server": "192.168.73.4"
+    },
+        {
+        "instrument": "9960963, Arctis",
+        "serial": 9960963,
+        "model": "Arctis",
+        "name": "Arctis",
+        "type": "sem",
+        "template": "sem",
+        "server": "192.168.79.2"
+    }
+]
