@@ -24,7 +24,7 @@ for db in tem sem; do
           model TEXT NOT NULL,
           name TEXT NOT NULL,
           template TEXT NOT NULL,
-          server TEXT NOT NULL
+          server inet NOT NULL
       );
 
       CREATE TABLE IF NOT EXISTS enumerations (

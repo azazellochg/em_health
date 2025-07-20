@@ -118,7 +118,7 @@ class DatabaseClient:
                 serial = EXCLUDED.serial,
                 model = EXCLUDED.model,
                 name = EXCLUDED.name,
-                template = EXCLUDED.template
+                template = EXCLUDED.template,
                 server = EXCLUDED.server
             RETURNING id;
         """, (
