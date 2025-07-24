@@ -23,6 +23,7 @@
 # *  e-mail address 'gsharov@mrc-lmb.cam.ac.uk'
 # *
 # **************************************************************************
+
 import os
 import sys
 import argparse
@@ -54,10 +55,10 @@ class CreateTaskCmd:
         instrument = self.microscope["instrument"]
         task_file = f"{self.serial}_export_hm_data.cmd"
         xml_file = f"{self.serial}_data.xml"
-        cmd_content = f'''"{self.exe}" -e -r 2 -t 1 -f {xml_file} -s {server} -i "{instrument}" --remove true
+        cmd_content = f'''"{self.exe}" -e -r 1 -t 1 -f {xml_file} -s {server} -i "{instrument}" --remove true
 
 @REM -e export
-@REM -r 2 last day (1 - last hour, 3 - last week, 4 - last two weeks, 5 - last month, 6 - last quarter, 7 - last year)
+@REM -r 1 last hour (2 - last day, 3 - last week, 4 - last two weeks, 5 - last month, 6 - last quarter, 7 - last year)
 @REM -t 1 xml format
 @REM -f output filename. Use full path to a shared network drive.
 @REM -s DataServices server (hostname or IP of the microscope PC)
@@ -99,24 +100,24 @@ def main():
 
     # Validate JSON file
     if not (os.path.exists(json_fn) and json_fn.endswith(".json")):
-        logger.error(f"Settings file '{json_fn}' not found or is not a .json file.")
+        logger.error("Settings file '%s' not found or is not a .json file.", json_fn)
         sys.exit(1)
 
     try:
         with open(json_fn, encoding="utf-8") as f:
             json_info = json.load(f)
             if not json_info:
-                logger.error(f"Settings file '{json_fn}' is empty or invalid.")
+                logger.error("Settings file '%s' is empty or invalid", json_fn)
                 sys.exit(1)
             logger.debug("Loaded json_info: %s", json_info)
     except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse JSON file '{json_fn}': {e}")
+        logger.error("Failed to parse JSON file '%s': %s", json_fn, e)
         sys.exit(1)
 
     # Validate serial exists in JSON
     microscope = next((m for m in json_info if m.get("serial") == serial), None)
     if microscope is None:
-        logger.error(f"Instrument with serial #{serial} not found in {json_fn}")
+        logger.error("Instrument with serial #%d not found in %s", serial, json_fn)
         sys.exit(1)
 
     # Create a task
