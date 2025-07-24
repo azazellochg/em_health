@@ -262,16 +262,15 @@ class DatabaseManager(DatabaseClient):
             self.run_query("""
                 SELECT delete_job(job_id)
                 FROM timescaledb_information.jobs
-                WHERE proc_name = '{proc}'
-            """, {"proc": proc})
+                WHERE proc_name = {proc}
+            """, strings={"proc": proc})
 
             self.run_query("DROP PROCEDURE IF EXISTS {name}", {"name": name})
         logger.info("Dropped materialized view %s", name)
 
     def schedule_mview_refresh(self, name: str, period: str = '1d') -> None:
         """ Schedule a materialized view refresh. """
-        proc = f"public.refresh_{name}"
-        job = f"refresh_{name}"
+        proc = f"refresh_{name}"
 
         self.run_query("""
             CREATE OR REPLACE PROCEDURE {proc}(
@@ -280,22 +279,22 @@ class DatabaseManager(DatabaseClient):
             )
             LANGUAGE SQL
             AS $$
-              REFRESH MATERIALIZED VIEW {name};
+              REFRESH MATERIALIZED VIEW {proc};
             $$;
-        """, {"proc": proc, "name": name})
+        """, {"proc": proc})
 
-        self.run_query("SELECT add_job('{job}', '{period}')",
-                       {"job": job, "period": period})
+        self.run_query("SELECT add_job({proc}, {period})",
+                       strings={"proc": proc, "period": period})
         logger.info("Scheduled refresh for %s every %s", name, period)
 
     def schedule_cagg_refresh(self, name: str) -> None:
         """ Schedule a cont. Aggregate refresh. """
         self.run_query("""
-            SELECT add_continuous_aggregate_policy('{name}',
+            SELECT add_continuous_aggregate_policy({name},
             start_offset => INTERVAL '7 days',
             end_offset => INTERVAL '6 hours',
             schedule_interval => INTERVAL '12 hours')
-        """, {"name": name})
+        """, strings={"name": name})
         logger.info("Scheduled continuous aggregate refresh for %s", name)
 
     def force_refresh_cagg(self, name: str) -> None:
@@ -309,8 +308,8 @@ class DatabaseManager(DatabaseClient):
         up to the current start_offset to allow real-time queries to run efficiently.
         """
         self.conn.autocommit = True # required since CALL cannot be executed inside a transaction
-        self.run_query("CALL refresh_continuous_aggregate('{name}', NULL, localtimestamp - INTERVAL '1 week')",
-                       {"name": name})
+        self.run_query("CALL refresh_continuous_aggregate({name}, NULL, localtimestamp - INTERVAL '1 week')",
+                       strings={"name": name})
         self.conn.autocommit = False
         logger.info("Forced continuous aggregate refresh for %s", name)
 

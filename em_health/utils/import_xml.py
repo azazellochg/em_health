@@ -264,7 +264,7 @@ def main(argv=None):
                         help="Path to XML file (.xml or .xml.gz)")
     parser.add_argument("-s", dest="settings", required=True,
                         help="Path to settings.json with microscopes metadata")
-    parser.add_argument("--no-copy", dest="nocopy", type=bool, default=False,
+    parser.add_argument("--no-copy", dest="nocopy", action="store_true",
                         help="Do not use fast COPY method. Useful for small imports "
                              "when your data might contain duplicates.")
     args = parser.parse_args(argv)
