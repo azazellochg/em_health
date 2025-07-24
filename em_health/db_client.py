@@ -25,12 +25,12 @@
 # **************************************************************************
 
 import os
-from itertools import islice
-import psycopg2
-from psycopg2.extras import execute_values
-from typing import Literal, Iterable, Optional
+import psycopg
+from psycopg import sql
+from pathlib import Path
+from typing import Literal, Optional, Dict, Any
 
-from em_health.utils.logs import logger, profile
+from em_health.utils.logs import logger
 
 
 class DatabaseClient:
@@ -53,7 +53,7 @@ class DatabaseClient:
     def __enter__(self):
         """ Establish connection to the database. """
         try:
-            self.conn = psycopg2.connect(
+            self.conn = psycopg.connect(
                 host=self.host,
                 port=5432,
                 dbname=self.db_name,
@@ -69,7 +69,7 @@ class DatabaseClient:
             raise
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """ Exit on error. """
+        """ Rollback changes and exit on error. """
         if self.cur:
             self.cur.close()
         if self.conn:
@@ -89,171 +89,94 @@ class DatabaseClient:
             self.conn.close()
             logger.info("Connection closed.")
 
-    def clean_db(self):
-        """ Erase all tables in the database. """
-        self.cur.execute("""
+    def execute_file(self, fn) -> None:
+        """ Execute an SQL file.
+        :param fn: Path to the .sql file.
+        """
+        if not os.path.exists(fn):
+            raise FileNotFoundError(fn)
+        with open(fn) as f:
+            raw_sql = f.read()
+
+        self.cur.execute(raw_sql)
+        self.conn.commit()
+
+    def clean_db(self) -> None:
+        """ Erase all public tables in the database. """
+        tables = self.run_query("""
             SELECT tablename
             FROM pg_tables
             WHERE schemaname = 'public';
-        """)
+        """, mode="fetchall")
 
-        tables = self.cur.fetchall()
         for table in tables:
             table_name = table[0]
-            self.cur.execute(f"DROP TABLE IF EXISTS public.{table_name} CASCADE;")
+            self.run_query("DROP TABLE IF EXISTS public.{table} CASCADE",
+                           {"table": table_name})
             logger.info("Dropped table: %s", table_name)
 
         self.conn.commit()
 
-    def add_instrument(self, instr_dict: dict) -> int:
-        """ Populate the instrument metadata table.
-        :param instr_dict: input dict with microscope metadata
+    def create_tables(self) -> None:
+        """ Create tables in the database. """
+        fn = self.get_path("init-tables.sql", folder="../docker")
+        self.execute_file(fn)
+        logger.info("Created public tables")
+
+    def run_query(
+            self,
+            query: str,
+            identifiers: Optional[Dict[str, str]] = None,
+            strings: Optional[Dict[str, Any]] = None,
+            values: Optional[tuple] = None,
+            mode: Literal["fetchone", "fetchmany", "fetchall", "commit", None] = "commit",
+            row_factory: Optional[Any] = None,
+    ):
         """
-        self.cur.execute("""
-            INSERT INTO public.instruments (
-                instrument, serial, model, name, template, server
-            ) VALUES (%s, %s, %s, %s, %s, %s)
-            ON CONFLICT (instrument)
-            DO UPDATE SET
-                serial = EXCLUDED.serial,
-                model = EXCLUDED.model,
-                name = EXCLUDED.name,
-                template = EXCLUDED.template,
-                server = EXCLUDED.server
-            RETURNING id;
-        """, (
-            str(instr_dict["instrument"]),
-            int(instr_dict["serial"]),
-            str(instr_dict["model"]),
-            str(instr_dict["name"]),
-            str(instr_dict["template"]),
-            str(instr_dict["server"])
-        ))
+        Execute an SQL query and optionally return results.
 
-        self.conn.commit()
-        logger.info("Updated instruments table (item %s)", instr_dict["name"])
-        instrument_id = self.cur.fetchone()[0]
-
-        return instrument_id
-
-    def add_enumerations(self,
-                         instrument_id: int,
-                         enums_dict: dict) -> dict:
-        """ Populate the enumerations for TEM or SEM.
-        Each enum value is stored as a separate SQL row.
-        :param instrument_id: Instrument id
-        :param enums_dict: input dict
-        :return a dict {enum_type: enum_id}
+        :param query: SQL query string with placeholders for identifiers and literals.
+        :param identifiers: dict for table/column identifiers, safely quoted.
+        :param strings: dict for literal values to be embedded (strings, etc.).
+        :param values: tuple for parameterized query values (%s placeholders).
+        :param mode: fetch mode or commit.
+        :param row_factory: cursor row factory to customize row output.
         """
-        output_dict = {}
-        logger.info("Found %d enumerations (%s values)",
-                    len(enums_dict), sum(len(inner) for inner in enums_dict.values()))
+        if row_factory is not None:
+            self.cur.row_factory = row_factory
 
-        # Get max enum_id
-        self.cur.execute("""
-            SELECT COALESCE(MAX(enum_id), 0)
-            FROM public.enumerations
-            WHERE instrument_id = %s;
-        """, (instrument_id,))
+        # Compose SQL query with identifiers and literals
+        sql_query = sql.SQL(query)
+        format_args = {}
 
-        max_enum_id = self.cur.fetchone()[0]
-        new_enum_id = max_enum_id + 1
+        if identifiers:
+            format_args.update({k: sql.Identifier(v) for k, v in identifiers.items()})
+        if strings:
+            format_args.update({k: sql.Literal(v) for k, v in strings.items()})
 
-        # Prepare insert statement
-        insert_sql = """
-            INSERT INTO public.enumerations (
-            instrument_id, enum_id, enum, name, value
-            )
-            VALUES (%s, %s, %s, %s, %s)
-            ON CONFLICT DO NOTHING;
+        sql_query = sql_query.format(**format_args)
+        logger.debug("Executing query:\n%s", sql_query.as_string(self.conn))
+
+        self.cur.execute(sql_query, values)
+
+        if mode == "fetchone":
+            return self.cur.fetchone()
+        if mode == "fetchmany":
+            return self.cur.fetchmany()
+        if mode == "fetchall":
+            return self.cur.fetchall()
+        if mode == "commit":
+            self.conn.commit()
+        # else None implicitly returned
+
+    @staticmethod
+    def get_path(target: str, folder: Optional[str] = None) -> Path:
+        """ Build a full path starting from the current file's directory.
+        :param target: Target file name.
+        :param folder: Optional subfolder name.
+        :return: Absolute Path object.
         """
-
-        # Batch inserts
-        for enum, enum_values in enums_dict.items():
-            data_to_insert = [
-                (instrument_id, new_enum_id, enum, name, value)
-                for name, value in enum_values.items()
-            ]
-            self.cur.executemany(insert_sql, data_to_insert)
-            output_dict[enum] = new_enum_id
-            new_enum_id += 1
-
-        self.cur.execute("SELECT COUNT(*) FROM public.enumerations;")
-        row_count = self.cur.fetchone()[0]
-        self.conn.commit()
-        logger.info("Updated enumerations table (total %d rows)", row_count)
-
-        return output_dict
-
-    def add_parameters(self,
-                       instrument_id: int,
-                       params_dict: dict,
-                       enums_dict: dict) -> None:
-        """ Populate parameters table with associated metadata.
-        :param instrument_id: Instrument id
-        :param params_dict: input params dict
-        :param enums_dict: input enums dict
-        """
-        logger.info("Found %d parameters", len(params_dict))
-
-        for param_id, p_dict in params_dict.items():
-            enum_type = p_dict.get("enum")
-            enum_id = enums_dict.get(enum_type) if enum_type else None
-
-            self.cur.execute("""
-                INSERT INTO public.parameters (
-                    instrument_id,
-                    param_id, subsystem, component, param_name, display_name,
-                    display_unit, storage_unit, display_scale, enum_id, value_type
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT DO NOTHING;
-            """, (
-                instrument_id,
-                param_id,
-                p_dict["subsystem"],
-                p_dict["component"],
-                p_dict["name"],
-                p_dict["display_name"],
-                p_dict["display_unit"],
-                p_dict["storage_unit"],
-                p_dict["display_scale"],
-                enum_id,
-                p_dict["type"]
-            ))
-
-        self.cur.execute("SELECT COUNT(*) FROM public.parameters;")
-        row_count = self.cur.fetchone()[0]
-        self.conn.commit()
-        logger.info("Updated parameters table (total %d items)", row_count)
-
-    #@profile
-    def write_data(self,
-                   rows: Iterable,
-                   batch_size: int = 15000) -> None:
-        """ Write raw values to the data table.
-        We do not sort input data, since:
-         - for each parameter XML file has a batch of datapoints already sorted by time
-         - TimescaleDB data table has chunking with compression, chunks will be sorted by time
-        """
-        query = """
-           INSERT INTO public.data (
-               time, instrument_id, param_id, value_num, value_text
-           ) VALUES %s
-           ON CONFLICT DO NOTHING;
-        """
-
-        def batch_iterator(iterable, batch_size):
-            """Yield batches of a specified size from the iterator."""
-            while True:
-                batch = list(islice(iterable, batch_size))
-                if not batch:
-                    break
-                yield batch
-
-        for batch in batch_iterator(rows, batch_size):
-            execute_values(self.cur, query, batch, page_size=1000)
-        self.conn.commit()
-
-        self.cur.execute("SELECT COUNT(*) FROM public.data;")
-        row_count = self.cur.fetchone()[0]
-        logger.info("Updated data table (total %d items)", row_count)
+        base_dir = Path(__file__).parent
+        if folder:
+            return (base_dir / folder / target).resolve()
+        return (base_dir / target).resolve()

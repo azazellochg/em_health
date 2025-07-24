@@ -23,8 +23,9 @@
 # *  e-mail address 'gsharov@mrc-lmb.cam.ac.uk'
 # *
 # **************************************************************************
+
 import argparse
-import pathlib
+from psycopg.rows import dict_row
 
 from em_health.db_manager import DatabaseManager
 from em_health.utils.logs import logger
@@ -35,19 +36,14 @@ class DatabaseAnalyzer(DatabaseManager):
     analyze database performance. Metrics are based on
     https://github.com/pganalyze/collector
     """
-    @staticmethod
-    def get_path(fn):
-        """ Return the path to the file in this directory. """
-        return pathlib.Path(__file__).parent.resolve() / fn
-
     def create_metric_tables(self) -> None:
         """ Create tables to store metrics data. """
-        self.execute_file(self.get_path('create_metric_tables.sql'))
+        self.execute_file(self.get_path("create_metric_tables.sql", folder="db_performance"))
         logger.info("Created pganalyze tables")
 
     def create_metric_collectors(self) -> None:
         """ Create functions to collect statistics. """
-        self.execute_file(self.get_path('create_metric_funcs.sql'))
+        self.execute_file(self.get_path("create_metric_funcs.sql", folder="db_performance"))
         logger.info("Created pganalyze procedures")
 
     def schedule_metric_jobs(self) -> None:
@@ -60,7 +56,7 @@ class DatabaseAnalyzer(DatabaseManager):
             "SELECT add_job('pganalyze.get_index_stats', schedule_interval=>'10 minutes'::interval);",
         ]
         for j in jobs:
-            self.run_query(sql=j)
+            self.run_query(query=j)
         logger.info("Scheduled pganalyze jobs")
 
 
@@ -101,9 +97,8 @@ def main():
             custom_query = "EXPLAIN (ANALYZE, BUFFERS) " + custom_query
 
         with DatabaseAnalyzer(dbname) as db:
-            result = db.run_query(custom_query, mode="fetchall")
-            for row in result:
-                print(row)
+            result = db.run_query(custom_query, mode="fetchall", row_factory=dict_row)
+            print(result)
 
     else:
         print("No options specified")

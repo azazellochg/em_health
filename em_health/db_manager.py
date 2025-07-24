@@ -23,70 +23,242 @@
 # *  e-mail address 'gsharov@mrc-lmb.cam.ac.uk'
 # *
 # **************************************************************************
+
 import argparse
-import os
-from typing import Literal, Callable
+from itertools import islice
+from datetime import datetime, timezone
+import io
+from typing import Iterable, Optional
 
 from em_health.db_client import DatabaseClient
-from em_health.utils.logs import logger
+from em_health.utils.logs import logger, profile
 
 
 class DatabaseManager(DatabaseClient):
     """ Manager class to operate on existing db.
-    Creating materialized views for dashboards.
     Example usage:
         with DatabaseManager(dbname) as db:
             ...
     """
-    def run_query(
-            self,
-            sql: str,
-            mode: Literal["fetchone", "fetchmany", "fetchall", "commit", None] = "commit"
-    ):
-        """ Execute an SQL query and optionally return the results. """
-        logger.debug(f"Executing query:\n{sql}")
-        self.cur.execute(sql)
+    def clean_instrument_data(self,
+                              instrument_serial: int,
+                              since: Optional[str] = None) -> None:
+        """ Erase data for a particular instrument. """
+        row = self.run_query("SELECT id FROM public.instruments WHERE serial = %s",
+                             values=(instrument_serial,),
+                             mode="fetchone")
+        instrument_id = row[0] if row else None
 
-        if mode == "fetchone":
-            return self.cur.fetchone()
-        elif mode == "fetchmany":
-            return self.cur.fetchmany()
-        elif mode == "fetchall":
-            return self.cur.fetchall()
-        elif mode == "commit":
-            self.conn.commit()
-            return None
+        if instrument_id is None:
+            logger.error("No such instrument: %d", instrument_serial)
+            raise ValueError("Wrong serial number")
+
+        if since is None:
+            # delete all data for instrument
+            self.run_query("DELETE FROM public.data WHERE instrument_id = %s",
+                           values=(instrument_id,))
+            self.run_query("DELETE FROM public.parameters WHERE instrument_id = %s",
+                           values=(instrument_id,))
+            self.run_query("DELETE FROM public.enumerations WHERE instrument_id = %s",
+                           values=(instrument_id,))
+            self.run_query("DELETE FROM public.instruments WHERE id = %s",
+                           values=(instrument_id,))
+            logger.info("Deleted instrument %s", instrument_serial)
         else:
-            return None
-
-    def execute_file(self, fn) -> None:
-        """ Execute an SQL file. """
-        if not os.path.exists(fn):
-            raise FileNotFoundError(fn)
-
-        with open(fn, 'r') as f:
-            sql = f.read()
-            self.cur.execute(sql)
+            from_date = datetime.strptime(since, "%d-%m-%Y").replace(tzinfo=timezone.utc)
+            self.run_query("DELETE FROM public.data WHERE instrument_id = %s AND time < %s",
+                           values=(instrument_id, from_date))
+            logger.info("Deleted data older than %s for instrument %s",
+                        from_date, instrument_serial)
 
         self.conn.commit()
 
+    def add_instrument(self, instr_dict: dict) -> int:
+        """ Populate the instrument metadata table.
+        :param instr_dict: input dict with microscope metadata
+        :return: id of a newly created instrument
+        """
+        row = self.run_query("""
+            INSERT INTO public.instruments (
+                instrument, serial, model, name, template, server
+            ) VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (instrument)
+            DO UPDATE SET
+                serial = EXCLUDED.serial,
+                model = EXCLUDED.model,
+                name = EXCLUDED.name,
+                template = EXCLUDED.template,
+                server = EXCLUDED.server
+            RETURNING id
+        """, values=(
+            str(instr_dict["instrument"]),
+            int(instr_dict["serial"]),
+            str(instr_dict["model"]),
+            str(instr_dict["name"]),
+            str(instr_dict["template"]),
+            str(instr_dict["server"])
+        ), mode="fetchone")
+
+        logger.info("Updated instruments table (item %s)", instr_dict["name"])
+        instrument_id = row[0] if row else None
+
+        return instrument_id
+
+    def add_enumerations(self,
+                         instrument_id: int,
+                         enums_dict: dict) -> dict:
+        """ Populate the enumerations for TEM or SEM.
+        Each enum value is stored as a separate SQL row.
+        :param instrument_id: Instrument id
+        :param enums_dict: input dict
+        :return a dict {enum_type: enum_id}
+        """
+        output_dict = {}
+        logger.info("Found %d enumerations (%s values)",
+                    len(enums_dict), sum(len(inner) for inner in enums_dict.values()))
+
+        # Get max enum_id
+        row = self.run_query("""
+            SELECT COALESCE(MAX(enum_id), 0)
+            FROM public.enumerations
+            WHERE instrument_id = %s
+        """, values=(instrument_id,), mode="fetchone")
+
+        max_enum_id = row[0]
+        new_enum_id = max_enum_id + 1
+
+        # Prepare insert statement
+        insert_sql = """
+            INSERT INTO public.enumerations (
+            instrument_id, enum_id, enum, name, value
+            )
+            VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT DO NOTHING
+        """
+
+        # Batch inserts
+        for enum, enum_values in enums_dict.items():
+            data_to_insert = [
+                (instrument_id, new_enum_id, enum, name, value)
+                for name, value in enum_values.items()
+            ]
+            self.cur.executemany(insert_sql, data_to_insert)
+            output_dict[enum] = new_enum_id
+            new_enum_id += 1
+
+        row = self.run_query("SELECT COUNT(*) FROM public.enumerations", mode="fetchone")
+        row_count = row[0] if row else None
+        self.conn.commit()
+        logger.info("Updated enumerations table (total %d rows)", row_count)
+
+        return output_dict
+
+    def add_parameters(self,
+                       instrument_id: int,
+                       params_dict: dict,
+                       enums_dict: dict) -> None:
+        """ Populate parameters table with associated metadata.
+        :param instrument_id: Instrument id
+        :param params_dict: input params dict
+        :param enums_dict: input enums dict
+        """
+        logger.info("Found %d parameters", len(params_dict))
+
+        insert_sql = """
+            INSERT INTO public.parameters (
+                instrument_id,
+                param_id, subsystem, component, param_name, display_name,
+                display_unit, storage_unit, display_scale, enum_id, value_type
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT DO NOTHING
+        """
+
+        # Batch inserts
+        data_to_insert = [
+            (
+                instrument_id,
+                param_id,
+                p_dict["subsystem"],
+                p_dict["component"],
+                p_dict["name"],
+                p_dict["display_name"],
+                p_dict["display_unit"],
+                p_dict["storage_unit"],
+                p_dict["display_scale"],
+                enums_dict.get(enum) if (enum := p_dict.get("enum")) else None,
+                p_dict["type"]
+            ) for param_id, p_dict in params_dict.items()
+        ]
+
+        self.cur.executemany(insert_sql, data_to_insert)
+
+        row = self.run_query("SELECT COUNT(*) FROM public.parameters", mode="fetchone")
+        row_count = row[0] if row else None
+        self.conn.commit()
+        logger.info("Updated parameters table (total %d items)", row_count)
+
+    @profile
+    def write_data(self,
+                   rows: Iterable[str],
+                   chunk_size: int = 65536) -> None:
+        """ Write raw values to the data table using COPY and a pre-serialized text buffer.
+        We do not sort input data, since:
+         - for each parameter XML file has a batch of datapoints already sorted by time
+         - TimescaleDB data table has chunking with compression, chunks will be sorted by time
+
+        :param rows: Iterable of tab-separated strings
+        :param chunk_size: Max size in bytes per COPY write
+        """
+        query = """
+           COPY public.data (time, instrument_id, param_id, value_num, value_text)
+           FROM STDIN WITH (FORMAT text)
+        """
+
+        def stream_chunks(rows: Iterable[str], max_size: int) -> Iterable[str]:
+            buffer = []
+            size = 0
+            for row in rows:
+                row += "\n"
+                size += len(row.encode("utf-8"))
+                buffer.append(row)
+                if size >= max_size:
+                    yield ''.join(buffer)
+                    buffer.clear()
+                    size = 0
+            if buffer:
+                yield ''.join(buffer)
+
+        with self.cur.copy(query) as copy:
+            for chunk in stream_chunks(rows, chunk_size):
+                copy.write(chunk)
+
+        row = self.run_query("SELECT COUNT(*) FROM public.data", mode="fetchone")
+        row_count = row[0] if row else None
+        logger.info("Updated data table (total %d items)", row_count)
+
     def drop_mview(self, name: str, is_cagg: bool = False) -> None:
         """ Delete a materialized view. """
-        self.run_query(f"DROP MATERIALIZED VIEW IF EXISTS {name} CASCADE;")
+        self.run_query("DROP MATERIALIZED VIEW IF EXISTS {name} CASCADE",
+                       {"name": name})
         if not is_cagg:
             # for standard mat. views we need to manually remove the job
-            self.run_query(f"""
+            proc = f"refresh_{name}"
+            self.run_query("""
                 SELECT delete_job(job_id)
                 FROM timescaledb_information.jobs
-                WHERE proc_name = 'refresh_{name}';
-            """)
-            self.run_query(f"DROP PROCEDURE IF EXISTS {name};")
+                WHERE proc_name = '{proc}'
+            """, {"proc": proc})
+
+            self.run_query("DROP PROCEDURE IF EXISTS {name}", {"name": name})
         logger.info("Dropped materialized view %s", name)
 
     def schedule_mview_refresh(self, name: str, period: str = '1d') -> None:
         """ Schedule a materialized view refresh. """
-        self.run_query(sql=f"""
-            CREATE OR REPLACE PROCEDURE public.refresh_{name}(
+        proc = f"public.refresh_{name}"
+        job = f"refresh_{name}"
+
+        self.run_query("""
+            CREATE OR REPLACE PROCEDURE {proc}(
                 job_id int,
                 config jsonb
             )
@@ -94,18 +266,20 @@ class DatabaseManager(DatabaseClient):
             AS $$
               REFRESH MATERIALIZED VIEW {name};
             $$;
-        """)
-        self.run_query(sql=f"SELECT add_job('refresh_{name}', '{period}');")
+        """, {"proc": proc, "name": name})
+
+        self.run_query("SELECT add_job('{job}', '{period}')",
+                       {"job": job, "period": period})
         logger.info("Scheduled refresh for %s every %s", name, period)
 
     def schedule_cagg_refresh(self, name: str) -> None:
         """ Schedule a cont. Aggregate refresh. """
-        self.run_query(sql=f"""
+        self.run_query("""
             SELECT add_continuous_aggregate_policy('{name}',
             start_offset => INTERVAL '7 days',
             end_offset => INTERVAL '6 hours',
-            schedule_interval => INTERVAL '12 hours');
-        """)
+            schedule_interval => INTERVAL '12 hours')
+        """, {"name": name})
         logger.info("Scheduled continuous aggregate refresh for %s", name)
 
     def force_refresh_cagg(self, name: str) -> None:
@@ -119,467 +293,48 @@ class DatabaseManager(DatabaseClient):
         up to the current start_offset to allow real-time queries to run efficiently.
         """
         self.conn.autocommit = True
-        self.run_query(f"CALL refresh_continuous_aggregate('{name}', NULL, localtimestamp - INTERVAL '1 week');")
+        self.run_query("CALL refresh_continuous_aggregate('{name}', NULL, localtimestamp - INTERVAL '1 week')",
+                       {"name": name})
         self.conn.autocommit = False
         logger.info("Forced continuous aggregate refresh for %s", name)
 
-    def create_mview(self, viewname: str) -> None:
+    def create_mview(self, name: str) -> None:
         """ Create a new materialized view or a continuous aggregate. """
-        func: Callable[[str], None] = {
-            "tem_off": self.create_mview_tem_off,
-            "vacuum_state_daily": self.create_mview_vacuum,
-
-            "epu_sessions": self.create_mview_acq_sessions,
-            "tomo_sessions": self.create_mview_acq_sessions,
-
-            "epu_acquisition_daily": self.create_mview_acq_duration,
-            "tomo_acquisition_daily": self.create_mview_acq_duration,
-            "epu_counters": self.create_mview_epu_counters,
-            "tomo_counters": self.create_mview_tomo_counters,
-
-            "load_counters_daily": self.create_mview_autoloader_counters,
-            "data_counters_daily": self.create_mview_acquired_data,
-            "image_counters_daily": self.create_mview_acquired_images
-        }.get(viewname)
-
-        if func is None:
-            raise Exception(f"Unknown view: {viewname}")
-
-        func(viewname)
-        logger.info("Created materialized view %s", viewname)
-
-    ########## Mat views and aggregates #######################################
-    def create_mview_vacuum(self, name: str) -> None:
-        """ Create a materialized view of vacuum states. """
-        self.run_query(f"""
-            CREATE MATERIALIZED VIEW IF NOT EXISTS {name} AS
-            WITH vacuum_param AS (
-              SELECT instrument_id, param_id, enum_id
-              FROM parameters
-              WHERE param_name = 'VacuumState'
-            ),
-            
-            -- map enum values to open/closed/cryocycle/unknown states
-            enum_states AS (
-              SELECT
-                e.instrument_id,
-                e.value AS enum_value_num,
-                CASE
-                  WHEN e.name IN (
-                    'ColumnConditioning', 'Column Conditioning', 'TMPmOnColumn',
-                    'CryoCycle', 'Cryo Cycle', 'CryoCycle_Time', 'CryoCycle_Delay'
-                  ) THEN 'cryocycle'
-                  WHEN e.name IN (
-                    'All Vacuum [Closed]', 'AllVacuumColumnValvesClosed', 'AllVacuum_LinersClosed'
-                  ) THEN 'closed'
-                  WHEN e.name IN (
-                    'All Vacuum [Opened]', 'AllVacuumColumnValvesOpened', 'AllVacuum_LinersOpened'
-                  ) THEN 'open'
-                  ELSE 'unknown'
-                END AS state
-              FROM enumerations e
-              WHERE (e.instrument_id, e.enum_id) IN (
-                SELECT instrument_id, enum_id FROM vacuum_param
-              )
-            ),
-            
-            -- filter all vacuum states to get durations of 3 states above
-            vacuum_events AS (
-              SELECT
-                d.instrument_id,
-                d.time AS start_time,
-                LEAD(d.time) OVER (PARTITION BY d.instrument_id ORDER BY d.time) AS end_time,
-                es.state
-              FROM data d
-              JOIN enum_states es
-                ON d.value_num = es.enum_value_num AND d.instrument_id = es.instrument_id
-              WHERE (d.instrument_id, d.param_id) IN (
-                SELECT instrument_id, param_id FROM vacuum_param
-              )
-              AND es.state IN ('cryocycle', 'closed', 'open')
-            ),
-            
-            -- truncate rows to remove tem off periods
-            cleaned_vacuum AS (
-              SELECT
-                ve.instrument_id,
-                ve.start_time,
-                ve.end_time,
-                ve.state
-              FROM vacuum_events ve
-              LEFT JOIN tem_off o
-                ON ve.instrument_id = o.instrument_id
-                AND ve.start_time < o.end_time
-                AND ve.end_time > o.start_time
-              WHERE ve.end_time IS NOT NULL AND (o.start_time IS NULL OR ve.end_time <= o.start_time OR ve.start_time >= o.end_time)
-            ),
-            
-            -- join tem off periods back
-            all_states AS (
-              SELECT instrument_id, start_time, end_time, state FROM cleaned_vacuum
-              UNION ALL
-              SELECT instrument_id, start_time, end_time, 'off' AS state FROM tem_off
-            ),
-            
-            -- map intervals onto days
-            split_intervals AS (
-              SELECT
-                instrument_id,
-                state,
-                gs::date AS day,
-                GREATEST(start_time, gs) AS interval_start,
-                LEAST(end_time, gs + interval '1 day') AS interval_end
-              FROM all_states,
-              LATERAL generate_series(
-                date_trunc('day', start_time),
-                date_trunc('day', end_time),
-                interval '1 day'
-              ) AS gs
-              WHERE start_time < end_time
-            )
-            
-            SELECT
-              instrument_id,
-              state,
-              day,
-              SUM(EXTRACT(EPOCH FROM (interval_end - interval_start))) AS seconds
-            FROM split_intervals
-            GROUP BY instrument_id, state, day
-            ORDER BY instrument_id, day, state;
-        """)
-
-    def create_mview_tem_off(self, name: str) -> None:
-        """ Create a materialized view with "TEM server off" periods.
-        Normally, the server value is stored every 2 minutes. If the server goes off,
-        the next value will be "1" only when it's up again. So, there are no consecutive zeros.
-        """
-        self.run_query(f"""
-            CREATE MATERIALIZED VIEW IF NOT EXISTS {name} AS
-            WITH server_param AS (
-              SELECT instrument_id, param_id
-              FROM parameters
-              WHERE component = 'Server'
-                AND param_name = 'Value'
-            ),
-            
-            server_events AS (
-              SELECT
-                d.instrument_id,
-                d.time,
-                d.value_num,
-                LEAD(d.time) OVER (PARTITION BY d.instrument_id ORDER BY d.time) AS next_time
-              FROM data d
-              JOIN server_param sp
-                ON d.instrument_id = sp.instrument_id AND d.param_id = sp.param_id
-            )
-            
-            SELECT
-              instrument_id,
-              time AS start_time,
-              next_time AS end_time 
-            FROM server_events
-            WHERE value_num = 0 AND next_time IS NOT NULL;
-        """)
-
-    def create_mview_acq_sessions(self, name: str) -> None:
-        """ Create a materialized view of EPU/Tomo running states.
-        This is the reference view for duration and speed views.
-        Outputs start and end time for every EPU/Tomo session.
-        """
-        if name.startswith("epu"):
-            subsystem = "EPU"
-            params = "'AutomatedAcquisitionState'"
-            states = "'Running'"
-        else:
-            subsystem = "Tomography"
-            params = "'Tomo5TiltSeriesState', 'TiltSeries'"
-            states = "'Acquiring', 'Running'"
-
-        self.run_query(sql=f"""
-            CREATE MATERIALIZED VIEW IF NOT EXISTS {name} AS
-            -- 1. Get param_id and enum_id for state
-            WITH state_param AS (
-              SELECT instrument_id, param_id, enum_id
-              FROM parameters
-              WHERE param_name IN ({params})
-                AND subsystem = '{subsystem}'
-            ),
-
-            -- 2. Filter enums by both enum_id and instrument_id
-            running_enum AS (
-              SELECT
-                p.instrument_id,
-                p.param_id,
-                e.value AS running_value
-              FROM state_param p
-              JOIN enumerations e ON e.enum_id = p.enum_id AND p.instrument_id = e.instrument_id
-              WHERE e.name IN ({states})
-            ),
-
-            -- 3. Tag raw data with is_running flag
-            state_data AS (
-              SELECT
-                d.instrument_id,
-                d.time,
-                d.value_num AS acquisition_state,
-                CASE
-                  WHEN d.value_num = r.running_value THEN 1 ELSE 0
-                END AS is_running
-              FROM data d
-              JOIN running_enum r
-                ON d.instrument_id = r.instrument_id AND d.param_id = r.param_id
-            ),
-            
-            -- 4. Detect state transitions
-            transitions AS (
-                SELECT
-                    instrument_id,
-                    time,
-                    is_running,
-                    LAG(is_running) OVER (PARTITION BY instrument_id ORDER BY time) AS prev_running
-                FROM state_data
-            ),
-            
-            -- 5. Extract starts and ends
-            start_events AS (
-                SELECT instrument_id, time AS start_time
-                FROM transitions
-                WHERE is_running = 1 AND (prev_running IS NULL OR prev_running = 0)
-            ),
-            end_events AS (
-                SELECT instrument_id, time AS end_time
-                FROM transitions
-                WHERE is_running = 0 AND prev_running = 1
-            ),
-            
-            -- 6. Pair up each start with the next end
-            paired_segments AS (
-                SELECT
-                    s.instrument_id,
-                    s.start_time,
-                    MIN(e.end_time) AS end_time
-                FROM start_events s
-                JOIN end_events e
-                  ON e.instrument_id = s.instrument_id AND e.end_time > s.start_time
-                GROUP BY s.instrument_id, s.start_time
-            )
-            
-            SELECT
-              p.instrument_id,
-              p.start_time,
-              p.end_time,
-              sd.acquisition_state AS end_state_value
-            FROM paired_segments p
-            LEFT JOIN state_data sd
-              ON p.instrument_id = sd.instrument_id AND p.end_time = sd.time
-            WHERE p.end_time - p.start_time >= interval '1 second';
-        """)
-
-    def create_mview_acq_duration(self, name: str) -> None:
-        """ Create a materialized view of EPU/Tomo running duration. """
-        state_table = "epu_sessions" if name.startswith("epu") else "tomo_sessions"
-
-        self.run_query(sql=f"""
-            CREATE MATERIALIZED VIEW IF NOT EXISTS {name} AS
-            -- Break segments into daily chunks
-            WITH segment_days AS (
-              SELECT
-                s.instrument_id,
-                gs.day,
-                s.start_time,
-                s.end_time
-              FROM {state_table} s,
-              LATERAL generate_series(
-                date_trunc('day', s.start_time),
-                date_trunc('day', s.end_time),
-                interval '1 day'
-              ) AS gs(day)
-            ),
-            
-            -- Compute overlap of each segment with its intersecting day
-            running_per_day AS (
-              SELECT
-                instrument_id,
-                day,
-                GREATEST(start_time, day) AS seg_start,
-                LEAST(end_time, day + interval '1 day') AS seg_end
-              FROM segment_days
-            )
-            
-            -- Sum durations per instrument per day
-            SELECT
-              instrument_id,
-              day AS time,
-              SUM(EXTRACT(EPOCH FROM (seg_end - seg_start))) AS running_duration
-            FROM running_per_day
-            GROUP BY instrument_id, day
-        """)
-
-    def create_mview_epu_counters(self, name: str) -> None:
-        """ Create a materialized view of EPU session counters:
-        image counter and end state value. Sessions with 0 images are removed.
-        Counter does not necessarily start from 0.
-        """
-        self.run_query(sql=f"""
-            CREATE MATERIALIZED VIEW IF NOT EXISTS {name} AS
-            WITH image_counter_param AS (
-              SELECT instrument_id, param_id AS image_counter_param_id
-              FROM parameters
-              WHERE param_name = 'CompletedExposuresCount' AND subsystem = 'EPU'
-            )
-            SELECT
-              seg.instrument_id,
-              seg.start_time,
-              seg.end_time,
-              seg.end_state_value,
-              agg.total_image_counter
-            FROM epu_sessions seg
-            JOIN image_counter_param ic ON ic.instrument_id = seg.instrument_id
-            JOIN LATERAL (
-              SELECT
-                (MAX(d.value_num) - MIN(d.value_num)) AS total_image_counter
-              FROM data d
-              WHERE d.instrument_id = seg.instrument_id
-                AND d.param_id = ic.image_counter_param_id
-                AND d.time >= seg.start_time AND d.time < seg.end_time
-            ) agg ON TRUE
-            WHERE agg.total_image_counter > 0
-            ORDER BY seg.instrument_id, seg.start_time;
-        """)
-
-    def create_mview_tomo_counters(self, name: str) -> None:
-        """ Create a materialized view of Tomo session counters:
-        image counter and end state value. Sessions with 0 images are removed.
-        Image counter for tomo resets to 1 multiple times over the session course.
-        We need to sum all peaks before reset and the last peak value.
-        """
-        self.run_query(sql=f"""
-            CREATE MATERIALIZED VIEW IF NOT EXISTS {name} AS
-            WITH image_counter_param AS (
-                SELECT instrument_id, param_id AS image_counter_param_id
-                FROM parameters
-                WHERE param_name = 'TemImageCount' AND subsystem = 'Tomography'
-            )
-            SELECT
-              seg.instrument_id,
-              seg.start_time,
-              seg.end_time,
-              seg.end_state_value,
-              agg.total_image_counter
-            FROM tomo_sessions seg
-            JOIN image_counter_param ic ON ic.instrument_id = seg.instrument_id
-            JOIN LATERAL (
-              WITH seg_data AS (
-                SELECT
-                  d.time,
-                  d.value_num,
-                  LAG(d.value_num) OVER (ORDER BY d.time) AS prev_value,
-                  LEAD(d.value_num) OVER (ORDER BY d.time) AS next_value
-                FROM data d
-                WHERE d.instrument_id = seg.instrument_id
-                  AND d.param_id = ic.image_counter_param_id
-                  AND d.time >= seg.start_time
-                  AND d.time < seg.end_time
-              ),
-              reset_peaks AS (
-                SELECT prev_value AS peak
-                FROM seg_data
-                WHERE value_num = 1 AND prev_value IS NOT NULL
-              ),
-              final_peak AS (
-                SELECT value_num AS peak
-                FROM seg_data
-                WHERE next_value IS NULL
-              )
-              SELECT
-                COALESCE(SUM(rp.peak), 0) + COALESCE(MAX(fp.peak), 0) AS total_image_counter
-              FROM reset_peaks rp
-              FULL OUTER JOIN final_peak fp ON TRUE
-            ) agg ON TRUE
-            WHERE agg.total_image_counter > 0
-            ORDER BY seg.instrument_id, seg.start_time;
-        """)
-
-    def create_mview_autoloader_counters(self, name: str) -> None:
-        """ Create a materialized view of autoloader counters. """
-        self.run_query(sql=f"""
-            CREATE MATERIALIZED VIEW {name}
-            WITH (timescaledb.continuous)
-            AS
-            SELECT
-              time_bucket('1 day', d.time) AS day,
-              d.instrument_id,
-              MAX(CASE WHEN p.param_name = 'LoadCartridgeCounter' THEN d.value_num ELSE NULL END)
-                - MIN(CASE WHEN p.param_name = 'LoadCartridgeCounter' THEN d.value_num ELSE NULL END) AS daily_cartridge_count,
-              MAX(CASE WHEN p.param_name = 'LoadCassetteCounter' THEN d.value_num ELSE NULL END)
-                - MIN(CASE WHEN p.param_name = 'LoadCassetteCounter' THEN d.value_num ELSE NULL END) AS daily_cassette_count
-            FROM data d
-            JOIN parameters p
-              ON d.param_id = p.param_id AND d.instrument_id = p.instrument_id
-            WHERE p.param_name IN ('LoadCartridgeCounter', 'LoadCassetteCounter')
-            GROUP BY day, d.instrument_id
-            WITH NO DATA;
-        """)
-
-    def create_mview_acquired_data(self, name: str) -> None:
-        """ Create a materialized view of acquired data counter
-        (Tb per day). Only Falcon cameras have such a counter.
-        """
-        self.run_query(sql=f"""
-            CREATE MATERIALIZED VIEW {name}
-            WITH (timescaledb.continuous)
-            AS
-            SELECT
-              time_bucket('1 day', d.time) AS day,
-              d.instrument_id,
-              p.param_name,
-              MAX(d.value_num) - MIN(d.value_num) AS daily_terabytes
-            FROM data d
-            JOIN parameters p
-              ON d.param_id = p.param_id AND d.instrument_id = p.instrument_id
-            WHERE p.param_name IN ('NumberOffloadedTerabytes', 'BM-Falcon-NumberOffloadedTB')
-            GROUP BY day, d.instrument_id, p.param_name
-            WITH NO DATA;
-        """)
-
-    def create_mview_acquired_images(self, name: str) -> None:
-        """ Create a materialized view of acquired images counter.
-        Here we count AcquisitionJobs, BM-Falcon-NumberOfAcquisitionJobs
-         and AcquisitionNumber (for Gatan cameras)
-        """
-        self.run_query(sql=f"""
-            CREATE MATERIALIZED VIEW {name}
-            WITH (timescaledb.continuous)
-            AS
-            SELECT
-              time_bucket('1 day', d.time) AS day,
-              d.instrument_id,
-              p.param_name,
-              MAX(d.value_num) - MIN(d.value_num) AS daily_images
-            FROM data d
-            JOIN parameters p
-              ON d.param_id = p.param_id AND d.instrument_id = p.instrument_id
-            WHERE p.param_name IN ('AcquisitionJobs', 'BM-Falcon-NumberOfAcquisitionJobs', 'AcquisitionNumber')
-            GROUP BY day, d.instrument_id, p.param_name
-            WITH NO DATA;
-        """)
+        view_fn = self.get_path(target=name+".sql", folder="views")
+        self.execute_file(view_fn)
+        logger.info("Created materialized view %s", name)
 
 
 def main():
-    msg = """
-    Manage the TimescaleDB database.
-        db_manager [-d DBNAME] [-m]
-    """
-    parser = argparse.ArgumentParser(usage=msg)
-    parser.add_argument("-d", "--db", dest="db", default="tem", help="Database name (default: tem)")
-    parser.add_argument("-m", "--mview", action='store_true', help="Create materialized views")
+    parser = argparse.ArgumentParser(description="Database utility tool for aggregation and and maintenance.")
+    parser.add_argument("-d", "--db", dest="db", default="tem",
+                        help="Database name (default: tem)")
+
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers.add_parser("create-stats", help="Create aggregated statistics")
+    subparsers.add_parser("clean-db", help="Erase ALL data in the database")
+    subparsers.add_parser("create-tables", help="Create table structure in the database")
+
+    delete_inst_parser = subparsers.add_parser("clean-inst",
+                                               help="Erase ALL data for a particular instrument")
+    delete_inst_parser.add_argument("--serial", type=int, required=True,
+                                    help="Instrument serial number to delete data for")
+    delete_inst_parser.add_argument("--date", type=str,
+                                    help="Delete data older than this date (format: DD-MM-YYYY)")
 
     args = parser.parse_args()
     dbname = args.db
-    make_mview = args.mview
+
+    # Parse and validate date format if provided
+    if args.command == "clean-inst" and args.date:
+        try:
+            datetime.strptime(args.date, "%d-%m-%Y")
+        except ValueError:
+            parser.error("Invalid date format. Use DD-MM-YYYY (e.g., 23-03-2025).")
 
     with DatabaseManager(dbname) as db:
-        if make_mview:
+        if args.command == "create-stats":
+            print(f"Running aggregation on database {args.db}")
             mviews: dict[str, bool] = {
                 # name: is_cagg
                 "tem_off": False,
@@ -608,9 +363,31 @@ def main():
                     db.force_refresh_cagg(mview)
                 else:
                     db.schedule_mview_refresh(mview, '1d')
-                db.run_query(f"GRANT SELECT ON public.{mview} TO grafana;")
-        else:
-            print("No options specified")
+                db.run_query("GRANT SELECT ON public.{mview} TO grafana",
+                             {"mview": mview})
+
+        elif args.command == "create-tables":
+            print(f"Creating new table structure for database {args.db}")
+            db.create_tables()
+
+        elif args.command == "clean-db":
+            print(f"!!! WARNING: You are about to DELETE ALL DATA from database {dbname} !!!")
+            confirm = input("Type YES to continue: ")
+            if confirm != "YES":
+                print("Aborted.")
+                return
+            print(f"Deleting ALL data from database {dbname}")
+            db.clean_db()
+
+        elif args.command == "clean-inst":
+            if not args.serial:
+                parser.error("--serial is required for clean-inst")
+            if not args.date:
+                print(f"Deleting data for instrument {args.serial} in {dbname}")
+                db.clean_instrument_data(args.serial)
+            else:
+                print(f"Deleting data since {args.date} for instrument {args.serial} in {dbname}")
+                db.clean_instrument_data(args.serial, since=args.date)
 
 
 if __name__ == '__main__':

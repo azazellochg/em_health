@@ -23,6 +23,7 @@
 # *  e-mail address 'gsharov@mrc-lmb.cam.ac.uk'
 # *
 # **************************************************************************
+
 import os
 import sys
 import argparse
@@ -32,7 +33,7 @@ import json
 import xml.etree.ElementTree as ET
 from typing import Iterable
 
-from em_health.db_client import DatabaseClient
+from em_health.db_manager import DatabaseManager
 from em_health.utils.logs import DEBUG, logger
 
 
@@ -66,8 +67,8 @@ class ImportXML:
             raise ValueError("Microscope dict is not defined")
         return self.microscope
 
-    def get_db_name(self, instr_name: str) -> None:
-        """ Match with the microscope name from JSON. """
+    def set_microscope(self, instr_name: str) -> None:
+        """ Set microscope and db_name using JSON settings. """
         for m in self.json_info:
             if m.get("instrument") == instr_name:
                 self.microscope = m
@@ -112,7 +113,7 @@ class ImportXML:
 
                 for instrument in elem.findall('ns:Instrument', namespaces=NS):
                     instr_name = instrument.get("Name")
-                    self.get_db_name(instr_name)
+                    self.set_microscope(instr_name)
 
                     for subsystem in instrument.findall('ns:Component', namespaces=NS):
                         subsystem_name = subsystem.get("Name")
@@ -123,6 +124,7 @@ class ImportXML:
                             for param in component.findall('ns:Parameter', namespaces=NS):
                                 param_id = int(param.get("ID"))
 
+                                # None is used because we want to avoid storing empty strings
                                 self.params[param_id] = {
                                     "subsystem": subsystem_name,
                                     "component": component_name,
@@ -153,7 +155,7 @@ class ImportXML:
 
     def parse_values(self,
                      instr_id: int,
-                     params_dict: dict) -> Iterable:
+                     params_dict: dict) -> Iterable[str]:
         """ Parse parameters values from XML.
         :param instr_id: instrument id from the instrument table
         :param params_dict: input parameters dict, here only used to fetch param type
@@ -172,6 +174,8 @@ class ImportXML:
                     elem.clear() # clear skipped elements
                     continue
                 value_type = param_dict["type"]
+                instr_id = str(instr_id)
+                param_id = str(param_id)
 
                 param_values_elem = elem.find('ns:ParameterValues', namespaces=NS)
                 if param_values_elem is not None:
@@ -181,8 +185,8 @@ class ImportXML:
                         value_text_raw = value_elem.text
                         value_num, value_text = self.__convert_value(param_id, value_text_raw, value_type)
 
-                        point = (timestamp, instr_id, param_id, value_num, value_text)
-                        #logger.debug(point)
+                        # all values must be strings
+                        point = "\t".join([timestamp, instr_id, param_id, value_num, value_text])
                         yield point
 
                 elem.clear()  # Clear after handling <ValueData> and its children
@@ -197,13 +201,13 @@ class ImportXML:
             self.file = None
 
     @staticmethod
-    def __match(elem, name):
+    def __match(elem, name) -> bool:
         """ Strip namespace and match XML tag. """
         return elem.tag.endswith(f"}}{name}")
 
     @staticmethod
-    def __parse_ts_to_utc(ts: str) -> datetime:
-        """ Parse timestamp string into UTC.
+    def __parse_ts_to_utc(ts: str) -> str:
+        """ Parse timestamp string into UTC ISO 8601 string as expected by COPY.
         Removes colon from the timezone, e.g.:
         "2025-05-18T10:39:36.982+01:00" → "2025-05-18T10:39:36.982+0100"
         :param ts: input timestamp string
@@ -219,26 +223,28 @@ class ImportXML:
         for time_format in time_formats:
             try:
                 dt_local = datetime.strptime(ts_fixed, time_format)
-                return dt_local.astimezone(timezone.utc)
+                dt_utc = dt_local.astimezone(timezone.utc)
+                # PostgreSQL COPY expects 'YYYY-MM-DD HH:MM:SS.sss+00'
+                return dt_utc.strftime("%Y-%m-%d %H:%M:%S.%f%z")[:-3]
             except ValueError:
                 continue
 
         raise ValueError(f"Unsupported time format: {ts}")
 
     @staticmethod
-    def __convert_value(param_id: int,
+    def __convert_value(param_id: str,
                         value: str,
                         value_type: str):
         """ Convert the param value according to type.
-        Returns value_num, value_text.
+        Returns value_num, value_text as strings.
         """
         try:
             if value_type == "str":
-                return None, str(value)
+                return '\\N', str(value)
             elif value_type == "float":
-                return float(value), None
+                return str(value), '\\N'
             elif value_type == "int":  # works for int and IntEnum
-                return int(value), None
+                return str(int(value)), '\\N'
             else:
                 raise ValueError
         except (ValueError, TypeError):
@@ -297,14 +303,15 @@ def main(argv=None):
         xmlparser.parse_parameters()
         instr_dict = xmlparser.get_microscope_dict()
 
-        with DatabaseClient(xmlparser.db_name) as dc:
+        with DatabaseManager(xmlparser.db_name) as dc:
             instrument_id = dc.add_instrument(instr_dict)
             enums_dict = dc.add_enumerations(instrument_id, xmlparser.enumerations)
             dc.add_parameters(instrument_id, xmlparser.params, enums_dict)
             datapoints = xmlparser.parse_values(instrument_id, xmlparser.params)
-            #dc.write_data(datapoints)
-            for p in datapoints:
-                print(p)
+            dc.write_data(datapoints)
+            #if DEBUG:
+            #    for p in datapoints:
+            #        print(p)
     else:
         logger.error("File %s has wrong format", xml_fn)
         sys.exit(1)
