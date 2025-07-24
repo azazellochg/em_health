@@ -35,19 +35,22 @@ from em_health.utils.logs import logger
 
 
 class FileWatcher:
-    def __init__(self, path, json_fn, stable_time=10):
+    def __init__(self,
+                 path: str,
+                 json_fn: str,
+                 stable_time: int = 10):
         """
         Watch for XML file creation and ensure a file is fully written before processing.
         :param path: Folder to watch
         :param json_fn: JSON file name
         """
-        self.observer = PollingObserver(timeout=5)  # Poll every 300 s
+        self.observer = PollingObserver(timeout=300)  # Poll every 300 s (5 min)
         self.path = path
         self.json_fn = json_fn
         self.stable_time = stable_time
 
     def start(self):
-        # Regex matches: numbers_data.xml or numbers_data.xml.gz
+        """ Schedule watchdog for a specific file pattern. """
         event_handler = PatternMatchingEventHandler(
             patterns=["*_data.xml", "*_data.xml.gz"],
             ignore_patterns=[],
@@ -68,13 +71,14 @@ class FileWatcher:
             self.observer.join()
 
     def on_modify(self, event):
+        """ Log file modification and ensure a file is fully written before processing."""
         filepath = event.src_path
         logger.info("Detected modified file: %s", filepath)
         time.sleep(10)
         self.wait_until_complete(filepath)
 
     def wait_until_complete(self, filepath):
-        """ Wait until file size is stable for self.stable_time seconds. """
+        """ Wait until file size is stable for self.stable_time seconds, then execute import. """
         last_size = -1
         unchanged_time = 0
         while True:
