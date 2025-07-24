@@ -7,7 +7,6 @@ include LICENSE
 recursive-include docker *
 exclude docker/.env
 include .env.example
-include em_health/settings.json
 
 graft docs
 prune docs/_build

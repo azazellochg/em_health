@@ -18,7 +18,7 @@ classifiers=[
 ]
 license = {file = "LICENSE"}
 dependencies = [
-    'psycopg2',
+    'psycopg',
     'watchdog'
 ]
 
@@ -37,10 +37,14 @@ db_manager = "em_health.db_manager:main"
 db_analyze = "em_health.db_performance.db_analyze:main"
 
 [tool.setuptools.packages.find]
-where = ["em_health"]
+where = ["."]
+include = ["em_health*"]
 
 [tool.setuptools.package-data]
-db_performance = ["*.sql"]
+em_health = ["db_performance/*.sql", "views/*.sql", "settings.json"]
+
+[tool.setuptools]
+include-package-data = true
 
 [tool.setuptools.dynamic]
 version = {attr = "em_health.__version__"}
