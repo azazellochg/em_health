@@ -64,6 +64,8 @@ Installation
        cp .env.example docker/.env  # edit .env with your secrets
        sudo docker compose -f docker/docker-compose.yml up -d
 
+.. important:: Do NOT change POSTGRES_HOST value in the .env file
+
 Security Configuration
 ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -95,7 +97,7 @@ Historical Data Import
     .. image:: /_static/HM_export.png
        :width: 640 px
 
-2. [Optional] Compress output XML using GZIP (`gzip file.xml`) and transfer file.xml.gz to Linux
+2. [Recommended] Compress output XML using GZIP (`gzip file.xml`) and transfer file.xml.gz to Linux. This reduces the file size >10 times.
 3. Configure instruments in `settings.json`. See `help <settings.html>`_ for details
 4. Set environment variables:
 

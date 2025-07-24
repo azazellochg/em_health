@@ -195,7 +195,7 @@ class DatabaseManager(DatabaseClient):
         row = self.run_query("SELECT COUNT(*) FROM public.parameters", mode="fetchone")
         row_count = row[0] if row else None
         self.conn.commit()
-        logger.info("Updated parameters table (total %d items)", row_count)
+        logger.info("Updated parameters table (total %d rows)", row_count)
 
     @profile
     def write_data(self,
@@ -250,7 +250,7 @@ class DatabaseManager(DatabaseClient):
 
         row = self.run_query("SELECT COUNT(*) FROM public.data", mode="fetchone")
         row_count = row[0] if row else None
-        logger.info("Updated data table (total %d items)", row_count)
+        logger.info("Updated data table (total %d rows)", row_count)
 
     def drop_mview(self, name: str, is_cagg: bool = False) -> None:
         """ Delete a materialized view. """
