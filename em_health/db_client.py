@@ -44,8 +44,8 @@ class DatabaseClient:
         self.username = user or os.getenv('POSTGRES_USER', 'postgres')
         self.password = password or os.getenv('POSTGRES_PASSWORD', None)
         self.port = 5432
-        self.conn = None
-        self.cur = None
+        self.conn: Optional[psycopg.Connection] = None
+        self.cur: Optional[psycopg.Cursor] = None
 
         if not self.password:
             raise ValueError("POSTGRES_PASSWORD environment variable is not set")
@@ -70,24 +70,18 @@ class DatabaseClient:
 
     def __exit__(self, exc_type, exc_value, traceback):
         """ Rollback changes and exit on error. """
-        if self.cur:
-            self.cur.close()
-        if self.conn:
+        try:
             if exc_type:
                 self.conn.rollback()
                 logger.warning("Transaction rolled back due to: %s", exc_value)
             else:
                 self.conn.commit()
-            self.conn.close()
-            logger.info("Connection closed.")
-
-    def close(self):
-        """ Close the connection to the database. """
-        if self.cur:
-            self.cur.close()
-        if self.conn:
-            self.conn.close()
-            logger.info("Connection closed.")
+        finally:
+            if self.cur:
+                self.cur.close()
+            if self.conn:
+                self.conn.close()
+                logger.info("Connection closed.")
 
     def execute_file(self, fn) -> None:
         """ Execute an SQL file.
