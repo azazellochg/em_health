@@ -197,7 +197,7 @@ class DatabaseManager(DatabaseClient):
         self.conn.commit()
         logger.info("Updated parameters table (total %d rows)", row_count)
 
-    @profile
+    #@profile
     def write_data(self,
                    rows: Iterable[tuple],
                    chunk_size: int = 65536,
@@ -279,9 +279,9 @@ class DatabaseManager(DatabaseClient):
             )
             LANGUAGE SQL
             AS $$
-              REFRESH MATERIALIZED VIEW {proc};
+              REFRESH MATERIALIZED VIEW {name};
             $$;
-        """, {"proc": proc})
+        """, {"proc": proc, "name": name})
 
         self.run_query("SELECT add_job({proc}, {period})",
                        strings={"proc": proc, "period": period})
