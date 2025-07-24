@@ -24,10 +24,9 @@
 # *
 # **************************************************************************
 
+import psycopg.errors
 import argparse
-from itertools import islice
 from datetime import datetime, timezone
-import io
 from typing import Iterable, Optional
 
 from em_health.db_client import DatabaseClient
@@ -90,13 +89,13 @@ class DatabaseManager(DatabaseClient):
                 template = EXCLUDED.template,
                 server = EXCLUDED.server
             RETURNING id
-        """, values=(
-            str(instr_dict["instrument"]),
-            int(instr_dict["serial"]),
-            str(instr_dict["model"]),
-            str(instr_dict["name"]),
-            str(instr_dict["template"]),
-            str(instr_dict["server"])
+        """, values = (
+            instr_dict["instrument"],
+            instr_dict["serial"],
+            instr_dict["model"],
+            instr_dict["name"],
+            instr_dict["template"],
+            instr_dict["server"]
         ), mode="fetchone")
 
         logger.info("Updated instruments table (item %s)", instr_dict["name"])
@@ -137,14 +136,16 @@ class DatabaseManager(DatabaseClient):
         """
 
         # Batch inserts
+        data_to_insert = []
         for enum, enum_values in enums_dict.items():
-            data_to_insert = [
+            data_to_insert.extend(
                 (instrument_id, new_enum_id, enum, name, value)
                 for name, value in enum_values.items()
-            ]
-            self.cur.executemany(insert_sql, data_to_insert)
+            )
             output_dict[enum] = new_enum_id
             new_enum_id += 1
+
+        self.cur.executemany(insert_sql, data_to_insert)
 
         row = self.run_query("SELECT COUNT(*) FROM public.enumerations", mode="fetchone")
         row_count = row[0] if row else None
@@ -199,38 +200,53 @@ class DatabaseManager(DatabaseClient):
 
     @profile
     def write_data(self,
-                   rows: Iterable[str],
-                   chunk_size: int = 65536) -> None:
+                   rows: Iterable[tuple],
+                   chunk_size: int = 65536,
+                   nocopy: bool = False) -> None:
         """ Write raw values to the data table using COPY and a pre-serialized text buffer.
         We do not sort input data, since:
          - for each parameter XML file has a batch of datapoints already sorted by time
          - TimescaleDB data table has chunking with compression, chunks will be sorted by time
 
-        :param rows: Iterable of tab-separated strings
+        :param rows: Iterable of tuples
         :param chunk_size: Max size in bytes per COPY write
+        :param nocopy: If True, revert to executemany with duplicate handling
         """
-        query = """
-           COPY public.data (time, instrument_id, param_id, value_num, value_text)
-           FROM STDIN WITH (FORMAT text)
-        """
+        if nocopy:
+            query = """
+                INSERT INTO public.data (time, instrument_id, param_id, value_num, value_text)
+                VALUES (%s, %s, %s, %s, %s)
+                ON CONFLICT DO NOTHING
+            """
+            self.cur.executemany(query, rows)
+            self.conn.commit()
+        else:
+            query = """
+                COPY public.data (time, instrument_id, param_id, value_num, value_text)
+                FROM STDIN WITH (FORMAT text)
+            """
 
-        def stream_chunks(rows: Iterable[str], max_size: int) -> Iterable[str]:
-            buffer = []
-            size = 0
-            for row in rows:
-                row += "\n"
-                size += len(row.encode("utf-8"))
-                buffer.append(row)
-                if size >= max_size:
+            def stream_chunks(rows: Iterable[tuple], max_size: int) -> Iterable[str]:
+                buffer = []
+                size = 0
+                for row in rows:
+                    row = "\t".join(col for col in row) + "\n"
+                    size += len(row.encode("utf-8"))
+                    buffer.append(row)
+                    if size >= max_size:
+                        yield ''.join(buffer)
+                        buffer.clear()
+                        size = 0
+                if buffer:
                     yield ''.join(buffer)
-                    buffer.clear()
-                    size = 0
-            if buffer:
-                yield ''.join(buffer)
 
-        with self.cur.copy(query) as copy:
-            for chunk in stream_chunks(rows, chunk_size):
-                copy.write(chunk)
+            try:
+                with self.cur.copy(query) as copy:
+                    for chunk in stream_chunks(rows, chunk_size):
+                        copy.write(chunk)
+            except psycopg.errors.UniqueViolation as e:
+                logger.error("Duplicated data found: %s", e)
+                raise
 
         row = self.run_query("SELECT COUNT(*) FROM public.data", mode="fetchone")
         row_count = row[0] if row else None
@@ -292,7 +308,7 @@ class DatabaseManager(DatabaseClient):
         the start_offset interval, you need to manually refresh the history
         up to the current start_offset to allow real-time queries to run efficiently.
         """
-        self.conn.autocommit = True
+        self.conn.autocommit = True # required since CALL cannot be executed inside a transaction
         self.run_query("CALL refresh_continuous_aggregate('{name}', NULL, localtimestamp - INTERVAL '1 week')",
                        {"name": name})
         self.conn.autocommit = False

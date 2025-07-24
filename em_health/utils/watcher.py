@@ -95,7 +95,8 @@ class FileWatcher:
                     # Call import_xml
                     from em_health.utils.import_xml import main as import_main
                     args = ["-i", os.path.abspath(filepath),
-                            "-s", os.path.abspath(self.json_fn)]
+                            "-s", os.path.abspath(self.json_fn),
+                            "--no-copy"]
                     import_main(args)
                     return
             else:

@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "em_health"
 dynamic = ["version"]
 authors = [{name = "Grigory Sharov", email = "gsharov@mrc-lmb.cam.ac.uk"}]
-description = "See https://github.com/azazellochg/em_health for more details"
+description = "EM_health is a Python package designed for continuous remote monitoring of the performance and health metrics of Thermo Fisher Scientific electron microscopes."
 readme = {file = "README.rst", content-type = "text/x-rst"}
 requires-python = "<3.13"
 keywords = ["microscope", "health monitoring", "TEM", "SEM"]
@@ -27,6 +27,7 @@ dev = ["mypy", "memory-profiler"]
 
 [project.urls]
 Homepage = "https://github.com/azazellochg/em_health"
+Documentation = "https://em_health.readthedocs.io"
 Issues = "https://github.com/azazellochg/em_health/issues"
 
 [project.scripts]

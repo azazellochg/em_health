@@ -155,7 +155,7 @@ class ImportXML:
 
     def parse_values(self,
                      instr_id: int,
-                     params_dict: dict) -> Iterable[str]:
+                     params_dict: dict) -> Iterable[tuple]:
         """ Parse parameters values from XML.
         :param instr_id: instrument id from the instrument table
         :param params_dict: input parameters dict, here only used to fetch param type
@@ -186,7 +186,7 @@ class ImportXML:
                         value_num, value_text = self.__convert_value(param_id, value_text_raw, value_type)
 
                         # all values must be strings
-                        point = "\t".join([timestamp, instr_id, param_id, value_num, value_text])
+                        point = (timestamp, instr_id, param_id, value_num, value_text)
                         yield point
 
                 elem.clear()  # Clear after handling <ValueData> and its children
@@ -264,9 +264,13 @@ def main(argv=None):
                         help="Path to XML file (.xml or .xml.gz)")
     parser.add_argument("-s", dest="settings", required=True,
                         help="Path to settings.json with microscopes metadata")
+    parser.add_argument("--no-copy", dest="nocopy", type=bool, default=False,
+                        help="Do not use fast COPY method. Useful for small imports "
+                             "when your data might contain duplicates.")
     args = parser.parse_args(argv)
     xml_fn = args.input
     json_fn = args.settings
+    nocopy = args.nocopy
 
     # Validate JSON file
     if not (os.path.exists(json_fn) and json_fn.endswith(".json")):
@@ -308,7 +312,7 @@ def main(argv=None):
             enums_dict = dc.add_enumerations(instrument_id, xmlparser.enumerations)
             dc.add_parameters(instrument_id, xmlparser.params, enums_dict)
             datapoints = xmlparser.parse_values(instrument_id, xmlparser.params)
-            dc.write_data(datapoints)
+            dc.write_data(datapoints, nocopy)
             #if DEBUG:
             #    for p in datapoints:
             #        print(p)
