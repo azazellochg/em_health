@@ -27,7 +27,6 @@
 import os
 import sys
 import time
-import argparse
 from watchdog.observers.polling import PollingObserver
 from watchdog.events import PatternMatchingEventHandler
 
@@ -94,10 +93,9 @@ class FileWatcher:
                     logger.info("File complete: %s (%s bytes)", filepath, size)
                     # Call import_xml
                     from em_health.utils.import_xml import main as import_main
-                    args = ["-i", os.path.abspath(filepath),
-                            "-s", os.path.abspath(self.json_fn),
-                            "--no-copy"]
-                    import_main(args)
+                    import_main(os.path.abspath(filepath),
+                                os.path.abspath(self.json_fn),
+                                True)
                     return
             else:
                 unchanged_time = 0
@@ -106,27 +104,10 @@ class FileWatcher:
             time.sleep(3)
 
 
-def main():
-    description = """
-    Watch a directory for XML file (*_data.xml or *_data.xml.gz) modification. 
-    Run import_xml script once the target file is updated.
-    Example:
-        watch_xml -i /path/to/xml/folder -s path/to/settings.json
-    """
-    parser = argparse.ArgumentParser(description=description,
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-i", dest="input", type=str, required=True,
-                        help="Path to a folder with XML data files")
-    parser.add_argument("-s", dest="settings", required=True,
-                        help="Path to settings.json with microscopes metadata")
-
-    args = parser.parse_args()
-    input_path = args.input
+def main(input_path, json_fn):
     if not os.path.isdir(input_path):
         logger.error("Invalid directory: %s", input_path)
         sys.exit(1)
-
-    json_fn = args.settings
 
     # Validate JSON file
     if not (os.path.exists(json_fn) and json_fn.endswith(".json")):
@@ -135,6 +116,3 @@ def main():
 
     watcher = FileWatcher(path=input_path, json_fn=json_fn)
     watcher.start()
-
-if __name__ == '__main__':
-    main()

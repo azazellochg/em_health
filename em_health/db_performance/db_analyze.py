@@ -24,7 +24,6 @@
 # *
 # **************************************************************************
 
-import argparse
 from psycopg.rows import dict_row
 
 from em_health.db_manager import DatabaseManager
@@ -60,26 +59,8 @@ class DatabaseAnalyzer(DatabaseManager):
         logger.info("Scheduled pganalyze jobs")
 
 
-def main():
-    msg = """
-    Setup TimescaleDB performance analysis.
-        db_analyze [-d DBNAME] [-p] [-q] [-e]
-    """
-    parser = argparse.ArgumentParser(usage=msg)
-    parser.add_argument("-d", "--db", dest="db", default="tem", help="Database name (default: tem)")
-
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("-p", "--perf", action='store_true', help="Setup pganalyze schema and metrics")
-    group.add_argument("-q", "--query", action='store_true', help="Run a custom query")
-    group.add_argument("-e", "--explain", action='store_true', help="Explain a custom query")
-
-    args = parser.parse_args()
-    dbname = args.db
-    make_performance_pganalyze = args.perf
-    make_query = args.query
-    make_explain = args.explain
-
-    if make_performance_pganalyze:
+def main(dbname, command):
+    if command == "create-perf-stats":
         with DatabaseAnalyzer(dbname) as db:
             db.run_query("DROP SCHEMA IF EXISTS pganalyze CASCADE;")
             db.create_metric_tables()
@@ -88,21 +69,14 @@ def main():
         with DatabaseAnalyzer(dbname, user="pganalyze", password="pganalyze") as db:
             db.schedule_metric_jobs()
 
-    elif make_query or make_explain:
+    elif command in ["run-query", "explain-query"]:
         custom_query = """
             -- paste your query below
         """
 
-        if make_explain:
+        if command == "explain-query":
             custom_query = "EXPLAIN (ANALYZE, BUFFERS) " + custom_query
 
         with DatabaseAnalyzer(dbname) as db:
             result = db.run_query(custom_query, mode="fetchall", row_factory=dict_row)
             print(result)
-
-    else:
-        print("No options specified")
-
-
-if __name__ == '__main__':
-    main()

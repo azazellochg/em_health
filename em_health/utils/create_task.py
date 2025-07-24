@@ -26,7 +26,6 @@
 
 import os
 import sys
-import argparse
 import json
 
 from em_health.utils.logs import logger
@@ -72,32 +71,12 @@ class CreateTaskCmd:
         with open(task_file, "w", encoding="utf-8") as f:
             f.write(cmd_content)
 
-        logger.info(f"Created file: {task_file}\n"
-                    "Create a task in the Task Scheduler on a Windows system with HealthMonitor "
-                    f"to run {task_file} script daily. See documentation for details.")
+        logger.info(f"Created file: {os.path.abspath(task_file)}\n"
+                    "Create a task in the Task Scheduler on a Windows system with Health Monitor "
+                    f"to run the above script every hour. See documentation for details.")
 
 
-def main():
-    description = """
-    Create a Windows batch file to export Health Monitor data.
-    Example:
-        create_task -i 3593 -s path/to/settings.json
-    """
-    parser = argparse.ArgumentParser(description=description,
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-
-    parser.add_argument("-i", dest="instrument", type=int, required=True,
-                        help="Instrument serial number (should exist in the settings.json)")
-    parser.add_argument("-e", dest="exe", type=str, default=HM_EXE,
-                        help=f"Custom path to Health Monitor exe")
-    parser.add_argument("-s", dest="settings", required=True,
-                        help="Path to settings.json with microscopes metadata")
-
-    args = parser.parse_args()
-    serial = args.instrument
-    exe = args.exe
-    json_fn = args.settings
-
+def main(serial, exe, json_fn):
     # Validate JSON file
     if not (os.path.exists(json_fn) and json_fn.endswith(".json")):
         logger.error("Settings file '%s' not found or is not a .json file.", json_fn)
@@ -123,7 +102,3 @@ def main():
     # Create a task
     cmd = CreateTaskCmd(serial, microscope=microscope, exe=exe)
     cmd.create_task()
-
-
-if __name__ == '__main__':
-    main()

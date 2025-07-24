@@ -25,7 +25,6 @@
 # **************************************************************************
 
 import psycopg.errors
-import argparse
 from datetime import datetime, timezone
 from typing import Iterable, Optional
 
@@ -213,6 +212,7 @@ class DatabaseManager(DatabaseClient):
         :param nocopy: If True, revert to executemany with duplicate handling
         """
         if nocopy:
+            logger.info("No-copy mode. Duplicate entries are ignored.")
             query = """
                 INSERT INTO public.data (time, instrument_id, param_id, value_num, value_text)
                 VALUES (%s, %s, %s, %s, %s)
@@ -230,9 +230,9 @@ class DatabaseManager(DatabaseClient):
                 buffer = []
                 size = 0
                 for row in rows:
-                    row = "\t".join(col for col in row) + "\n"
-                    size += len(row.encode("utf-8"))
-                    buffer.append(row)
+                    newrow = "\t".join(col for col in row) + "\n"
+                    size += len(newrow.encode("utf-8"))
+                    buffer.append(newrow)
                     if size >= max_size:
                         yield ''.join(buffer)
                         buffer.clear()
@@ -245,7 +245,7 @@ class DatabaseManager(DatabaseClient):
                     for chunk in stream_chunks(rows, chunk_size):
                         copy.write(chunk)
             except psycopg.errors.UniqueViolation as e:
-                logger.error("Duplicated data found: %s", e)
+                logger.error("Duplicate entries found: %s", e)
                 raise
 
         row = self.run_query("SELECT COUNT(*) FROM public.data", mode="fetchone")
@@ -288,7 +288,7 @@ class DatabaseManager(DatabaseClient):
         logger.info("Scheduled refresh for %s every %s", name, period)
 
     def schedule_cagg_refresh(self, name: str) -> None:
-        """ Schedule a cont. Aggregate refresh. """
+        """ Schedule a cont. aggregate refresh. """
         self.run_query("""
             SELECT add_continuous_aggregate_policy({name},
             start_offset => INTERVAL '7 days',
@@ -320,36 +320,17 @@ class DatabaseManager(DatabaseClient):
         logger.info("Created materialized view %s", name)
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Database utility tool for aggregation and and maintenance.")
-    parser.add_argument("-d", "--db", dest="db", default="tem",
-                        help="Database name (default: tem)")
-
-    subparsers = parser.add_subparsers(dest="command", required=True)
-    subparsers.add_parser("create-stats", help="Create aggregated statistics")
-    subparsers.add_parser("clean-db", help="Erase ALL data in the database")
-    subparsers.add_parser("create-tables", help="Create table structure in the database")
-
-    delete_inst_parser = subparsers.add_parser("clean-inst",
-                                               help="Erase ALL data for a particular instrument")
-    delete_inst_parser.add_argument("--serial", type=int, required=True,
-                                    help="Instrument serial number to delete data for")
-    delete_inst_parser.add_argument("--date", type=str,
-                                    help="Delete data older than this date (format: DD-MM-YYYY)")
-
-    args = parser.parse_args()
-    dbname = args.db
-
+def main(dbname, command, serial=None, date=None):
     # Parse and validate date format if provided
-    if args.command == "clean-inst" and args.date:
+    if command == "clean-inst" and date:
         try:
-            datetime.strptime(args.date, "%d-%m-%Y")
+            datetime.strptime(date, "%d-%m-%Y")
         except ValueError:
-            parser.error("Invalid date format. Use DD-MM-YYYY (e.g., 23-03-2025).")
+            raise ValueError("Invalid date format. Use DD-MM-YYYY (e.g., 23-03-2025).")
 
     with DatabaseManager(dbname) as db:
-        if args.command == "create-stats":
-            print(f"Running aggregation on database {args.db}")
+        if command == "create-stats":
+            print(f"Running aggregation on database {dbname}")
             mviews: dict[str, bool] = {
                 # name: is_cagg
                 "tem_off": False,
@@ -381,11 +362,11 @@ def main():
                 db.run_query("GRANT SELECT ON public.{mview} TO grafana",
                              {"mview": mview})
 
-        elif args.command == "create-tables":
-            print(f"Creating new table structure for database {args.db}")
+        elif command == "create-tables":
+            print(f"Creating new table structure for database {dbname}")
             db.create_tables()
 
-        elif args.command == "clean-db":
+        elif command == "clean-db":
             print(f"!!! WARNING: You are about to DELETE ALL DATA from database {dbname} !!!")
             confirm = input("Type YES to continue: ")
             if confirm != "YES":
@@ -394,16 +375,12 @@ def main():
             print(f"Deleting ALL data from database {dbname}")
             db.clean_db()
 
-        elif args.command == "clean-inst":
-            if not args.serial:
-                parser.error("--serial is required for clean-inst")
-            if not args.date:
-                print(f"Deleting data for instrument {args.serial} in {dbname}")
-                db.clean_instrument_data(args.serial)
+        elif command == "clean-inst":
+            if not serial:
+                raise ValueError("--serial is required for clean-inst")
+            if not date:
+                print(f"Deleting data for instrument {serial} in {dbname}")
+                db.clean_instrument_data(serial)
             else:
-                print(f"Deleting data since {args.date} for instrument {args.serial} in {dbname}")
-                db.clean_instrument_data(args.serial, since=args.date)
-
-
-if __name__ == '__main__':
-    main()
+                print(f"Deleting data since {date} for instrument {serial} in {dbname}")
+                db.clean_instrument_data(serial, since=date)

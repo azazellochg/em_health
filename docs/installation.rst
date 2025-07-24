@@ -111,7 +111,7 @@ Historical Data Import
 
    .. code-block::
 
-       import_xml -i /path/to/file.xml.gz -s em_health/settings.json
+       emhealth import -i /path/to/file.xml.gz -s em_health/settings.json
 
 6. If necessary, repeat export and import steps for other instruments.
 
@@ -122,7 +122,7 @@ Automated Import Setup
 
    .. code-block::
 
-       create_task -i 3299 -s em_health/settings.json
+       emhealth create-task -i 3299 -s em_health/settings.json
 
 2. Change the output path (`-f 3299_data.xml`) in the batch script (`3299_export_hm_data.cmd`). Output data to a shared location, available from Linux PC.
 3. [Windows] Configure Windows Task Scheduler to run the generated script every hour indefinitely. The script will keep overwriting the output xml file.
@@ -130,7 +130,7 @@ Automated Import Setup
 
    .. code-block::
 
-       watch_xml -i /path/to/xml/dir -s em_health/settings.json
+       emhealth watch-dir -i /path/to/xml/dir -s em_health/settings.json
 
 .. note:: Windows scheduled task requires a user to be logged in for network drive access. The reason being the network drives are mounted on a per-user basis.
 
@@ -141,7 +141,7 @@ Post-Import Steps
 
    .. code-block::
 
-       db_manager create-stats
+       emhealth create-stats
 
 2. Access Grafana dashboards at http://localhost:3000
 

@@ -26,7 +26,6 @@
 
 import os
 import sys
-import argparse
 import gzip
 from datetime import datetime, timezone
 import json
@@ -251,27 +250,7 @@ class ImportXML:
             raise ValueError(f"Cannot convert '{value}' to {value_type} for param {param_id}")
 
 
-def main(argv=None):
-    description = """
-    Import health monitor data to TimescaleDB. Only XML format is supported.
-    Examples: 
-        import_xml -i path/to/data.xml.gz -s path/to/settings.json
-        import_xml -i path/to/data.xml -s path/to/settings.json
-    """
-    parser = argparse.ArgumentParser(description=description,
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-i", dest="input", required=True,
-                        help="Path to XML file (.xml or .xml.gz)")
-    parser.add_argument("-s", dest="settings", required=True,
-                        help="Path to settings.json with microscopes metadata")
-    parser.add_argument("--no-copy", dest="nocopy", action="store_true",
-                        help="Do not use fast COPY method. Useful for small imports "
-                             "when your data might contain duplicates.")
-    args = parser.parse_args(argv)
-    xml_fn = args.input
-    json_fn = args.settings
-    nocopy = args.nocopy
-
+def main(xml_fn, json_fn, nocopy):
     # Validate JSON file
     if not (os.path.exists(json_fn) and json_fn.endswith(".json")):
         logger.error(f"Settings file '{json_fn}' not found or is not a .json file.")
@@ -312,14 +291,10 @@ def main(argv=None):
             enums_dict = dc.add_enumerations(instrument_id, xmlparser.enumerations)
             dc.add_parameters(instrument_id, xmlparser.params, enums_dict)
             datapoints = xmlparser.parse_values(instrument_id, xmlparser.params)
-            dc.write_data(datapoints, nocopy)
+            dc.write_data(datapoints, nocopy=nocopy)
             #if DEBUG:
             #    for p in datapoints:
             #        print(p)
     else:
         logger.error("File %s has wrong format", xml_fn)
         sys.exit(1)
-
-
-if __name__ == '__main__':
-    main()
