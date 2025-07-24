@@ -7,7 +7,7 @@ It offers flexible options to import Health Monitor data - either manually or
 automatically - and provides tools to query, visualize, and set up alerts. With integrated
 interactive Grafana dashboards, it helps you easily analyze and understand your system metrics.
 
-.. important:: The package is still in alpha version, not recommended for production use.
+.. important:: The package is still in alpha version, not recommended for production use. Also, only TEMs are supported for now.
 
 .. image:: https://img.shields.io/pypi/v/em_health.svg
         :target: https://pypi.python.org/pypi/em_health

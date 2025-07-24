@@ -5,7 +5,7 @@ FEI/Thermo Fisher Scientific (TFS) electron microscopes store instrument data us
 on the microscope PC (MPC). This data includes Events/Health Monitor, System Configuration, and Alarms/UEC. 
 The `Data Services` backend uses Microsoft SQL Server.
 
-Various applications like Health Monitor, FEI Viewer, and D2i Data Collector access this data. Since TFS 
+Various applications like Health Monitor, FEI Viewer, UEC viewer, and D2i Data Collector access this data. Since TFS
 does not provide remote SQL server credentials, data can only be accessed through Health Monitor (HM). 
 The HM client is installed on MPC and optionally on support PCs, allowing connection to
 `Data Services` to view and export data in XML or CSV formats.
@@ -21,33 +21,28 @@ Typical setup
 1. Windows PC (microscope or support) with:
 
    - Health Monitor client
-   - Scheduled task for continuous data export
+   - Scheduled task for continuous data export to a location shared with Linux PC
 
-.. tip:: One support PC with a Health Monitor can connect to different microscopes if they are all on the same network.
+.. tip:: A single support PC with Health Monitor can connect to different microscopes if they are all on the same network.
    
 2. Linux PC running ``EM_health`` with:
 
-   - Access to the Windows PC file system
-   - Watchdog service monitoring for new XML files
+   - Access to the shared directory with exported files
+   - Watchdog service monitoring for modified XML files
    - Automatic data import pipeline
-
-.. note:: Currently supports TEM instruments only.
 
 Prerequisites
 ^^^^^^^^^^^^^
 
-Windows PC Requirements:
-
-- Health Monitor (GUI and command line client)
-- Shared network drive access
-
-Linux PC Requirements:
+Requirements for ``EM_heath`` package:
 
 - `docker <https://docs.docker.com/compose/install/>`_
 - `psql <https://www.timescale.com/blog/how-to-install-psql-on-mac-ubuntu-debian-windows>`_
 - Python < 3.13
-- psycopg2
+- psycopg
 - watchdog
+
+Docker and psql should be installed on Linux PC, the rest is managed by conda environment below.
 
 Installation
 ^^^^^^^^^^^^
@@ -56,8 +51,8 @@ Installation
 
    .. code-block::
 
-       conda create -y -n tfs python=3.12
-       conda activate tfs
+       conda create -y -n emhealth python=3.12
+       conda activate emhealth
        git clone https://github.com/azazellochg/em_health
        cd em_health
        pip install -e .
@@ -72,15 +67,15 @@ Installation
 Security Configuration
 ^^^^^^^^^^^^^^^^^^^^^^
 
-Default account setup (see .env.example for defaults):
+See .env.example for default values.
 
 - TimescaleDB accounts:
 
   - POSTGRES_USER (default: *postgres*) - superuser, password: POSTGRES_PASSWORD
   - *grafana* - read-only user, password: POSTGRES_GRAFANA_PASSWORD
-  - *pganalyze* - database metrics user, password: *pganalyze*
+  - [optional] *pganalyze* - database metrics user, password: *pganalyze*
 
-- Grafana account:
+- Grafana accounts:
 
   - *admin* - administrator account, password: GRAFANA_ADMIN_PASSWORD
 
@@ -90,8 +85,17 @@ Data Import
 Historical Data Import
 ~~~~~~~~~~~~~~~~~~~~~~
 
-1. Export XML data from Health Monitor (GUI or CLI)
-2. [Optional] Compress using GZIP (`gzip file.xml`) and transfer to Linux
+1. [Windows] Export XML data from Health Monitor (GUI or CLI):
+
+    a. Choose a date range, e.g. 1 month.
+    b. Select ALL parameters.
+    c. Format: XML
+    d. Press **Save**.
+
+    .. image:: /_static/HM_export.png
+       :width: 640 px
+
+2. [Optional] Compress output XML using GZIP (`gzip file.xml`) and transfer file.xml.gz to Linux
 3. Configure instruments in `settings.json`. See `help <settings.html>`_ for details
 4. Set environment variables:
 
@@ -101,11 +105,15 @@ Historical Data Import
        export POSTGRES_USER=postgres
        export POSTGRES_PASSWORD=postgres
 
-5. Import data:
+.. note:: The host has to be *localhost*, because we are running the SQL server in a container.
+
+5. Import data (this may take a few minutes depending on the number of parameters and amount of data):
 
    .. code-block::
 
        import_xml -i /path/to/file.xml.gz -s em_health/settings.json
+
+6. If necessary, repeat export and import steps for other instruments.
 
 Automated Import Setup
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -116,25 +124,26 @@ Automated Import Setup
 
        create_task -i 3299 -s em_health/settings.json
 
-2. Configure Windows Task Scheduler to run the generated script hourly
-3. Start the watchdog service:
+2. Change the output path (`-f 3299_data.xml`) in the batch script (`3299_export_hm_data.cmd`). Output data to a shared location, available from Linux PC.
+3. [Windows] Configure Windows Task Scheduler to run the generated script every hour indefinitely. The script will keep overwriting the output xml file.
+4. Start the watchdog service:
 
    .. code-block::
 
        watch_xml -i /path/to/xml/dir -s em_health/settings.json
 
-.. note:: Windows scheduled tasks require a user logged in for network drive access. The reason being the network drives are mounted on a per-user basis.
+.. note:: Windows scheduled task requires a user to be logged in for network drive access. The reason being the network drives are mounted on a per-user basis.
 
 Post-Import Steps
 ^^^^^^^^^^^^^^^^^
 
-1. Calculate aggregates and materialized views for TimescaleDB:
+1. Calculate initial historical statistics for the dashboards (run this step only once!):
 
    .. code-block::
 
-       db_manager -m
+       db_manager create-stats
 
 2. Access Grafana dashboards at http://localhost:3000
 
-   - Login with admin account
+   - Login with *admin* account
    - Navigate to "TEM" folder for instrument dashboards

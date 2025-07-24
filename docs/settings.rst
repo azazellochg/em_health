@@ -6,22 +6,22 @@ Settings
 .. code-block:: json
 
     {
-            "instrument": "3299, Titan KRIOS",
-            "serial": 3299,
-            "model": "Titan Krios G2",
-            "name": "Krios 1",
-            "type": "tem",
-            "template": "krios",
-            "server": "192.168.69.2"
+        "instrument": "4248, Krios G4 (4.1)",
+        "serial": 4248,
+        "model": "Titan Krios G4",
+        "name": "Krios 4",
+        "type": "tem",
+        "template": "krios",
+        "server": "192.168.76.2"
     }
 
-- **instrument**: This filed has to match exactly the name of the instrument in the Health Monitor. The format is "serial number, model name".
+.. image:: /_static/HM_settings.png
+   :width: 640 px
 
-.. image::
-
-- **serial**: serial number of the instrument. Digits only.
+- **instrument**: this field has to match the name of the instrument in the Health Monitor. The format is `"serial number, model name"`. Model name can be found in the Health Monitor, it's the text inside [] brackets (#3 on the screenshot above).
+- **serial**: serial number of the instrument. Digits only (#2 on the screenshot above).
 - **model**: custom field, used for display purposes. You can customize this.
 - **name**: custom field, used for display purposes. You can customize this.
-- **type**: "tem" or "sem".
-- **template**: "krios", "talos" or "sem". Currently not in use.
-- **server**: IP address of the microscope PC with Data Services.
+- **type**: database name. "tem" or "sem" only.
+- **template**: microscope platform. Allowed values are "krios", "talos" or "sem". Currently not in use.
+- **server**: IP address of the microscope PC (#1 on the screenshot above).

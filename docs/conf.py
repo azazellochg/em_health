@@ -40,5 +40,6 @@ pygments_style = 'sphinx'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
+html_static_path = ['_static']
 html_theme = 'sphinx_rtd_theme'
 html_theme_options = {'sticky_navigation': False, 'collapse_navigation': False, 'navigation_depth': 2}
