@@ -65,16 +65,20 @@ def profile(fn):
         fn_kwargs_str = ', '.join(f'{k}={v}' for k, v in kwargs.items())
         print(f'\n{fn.__name__}({fn_kwargs_str})')
 
-        # Measure time
-        t = time.perf_counter()
-        retval = fn(*args, **kwargs)
-        elapsed = time.perf_counter() - t
-        print(f'Time   {elapsed:0.4} s')
+        # Measure time and memory together, only once
+        t0 = time.perf_counter()
+        def _target():
+            retval[0] = fn(*args, **kwargs)
 
-        # Measure memory
-        mem, retval = memory_usage((fn, args, kwargs), retval=True, timeout=3600, interval=0.1)
+        from threading import Thread
+        retval = [None]
+        thread = Thread(target=_target)
+        thread.start()
+        mem_usage = memory_usage((lambda: thread.join()), interval=0.1, timeout=None)
+        elapsed = time.perf_counter() - t0
 
-        print(f'Memory {max(mem) - min(mem)} MB')
-        return retval
+        print(f'Time   {elapsed:.4f} s')
+        print(f'Memory {max(mem_usage) - min(mem_usage):.2f} MB')
+        return retval[0]
 
     return inner
