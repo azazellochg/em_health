@@ -1,0 +1,28 @@
+/* Create a materialized view of EPU session counters:
+image counter and end state value. Sessions with 0 images are removed.
+Counter does not necessarily start from 0.
+*/
+CREATE MATERIALIZED VIEW IF NOT EXISTS epu_counters AS
+WITH image_counter_param AS (
+    SELECT instrument_id, param_id AS image_counter_param_id
+    FROM parameters
+    WHERE param_name = 'CompletedExposuresCount' AND subsystem = 'EPU'
+)
+SELECT
+    seg.instrument_id,
+    seg.start_time,
+    seg.end_time,
+    seg.end_state_value,
+    agg.total_image_counter
+FROM epu_sessions seg
+         JOIN image_counter_param ic ON ic.instrument_id = seg.instrument_id
+         JOIN LATERAL (
+    SELECT
+        (MAX(d.value_num) - MIN(d.value_num)) AS total_image_counter
+    FROM data d
+    WHERE d.instrument_id = seg.instrument_id
+      AND d.param_id = ic.image_counter_param_id
+      AND d.time >= seg.start_time AND d.time < seg.end_time
+    ) agg ON TRUE
+WHERE agg.total_image_counter > 0
+ORDER BY seg.instrument_id, seg.start_time
