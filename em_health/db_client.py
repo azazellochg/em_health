@@ -134,7 +134,7 @@ class DatabaseClient:
         :param strings: dict for literal values to be embedded (strings, etc.).
         :param values: tuple for parameterized query values (%s placeholders).
         :param mode: fetch mode or commit.
-        :param row_factory: cursor row factory to customize row output.
+        :param row_factory: cursor row factory to customize rows output.
         """
         if row_factory is not None:
             self.cur.row_factory = row_factory

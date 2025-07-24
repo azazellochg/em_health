@@ -23,4 +23,12 @@ Below are some frequently used commands for **psql** command-line db client:
 Logs
 ^^^^
 
-All actions are saved in `emhealth.log`
+All application actions are saved in `emhealth.log`. PostgreSQL logs can be accessed by:
+
+.. code-block::
+
+    sudo docker exec -it --user postgres timescaledb bash
+    cd /home/postgres/pgdata/data/log
+    cat *.csv
+
+Grafana logs are accessible via `sudo docker logs grafana`
