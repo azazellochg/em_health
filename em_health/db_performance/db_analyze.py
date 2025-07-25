@@ -59,8 +59,8 @@ class DatabaseAnalyzer(DatabaseManager):
         logger.info("Scheduled pganalyze jobs")
 
 
-def main(dbname, command):
-    if command == "create-perf-stats":
+def main(dbname, action):
+    if action == "create-perf-stats":
         with DatabaseAnalyzer(dbname) as db:
             db.run_query("DROP SCHEMA IF EXISTS pganalyze CASCADE;")
             db.create_metric_tables()
@@ -69,12 +69,12 @@ def main(dbname, command):
         with DatabaseAnalyzer(dbname, user="pganalyze", password="pganalyze") as db:
             db.schedule_metric_jobs()
 
-    elif command in ["run-query", "explain-query"]:
+    elif action in ["run-query", "explain-query"]:
         custom_query = """
             -- paste your query below
         """
 
-        if command == "explain-query":
+        if action == "explain-query":
             custom_query = "EXPLAIN (ANALYZE, BUFFERS) " + custom_query
 
         with DatabaseAnalyzer(dbname) as db:

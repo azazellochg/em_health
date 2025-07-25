@@ -16,7 +16,8 @@ Settings
     }
 
 .. image:: /_static/HM_settings.png
-   :width: 640 px
+
+.. tip:: An instrument can have several associated DataSources (for HM, APM, AutoCTF, AutoStar, ToolReadiness, Velox etc). You need to select one that has `Software->Server` parameter.
 
 - **instrument**: this field has to match the name of the instrument in the Health Monitor. The format is `"serial number, model name"`. Model name can be found in the Health Monitor, it's the text inside [] brackets (#3 on the screenshot above).
 - **serial**: serial number of the instrument. Digits only (#2 on the screenshot above).

@@ -42,7 +42,8 @@ Requirements for ``EM_heath`` package:
 - psycopg
 - watchdog
 
-Docker and psql should be installed on Linux PC, the rest is managed by conda environment below.
+Docker and psql should be installed on Linux PC, the rest is managed by conda environment below. It's recommended to
+manage docker as non-root user, see details `here <https://docs.docker.com/engine/install/linux-postinstall/>`_
 
 Installation
 ^^^^^^^^^^^^
@@ -62,7 +63,7 @@ Installation
    .. code-block::
 
        cp .env.example docker/.env  # edit .env with your secrets
-       sudo docker compose -f docker/docker-compose.yml up -d
+       docker compose -f docker/docker-compose.yml up -d
 
 .. important:: Do NOT change POSTGRES_HOST value in the .env file
 
@@ -87,15 +88,14 @@ Data Import
 Historical Data Import
 ~~~~~~~~~~~~~~~~~~~~~~
 
-1. [Windows] Export XML data from Health Monitor (GUI or CLI):
+1. [Windows] Export XML data from Health Monitor (GUI or CLI). Be aware, an instrument can have several associated DataSources (for HM, APM, AutoCTF, AutoStar, ToolReadiness, Velox etc). You need to select one that has `Software->Server` parameter.
 
-    a. Choose a date range, e.g. 1 month.
-    b. Select ALL parameters.
-    c. Format: XML
-    d. Press **Save**.
+a. Choose a date range, e.g. 1 month.
+b. Select ALL parameters.
+c. Format: XML
+d. Press **Save**.
 
-    .. image:: /_static/HM_export.png
-       :width: 640 px
+.. image:: /_static/HM_export.png
 
 2. [Recommended] Compress output XML using GZIP (`gzip file.xml`) and transfer file.xml.gz to Linux. This reduces the file size >10 times.
 3. Configure instruments in `settings.json`. See `help <settings.html>`_ for details
@@ -127,14 +127,16 @@ Automated Import Setup
        emhealth create-task -i 3299 -s em_health/settings.json
 
 2. Change the output path (`-f 3299_data.xml`) in the batch script (`3299_export_hm_data.cmd`). Output data to a shared location, available from Linux PC.
-3. [Windows] Configure Windows Task Scheduler to run the generated script every hour indefinitely. The script will keep overwriting the output xml file.
-4. Start the watchdog service:
+3. [Windows] Create a new task in Task Scheduler to trigger the generated script every hour indefinitely. The script will keep overwriting the output xml file. See `help page <task.html>`_ for details
+
+.. note:: The task will run only when a user is logged on. This is because the network drives are mounted on a per-user basis.
+
+4. If necessary, create similar scripts and tasks for other instruments.
+5. Start the watchdog service:
 
    .. code-block::
 
-       emhealth watch-dir -i /path/to/xml/dir -s em_health/settings.json
-
-.. note:: Windows scheduled task requires a user to be logged in for network drive access. The reason being the network drives are mounted on a per-user basis.
+       emhealth watch -i /path/to/xml/dir -s em_health/settings.json
 
 Post-Import Steps
 ^^^^^^^^^^^^^^^^^
@@ -143,7 +145,7 @@ Post-Import Steps
 
    .. code-block::
 
-       emhealth create-stats
+       emhealth db create-stats
 
 2. Access Grafana dashboards at http://localhost:3000
 

@@ -23,7 +23,8 @@
 # *  e-mail address 'gsharov@mrc-lmb.cam.ac.uk'
 # *
 # **************************************************************************
-
+import os.path
+import subprocess
 import psycopg.errors
 from datetime import datetime, timezone
 from typing import Iterable, Optional
@@ -320,36 +321,29 @@ class DatabaseManager(DatabaseClient):
         logger.info("Created materialized view %s", name)
 
 
-def main(dbname, command, serial=None, date=None):
-    # Parse and validate date format if provided
-    if command == "clean-inst" and date:
-        try:
-            datetime.strptime(date, "%d-%m-%Y")
-        except ValueError:
-            raise ValueError("Invalid date format. Use DD-MM-YYYY (e.g., 23-03-2025).")
+def main(dbname, action, instrument=None, date=None, fn=None):
+    if action == "create-stats":
+        logger.info("Running aggregation on database %s", dbname)
+        mviews: dict[str, bool] = {
+            # name: is_cagg
+            "tem_off": False,
+            "vacuum_state_daily": False,
 
-    with DatabaseManager(dbname) as db:
-        if command == "create-stats":
-            print(f"Running aggregation on database {dbname}")
-            mviews: dict[str, bool] = {
-                # name: is_cagg
-                "tem_off": False,
-                "vacuum_state_daily": False,
+            "epu_sessions": False,
+            "tomo_sessions": False,
 
-                "epu_sessions": False,
-                "tomo_sessions": False,
+            "epu_acquisition_daily": False,
+            "tomo_acquisition_daily": False,
 
-                "epu_acquisition_daily": False,
-                "tomo_acquisition_daily": False,
+            "epu_counters": False,
+            "tomo_counters": False,
 
-                "epu_counters": False,
-                "tomo_counters": False,
+            "load_counters_daily": True,
+            "data_counters_daily": True,
+            "image_counters_daily": True,
+        }
 
-                "load_counters_daily": True,
-                "data_counters_daily": True,
-                "image_counters_daily": True,
-            }
-
+        with DatabaseManager(dbname) as db:
             for mview, is_cagg in mviews.items():
                 db.drop_mview(mview)
                 db.create_mview(mview)
@@ -362,25 +356,64 @@ def main(dbname, command, serial=None, date=None):
                 db.run_query("GRANT SELECT ON public.{mview} TO grafana",
                              {"mview": mview})
 
-        elif command == "create-tables":
-            print(f"Creating new table structure for database {dbname}")
+    elif action == "init-tables":
+        logger.info("Creating new table structure for database %s", dbname)
+        with DatabaseManager(dbname) as db:
             db.create_tables()
 
-        elif command == "clean-db":
-            print(f"!!! WARNING: You are about to DELETE ALL DATA from database {dbname} !!!")
-            confirm = input("Type YES to continue: ")
-            if confirm != "YES":
-                print("Aborted.")
-                return
-            print(f"Deleting ALL data from database {dbname}")
+    elif action == "clean-all":
+        print(f"!!! WARNING: You are about to DELETE ALL DATA from database {dbname} !!!")
+        confirm = input("Type YES to continue: ")
+        if confirm != "YES":
+            print("Aborted.")
+            return
+        logger.info("Deleting ALL data from database %s", dbname)
+        with DatabaseManager(dbname) as db:
             db.clean_db()
 
-        elif command == "clean-inst":
-            if not serial:
-                raise ValueError("--serial is required for clean-inst")
+    elif action == "clean-inst":
+        try:
+            datetime.strptime(date, "%d-%m-%Y")
+        except ValueError:
+            raise ValueError("Invalid date format. Use DD-MM-YYYY (e.g., 23-03-2025).")
+
+        if not instrument:
+            raise ValueError("-i is required for clean-inst")
+
+        with DatabaseManager(dbname) as db:
             if not date:
-                print(f"Deleting data for instrument {serial} in {dbname}")
-                db.clean_instrument_data(serial)
+                logger.info("Deleting data for instrument %s in %s", instrument, dbname)
+                db.clean_instrument_data(instrument)
             else:
-                print(f"Deleting data since {date} for instrument {serial} in {dbname}")
-                db.clean_instrument_data(serial, since=date)
+                logger.info("Deleting data since %s for instrument %s in %s", date, instrument, dbname)
+                db.clean_instrument_data(instrument, since=date)
+
+    elif action == "backup":
+        output_file = datetime.now().strftime(f"{dbname}_%d%m%Y_%H%M%S_backup.dump")
+        logger.info("Backing up %s database...", dbname)
+        command = f"docker exec timescaledb pg_dump -Fc -d {dbname} > {output_file}"
+        subprocess.run(command, shell=True, check=True)
+        logger.info("Backup completed: %s", output_file)
+
+    elif action == "restore":
+        if not os.path.exists(fn):
+            raise FileNotFoundError(f"File {fn} does not exist")
+
+        confirm = input("Target database must be empty! Run 'emhealth db clean-all' before restoring. Type YES to continue: ")
+        if confirm != "YES":
+            print("Aborted.")
+            return
+
+        logger.info("Restoring %s database from %s...", dbname, fn)
+
+        prefix = "docker exec timescaledb"
+        commands = [
+            f"{prefix} psql -d {dbname} -c \"SELECT timescaledb_pre_restore();\"",
+            f"{prefix} pg_restore -Fc -d {dbname} {os.path.abspath(fn)}",
+            f"{prefix} psql -d {dbname} -c \"SELECT timescaledb_post_restore();\""
+        ]
+
+        for cmd in commands:
+            subprocess.run(cmd, shell=True, check=True)
+
+        logger.info("Finished restoring")

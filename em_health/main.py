@@ -34,7 +34,8 @@ def main():
     """Main entry point of the program."""
     parser = argparse.ArgumentParser(
         description=f"EM_health CLI (v{__version__}) - Manage and import health monitor data")
-    parser.add_argument("-d", "--db", dest="db", default="tem",
+
+    parser.add_argument("-d", dest="database", default="tem",
                         help="Database name (default: tem)")
 
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -54,12 +55,12 @@ def main():
     task_parser.add_argument("-i", dest="instrument", type=int, required=True,
                              help="Instrument serial number (must be in settings.json)")
     task_parser.add_argument("-e", dest="exe", type=str, default=HM_EXE,
-                             help="Custom path to Health Monitor executable")
+                             help=f"Custom path to Health Monitor executable (default: '{HM_EXE}')")
     task_parser.add_argument("-s", dest="settings", required=True,
                              help="Path to settings.json with metadata")
 
     # --- Watch dir command ---
-    watch_parser = subparsers.add_parser("watch-dir",
+    watch_parser = subparsers.add_parser("watch",
                                          help="Watch directory for XML file changes and trigger import")
     watch_parser.add_argument("-i", dest="input", required=True,
                               help="Directory with XML data files")
@@ -67,25 +68,36 @@ def main():
                               help="Path to settings.json")
 
     # --- Database maintenance commands ---
-    subparsers.add_parser("create-stats", help="Create aggregated statistics")
-    subparsers.add_parser("backup", help="Create DB backup")
-    subparsers.add_parser("create-tables", help="Create table structure in the database")
-    subparsers.add_parser("clean-db", help="Erase ALL data in the database")
+    db_parser = subparsers.add_parser("db", help="Database operations")
+    db_subparsers = db_parser.add_subparsers(dest="action", required=True)
 
-    clean_inst_parser = subparsers.add_parser("clean-inst",
-                                              help="Erase all data for a specific instrument")
-    clean_inst_parser.add_argument("--serial", type=int, required=True,
-                                   help="Instrument serial number")
+    db_subparsers.add_parser("create-stats", help="Create aggregated statistics")
+    db_subparsers.add_parser("backup", help="Create DB backup")
+
+    restore_parser = db_subparsers.add_parser("restore", help="Restore DB from backup")
+    restore_parser.add_argument("-i", dest="input", required=True,
+                                help="Input backup file (*.dump)")
+
+    db_subparsers.add_parser("clean-all", help="Erase ALL data in the database")
+
+    clean_inst_parser = db_subparsers.add_parser("clean-inst",
+                                              help="Erase data for a specific instrument")
+    clean_inst_parser.add_argument("-i", dest="instrument", type=int, required=True,
+                                   help="Instrument serial number (must be in settings.json)")
     clean_inst_parser.add_argument("--date", type=str,
                                    help="Delete data older than this date (DD-MM-YYYY)")
 
-    # --- Performance tools ---
-    subparsers.add_parser("create-perf-stats", help="Setup DB performance stats collection")
-    subparsers.add_parser("run-query", help="Run a custom query")
-    subparsers.add_parser("explain-query", help="EXPLAIN a custom query")
+    # --- Developer tools ---
+    db_subparsers.add_parser("init-tables", help="Create tables structure in the database [DEV]")
+    db_subparsers.add_parser("create-perf-stats", help="Setup DB performance measurements [DEV]")
+    db_subparsers.add_parser("run-query", help="Run a custom query [DEV]")
+    db_subparsers.add_parser("explain-query", help="EXPLAIN a custom query [DEV]")
 
     args = parser.parse_args()
-    dbname = args.db
+    dbname = args.database
+
+    if dbname not in ["tem", "sem"]:
+        raise argparse.ArgumentTypeError("Database name must be 'tem' or 'sem'")
 
     # Dispatch based on subcommand
     if args.command == "import":
@@ -96,22 +108,26 @@ def main():
         from em_health.utils.create_task import main as func
         func(args.instrument, args.exe, args.settings)
 
-    elif args.command == "watch-dir":
+    elif args.command == "watch":
         from em_health.utils.watcher import main as func
         func(args.input, args.settings)
 
-    elif args.command in ["create-perf-stats", "run-query", "explain-query"]:
-        from em_health.db_performance.db_analyze import main as func
-        func(dbname, args.command)
+    elif args.command == "db":
 
-    elif args.command in ["create-stats", "create-tables", "clean-db", "clean-inst"]:
-        from em_health.db_manager import main as func
-        func(dbname, args.command,
-             getattr(args, "serial", None),
-             getattr(args, "date", None))
+        if args.action in ["create-perf-stats", "run-query", "explain-query"]:
+            from em_health.db_performance.db_analyze import main as func
+            func(dbname, args.action)
 
-    elif args.command == "backup":
-        raise NotImplementedError("Backup command not implemented yet.")
+        elif args.action in ["create-stats", "init-tables", "clean-all",
+                             "clean-inst", "backup"]:
+            from em_health.db_manager import main as func
+            func(dbname, args.action,
+                 getattr(args, "instrument", None),
+                 getattr(args, "date", None))
+
+        elif args.action == "restore":
+            from em_health.db_manager import main as func
+            func(dbname, args.action, fn=args.input)
 
 
 if __name__ == '__main__':

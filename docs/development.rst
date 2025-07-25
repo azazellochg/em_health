@@ -4,7 +4,7 @@ Development
 Enable performance metrics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-After installation you can enable DB performance monitoring. This is required only for a developer setup: `emhealth create-perf-stats`.
+After installation you can enable DB performance monitoring. This is required only for a developer setup: `emhealth db create-perf-stats`.
 This will create a separate *pganalyze* account for Postgres and schedule statistics collection.
 The output is used in dashboards under *DB performance* folder.
 
@@ -27,8 +27,8 @@ All application actions are saved in `emhealth.log`. PostgreSQL logs can be acce
 
 .. code-block::
 
-    sudo docker exec -it --user postgres timescaledb bash
+    docker exec -it --user postgres timescaledb bash
     cd /home/postgres/pgdata/data/log
     cat *.csv
 
-Grafana logs are accessible via `sudo docker logs grafana`
+Grafana logs are accessible via `docker logs grafana`
