@@ -389,11 +389,20 @@ def main(dbname, action, instrument=None, date=None, fn=None):
                 db.clean_instrument_data(instrument, since=date)
 
     elif action == "backup":
-        output_file = datetime.now().strftime(f"{dbname}_%d%m%Y_%H%M%S_backup.dump")
+        os.makedirs("backups", exist_ok=True)
+        timestamp = datetime.now().strftime("%d%m%Y_%H%M%S")
+
+        output_db_file = f"backups/pg_{dbname}_{timestamp}.dump"
         logger.info("Backing up %s database...", dbname)
-        command = f"docker exec timescaledb pg_dump -Fc -d {dbname} > {output_file}"
+        command = f"docker exec timescaledb pg_dump -Fc -d {dbname} > {output_db_file}"
         subprocess.run(command, shell=True, check=True)
-        logger.info("Backup completed: %s", output_file)
+
+        output_db_file = f"backups/grafana_{timestamp}.db"
+        logger.info("Backing up grafana database...")
+        command = f"docker cp grafana:/var/lib/grafana/grafana.db {output_db_file}"
+        subprocess.run(command, shell=True, check=True)
+
+        logger.info("Backup completed, check %s folder", os.path.abspath("backups"))
 
     elif action == "restore":
         if not os.path.exists(fn):

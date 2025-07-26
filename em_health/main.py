@@ -72,7 +72,7 @@ def main():
     db_subparsers = db_parser.add_subparsers(dest="action", required=True)
 
     db_subparsers.add_parser("create-stats", help="Create aggregated statistics")
-    db_subparsers.add_parser("backup", help="Create DB backup")
+    db_subparsers.add_parser("backup", help="Back up both Postgres and Grafana databases")
 
     restore_parser = db_subparsers.add_parser("restore", help="Restore DB from backup")
     restore_parser.add_argument("-i", dest="input", required=True,
