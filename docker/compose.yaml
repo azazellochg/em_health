@@ -1,8 +1,10 @@
+name: emhealth
+
 services:
   timescaledb:
     image: timescale/timescaledb-ha:pg17
     container_name: timescaledb
-    restart: unless-stopped
+    restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -42,9 +44,9 @@ services:
       retries: 5
 
   grafana:
-    image: grafana/grafana-oss
+    image: grafana/grafana-oss:12.0.1
     container_name: grafana
-    restart: unless-stopped
+    restart: always
     ports:
       - "3000:3000"
     depends_on:

@@ -63,9 +63,9 @@ Installation
    .. code-block::
 
        cp .env.example docker/.env  # edit .env with your secrets
-       docker compose -f docker/docker-compose.yml up -d
+       docker compose -f docker/compose.yaml up -d
 
-.. important:: Do NOT change POSTGRES_HOST value in the .env file
+.. important:: Do NOT change POSTGRES_HOST value in the .env file. It has to be set to timescaledb for containers to work.
 
 Security Configuration
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -107,7 +107,7 @@ d. Press **Save**.
        export POSTGRES_USER=postgres
        export POSTGRES_PASSWORD=postgres
 
-.. note:: The host has to be *localhost*, because we are running the SQL server in a container.
+.. note:: The host has to be *localhost*, because we are connecting to a container from the host.
 
 5. Import data (this may take a few minutes depending on the number of parameters and amount of data):
 
