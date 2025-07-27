@@ -61,7 +61,7 @@ class CreateTaskCmd:
 @REM -t 1 xml format
 @REM -f output filename. Use full path to a shared network drive.
 @REM -s DataServices server (hostname or IP of the microscope PC)
-@REM -i "instrument, model"
+@REM -i "serial, model"
 @REM -c settings.xml (if omitted, all settings are exported)
 @REM --start "2025-05-22 13:01:00 +01:00" (will be ignored when -r is used)
 @REM --end "2025-05-23 13:01:00 +01:00" (will be ignored when -r is used)

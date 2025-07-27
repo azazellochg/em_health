@@ -23,8 +23,7 @@
 # *  e-mail address 'gsharov@mrc-lmb.cam.ac.uk'
 # *
 # **************************************************************************
-import os.path
-import subprocess
+
 import psycopg.errors
 from datetime import datetime, timezone
 from typing import Iterable, Optional
@@ -372,13 +371,14 @@ def main(dbname, action, instrument=None, date=None, fn=None):
             db.clean_db()
 
     elif action == "clean-inst":
-        try:
-            datetime.strptime(date, "%d-%m-%Y")
-        except ValueError:
-            raise ValueError("Invalid date format. Use DD-MM-YYYY (e.g., 23-03-2025).")
-
+        # verify args
         if not instrument:
             raise ValueError("-i is required for clean-inst")
+        if date:
+            try:
+                datetime.strptime(date, "%d-%m-%Y")
+            except ValueError:
+                raise ValueError("Invalid date format. Use DD-MM-YYYY (e.g., 23-03-2025).")
 
         with DatabaseManager(dbname) as db:
             if not date:
@@ -387,42 +387,3 @@ def main(dbname, action, instrument=None, date=None, fn=None):
             else:
                 logger.info("Deleting data since %s for instrument %s in %s", date, instrument, dbname)
                 db.clean_instrument_data(instrument, since=date)
-
-    elif action == "backup":
-        os.makedirs("backups", exist_ok=True)
-        timestamp = datetime.now().strftime("%d%m%Y_%H%M%S")
-
-        output_db_file = f"backups/pg_{dbname}_{timestamp}.dump"
-        logger.info("Backing up %s database...", dbname)
-        command = f"docker exec timescaledb pg_dump -Fc -d {dbname} > {output_db_file}"
-        subprocess.run(command, shell=True, check=True)
-
-        output_db_file = f"backups/grafana_{timestamp}.db"
-        logger.info("Backing up grafana database...")
-        command = f"docker cp grafana:/var/lib/grafana/grafana.db {output_db_file}"
-        subprocess.run(command, shell=True, check=True)
-
-        logger.info("Backup completed, check %s folder", os.path.abspath("backups"))
-
-    elif action == "restore":
-        if not os.path.exists(fn):
-            raise FileNotFoundError(f"File {fn} does not exist")
-
-        confirm = input("Target database must be empty! Run 'emhealth db clean-all' before restoring. Type YES to continue: ")
-        if confirm != "YES":
-            print("Aborted.")
-            return
-
-        logger.info("Restoring %s database from %s...", dbname, fn)
-
-        prefix = "docker exec timescaledb"
-        commands = [
-            f"{prefix} psql -d {dbname} -c \"SELECT timescaledb_pre_restore();\"",
-            f"{prefix} pg_restore -Fc -d {dbname} {os.path.abspath(fn)}",
-            f"{prefix} psql -d {dbname} -c \"SELECT timescaledb_post_restore();\""
-        ]
-
-        for cmd in commands:
-            subprocess.run(cmd, shell=True, check=True)
-
-        logger.info("Finished restoring")

@@ -30,10 +30,60 @@ from em_health import __version__
 HM_EXE = r"C:\Program Files (x86)\Thermo Scientific Health Monitor\HealthMonitorCmd.exe"
 
 
+def import_cmd(args):
+    from em_health.utils.import_xml import main as func
+    func(args.input, args.settings, getattr(args, "nocopy", False))
+
+
+def create_task_cmd(args):
+    from em_health.utils.create_task import main as func
+    func(args.instrument, args.exe, args.settings)
+
+
+def watch_cmd(args):
+    from em_health.utils.watcher import main as func
+    func(args.input, args.settings)
+
+
+def db_cmd(args):
+    dbname = args.database
+    action = args.action
+
+    if action in ["create-perf-stats", "run-query", "explain-query"]:
+        from em_health.db_performance.db_analyze import main as func
+        func(dbname, action)
+
+    elif action in ["create-stats", "init-tables", "clean-all", "clean-inst"]:
+        from em_health.db_manager import main as func
+        func(dbname, action,
+             getattr(args, "instrument", None),
+             getattr(args, "date", None))
+
+    elif action in ["backup", "restore"]:
+        from em_health.utils.maintenance import main as func
+        func(dbname, action)
+
+
+def update_cmd(args):
+    from em_health.utils.maintenance import main as func
+    func(args.database, "update")
+
+
+COMMAND_DISPATCH = {
+    "import": import_cmd,
+    "create-task": create_task_cmd,
+    "watch": watch_cmd,
+    "db": db_cmd,
+    "update": update_cmd,
+}
+
+
 def main():
-    """Main entry point of the program."""
     parser = argparse.ArgumentParser(
-        description=f"EM_health CLI (v{__version__}) - Manage and import health monitor data")
+        prog="emhealth",
+        description=f"EMHealth CLI (v{__version__})",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
 
     parser.add_argument("-d", dest="database", default="tem",
                         help="Database name (default: tem)")
@@ -59,29 +109,27 @@ def main():
     task_parser.add_argument("-s", dest="settings", required=True,
                              help="Path to settings.json with metadata")
 
-    # --- Watch dir command ---
+    # --- Watch command ---
     watch_parser = subparsers.add_parser("watch",
                                          help="Watch directory for XML file changes and trigger import")
     watch_parser.add_argument("-i", dest="input", required=True,
-                              help="Directory with XML data files")
+                              help="Target directory with XML data files")
     watch_parser.add_argument("-s", dest="settings", required=True,
                               help="Path to settings.json")
+
+    subparsers.add_parser("update", help="Update EMHealth to the latest version")
 
     # --- Database maintenance commands ---
     db_parser = subparsers.add_parser("db", help="Database operations")
     db_subparsers = db_parser.add_subparsers(dest="action", required=True)
 
     db_subparsers.add_parser("create-stats", help="Create aggregated statistics")
-    db_subparsers.add_parser("backup", help="Back up both Postgres and Grafana databases")
-
-    restore_parser = db_subparsers.add_parser("restore", help="Restore DB from backup")
-    restore_parser.add_argument("-i", dest="input", required=True,
-                                help="Input backup file (*.dump)")
-
+    db_subparsers.add_parser("backup", help="Back up both TimescaleDB and Grafana databases")
+    db_subparsers.add_parser("restore", help="Restore DB from backup")
     db_subparsers.add_parser("clean-all", help="Erase ALL data in the database")
 
     clean_inst_parser = db_subparsers.add_parser("clean-inst",
-                                              help="Erase data for a specific instrument")
+                                                 help="Erase data for a specific instrument")
     clean_inst_parser.add_argument("-i", dest="instrument", type=int, required=True,
                                    help="Instrument serial number (must be in settings.json)")
     clean_inst_parser.add_argument("--date", type=str,
@@ -94,40 +142,14 @@ def main():
     db_subparsers.add_parser("explain-query", help="EXPLAIN a custom query [DEV]")
 
     args = parser.parse_args()
-    dbname = args.database
 
-    if dbname not in ["tem", "sem"]:
-        raise argparse.ArgumentTypeError("Database name must be 'tem' or 'sem'")
+    if args.database not in ["tem", "sem"]:
+        parser.error("Database name must be 'tem' or 'sem'")
 
-    # Dispatch based on subcommand
-    if args.command == "import":
-        from em_health.utils.import_xml import main as func
-        func(args.input, args.settings, getattr(args, "nocopy", False))
-
-    elif args.command == "create-task":
-        from em_health.utils.create_task import main as func
-        func(args.instrument, args.exe, args.settings)
-
-    elif args.command == "watch":
-        from em_health.utils.watcher import main as func
-        func(args.input, args.settings)
-
-    elif args.command == "db":
-
-        if args.action in ["create-perf-stats", "run-query", "explain-query"]:
-            from em_health.db_performance.db_analyze import main as func
-            func(dbname, args.action)
-
-        elif args.action in ["create-stats", "init-tables", "clean-all",
-                             "clean-inst", "backup"]:
-            from em_health.db_manager import main as func
-            func(dbname, args.action,
-                 getattr(args, "instrument", None),
-                 getattr(args, "date", None))
-
-        elif args.action == "restore":
-            from em_health.db_manager import main as func
-            func(dbname, args.action, fn=args.input)
+    if args.command in COMMAND_DISPATCH:
+        COMMAND_DISPATCH[args.command](args)
+    else:
+        parser.print_help()
 
 
 if __name__ == '__main__':
