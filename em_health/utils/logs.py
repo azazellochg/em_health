@@ -25,6 +25,7 @@
 # **************************************************************************
 
 import logging
+import os
 import time
 from functools import wraps
 
@@ -34,7 +35,7 @@ except ImportError:
     pass
 
 
-DEBUG = True
+DEBUG = os.getenv("EMHEALTH_DEBUG", False)
 
 logger = logging.getLogger(__name__)
 fmt = logging.Formatter(
