@@ -282,7 +282,7 @@ class DatabaseManager(DatabaseClient):
             self.run_query("DROP PROCEDURE IF EXISTS {name}", {"name": name})
         logger.info("Dropped materialized view %s", name)
 
-    def schedule_mview_refresh(self, name: str, period: str = '1d') -> None:
+    def schedule_mview_refresh(self, name: str, period: str = '12h') -> None:
         """ Schedule a materialized view refresh. """
         proc = f"refresh_{name}"
 
@@ -303,13 +303,22 @@ class DatabaseManager(DatabaseClient):
 
     def schedule_cagg_refresh(self, name: str) -> None:
         """ Schedule a cont. aggregate refresh.
-        The difference between start_offset and end_offset must be ≥ 2x bucket size.
-        Our buckets are 1-day wide.
+        Notes:
+        1) The difference between start_offset and end_offset must be ≥ 2x bucket size.
+        2) Our buckets are 1-day wide.
+        3) If you want to keep data in the continuous aggregate even if it is removed
+        from the underlying hypertable, you can set the start_offset to match
+        the data retention policy on the source hypertable.
+        4) If you set end_offset within the current time bucket, this bucket
+        is excluded from materialization.
+
+        Here we decided to cover 3 full buckets: D-4, D-3, D-2.
+        We refresh every 12h since we want minimal latency before yesterday's stats are available
         """
         self.run_query("""
             SELECT add_continuous_aggregate_policy({name},
-            start_offset => INTERVAL '3 days',
-            end_offset => INTERVAL '2 hours',
+            start_offset => INTERVAL '4 days',
+            end_offset => INTERVAL '1 day',
             schedule_interval => INTERVAL '12 hours')
         """, strings={"name": name})
         logger.info("Scheduled continuous aggregate refresh for %s", name)
@@ -363,7 +372,7 @@ def main(dbname, action, instrument=None, date=None):
                     db.force_refresh_cagg(mview)
                     db.schedule_cagg_refresh(mview)
                 else:
-                    db.schedule_mview_refresh(mview, '1d')
+                    db.schedule_mview_refresh(mview, '12h')
                 db.run_query("GRANT SELECT ON public.{mview} TO grafana",
                              {"mview": mview})
 
