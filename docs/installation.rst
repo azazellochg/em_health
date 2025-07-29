@@ -5,9 +5,9 @@ FEI/Thermo Fisher Scientific (TFS) electron microscopes store instrument data us
 on the microscope PC (MPC). This data includes Events/Health Monitor, System Configuration, and Alarms/UEC. 
 The `Data Services` backend uses Microsoft SQL Server.
 
-Various applications like Health Monitor, FEI Viewer, UEC viewer, and D2i Data Collector access this data. Since TFS
-does not provide remote SQL server credentials, data can only be accessed through Health Monitor (HM). 
-The HM client is installed on MPC and optionally on support PCs, allowing connection to
+Various applications like Health Monitor, FEI Viewer, UEC viewer, and D2i Data Collector access this data. Since the
+`Data Services` API is proprietary and TFS does not provide remote SQL server access, data can only be accessed
+through Health Monitor (HM). The HM client is installed on MPC and optionally on support PCs, allowing connection to
 `Data Services` to view and export data in XML or CSV formats.
 
 The ``EM_health`` package provides functionality to:
@@ -126,13 +126,13 @@ Automated Import Setup
 
        emhealth create-task -i 3299 -s em_health/settings.json
 
-2. Change the output path (`-f 3299_data.xml`) in the batch script (`3299_export_hm_data.cmd`). Output data to a shared location, available from Linux PC.
+2. Open `3299_export_hm_data.cmd` and change the output (`-f 3299_data.xml`) to a full path pointing to a shared location, available from Linux PC. Make sure the file name terminates with \*_data.xml
 3. [Windows] Create a new task in Task Scheduler to trigger the generated script every hour indefinitely. The script will keep overwriting the output xml file. See `help page <task.html>`_ for details
 
 .. note:: The task will run only when a user is logged on. This is because the network drives are mounted on a per-user basis.
 
 4. If necessary, create similar scripts and tasks for other instruments.
-5. Start the watchdog service:
+5. Start the watchdog service which will monitor the directory for files \*_data.xml or \*_data.xml.gz:
 
    .. code-block::
 

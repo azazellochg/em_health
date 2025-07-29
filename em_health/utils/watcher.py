@@ -58,7 +58,7 @@ class FileWatcher:
         event_handler.on_modified = self.on_modify
         self.observer.schedule(event_handler, self.path, recursive=False)
         self.observer.start()
-        logger.info("Watching %s for XML files... Press Ctrl+C to stop.", self.path)
+        logger.info("Watching %s for XML files (*_data.xml, *_data.xml.gz)... Press Ctrl+C to stop.", self.path)
 
         try:
             while self.observer.is_alive():
