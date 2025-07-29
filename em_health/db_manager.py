@@ -320,7 +320,7 @@ class DatabaseManager(DatabaseClient):
         logger.info("Created materialized view %s", name)
 
 
-def main(dbname, action, instrument=None, date=None, fn=None):
+def main(dbname, action, instrument=None, date=None):
     if action == "create-stats":
         logger.info("Running aggregation on database %s", dbname)
         mviews: dict[str, bool] = {

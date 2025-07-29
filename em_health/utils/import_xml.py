@@ -286,12 +286,12 @@ def main(xml_fn, json_fn, nocopy):
         xmlparser.parse_parameters()
         instr_dict = xmlparser.get_microscope_dict()
 
-        with DatabaseManager(xmlparser.db_name) as dc:
-            instrument_id = dc.add_instrument(instr_dict)
-            enums_dict = dc.add_enumerations(instrument_id, xmlparser.enumerations)
-            dc.add_parameters(instrument_id, xmlparser.params, enums_dict)
+        with DatabaseManager(xmlparser.db_name) as dbm:
+            instrument_id = dbm.add_instrument(instr_dict)
+            enums_dict = dbm.add_enumerations(instrument_id, xmlparser.enumerations)
+            dbm.add_parameters(instrument_id, xmlparser.params, enums_dict)
             datapoints = xmlparser.parse_values(instrument_id, xmlparser.params)
-            dc.write_data(datapoints, nocopy=nocopy)
+            dbm.write_data(datapoints, nocopy=nocopy)
             #if DEBUG:
             #    for p in datapoints:
             #        print(p)

@@ -69,12 +69,20 @@ def update_cmd(args):
     func(args.database, "update")
 
 
+def test_cmd(args=None):
+    import unittest
+    from em_health.tests.test_parser import TestXMLImport
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestXMLImport)
+    unittest.TextTestRunner(verbosity=2).run(suite)
+
+
 COMMAND_DISPATCH = {
     "import": import_cmd,
     "create-task": create_task_cmd,
     "watch": watch_cmd,
     "db": db_cmd,
     "update": update_cmd,
+    "test": test_cmd
 }
 
 
@@ -118,6 +126,7 @@ def main():
                               help="Path to settings.json")
 
     subparsers.add_parser("update", help="Update EMHealth to the latest version")
+    subparsers.add_parser("test", help="Run unit tests")
 
     # --- Database maintenance commands ---
     db_parser = subparsers.add_parser("db", help="Database operations")
