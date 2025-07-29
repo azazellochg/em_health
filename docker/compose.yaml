@@ -46,7 +46,7 @@ services:
       retries: 5
 
   grafana:
-    image: grafana/grafana-oss:12.0.1
+    image: grafana/grafana-oss:12.1.0
     container_name: grafana
     restart: always
     ports:
@@ -68,8 +68,5 @@ services:
 
 volumes:
   pgdata:
-    name: pgdata
   grafana-storage:
-    name: grafana-storage
   backups:
-    name: backups
