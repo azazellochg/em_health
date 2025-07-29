@@ -117,16 +117,16 @@ class TestXMLImport(unittest.TestCase):
         instr_dict = parser.get_microscope_dict()
 
         with DatabaseManager(parser.db_name) as dbm:
-            instrument_id = dbm.add_instrument(instr_dict)
-            enums_dict = dbm.add_enumerations(instrument_id, parser.enumerations)
-            dbm.add_parameters(instrument_id, parser.params, enums_dict)
+            instrument_id, instrument_name = dbm.add_instrument(instr_dict)
+            enums_dict = dbm.add_enumerations(instrument_id, parser.enumerations, instrument_name)
+            dbm.add_parameters(instrument_id, parser.params, enums_dict, instrument_name)
 
             # convert to list since we need to iterate twice
-            datapoints = list(parser.parse_values(instrument_id, parser.params))
+            datapoints = list(parser.parse_values(instrument_id, parser.params, instrument_name))
 
             self.check_datapoints(datapoints)
 
-            dbm.write_data(datapoints, nocopy=True)
+            dbm.write_data(datapoints, instrument_name, nocopy=True)
             self.check_db(dbm, instrument_id)
             dbm.clean_instrument_data(instrument_serial=9999)
 
