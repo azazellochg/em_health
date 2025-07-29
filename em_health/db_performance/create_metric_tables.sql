@@ -110,27 +110,12 @@ CREATE TABLE pganalyze.stat_explains (
                                          PRIMARY KEY (time, queryid)
 );
 
--- Create hypertables
-SELECT * FROM create_hypertable('pganalyze.database_stats', 'collected_at', chunk_time_interval => INTERVAL '1 day');
-SELECT * FROM create_hypertable('pganalyze.table_stats', 'collected_at', chunk_time_interval => INTERVAL '1 day');
-SELECT * FROM create_hypertable('pganalyze.index_stats', 'collected_at', chunk_time_interval => INTERVAL '1 day');
-SELECT * FROM create_hypertable('pganalyze.vacuum_stats', 'started_at', chunk_time_interval => INTERVAL '1 day');
 SELECT * FROM create_hypertable('pganalyze.stat_statements', 'collected_at', chunk_time_interval => INTERVAL '6 hours');
-SELECT * FROM create_hypertable('pganalyze.stat_explains', 'time', chunk_time_interval => INTERVAL '1 day');
-
--- Retention, compression and segmentation policies
-ALTER TABLE pganalyze.stat_explains SET (timescaledb.compress, timescaledb.compress_segmentby = 'queryid');
 ALTER TABLE pganalyze.stat_statements SET (timescaledb.compress, timescaledb.compress_segmentby = 'queryid');
-ALTER TABLE pganalyze.index_stats SET (timescaledb.compress, timescaledb.compress_segmentby = 'relid');
-ALTER TABLE pganalyze.table_stats SET (timescaledb.compress, timescaledb.compress_segmentby = 'relid');
-
-SELECT add_compression_policy('pganalyze.stat_explains', INTERVAL '14 days');
-SELECT add_compression_policy('pganalyze.stat_statements', INTERVAL '3 days');
-SELECT add_compression_policy('pganalyze.index_stats', INTERVAL '14 days');
-SELECT add_compression_policy('pganalyze.table_stats', INTERVAL '14 days');
+SELECT add_compression_policy('pganalyze.stat_statements', INTERVAL '7 days');
 
 SELECT add_retention_policy('pganalyze.stat_explains', INTERVAL '60 days');
-SELECT add_retention_policy('pganalyze.stat_statements', INTERVAL '14 days');
+SELECT add_retention_policy('pganalyze.stat_statements', INTERVAL '30 days');
 SELECT add_retention_policy('pganalyze.database_stats', INTERVAL '60 days');
 SELECT add_retention_policy('pganalyze.index_stats', INTERVAL '60 days');
 SELECT add_retention_policy('pganalyze.table_stats', INTERVAL '60 days');
