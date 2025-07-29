@@ -27,9 +27,12 @@
 import os
 import sys
 import time
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from watchdog.observers.polling import PollingObserver
 from watchdog.events import PatternMatchingEventHandler
 
+from em_health.utils.import_xml import main as import_main
 from em_health.utils.logs import logger
 
 
@@ -37,28 +40,37 @@ class FileWatcher:
     def __init__(self,
                  path: str,
                  json_fn: str,
-                 stable_time: int = 10):
+                 interval: int = 300,
+                 stable_time: int = 10,
+                 max_workers: int = 4):
         """
         Watch for XML file creation and ensure a file is fully written before processing.
         :param path: Folder to watch
         :param json_fn: JSON file name
+        :param interval: Polling interval in seconds
+        :param stable_time: Number of times to check the file for the size change
+        :param max_workers: Number of files to import in parallel
         """
-        self.observer = PollingObserver(timeout=300)  # Poll every 300 s (5 min)
         self.path = path
         self.json_fn = json_fn
         self.stable_time = stable_time
+        self.observer = PollingObserver(timeout=interval)
+        self.executor = ThreadPoolExecutor(max_workers=max_workers)
+        self.processed_files = set()
+        self.lock = threading.Lock()
 
     def start(self):
-        """ Schedule watchdog for a specific file pattern. """
+        """Start the file watcher and process files as they appear."""
         event_handler = PatternMatchingEventHandler(
             patterns=["*_data.xml", "*_data.xml.gz"],
-            ignore_patterns=[],
             ignore_directories=True
         )
-        event_handler.on_modified = self.on_modify
+        event_handler.on_created = self.on_file_detected
+        event_handler.on_modified = self.on_file_detected
+
         self.observer.schedule(event_handler, self.path, recursive=False)
         self.observer.start()
-        logger.info("Watching %s for XML files (*_data.xml, *_data.xml.gz)... Press Ctrl+C to stop.", self.path)
+        logger.info("Watching %s for XML files (*_data.xml, *_data.xml.gz)...", self.path)
 
         try:
             while self.observer.is_alive():
@@ -67,44 +79,61 @@ class FileWatcher:
             logger.info("Stopping watcher...")
             self.observer.stop()
         finally:
+            self.executor.shutdown(wait=True)
             self.observer.join()
 
-    def on_modify(self, event):
-        """ Log file modification and ensure a file is fully written before processing."""
+    def on_file_detected(self, event):
         filepath = event.src_path
-        logger.info("Detected modified file: %s", filepath)
-        time.sleep(10)
-        self.wait_until_complete(filepath)
-
-    def wait_until_complete(self, filepath):
-        """ Wait until file size is stable for self.stable_time seconds, then execute import. """
-        last_size = -1
-        unchanged_time = 0
-        while True:
-            try:
-                size = os.path.getsize(filepath)
-            except FileNotFoundError:
-                logger.error("File %s disappeared", filepath)
+        with self.lock:
+            if filepath in self.processed_files:
                 return
+            self.processed_files.add(filepath)
 
-            if size == last_size and size > 0:
-                unchanged_time += 1
-                if unchanged_time >= self.stable_time:
-                    logger.info("File complete: %s (%s bytes)", filepath, size)
-                    # Call import_xml
-                    from em_health.utils.import_xml import main as import_main
-                    import_main(os.path.abspath(filepath),
-                                os.path.abspath(self.json_fn),
-                                True)
-                    return
+        logger.info("Detected file: %s", filepath)
+        threading.Thread(target=self._wait_and_submit, args=(filepath,), daemon=True).start()
+
+    def _wait_and_submit(self, filepath: str):
+        """Wait until file is stable, then submit for processing."""
+        if self.wait_until_complete(filepath):
+            self.executor.submit(self.process_file, filepath)
+
+    def wait_until_complete(self, filepath: str) -> bool:
+        """Wait until the file size is stable for self.stable_time seconds."""
+        last_size = -1
+        stable_counter = 0
+
+        while stable_counter < self.stable_time:
+            try:
+                current_size = os.path.getsize(filepath)
+            except FileNotFoundError:
+                logger.warning("File disappeared: %s", filepath)
+                return False
+
+            if current_size == last_size:
+                stable_counter += 1
             else:
-                unchanged_time = 0
-                last_size = size
+                stable_counter = 0
+                last_size = current_size
 
             time.sleep(3)
 
+        logger.info("File is ready: %s (%d bytes)", filepath, last_size)
+        return True
 
-def main(input_path, json_fn):
+    def process_file(self, filepath: str):
+        """Run the XML import on a ready file."""
+        try:
+            import_main(os.path.abspath(filepath),
+                        os.path.abspath(self.json_fn),
+                        nocopy=True)
+        except Exception as e:
+            logger.error("Error importing %s: %s", filepath, str(e))
+        finally:
+            with self.lock:
+                self.processed_files.discard(filepath)
+
+
+def main(input_path, json_fn, interval):
     if not os.path.isdir(input_path):
         logger.error("Invalid directory: %s", input_path)
         sys.exit(1)
@@ -114,5 +143,5 @@ def main(input_path, json_fn):
         logger.error(f"Settings file '{json_fn}' not found or is not a .json file.")
         sys.exit(1)
 
-    watcher = FileWatcher(path=input_path, json_fn=json_fn)
+    watcher = FileWatcher(path=input_path, json_fn=json_fn, interval=interval)
     watcher.start()

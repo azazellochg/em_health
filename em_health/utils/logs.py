@@ -31,14 +31,29 @@ from functools import wraps
 
 try:
     from memory_profiler import memory_usage
+    HAS_MEMORY_PROFILER = True
 except ImportError:
-    pass
-
+    HAS_MEMORY_PROFILER = False
 
 DEBUG = os.getenv("EMHEALTH_DEBUG", False)
 
+
+class PrefixFormatter(logging.Formatter):
+    def format(self, record):
+        prefix = getattr(record, "prefix", "")
+        record.message = record.getMessage()
+
+        if self.usesTime():
+            record.asctime = self.formatTime(record, self.datefmt)
+
+        if prefix:
+            record.message = f"[{prefix}] {record.message}"
+
+        return self.formatMessage(record)
+
+
 logger = logging.getLogger(__name__)
-fmt = logging.Formatter(
+fmt = PrefixFormatter(
     fmt='[%(levelname)s] %(asctime)s %(message)s',
     datefmt='%d-%m-%Y %H:%M:%S'
 )
@@ -51,10 +66,10 @@ stream_handler = logging.StreamHandler()
 stream_handler.setLevel(logging.INFO)
 stream_handler.setFormatter(fmt)
 
-logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO,
-                    datefmt='%d-%m-%Y %H:%M:%S',
-                    format='[%(levelname)s] %(asctime)s %(message)s',
-                    handlers=[file_handler, stream_handler])
+logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
+logger.handlers = []  # Clear any existing handlers
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
 
 
 def profile(fn):
@@ -75,11 +90,13 @@ def profile(fn):
         retval = [None]
         thread = Thread(target=_target)
         thread.start()
-        mem_usage = memory_usage((lambda: thread.join()), interval=0.1, timeout=None)
+        if HAS_MEMORY_PROFILER:
+            mem_usage = memory_usage((lambda: thread.join()), interval=0.1, timeout=None)
         elapsed = time.perf_counter() - t0
 
         print(f'Time   {elapsed:.4f} s')
-        print(f'Memory {max(mem_usage) - min(mem_usage):.2f} MB')
+        if HAS_MEMORY_PROFILER:
+            print(f'Memory {max(mem_usage) - min(mem_usage):.2f} MB')
         return retval[0]
 
     return inner

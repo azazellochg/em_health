@@ -71,11 +71,12 @@ class DatabaseManager(DatabaseClient):
 
         self.conn.commit()
 
-    def add_instrument(self, instr_dict: dict) -> int:
+    def add_instrument(self, instr_dict: dict) -> (int, str):
         """ Populate the instrument metadata table.
         :param instr_dict: input dict with microscope metadata
         :return: id of a newly created instrument
         """
+        instrument_name = instr_dict["name"]
         row = self.run_query("""
             INSERT INTO public.instruments (
                 instrument, serial, model, name, template, server
@@ -92,28 +93,31 @@ class DatabaseManager(DatabaseClient):
             instr_dict["instrument"],
             instr_dict["serial"],
             instr_dict["model"],
-            instr_dict["name"],
+            instrument_name,
             instr_dict["template"],
             instr_dict["server"]
         ), mode="fetchone")
 
-        logger.info("Updated instruments table (item %s)", instr_dict["name"])
+        logger.info("Updated instruments table", extra={"prefix": instrument_name})
         instrument_id = row[0] if row else None
 
-        return instrument_id
+        return instrument_id, instrument_name
 
     def add_enumerations(self,
                          instrument_id: int,
-                         enums_dict: dict) -> dict:
+                         enums_dict: dict,
+                         instrument_name: str) -> dict:
         """ Populate the enumerations for TEM or SEM.
         Each enum value is stored as a separate SQL row.
         :param instrument_id: Instrument id
         :param enums_dict: input dict
+        :param instrument_name: Instrument name
         :return a dict {enum_type: enum_id}
         """
         output_dict = {}
         logger.info("Found %d enumerations (%s values)",
-                    len(enums_dict), sum(len(inner) for inner in enums_dict.values()))
+                    len(enums_dict), sum(len(inner) for inner in enums_dict.values()),
+                    extra={"prefix": instrument_name})
 
         # Get max enum_id
         row = self.run_query("""
@@ -149,20 +153,24 @@ class DatabaseManager(DatabaseClient):
         row = self.run_query("SELECT COUNT(*) FROM public.enumerations", mode="fetchone")
         row_count = row[0] if row else None
         self.conn.commit()
-        logger.info("Updated enumerations table (total %d rows)", row_count)
+        logger.info("Updated enumerations table (total %d rows)", row_count,
+                    extra={"prefix": instrument_name})
 
         return output_dict
 
     def add_parameters(self,
                        instrument_id: int,
                        params_dict: dict,
-                       enums_dict: dict) -> None:
+                       enums_dict: dict,
+                       instrument_name: str) -> None:
         """ Populate parameters table with associated metadata.
         :param instrument_id: Instrument id
         :param params_dict: input params dict
         :param enums_dict: input enums dict
+        :param instrument_name: Instrument name
         """
-        logger.info("Found %d parameters", len(params_dict))
+        logger.info("Found %d parameters", len(params_dict),
+                    extra={"prefix": instrument_name})
 
         insert_sql = """
             INSERT INTO public.parameters (
@@ -195,24 +203,28 @@ class DatabaseManager(DatabaseClient):
         row = self.run_query("SELECT COUNT(*) FROM public.parameters", mode="fetchone")
         row_count = row[0] if row else None
         self.conn.commit()
-        logger.info("Updated parameters table (total %d rows)", row_count)
+        logger.info("Updated parameters table (total %d rows)", row_count,
+                    extra={"prefix": instrument_name})
 
     #@profile
     def write_data(self,
                    rows: Iterable[tuple],
-                   chunk_size: int = 65536,
-                   nocopy: bool = False) -> None:
+                   instrument_name: str,
+                   nocopy: bool = False,
+                   chunk_size: int = 65536) -> None:
         """ Write raw values to the data table using COPY and a pre-serialized text buffer.
         We do not sort input data, since:
          - for each parameter XML file has a batch of datapoints already sorted by time
          - TimescaleDB data table has chunking with compression, chunks will be sorted by time
 
         :param rows: Iterable of tuples
-        :param chunk_size: Max size in bytes per COPY write
+        :param instrument_name: Instrument name
         :param nocopy: If True, revert to executemany with duplicate handling
+        :param chunk_size: Max size in bytes per COPY write
         """
         if nocopy:
-            logger.info("No-copy mode. Duplicate entries are ignored.")
+            logger.info("No-copy mode. Duplicate entries are ignored.",
+                        extra={"prefix": instrument_name})
             query = """
                 INSERT INTO public.data (time, instrument_id, param_id, value_num, value_text)
                 VALUES (%s, %s, %s, %s, %s)
@@ -245,12 +257,14 @@ class DatabaseManager(DatabaseClient):
                     for chunk in stream_chunks(rows, chunk_size):
                         copy.write(chunk)
             except psycopg.errors.UniqueViolation as e:
-                logger.error("Duplicate entries found: %s", e)
+                logger.error("Duplicate entries found: %s", e,
+                             extra={"prefix": instrument_name})
                 raise
 
         row = self.run_query("SELECT COUNT(*) FROM public.data", mode="fetchone")
         row_count = row[0] if row else None
-        logger.info("Updated data table (total %d rows)", row_count)
+        logger.info("Updated data table (total %d rows)", row_count,
+                    extra={"prefix": instrument_name})
 
     def drop_mview(self, name: str, is_cagg: bool = False) -> None:
         """ Delete a materialized view. """

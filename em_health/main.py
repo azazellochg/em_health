@@ -42,7 +42,7 @@ def create_task_cmd(args):
 
 def watch_cmd(args):
     from em_health.utils.watcher import main as func
-    func(args.input, args.settings)
+    func(args.input, args.settings, args.interval)
 
 
 def db_cmd(args):
@@ -124,6 +124,8 @@ def main():
                               help="Target directory with XML data files")
     watch_parser.add_argument("-s", dest="settings", required=True,
                               help="Path to settings.json")
+    watch_parser.add_argument("-t", dest="interval", type=int, default=300,
+                              help="Polling time interval in seconds (default: 300)")
 
     subparsers.add_parser("update", help="Update EMHealth to the latest version")
     subparsers.add_parser("test", help="Run unit tests")

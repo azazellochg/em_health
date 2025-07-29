@@ -154,22 +154,26 @@ class ImportXML:
 
     def parse_values(self,
                      instr_id: int,
-                     params_dict: dict) -> Iterable[tuple]:
+                     params_dict: dict,
+                     instrument_name: str) -> Iterable[tuple]:
         """ Parse parameters values from XML.
         :param instr_id: instrument id from the instrument table
         :param params_dict: input parameters dict, here only used to fetch param type
+        :param instrument_name: instrument name
         :return an Iterator of tuples
         """
         for event, elem in self.context:
             if self.__match(elem, "Values"):
                 start, end = elem.get("Start"), elem.get("End")
-                logger.info("Parsed values from %s to %s", start, end)
+                logger.info("Parsed values from %s to %s", start, end,
+                            extra={"prefix": instrument_name})
 
             elif self.__match(elem, "ValueData"):
                 param_id = int(elem.get("ParameterID"))
                 param_dict = params_dict.get(param_id)
                 if param_dict is None:
-                    logger.error("Parameter %d not found, skipping", param_id)
+                    logger.error("Parameter %d not found, skipping", param_id,
+                                 extra={"prefix": instrument_name})
                     elem.clear() # clear skipped elements
                     continue
                 value_type = param_dict["type"]
@@ -287,14 +291,11 @@ def main(xml_fn, json_fn, nocopy):
         instr_dict = xmlparser.get_microscope_dict()
 
         with DatabaseManager(xmlparser.db_name) as dbm:
-            instrument_id = dbm.add_instrument(instr_dict)
-            enums_dict = dbm.add_enumerations(instrument_id, xmlparser.enumerations)
-            dbm.add_parameters(instrument_id, xmlparser.params, enums_dict)
-            datapoints = xmlparser.parse_values(instrument_id, xmlparser.params)
-            dbm.write_data(datapoints, nocopy=nocopy)
-            #if DEBUG:
-            #    for p in datapoints:
-            #        print(p)
+            instrument_id, instrument_name = dbm.add_instrument(instr_dict)
+            enums_dict = dbm.add_enumerations(instrument_id, xmlparser.enumerations, instrument_name)
+            dbm.add_parameters(instrument_id, xmlparser.params, enums_dict, instrument_name)
+            datapoints = xmlparser.parse_values(instrument_id, xmlparser.params, instrument_name)
+            dbm.write_data(datapoints, instrument_name, nocopy=nocopy)
     else:
         logger.error("File %s has wrong format", xml_fn)
         sys.exit(1)

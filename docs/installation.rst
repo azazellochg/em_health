@@ -132,11 +132,11 @@ Automated Import Setup
 .. note:: The task will run only when a user is logged on. This is because the network drives are mounted on a per-user basis.
 
 4. If necessary, create similar scripts and tasks for other instruments.
-5. Start the watchdog service which will monitor the directory for files \*_data.xml or \*_data.xml.gz:
+5. Start the watchdog service, which checks the directory every 5 minutes for modified files matching \*_data.xml or \*_data.xml.gz:
 
    .. code-block::
 
-       emhealth watch -i /path/to/xml/dir -s em_health/settings.json
+       emhealth watch -i /path/to/xml/dir -s em_health/settings.json -t 300
 
 Post-Import Steps
 ^^^^^^^^^^^^^^^^^
