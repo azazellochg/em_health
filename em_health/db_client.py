@@ -97,6 +97,26 @@ class DatabaseClient:
 
     def clean_db(self) -> None:
         """ Erase all public tables in the database. """
+        caggs = self.run_query("""
+            SELECT view_name
+            FROM timescaledb_information.continuous_aggregates
+            WHERE view_schema = 'public';
+        """, mode="fetchall")
+        for cagg in caggs:
+            cagg_name = cagg[0]
+            self.run_query("DROP MATERIALIZED VIEW IF EXISTS {name} CASCADE;",
+                           {"name": cagg_name})
+
+        mviews = self.run_query("""
+            SELECT matviewname
+            FROM pg_matviews
+            WHERE schemaname = 'public';
+        """, mode="fetchall")
+        for view in mviews:
+            view_name = view[0]
+            self.run_query("DROP MATERIALIZED VIEW IF EXISTS {name} CASCADE;",
+                           {"name": view_name})
+
         tables = self.run_query("""
             SELECT tablename
             FROM pg_tables
