@@ -302,11 +302,14 @@ class DatabaseManager(DatabaseClient):
         logger.info("Scheduled refresh for %s every %s", name, period)
 
     def schedule_cagg_refresh(self, name: str) -> None:
-        """ Schedule a cont. aggregate refresh. """
+        """ Schedule a cont. aggregate refresh.
+        The difference between start_offset and end_offset must be ≥ 2x bucket size.
+        Our buckets are 1-day wide.
+        """
         self.run_query("""
             SELECT add_continuous_aggregate_policy({name},
-            start_offset => INTERVAL '7 days',
-            end_offset => INTERVAL '6 hours',
+            start_offset => INTERVAL '3 days',
+            end_offset => INTERVAL '2 hours',
             schedule_interval => INTERVAL '12 hours')
         """, strings={"name": name})
         logger.info("Scheduled continuous aggregate refresh for %s", name)
@@ -315,14 +318,10 @@ class DatabaseManager(DatabaseClient):
         """ Force a cont. aggregate refresh.
         The WITH NO DATA option allows the continuous aggregate to be created
         instantly, so you don't have to wait for the data to be aggregated.
-        Data begins to populate only when the policy begins to run. This means
-        that only data newer than the start_offset time begins to populate the
-        continuous aggregate. If you have historical data that is older than
-        the start_offset interval, you need to manually refresh the history
-        up to the current start_offset to allow real-time queries to run efficiently.
+        Here we aggregate all historical data that has been imported so far.
         """
         self.conn.autocommit = True # required since CALL cannot be executed inside a transaction
-        self.run_query("CALL refresh_continuous_aggregate({name}, NULL, localtimestamp - INTERVAL '1 week')",
+        self.run_query("CALL refresh_continuous_aggregate({name}, NULL, NULL)",
                        strings={"name": name})
         self.conn.autocommit = False
         logger.info("Forced continuous aggregate refresh for %s", name)
@@ -361,9 +360,8 @@ def main(dbname, action, instrument=None, date=None):
                 db.drop_mview(mview)
                 db.create_mview(mview)
                 if is_cagg:
-                    db.schedule_cagg_refresh(mview)
-                    # Refresh only to parse historical data prior to the start_date of the schedule
                     db.force_refresh_cagg(mview)
+                    db.schedule_cagg_refresh(mview)
                 else:
                     db.schedule_mview_refresh(mview, '1d')
                 db.run_query("GRANT SELECT ON public.{mview} TO grafana",
