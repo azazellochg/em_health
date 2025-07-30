@@ -1,7 +1,7 @@
 Settings
 --------
 
-`Settings.json` file provides main configuration for the instruments.
+`instruments.json` file provides main configuration for the instruments.
 
 .. code-block:: json
 

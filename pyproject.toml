@@ -19,7 +19,8 @@ classifiers=[
 license = {file = "LICENSE"}
 dependencies = [
     'psycopg',
-    'watchdog'
+    'watchdog',
+    'python-dotenv'
 ]
 
 [project.optional-dependencies]
@@ -38,7 +39,7 @@ where = ["."]
 include = ["em_health*"]
 
 [tool.setuptools.package-data]
-em_health = ["db_performance/*.sql", "views/*.sql", "settings.json"]
+em_health = ["db_performance/*.sql", "views/*.sql", "instruments.json"]
 
 [tool.setuptools]
 include-package-data = true

@@ -1,10 +1,6 @@
 Development
 -----------
 
-.. code-block::
-
-    export EMHEALTH_DEBUG=true
-
 Enable performance metrics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 

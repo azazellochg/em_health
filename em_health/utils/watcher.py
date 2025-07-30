@@ -40,9 +40,9 @@ class FileWatcher:
     def __init__(self,
                  path: str,
                  json_fn: str,
-                 interval: int = 300,
-                 stable_time: int = 10,
-                 max_workers: int = 4):
+                 interval: int = None,
+                 stable_time: int = None,
+                 max_workers: int = None):
         """
         Watch for XML file creation and ensure a file is fully written before processing.
         :param path: Folder to watch
@@ -53,9 +53,11 @@ class FileWatcher:
         """
         self.path = path
         self.json_fn = json_fn
-        self.stable_time = stable_time
-        self.observer = PollingObserver(timeout=interval)
-        self.executor = ThreadPoolExecutor(max_workers=max_workers)
+        self.interval = interval or os.getenv("WATCH_INTERVAL", 300)
+        self.stable_time = stable_time or os.getenv("WATCH_SIZE_COUNTER", 10)
+        self.max_workers = max_workers or os.getenv("WATCH_MAX_WORKERS", 4)
+        self.observer = PollingObserver(timeout=self.interval)
+        self.executor = ThreadPoolExecutor(max_workers=self.max_workers)
         self.processed_files = set()
         self.lock = threading.Lock()
 

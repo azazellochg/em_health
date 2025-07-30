@@ -76,7 +76,7 @@ class ImportXML:
                     raise ValueError(f"Database name {self.db_name} is not recognized")
                 break
         if self.microscope is None:
-            raise ValueError(f"Instrument '{instr_name}' not found in settings.json")
+            raise ValueError(f"Instrument '{instr_name}' not found in instruments.json")
 
     def parse_enumerations(self) -> None:
         """ Parse enumerations from xml. """

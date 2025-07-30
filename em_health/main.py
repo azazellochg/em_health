@@ -25,6 +25,8 @@
 # **************************************************************************
 
 import argparse
+from dotenv import load_dotenv
+from pathlib import Path
 from em_health import __version__
 
 HM_EXE = r"C:\Program Files (x86)\Thermo Scientific Health Monitor\HealthMonitorCmd.exe"
@@ -103,7 +105,7 @@ def main():
     import_parser.add_argument("-i", dest="input", required=True,
                                help="Path to XML file (.xml or .xml.gz)")
     import_parser.add_argument("-s", dest="settings", required=True,
-                               help="Path to settings.json with metadata")
+                               help="Path to instruments.json with metadata")
     import_parser.add_argument("--no-copy", dest="nocopy", action="store_true",
                                help="Do not use fast COPY method (useful for small imports with duplicates)")
 
@@ -111,11 +113,11 @@ def main():
     task_parser = subparsers.add_parser("create-task",
                                         help="Create a Windows batch file to export Health Monitor data")
     task_parser.add_argument("-i", dest="instrument", type=int, required=True,
-                             help="Instrument serial number (must be in settings.json)")
+                             help="Instrument serial number (must be in instruments.json)")
     task_parser.add_argument("-e", dest="exe", type=str, default=HM_EXE,
                              help=f"Custom path to Health Monitor executable (default: '{HM_EXE}')")
     task_parser.add_argument("-s", dest="settings", required=True,
-                             help="Path to settings.json with metadata")
+                             help="Path to instruments.json with metadata")
 
     # --- Watch command ---
     watch_parser = subparsers.add_parser("watch",
@@ -123,7 +125,7 @@ def main():
     watch_parser.add_argument("-i", dest="input", required=True,
                               help="Target directory with XML data files")
     watch_parser.add_argument("-s", dest="settings", required=True,
-                              help="Path to settings.json")
+                              help="Path to instruments.json")
     watch_parser.add_argument("-t", dest="interval", type=int, default=300,
                               help="Polling time interval in seconds (default: 300)")
 
@@ -142,7 +144,7 @@ def main():
     clean_inst_parser = db_subparsers.add_parser("clean-inst",
                                                  help="Erase data for a specific instrument")
     clean_inst_parser.add_argument("-i", dest="instrument", type=int, required=True,
-                                   help="Instrument serial number (must be in settings.json)")
+                                   help="Instrument serial number (must be in instruments.json)")
     clean_inst_parser.add_argument("--date", type=str,
                                    help="Delete data older than this date (DD-MM-YYYY)")
 
@@ -158,6 +160,8 @@ def main():
         parser.error("Database name must be 'tem' or 'sem'")
 
     if args.command in COMMAND_DISPATCH:
+        env_path = Path(__file__).resolve().parent / "docker" / ".env"
+        load_dotenv(dotenv_path=env_path)
         COMMAND_DISPATCH[args.command](args)
     else:
         parser.print_help()

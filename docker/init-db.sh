@@ -11,5 +11,11 @@ EOSQL
 
 for db in tem sem; do
   echo "Creating initial db structure for: $db"
-  psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname="$db" -f /docker-entrypoint-initdb.d/init-tables.sql
+  psql -v ON_ERROR_STOP=1 \
+  --username "$POSTGRES_USER" \
+  --dbname="$db" \
+  -v TBL_DATA_PARTITIONS=$TBL_DATA_PARTITIONS \
+  -v TBL_DATA_CHUNK_INTERVAL="'$TBL_DATA_CHUNK_INTERVAL'" \
+  -v TBL_DATA_COMPRESSION="'$TBL_DATA_COMPRESSION'" \
+  -f /docker-entrypoint-initdb.d/init-tables.sql
 done

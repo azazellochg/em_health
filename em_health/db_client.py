@@ -83,14 +83,23 @@ class DatabaseClient:
                 self.conn.close()
                 logger.info("Connection closed.")
 
-    def execute_file(self, fn) -> None:
+    def execute_file(self,
+                     fn,
+                     variables: Optional[dict[str, str]] = None) -> None:
         """ Execute an SQL file.
         :param fn: Path to the .sql file.
+        :param variables: Dictionary of variable names and values.
         """
         if not os.path.exists(fn):
             raise FileNotFoundError(fn)
         with open(fn) as f:
             raw_sql = f.read()
+
+        if variables:
+            for key, val in variables.items():
+                placeholder = f":{key}"
+                replacement = f"'{val}'"
+                raw_sql = raw_sql.replace(placeholder, replacement)
 
         self.cur.execute(raw_sql)
         self.conn.commit()

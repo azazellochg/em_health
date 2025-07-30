@@ -24,6 +24,7 @@
 # *
 # **************************************************************************
 
+import os
 from psycopg.rows import dict_row
 
 from em_health.db_manager import DatabaseManager
@@ -37,7 +38,11 @@ class DatabaseAnalyzer(DatabaseManager):
     """
     def create_metric_tables(self) -> None:
         """ Create tables to store metrics data. """
-        self.execute_file(self.get_path("create_metric_tables.sql", folder="db_performance"))
+        self.execute_file(self.get_path("create_metric_tables.sql", folder="db_performance"),
+                          {
+                              "TBL_STATEMENTS_INTERVAL": os.getenv("TBL_STATEMENTS_INTERVAL", "6 hours"),
+                              "TBL_STATEMENTS_COMPRESSION": os.getenv("TBL_STATEMENTS_COMPRESSION", "7 days")
+                          })
         logger.info("Created pganalyze tables")
 
     def create_metric_collectors(self) -> None:
@@ -47,12 +52,18 @@ class DatabaseAnalyzer(DatabaseManager):
 
     def schedule_metric_jobs(self) -> None:
         """ Schedule functions as TimescaleDB jobs. """
+        logs_interval = os.getenv("JOB_LOGS_INTERVAL", "1 minutes")
+        statements_interval = os.getenv("JOB_STATEMENTS_INTERVAL", "1 minutes")
+        dbstats_interval = os.getenv("JOB_DBSTATS_INTERVAL", "10 minutes")
+        tblstats_interval = os.getenv("JOB_TBLSTATS_INTERVAL", "10 minutes")
+        idxstats_interval = os.getenv("JOB_IDXSTATS_INTERVAL", "10 minutes")
+
         jobs = [
-            "SELECT add_job('pganalyze.parse_logs', schedule_interval=>'1 minutes'::interval);",
-            "SELECT add_job('pganalyze.get_stat_statements', schedule_interval=>'1 minutes'::interval);",
-            "SELECT add_job('pganalyze.get_db_stats', schedule_interval=>'10 minutes'::interval);",
-            "SELECT add_job('pganalyze.get_table_stats', schedule_interval=>'10 minutes'::interval);",
-            "SELECT add_job('pganalyze.get_index_stats', schedule_interval=>'10 minutes'::interval);",
+            f"SELECT add_job('pganalyze.parse_logs', schedule_interval=>'{logs_interval}'::interval);",
+            f"SELECT add_job('pganalyze.get_stat_statements', schedule_interval=>'{statements_interval}'::interval);",
+            f"SELECT add_job('pganalyze.get_db_stats', schedule_interval=>'{dbstats_interval}'::interval);",
+            f"SELECT add_job('pganalyze.get_table_stats', schedule_interval=>'{tblstats_interval}'::interval);",
+            f"SELECT add_job('pganalyze.get_index_stats', schedule_interval=>'{idxstats_interval}'::interval);",
         ]
         for j in jobs:
             self.run_query(query=j)

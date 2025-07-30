@@ -24,6 +24,7 @@
 # *
 # **************************************************************************
 
+import os
 import psycopg.errors
 from datetime import datetime, timezone
 from typing import Iterable, Optional
@@ -210,8 +211,7 @@ class DatabaseManager(DatabaseClient):
     def write_data(self,
                    rows: Iterable[tuple],
                    instrument_name: str,
-                   nocopy: bool = False,
-                   chunk_size: int = 65536) -> None:
+                   nocopy: bool = False) -> None:
         """ Write raw values to the data table using COPY and a pre-serialized text buffer.
         We do not sort input data, since:
          - for each parameter XML file has a batch of datapoints already sorted by time
@@ -252,9 +252,10 @@ class DatabaseManager(DatabaseClient):
                 if buffer:
                     yield ''.join(buffer)
 
+            CHUNK_SIZE = os.getenv("WRITE_DATA_CHUNK_SIZE", 65536)
             try:
                 with self.cur.copy(query) as copy:
-                    for chunk in stream_chunks(rows, chunk_size):
+                    for chunk in stream_chunks(rows, CHUNK_SIZE):
                         copy.write(chunk)
             except psycopg.errors.UniqueViolation as e:
                 logger.error("Duplicate entries found: %s", e,
@@ -282,9 +283,10 @@ class DatabaseManager(DatabaseClient):
             self.run_query("DROP PROCEDURE IF EXISTS {name}", {"name": name})
         logger.info("Dropped materialized view %s", name)
 
-    def schedule_mview_refresh(self, name: str, period: str = '12h') -> None:
+    def schedule_mview_refresh(self, name: str) -> None:
         """ Schedule a materialized view refresh. """
         proc = f"refresh_{name}"
+        period = os.getenv("CAGG_REFRESH_INTERVAL", "12 h")
 
         self.run_query("""
             CREATE OR REPLACE PROCEDURE {proc}(
@@ -317,10 +319,15 @@ class DatabaseManager(DatabaseClient):
         """
         self.run_query("""
             SELECT add_continuous_aggregate_policy({name},
-            start_offset => INTERVAL '4 days',
-            end_offset => INTERVAL '1 day',
-            schedule_interval => INTERVAL '12 hours')
-        """, strings={"name": name})
+            start_offset => INTERVAL {start_offset},
+            end_offset => INTERVAL {end_offset},
+            schedule_interval => INTERVAL {schedule_interval})
+        """, strings={
+            "name": name,
+            "start_offset": os.getenv("CAGG_START_OFFSET", "4 days"),
+            "end_offset": os.getenv("CAGG_END_OFFSET", "1 day"),
+            "schedule_interval": os.getenv("CAGG_REFRESH_INTERVAL", "12 hours")
+        })
         logger.info("Scheduled continuous aggregate refresh for %s", name)
 
     def force_refresh_cagg(self, name: str) -> None:
@@ -372,7 +379,7 @@ def main(dbname, action, instrument=None, date=None):
                     db.force_refresh_cagg(mview)
                     db.schedule_cagg_refresh(mview)
                 else:
-                    db.schedule_mview_refresh(mview, '12h')
+                    db.schedule_mview_refresh(mview)
                 db.run_query("GRANT SELECT ON public.{mview} TO grafana",
                              {"mview": mview})
 

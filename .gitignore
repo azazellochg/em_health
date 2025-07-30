@@ -21,4 +21,4 @@ emhealth.log
 docker/.env
 .directory
 *.cmd
-em_health/settings.json
+em_health/instruments.json

@@ -110,13 +110,6 @@ CREATE TABLE pganalyze.stat_explains (
                                          PRIMARY KEY (time, queryid)
 );
 
-SELECT * FROM create_hypertable('pganalyze.stat_statements', 'collected_at', chunk_time_interval => INTERVAL '6 hours');
+SELECT * FROM create_hypertable('pganalyze.stat_statements', 'collected_at', chunk_time_interval => INTERVAL :TBL_STATEMENTS_INTERVAL);
 ALTER TABLE pganalyze.stat_statements SET (timescaledb.compress, timescaledb.compress_segmentby = 'queryid');
-SELECT add_compression_policy('pganalyze.stat_statements', INTERVAL '7 days');
-
-SELECT add_retention_policy('pganalyze.stat_explains', INTERVAL '60 days');
-SELECT add_retention_policy('pganalyze.stat_statements', INTERVAL '30 days');
-SELECT add_retention_policy('pganalyze.database_stats', INTERVAL '60 days');
-SELECT add_retention_policy('pganalyze.index_stats', INTERVAL '60 days');
-SELECT add_retention_policy('pganalyze.table_stats', INTERVAL '60 days');
-SELECT add_retention_policy('pganalyze.vacuum_stats', INTERVAL '60 days');
+SELECT add_compression_policy('pganalyze.stat_statements', INTERVAL :TBL_STATEMENTS_COMPRESSION);
