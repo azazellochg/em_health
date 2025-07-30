@@ -41,6 +41,7 @@ Requirements for ``EM_heath`` package:
 - Python < 3.13
 - psycopg
 - watchdog
+- python-dotenv
 
 Docker and psql should be installed on Linux PC, the rest is managed by conda environment below. It's recommended to
 manage docker as non-root user, see details `here <https://docs.docker.com/engine/install/linux-postinstall/>`_

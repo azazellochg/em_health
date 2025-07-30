@@ -59,7 +59,7 @@ class DatabaseClient:
                 dbname=self.db_name,
                 user=self.username,
                 password=self.password,
-                application_name="HealthMonitor"
+                application_name="EMHealth"
             )
             self.cur = self.conn.cursor()
             logger.info("Connected to %s@%s: database %s", self.username, self.host, self.db_name)
@@ -106,37 +106,43 @@ class DatabaseClient:
 
     def clean_db(self) -> None:
         """ Erase all public tables in the database. """
-        caggs = self.run_query("""
-            SELECT view_name
-            FROM timescaledb_information.continuous_aggregates
-            WHERE view_schema = 'public';
-        """, mode="fetchall")
-        for cagg in caggs:
-            cagg_name = cagg[0]
-            self.run_query("DROP MATERIALIZED VIEW IF EXISTS {name} CASCADE;",
-                           {"name": cagg_name})
 
-        mviews = self.run_query("""
-            SELECT matviewname
-            FROM pg_matviews
-            WHERE schemaname = 'public';
-        """, mode="fetchall")
-        for view in mviews:
-            view_name = view[0]
-            self.run_query("DROP MATERIALIZED VIEW IF EXISTS {name} CASCADE;",
-                           {"name": view_name})
+        def drop_objects(query: str, drop_template: str, label: str):
+            objects = self.run_query(query, mode="fetchall")
+            for obj in objects:
+                name = obj[0]
+                self.run_query(drop_template, {"name": name})
+                logger.info("Dropped %s: %s", label, name)
 
-        tables = self.run_query("""
-            SELECT tablename
-            FROM pg_tables
-            WHERE schemaname = 'public';
-        """, mode="fetchall")
+        drop_objects(
+            """
+                SELECT view_name
+                FROM timescaledb_information.continuous_aggregates
+                WHERE view_schema = 'public'
+            """,
+            "DROP MATERIALIZED VIEW IF EXISTS {name} CASCADE",
+            "CAGG"
+        )
 
-        for table in tables:
-            table_name = table[0]
-            self.run_query("DROP TABLE IF EXISTS public.{table} CASCADE",
-                           {"table": table_name})
-            logger.info("Dropped table: %s", table_name)
+        drop_objects(
+            """
+                SELECT matviewname
+                FROM pg_matviews
+                WHERE schemaname = 'public'
+            """,
+            "DROP MATERIALIZED VIEW IF EXISTS {name} CASCADE",
+            "materialized view"
+        )
+
+        drop_objects(
+            """
+                SELECT tablename
+                FROM pg_tables
+                WHERE schemaname = 'public'
+            """,
+            "DROP TABLE IF EXISTS {name} CASCADE",
+            "table"
+        )
 
         self.conn.commit()
 

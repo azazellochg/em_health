@@ -220,7 +220,6 @@ class DatabaseManager(DatabaseClient):
         :param rows: Iterable of tuples
         :param instrument_name: Instrument name
         :param nocopy: If True, revert to executemany with duplicate handling
-        :param chunk_size: Max size in bytes per COPY write
         """
         if nocopy:
             logger.info("No-copy mode. Duplicate entries are ignored.",
@@ -252,10 +251,10 @@ class DatabaseManager(DatabaseClient):
                 if buffer:
                     yield ''.join(buffer)
 
-            CHUNK_SIZE = os.getenv("WRITE_DATA_CHUNK_SIZE", 65536)
+            chunk_size = os.getenv("WRITE_DATA_CHUNK_SIZE", 65536)
             try:
                 with self.cur.copy(query) as copy:
-                    for chunk in stream_chunks(rows, CHUNK_SIZE):
+                    for chunk in stream_chunks(rows, chunk_size):
                         copy.write(chunk)
             except psycopg.errors.UniqueViolation as e:
                 logger.error("Duplicate entries found: %s", e,
