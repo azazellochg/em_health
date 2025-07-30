@@ -10,7 +10,7 @@ Various applications like Health Monitor, FEI Viewer, UEC viewer, and D2i Data C
 through Health Monitor (HM). The HM client is installed on MPC and optionally on support PCs, allowing connection to
 `Data Services` to view and export data in XML or CSV formats.
 
-The ``EM_health`` package provides functionality to:
+The ``EMHealth`` package provides functionality to:
 
 - Parse and import XML data into a `TimescaleDB <https://docs.tigerdata.com/#TimescaleDB>`_ database
 - Visualize and analyze data using `Grafana <https://grafana.com/grafana/>`_
@@ -25,7 +25,7 @@ Typical setup
 
 .. tip:: A single support PC with Health Monitor can connect to different microscopes if they are all on the same network.
    
-2. Linux PC running ``EM_health`` with:
+2. Linux PC running ``EMHealth`` with:
 
    - Access to the shared directory with exported files
    - Watchdog service monitoring for modified XML files
@@ -34,7 +34,7 @@ Typical setup
 Prerequisites
 ^^^^^^^^^^^^^
 
-Requirements for ``EM_heath`` package:
+Requirements for ``EMHeath`` package:
 
 - `docker <https://docs.docker.com/compose/install/>`_
 - `psql <https://www.timescale.com/blog/how-to-install-psql-on-mac-ubuntu-debian-windows>`_

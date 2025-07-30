@@ -6,7 +6,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'em_health'
+project = 'EMHealth'
 copyright = '2023-2025, Grigory Sharov'
 author = 'Grigory Sharov'
 

@@ -17,7 +17,7 @@
 Introduction
 ------------
 
-``EM_health`` is a Python package designed for continuous remote monitoring of
+``EMHealth`` is a Python package designed for continuous remote monitoring of
 the performance and health metrics of Thermo Fisher Scientific electron microscopes.
 It offers flexible options to import Health Monitor data - either manually or
 automatically - and provides tools to query, visualize, and set up alerts. With integrated
