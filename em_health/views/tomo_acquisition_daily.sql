@@ -23,6 +23,7 @@ WITH segment_days AS (
              GREATEST(start_time, day) AS seg_start,
              LEAST(end_time, day + interval '1 day') AS seg_end
          FROM segment_days
+         WHERE GREATEST(start_time, day) < LEAST(end_time, day + interval '1 day')
      )
 
 -- Sum durations per instrument per day
