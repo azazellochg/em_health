@@ -149,7 +149,12 @@ class DatabaseClient:
     def create_tables(self) -> None:
         """ Create tables in the database. """
         fn = self.get_path("init-tables.sql", folder="../docker")
-        self.execute_file(fn)
+        self.execute_file(fn,
+                          {
+                              "TBL_DATA_PARTITIONS": os.getenv("TBL_DATA_PARTITIONS", 6),
+                              "TBL_DATA_CHUNK_INTERVAL": os.getenv("TBL_DATA_CHUNK_INTERVAL", "1 day"),
+                              "TBL_DATA_COMPRESSION": os.getenv("TBL_DATA_COMPRESSION", "3 days")
+                          })
         logger.info("Created public tables")
 
     def run_query(
