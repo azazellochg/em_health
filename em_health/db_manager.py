@@ -29,11 +29,11 @@ import psycopg.errors
 from datetime import datetime, timezone
 from typing import Iterable, Optional
 
-from em_health.db_client import DatabaseClient
+from em_health.db_client import PgClient
 from em_health.utils.logs import logger, profile
 
 
-class DatabaseManager(DatabaseClient):
+class DatabaseManager(PgClient):
     """ Manager class to operate on existing db.
     Example usage:
         with DatabaseManager(dbname) as db:

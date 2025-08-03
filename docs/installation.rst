@@ -38,12 +38,9 @@ Requirements for ``EMHeath`` package:
 
 - `docker <https://docs.docker.com/compose/install/>`_
 - `psql <https://www.timescale.com/blog/how-to-install-psql-on-mac-ubuntu-debian-windows>`_
-- Python < 3.13
-- psycopg
-- watchdog
-- python-dotenv
+- [optional] `msodbcsql18 <https://learn.microsoft.com/en-us/sql/connect/odbc/linux-mac/installing-the-microsoft-odbc-driver-for-sql-server?view=sql-server-ver17&tabs=alpine18-install%2Calpine17-install%2Cdebian8-install%2Credhat7-13-install%2Crhel7-offline>`_
 
-Docker and psql should be installed on Linux PC, the rest is managed by conda environment below. It's recommended to
+The rest is managed by conda environment below. It's recommended to
 manage docker as non-root user, see details `here <https://docs.docker.com/engine/install/linux-postinstall/>`_
 
 Installation

@@ -20,7 +20,8 @@ license = {file = "LICENSE"}
 dependencies = [
     'psycopg',
     'watchdog',
-    'python-dotenv'
+    'python-dotenv',
+    'pyodbc'
 ]
 
 [project.optional-dependencies]

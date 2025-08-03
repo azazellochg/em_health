@@ -25,44 +25,38 @@
 # **************************************************************************
 
 import os
-import psycopg
-from psycopg import sql
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Literal, Optional, Dict, Any
+import psycopg
+from psycopg import sql
+import pyodbc
 
 from em_health.utils.logs import logger
 
 
-class DatabaseClient:
-    """ Main class that will manage the PostgreSQL client. """
+class BaseDBClient(ABC):
+    """Abstract base class for a database client."""
     def __init__(self,
-                 db_name: Literal["tem", "sem"],
-                 user: Optional[str] = None,
-                 password: Optional[str] = None):
+                 db_name: str,
+                 user_env: str,
+                 pass_env: str,
+                 default_user: str,
+                 default_port: int):
         self.db_name = db_name
-        self.host = os.getenv('POSTGRES_HOST', 'localhost')
-        self.username = user or os.getenv('POSTGRES_USER', 'postgres')
-        self.password = password or os.getenv('POSTGRES_PASSWORD', None)
-        self.port = 5432
-        self.conn: Optional[psycopg.Connection] = None
-        self.cur: Optional[psycopg.Cursor] = None
+        self.host = os.getenv(self.host_env_var(), 'localhost')
+        self.username = os.getenv(user_env, default_user)
+        self.password = os.getenv(pass_env)
+        self.port = default_port
+        self.conn = None
+        self.cur = None
 
         if not self.password:
-            raise ValueError("POSTGRES_PASSWORD environment variable is not set")
+            raise ValueError(f"{pass_env} environment variable is not set")
 
     def __enter__(self):
-        """ Establish connection to the database. """
         try:
-            self.conn = psycopg.connect(
-                host=self.host,
-                port=5432,
-                dbname=self.db_name,
-                user=self.username,
-                password=self.password,
-                application_name="EMHealth"
-            )
-            self.cur = self.conn.cursor()
-            logger.info("Connected to %s@%s: database %s", self.username, self.host, self.db_name)
+            self.connect()
             return self
         except Exception as e:
             logger.error("Connection failed: %s", e)
@@ -82,6 +76,49 @@ class DatabaseClient:
             if self.conn:
                 self.conn.close()
                 logger.info("Connection closed.")
+
+    @abstractmethod
+    def host_env_var(self) -> str:
+        ...
+
+    @abstractmethod
+    def connect(self):
+        ...
+
+    @staticmethod
+    def get_path(target: str, folder: Optional[str] = None) -> Path:
+        """ Build a full path starting from the current file's directory.
+        :param target: Target file name.
+        :param folder: Optional subfolder name.
+        :return: Absolute Path object.
+        """
+        base_dir = Path(__file__).parent
+        if folder:
+            return (base_dir / folder / target).resolve()
+        return (base_dir / target).resolve()
+
+
+class PgClient(BaseDBClient):
+    """ PostgreSQL DB client. """
+    def __init__(self, db_name: str):
+        super().__init__(db_name, 'POSTGRES_USER', 'POSTGRES_PASSWORD',
+                         'postgres', 5432)
+
+    def host_env_var(self):
+        return 'POSTGRES_HOST'
+
+    def connect(self):
+        self.conn = psycopg.connect(
+            host=self.host,
+            port=self.port,
+            dbname=self.db_name,
+            user=self.username,
+            password=self.password,
+            application_name="EMHealth"
+        )
+        self.cur = self.conn.cursor()
+        logger.info("Connected to PostgreSQL %s@%s: database %s",
+                    self.username, self.host, self.db_name)
 
     def execute_file(self,
                      fn,
@@ -203,14 +240,46 @@ class DatabaseClient:
             self.conn.commit()
         # else None implicitly returned
 
-    @staticmethod
-    def get_path(target: str, folder: Optional[str] = None) -> Path:
-        """ Build a full path starting from the current file's directory.
-        :param target: Target file name.
-        :param folder: Optional subfolder name.
-        :return: Absolute Path object.
+
+class MSClient(BaseDBClient):
+    """ MSSQL DB client. """
+    def __init__(self, db_name: str):
+        super().__init__(db_name, 'MSSQL_USER', 'MSSQL_PASSWORD',
+                         '', 57659)
+
+    def host_env_var(self):
+        return 'MSSQL_HOST'
+
+    def connect(self):
+        self.conn = pyodbc.connect(
+            "DRIVER={ODBC Driver 18 for SQL Server};"
+            f"SERVER={self.host},{self.port};"
+            f"DATABASE={self.db_name};"
+            f"UID={self.username};"
+            f"PWD={self.password};"
+            "TrustServerCertificate=yes;"
+            "Encrypt=no;"
+        )
+        self.cur = self.conn.cursor()
+        logger.info("Connected to MSSQL %s@%s: database %s",
+                    self.username, self.host, self.db_name)
+
+
+    def run_query(
+            self,
+            query: str,
+            mode: Literal["fetchone", "fetchall", None] = "fetchall",
+    ):
         """
-        base_dir = Path(__file__).parent
-        if folder:
-            return (base_dir / folder / target).resolve()
-        return (base_dir / target).resolve()
+        Execute an SQL query and optionally return results.
+
+        :param query: SQL query string.
+        :param mode: fetch mode or commit.
+        """
+        logger.debug("Executing query:\n%s", query)
+        self.cur.execute(query)
+
+        if mode == "fetchone":
+            return self.cur.fetchone()
+        if mode == "fetchall":
+            return self.cur.fetchall()
