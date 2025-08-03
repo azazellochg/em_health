@@ -23,7 +23,7 @@ It offers flexible options to import Health Monitor data - either manually or
 automatically - and provides tools to query, visualize, and set up alerts. With integrated
 interactive Grafana dashboards, it helps you easily analyze and understand your system metrics.
 
-.. important:: The package is still in alpha version, not recommended for production use.
+.. important:: The package is still in active development, not recommended for production use.
 
 Documentation
 -------------

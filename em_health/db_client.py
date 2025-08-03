@@ -42,11 +42,15 @@ class BaseDBClient(ABC):
                  user_env: str,
                  pass_env: str,
                  default_user: str,
-                 default_port: int):
+                 default_port: int,
+                 **kwargs):
         self.db_name = db_name
-        self.host = os.getenv(self.host_env_var(), 'localhost')
-        self.username = os.getenv(user_env, default_user)
-        self.password = os.getenv(pass_env)
+        if "username" in kwargs:
+            self.username = kwargs["username"]
+            self.password = kwargs["password"]
+        else:
+            self.username = os.getenv(user_env, default_user)
+            self.password = os.getenv(pass_env)
         self.port = default_port
         self.conn = None
         self.cur = None
@@ -78,10 +82,6 @@ class BaseDBClient(ABC):
                 logger.info("Connection closed.")
 
     @abstractmethod
-    def host_env_var(self) -> str:
-        ...
-
-    @abstractmethod
     def connect(self):
         ...
 
@@ -100,12 +100,10 @@ class BaseDBClient(ABC):
 
 class PgClient(BaseDBClient):
     """ PostgreSQL DB client. """
-    def __init__(self, db_name: str):
+    def __init__(self, db_name: str, **kwargs):
         super().__init__(db_name, 'POSTGRES_USER', 'POSTGRES_PASSWORD',
-                         'postgres', 5432)
-
-    def host_env_var(self):
-        return 'POSTGRES_HOST'
+                         'postgres', 5432, **kwargs)
+        self.host = os.getenv('POSTGRES_HOST', 'localhost')
 
     def connect(self):
         self.conn = psycopg.connect(
@@ -243,12 +241,10 @@ class PgClient(BaseDBClient):
 
 class MSClient(BaseDBClient):
     """ MSSQL DB client. """
-    def __init__(self, db_name: str):
+    def __init__(self, db_name: str, **kwargs):
         super().__init__(db_name, 'MSSQL_USER', 'MSSQL_PASSWORD',
-                         '', 57659)
-
-    def host_env_var(self):
-        return 'MSSQL_HOST'
+                         '', 57659, **kwargs)
+        self.host = kwargs["host"]
 
     def connect(self):
         self.conn = pyodbc.connect(

@@ -435,3 +435,7 @@ def main(dbname, action, instrument=None, date=None):
         latest_ver = int(os.getenv(f"{dbname.upper()}_SCHEMA_VERSION"))
         with DatabaseManager(dbname) as db:
             db.migrate_db(latest_ver)
+
+    elif action == "import-uec":
+        from em_health.uec_manager import UECManager
+        UECManager(dbname).run_all_tasks()

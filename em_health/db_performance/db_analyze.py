@@ -77,7 +77,7 @@ def main(dbname, action):
             db.create_metric_tables()
             db.create_metric_collectors()
 
-        with DatabaseAnalyzer(dbname, user="pganalyze", password="pganalyze") as db:
+        with DatabaseAnalyzer(dbname, username="pganalyze", password="pganalyze") as db:
             db.schedule_metric_jobs()
 
     elif action in ["run-query", "explain-query"]:

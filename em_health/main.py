@@ -55,7 +55,8 @@ def db_cmd(args):
         from em_health.db_performance.db_analyze import main as func
         func(dbname, action)
 
-    elif action in ["create-stats", "init-tables", "clean-all", "clean-inst"]:
+    elif action in ["create-stats", "init-tables", "clean-all",
+                    "clean-inst", "import-uec"]:
         from em_health.db_manager import main as func
         func(dbname, action,
              getattr(args, "instrument", None),
@@ -78,24 +79,13 @@ def test_cmd(args=None):
     unittest.TextTestRunner(verbosity=2).run(suite)
 
 
-def test_dev(args=None):
-    from em_health.db_client import MSClient
-    with MSClient("DS") as dbm:
-        rows = dbm.run_query("SELECT CAST(ErrorDtm AS DATETIME) AS ErrorDtm, MessageText, "
-                             "SubsystemID, DeviceTypeID, DeviceInstanceID, ErrorCodeID FROM qry.ErrorNotifications",
-                             mode="fetchall")
-        for row in rows:
-            print(row)
-
-
 COMMAND_DISPATCH = {
     "import": import_cmd,
     "create-task": create_task_cmd,
     "watch": watch_cmd,
     "db": db_cmd,
     "update": update_cmd,
-    "test": test_cmd,
-    "dev": test_dev
+    "test": test_cmd
 }
 
 
@@ -142,7 +132,6 @@ def main():
 
     subparsers.add_parser("update", help="Update EMHealth to the latest version")
     subparsers.add_parser("test", help="Run unit tests")
-    subparsers.add_parser("dev", help="Run development commands [DEV]")
 
     # --- Database maintenance commands ---
     db_parser = subparsers.add_parser("db", help="Database operations")
@@ -159,6 +148,8 @@ def main():
                                    help="Instrument serial number (must be in instruments.json)")
     clean_inst_parser.add_argument("--date", type=str,
                                    help="Delete data older than this date (DD-MM-YYYY)")
+
+    db_subparsers.add_parser("import-uec", help="Import UEC data from microscope servers")
 
     # --- Developer tools ---
     db_subparsers.add_parser("init-tables", help="Create tables structure in the database [DEV]")
