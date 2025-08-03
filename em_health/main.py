@@ -160,7 +160,9 @@ def main():
         parser.error("Database name must be 'tem' or 'sem'")
 
     if args.command in COMMAND_DISPATCH:
-        env_path = Path(__file__).resolve().parent / "docker" / ".env"
+        env_path = Path(__file__).resolve().parents[1] / "docker" / ".env"
+        if not env_path.exists():
+            raise FileNotFoundError(f"Environment file {env_path} not found")
         load_dotenv(dotenv_path=env_path)
         COMMAND_DISPATCH[args.command](args)
     else:

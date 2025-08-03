@@ -347,6 +347,22 @@ class DatabaseManager(DatabaseClient):
         self.execute_file(view_fn)
         logger.info("Created materialized view %s", name)
 
+    def migrate_db(self, latest_ver: int):
+        """ Migrate db to the latest version. """
+        current_ver = self.run_query("SELECT version FROM public.schema_info", mode="fetchone")
+        current_ver = current_ver[0]
+        logger.info("Current schema version: %s", current_ver)
+
+        if current_ver < latest_ver:
+            for v in range(current_ver + 1, latest_ver + 1):
+                view_fn = self.get_path(target=f"{v:03d}.sql", folder="db_migrations")
+                self.execute_file(view_fn)
+            logger.info("Database migrated")
+        elif current_ver == latest_ver:
+            logger.info("Database schema is up-to-date")
+        else:
+            raise ValueError("Database version is higher than expected")
+
 
 def main(dbname, action, instrument=None, date=None):
     if action == "create-stats":
@@ -414,3 +430,8 @@ def main(dbname, action, instrument=None, date=None):
             else:
                 logger.info("Deleting data since %s for instrument %s in %s", date, instrument, dbname)
                 db.clean_instrument_data(instrument, since=date)
+
+    elif action == "migrate":
+        latest_ver = int(os.getenv(f"{dbname.upper()}_SCHEMA_VERSION"))
+        with DatabaseManager(dbname) as db:
+            db.migrate_db(latest_ver)

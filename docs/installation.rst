@@ -59,17 +59,16 @@ Installation
        cd em_health
        pip install -e .
 
-2. Configure and launch containers:
+2. Edit `docker/.env` and launch containers:
 
    .. code-block::
 
-       cp .env.example docker/.env  # edit .env with your secrets
        docker compose -f docker/compose.yaml up -d
 
 Security Configuration
 ^^^^^^^^^^^^^^^^^^^^^^
 
-See .env.example for default values.
+See `docker/.env` for default values.
 
 - TimescaleDB accounts:
 

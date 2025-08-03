@@ -39,7 +39,8 @@ where = ["."]
 include = ["em_health*"]
 
 [tool.setuptools.package-data]
-em_health = ["db_performance/*.sql", "views/*.sql", "instruments.json"]
+em_health = ["db_performance/*.sql", "views/*.sql",
+    "instruments.json", "db_migrations/*.sql"]
 
 [tool.setuptools]
 include-package-data = true

@@ -47,7 +47,7 @@ def run_command(command: str, capture_output=False, check=True):
 
 
 def update():
-    """Update Docker containers."""
+    """Update Docker containers and migrate db."""
     package_root = Path(__file__).resolve().parents[2]
     os.chdir(package_root)
 
@@ -60,6 +60,10 @@ def update():
 
     for cmd in commands:
         run_command(cmd)
+
+    from em_health.db_manager import main as func
+    func("tem", "migrate")
+    func("sem", "migrate")
 
     logger.info("Finished updating")
 

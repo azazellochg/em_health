@@ -18,7 +18,6 @@ docs/_build
 #### Other
 em_health/xml_data/
 emhealth.log
-docker/.env
 .directory
 *.cmd
 em_health/instruments.json
