@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS instruments (
                                            model TEXT NOT NULL,
                                            name TEXT NOT NULL,
                                            template TEXT NOT NULL,
-                                           server inet NOT NULL,
+                                           server inet,
                                            ds_version TEXT
 );
 
