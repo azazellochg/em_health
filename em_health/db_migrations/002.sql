@@ -22,7 +22,8 @@ DO $$
                                                     time TIMESTAMPTZ NOT NULL,
                                                     instrument_id INTEGER NOT NULL REFERENCES public.instruments(id),
                                                     error_id INTEGER NOT NULL REFERENCES uec.error_definitions(error_definition_id),
-                                                    message_text TEXT
+                                                    message_text TEXT,
+                                                    UNIQUE (time, instrument_id, error_id)
             );
 
             UPDATE public.schema_info SET version = 2;

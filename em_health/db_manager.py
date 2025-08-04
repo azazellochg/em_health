@@ -357,7 +357,7 @@ class DatabaseManager(PgClient):
             for v in range(current_ver + 1, latest_ver + 1):
                 view_fn = self.get_path(target=f"{v:03d}.sql", folder="db_migrations")
                 self.execute_file(view_fn)
-            logger.info("Database migrated")
+            logger.info("Database schema migrated to version %s", latest_ver)
         elif current_ver == latest_ver:
             logger.info("Database schema is up-to-date")
         else:

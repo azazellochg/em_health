@@ -46,6 +46,8 @@ class UECManager:
                 "SELECT id, server FROM public.instruments WHERE server IS NOT NULL",
                 mode="fetchall"
             )
+        if not self.servers:
+            raise ValueError("No servers found in the public.instrument table")
 
     def get_metadata(self, server: str) -> list[tuple]:
         """ Query UEC metadata from MSSQL DB. """
@@ -56,7 +58,7 @@ class UECManager:
                 FROM qry.ErrorDefinitions
                 """)
 
-    def get_data(self, server: str) -> list[tuple]:
+    def get_data(self, server: str) -> list:
         """ Query UEC data from MSSQL DB. """
         query = """
             SELECT 
@@ -68,7 +70,7 @@ class UECManager:
         with MSClient(db_name=self.msdb_name, host=server) as db:
             return db.run_query(query)
 
-    def import_metadata(self, metadata: list[tuple]) -> None:
+    def import_metadata(self, metadata: list) -> None:
         """ Import UEC metadata into PostgreSQL DB. """
         with DatabaseManager(self.pgdb_name) as db:
             query = f"""
@@ -85,10 +87,12 @@ class UECManager:
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT DO NOTHING
                 """
+            metadata = [tuple(row) for row in metadata]
             db.cur.executemany(query, metadata)
             db.conn.commit()
+            logger.info(f"Imported {len(metadata)} error types")
 
-    def import_data(self, instrument_id: int, data: list[tuple]) -> None:
+    def import_data(self, instrument_id: int, data: list) -> None:
         """ Import UEC data into PostgreSQL DB. """
         with DatabaseManager(self.pgdb_name) as db:
             filtered_data = [
@@ -105,8 +109,9 @@ class UECManager:
                     time,
                     instrument_id,
                     error_id,
-                    message_text
-                ) VALUES (%s, %s, %s, %s)
+                    message_text)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT DO NOTHING
             """
             db.cur.executemany(query, filtered_data)
             db.conn.commit()
@@ -123,6 +128,6 @@ class UECManager:
             data = self.get_data(server)
             if data:
                 self.import_data(instrument_id, data)
-                logger.info(f"Imported {len(data)} rows from {server}")
+                logger.info(f"Imported {len(data)} UECs from {server}")
             else:
                 logger.warning("No data found on server %s", server)
