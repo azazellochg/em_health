@@ -47,7 +47,8 @@ class DatabaseAnalyzer(DatabaseManager):
 
     def create_metric_collectors(self) -> None:
         """ Create functions to collect statistics. """
-        self.execute_file(self.get_path("create_metric_funcs.sql", folder="db_performance"))
+        self.execute_file(self.get_path("create_metric_funcs.sql", folder="db_performance"),
+                          {"PGANALYZE_PASSWORD": os.getenv("PGANALYZE_PASSWORD")})
         logger.info("Created pganalyze procedures")
 
     def schedule_metric_jobs(self) -> None:
@@ -77,7 +78,8 @@ def main(dbname, action):
             db.create_metric_tables()
             db.create_metric_collectors()
 
-        with DatabaseAnalyzer(dbname, username="pganalyze", password="pganalyze") as db:
+        pwd = os.getenv("PGANALYZE_PASSWORD")
+        with DatabaseAnalyzer(dbname, username="pganalyze", password=pwd) as db:
             db.schedule_metric_jobs()
 
     elif action in ["run-query", "explain-query"]:
