@@ -1,0 +1,1 @@
+../../docker/init-tables.sql
