@@ -24,8 +24,8 @@
 # *
 # **************************************************************************
 
-from datetime import datetime, timezone
-from typing import Iterable, Optional
+from typing import Optional
+from zoneinfo import ZoneInfo
 
 from em_health.db_manager import DatabaseManager
 from em_health.db_client import MSClient
@@ -34,60 +34,95 @@ from em_health.utils.logs import logger
 
 class UECManager:
     """ Manager class to operate on UEC (Alarms) data. """
-    def __init__(self, dbname):
-        self.dbname = dbname
-        self.servers = None
+    def __init__(self, dbname: str):
+        self.pgdb_name = dbname
+        self.msdb_name = "DS"
+        self.servers: Optional[list[tuple[int, str]]] = None
 
-    def get_servers(self):
-        """ Get list of servers from the instruments table. """
-        with DatabaseManager(self.dbname) as pgm:
-            servers = pgm.run_query("SELECT server FROM public.instruments", mode="fetchall")
-            self.servers = [s[0] for s in servers]
-            if not self.servers:
-                raise ValueError(f"{self.dbname} database has no servers in the instruments table")
+    def get_servers(self) -> None:
+        """ Get a list of servers from the instrument table. """
+        with DatabaseManager(self.pgdb_name) as db:
+            self.servers = db.run_query(
+                "SELECT id, server FROM public.instruments WHERE server IS NOT NULL",
+                mode="fetchall"
+            )
 
-    def get_metadata(self, server):
-        """ Query UEC metadata from MSSQL DB."""
-        with MSClient(db_name="DS", host=server) as msdb:
-            metadata = ""
-        return metadata
+    def get_metadata(self, server: str) -> list[tuple]:
+        """ Query UEC metadata from MSSQL DB. """
+        with MSClient(db_name=self.msdb_name, host=server) as db:
+            return db.run_query("""
+                SELECT ErrorDefinitionID, SubsystemID, Subsystem, DeviceTypeID, 
+                    DeviceType, DeviceInstanceID, DeviceInstance, ErrorCodeID, ErrorCode
+                FROM qry.ErrorDefinitions
+                """)
 
-    def get_data(self, server):
-        """ Query UEC data from MSSQL DB."""
-        with MSClient(db_name="DS", host=server) as msdb:
-            rows = msdb.run_query("""
-                                SELECT 
-                                    CAST(ErrorDtm AS DATETIME) AS ErrorDtm,
-                                    MessageText,
-                                    SubsystemID,
-                                    DeviceTypeID,
-                                    DeviceInstanceID,
-                                    ErrorCodeID
-                                FROM qry.ErrorNotifications
-                            """, mode="fetchall")
-            for row in rows:
-                print(row)
+    def get_data(self, server: str) -> list[tuple]:
+        """ Query UEC data from MSSQL DB. """
+        query = """
+            SELECT 
+                CAST(ErrorDtm AS DATETIME) AS ErrorDtm,
+                ErrorDefinitionID,
+                MessageText
+            FROM qry.ErrorNotifications
+        """
+        with MSClient(db_name=self.msdb_name, host=server) as db:
+            return db.run_query(query)
 
-    def import_metadata(self, server, metadata):
+    def import_metadata(self, metadata: list[tuple]) -> None:
         """ Import UEC metadata into PostgreSQL DB. """
-        with DatabaseManager(self.dbname) as db:
-            db.run_query("""
-                INSERT INTO public.uec_metadata (server, metadata)
-                VALUES (%s, %s)
-                ON CONFLICT (server)
-                DO UPDATE SET metadata = EXCLUDED.metadata
-            """, values=(server, metadata))
+        with DatabaseManager(self.pgdb_name) as db:
+            query = f"""
+                    INSERT INTO uec.error_definitions (
+                        error_definition_id,
+                        subsystem_id,
+                        subsystem,
+                        device_type_id ,
+                        device_type,
+                        device_instance_id,
+                        device_instance,
+                        error_code_id,
+                        error_code)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT DO NOTHING
+                """
+            db.cur.executemany(query, metadata)
+            db.conn.commit()
 
-    def import_data(self, server, data):
+    def import_data(self, instrument_id: int, data: list[tuple]) -> None:
         """ Import UEC data into PostgreSQL DB. """
-        with DatabaseManager(self.dbname) as db:
-            db.write_data(data, server, nocopy=True)
+        with DatabaseManager(self.pgdb_name) as db:
+            filtered_data = [
+                (
+                    row[0].replace(tzinfo=ZoneInfo("UTC")),
+                    instrument_id,
+                    row[1], row[2]
+                )
+                for row in data
+            ]
 
-    def run_all_tasks(self):
+            query = """
+                INSERT INTO uec.errors (
+                    time,
+                    instrument_id,
+                    error_id,
+                    message_text
+                ) VALUES (%s, %s, %s, %s)
+            """
+            db.cur.executemany(query, filtered_data)
+            db.conn.commit()
+
+    def run_all_tasks(self) -> None:
         """ Import UEC data from MSSQL DB into PostgreSQL DB. """
         self.get_servers()
-        for server in self.servers:
+        for instrument_id, server in self.servers:
+            logger.info("Processing server %s (instrument_id=%d)", server, instrument_id)
+
             metadata = self.get_metadata(server)
-            self.import_metadata(server, metadata)
+            self.import_metadata(metadata)
+
             data = self.get_data(server)
-            self.import_data(server, data)
+            if data:
+                self.import_data(instrument_id, data)
+                logger.info(f"Imported {len(data)} rows from {server}")
+            else:
+                logger.warning("No data found on server %s", server)
