@@ -24,6 +24,7 @@
 # *
 # **************************************************************************
 
+from datetime import datetime
 from typing import Optional
 
 from em_health.db_manager import DatabaseManager
@@ -61,7 +62,7 @@ class UECManager:
         """ Query UEC data from MSSQL DB. """
         query = """
             SELECT 
-                CAST(ErrorDtm AS DATETIMEOFFSET) AS ErrorDtm,
+                CONVERT(varchar(33), ErrorDtm, 127) AS ErrorDtm,
                 ErrorDefinitionID,
                 MessageText
             FROM qry.ErrorNotifications
@@ -95,7 +96,9 @@ class UECManager:
         """ Import UEC data into PostgreSQL DB. """
         with DatabaseManager(self.pgdb_name) as db:
             filtered_data = [
-                (row[0], instrument_id, row[1], row[2]) for row in data
+                (datetime.fromisoformat(row[0]),  # parses ISO 8601 with TZ
+                 instrument_id,
+                 row[1], row[2]) for row in data
             ]
 
             query = """
