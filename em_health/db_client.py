@@ -30,7 +30,6 @@ from pathlib import Path
 from typing import Literal, Optional, Dict, Any
 import psycopg
 from psycopg import sql
-import pyodbc
 
 from em_health.utils.logs import logger
 
@@ -247,6 +246,7 @@ class MSClient(BaseDBClient):
         self.host = kwargs["host"]
 
     def connect(self):
+        import pyodbc
         self.conn = pyodbc.connect(
             "DRIVER={ODBC Driver 18 for SQL Server};"
             f"SERVER={self.host},{self.port};"
