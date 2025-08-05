@@ -25,6 +25,7 @@ DO $$
                                                     message_text TEXT,
                                                     UNIQUE (time, instrument_id, error_id)
             );
+            CREATE INDEX ON uec.errors (instrument_id, time ASC);
 
             UPDATE public.schema_info SET version = 2;
         END IF;

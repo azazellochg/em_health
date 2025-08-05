@@ -25,7 +25,6 @@
 # **************************************************************************
 
 from typing import Optional
-from zoneinfo import ZoneInfo
 
 from em_health.db_manager import DatabaseManager
 from em_health.db_client import MSClient
@@ -62,7 +61,7 @@ class UECManager:
         """ Query UEC data from MSSQL DB. """
         query = """
             SELECT 
-                CAST(ErrorDtm AS DATETIME) AS ErrorDtm,
+                CAST(ErrorDtm AS DATETIMEOFFSET) AS ErrorDtm,
                 ErrorDefinitionID,
                 MessageText
             FROM qry.ErrorNotifications
@@ -96,12 +95,7 @@ class UECManager:
         """ Import UEC data into PostgreSQL DB. """
         with DatabaseManager(self.pgdb_name) as db:
             filtered_data = [
-                (
-                    row[0].replace(tzinfo=ZoneInfo("UTC")),
-                    instrument_id,
-                    row[1], row[2]
-                )
-                for row in data
+                (row[0], instrument_id, row[1], row[2]) for row in data
             ]
 
             query = """
