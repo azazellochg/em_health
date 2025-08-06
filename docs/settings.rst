@@ -25,4 +25,4 @@ Settings
 - **name**: custom field, used for display purposes. You can customize this.
 - **type**: database name. "tem" or "sem" only.
 - **template**: microscope platform. Allowed values are "krios", "talos" or "sem". Currently not in use.
-- **server**: IP address of the microscope PC (#1 on the screenshot above).
+- **server**: Optional field. IP address of the microscope PC (#1 on the screenshot above). This is used to connect to MSSQL server on the MPC directly and import UEC.
