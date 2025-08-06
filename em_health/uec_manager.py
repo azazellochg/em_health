@@ -24,6 +24,7 @@
 # *
 # **************************************************************************
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
 
 from em_health.db_manager import DatabaseManager
@@ -36,15 +37,17 @@ class UECManager:
     def __init__(self, dbname: str):
         self.pgdb_name = dbname
         self.msdb_name = "DS"
-        self.servers: Optional[list[tuple[int, str]]] = None
+        self.servers = None
 
     def get_servers(self) -> None:
         """ Get a list of servers from the instrument table. """
         with DatabaseManager(self.pgdb_name) as db:
-            self.servers = db.run_query(
-                "SELECT id, server FROM public.instruments WHERE server IS NOT NULL",
-                mode="fetchall"
-            )
+            self.servers = db.run_query("""
+                SELECT
+                    id, server, name FROM public.instruments
+                WHERE server IS NOT NULL
+                """, mode="fetchall")
+
         if not self.servers:
             raise ValueError("No servers found in the public.instrument table")
 
@@ -52,8 +55,10 @@ class UECManager:
         """ Query UEC metadata from MSSQL DB. """
         with MSClient(db_name=self.msdb_name, host=server) as db:
             return db.run_query("""
-                SELECT ErrorDefinitionID, SubsystemID, Subsystem, DeviceTypeID, 
-                    DeviceType, DeviceInstanceID, DeviceInstance, ErrorCodeID, ErrorCode
+                SELECT
+                    ErrorDefinitionID, SubsystemID, Subsystem, 
+                    DeviceTypeID, DeviceType, DeviceInstanceID, 
+                    DeviceInstance, ErrorCodeID, ErrorCode
                 FROM qry.ErrorDefinitions
                 """)
 
@@ -72,7 +77,7 @@ class UECManager:
     def import_metadata(self, metadata: list) -> None:
         """ Import UEC metadata into PostgreSQL DB. """
         with DatabaseManager(self.pgdb_name) as db:
-            query = f"""
+            query = """
                     INSERT INTO uec.error_definitions (
                         error_definition_id,
                         subsystem_id,
@@ -89,7 +94,6 @@ class UECManager:
             metadata = [tuple(row) for row in metadata]
             db.cur.executemany(query, metadata)
             db.conn.commit()
-            logger.info(f"Imported {len(metadata)} error types")
 
     def import_data(self, instrument_id: int, data: list) -> None:
         """ Import UEC data into PostgreSQL DB. """
@@ -110,18 +114,40 @@ class UECManager:
             db.cur.executemany(query, filtered_data)
             db.conn.commit()
 
-    def run_all_tasks(self) -> None:
+    def process_server(self,
+                       instrument_id: int,
+                       server: str, name: str) -> None:
         """ Import UEC data from MSSQL DB into PostgreSQL DB. """
+        logger.info("Processing server %s", server,
+                    extra={"prefix": name})
+
+        metadata = self.get_metadata(server)
+        self.import_metadata(metadata)
+        logger.info(f"Imported {len(metadata)} error definitions",
+                    extra={"prefix": name})
+
+        data = self.get_data(server)
+        if data:
+            self.import_data(instrument_id, data)
+            logger.info(f"Imported {len(data)} UECs from {server}",
+                        extra={"prefix": name})
+        else:
+            logger.warning("No data found on server %s", server,
+                           extra={"prefix": name})
+
+    def run_all_tasks(self) -> None:
+        """ Run all imports concurrently using a thread pool. """
         self.get_servers()
-        for instrument_id, server in self.servers:
-            logger.info("Processing server %s (instrument_id=%d)", server, instrument_id)
+        workers = min(len(self.servers), 4)
 
-            metadata = self.get_metadata(server)
-            self.import_metadata(metadata)
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = [
+                executor.submit(self.process_server, instrument_id, server, name)
+                for instrument_id, server, name in self.servers
+            ]
 
-            data = self.get_data(server)
-            if data:
-                self.import_data(instrument_id, data)
-                logger.info(f"Imported {len(data)} UECs from {server}")
-            else:
-                logger.warning("No data found on server %s", server)
+            for future in as_completed(futures):
+                try:
+                    future.result()  # Reraises any exceptions
+                except Exception as exc:
+                    logger.error("UEC import failed: %s", exc)
