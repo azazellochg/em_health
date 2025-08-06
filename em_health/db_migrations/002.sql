@@ -7,7 +7,7 @@ DO $$
         IF current_version = 1 THEN
             CREATE SCHEMA IF NOT EXISTS uec;
             CREATE TABLE IF NOT EXISTS uec.error_definitions (
-                                                                 error_definition_id INTEGER NOT NULL UNIQUE,
+                                                                 error_definition_id INTEGER NOT NULL,
                                                                  subsystem_id INTEGER NOT NULL,
                                                                  subsystem TEXT NOT NULL,
                                                                  device_type_id INTEGER NOT NULL,
@@ -17,6 +17,7 @@ DO $$
                                                                  error_code_id INTEGER NOT NULL,
                                                                  error_code TEXT NOT NULL
             );
+            CREATE UNIQUE INDEX idx_error_def_id ON uec.error_definitions (error_definition_id);
 
             CREATE TABLE IF NOT EXISTS uec.errors (
                                                     time TIMESTAMPTZ NOT NULL,
