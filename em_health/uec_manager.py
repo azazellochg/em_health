@@ -23,9 +23,9 @@
 # *  e-mail address 'gsharov@mrc-lmb.cam.ac.uk'
 # *
 # **************************************************************************
-
+import os
+import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Optional
 
 from em_health.db_manager import DatabaseManager
 from em_health.db_client import MSClient
@@ -41,6 +41,10 @@ class UECManager:
 
     def get_servers(self) -> None:
         """ Get a list of servers from the instrument table. """
+        if any(os.getenv(var) == "None" for var in ["MSSQL_USER", "MSSQL_PASSWORD"]):
+            logger.warning("MSSQL_USER and MSSQL_PASSWORD are not set.")
+            sys.exit(0)
+
         with DatabaseManager(self.pgdb_name) as db:
             self.servers = db.run_query("""
                 SELECT
@@ -132,7 +136,7 @@ class UECManager:
             logger.info(f"Imported {len(data)} UECs from {server}",
                         extra={"prefix": name})
         else:
-            logger.warning("No data found on server %s", server,
+            logger.warning("No UECs found on server %s", server,
                            extra={"prefix": name})
 
     def run_all_tasks(self) -> None:
