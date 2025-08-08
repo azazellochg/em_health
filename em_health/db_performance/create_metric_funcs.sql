@@ -7,21 +7,21 @@ AS $$
 BEGIN
     INSERT INTO pganalyze.database_stats (
         collected_at,
-        datid, datname, xact_commit, xact_rollback, blks_read, blks_hit,
+        xact_commit, xact_rollback, blks_read, blks_hit,
         tup_inserted, tup_updated, tup_deleted, tup_fetched, tup_returned,
         temp_files, temp_bytes, deadlocks, blk_read_time, blk_write_time,
         frozen_xid_age, frozen_mxid_age, db_size
     )
     SELECT
         now() AS collected_at,
-        s.datid, s.datname, s.xact_commit, s.xact_rollback, s.blks_read, s.blks_hit,
+        s.xact_commit, s.xact_rollback, s.blks_read, s.blks_hit,
         s.tup_inserted, s.tup_updated, s.tup_deleted, s.tup_fetched, s.tup_returned,
         s.temp_files, s.temp_bytes, s.deadlocks, s.blk_read_time, s.blk_write_time,
         age(d.datfrozenxid) AS frozen_xid_age, mxid_age(d.datminmxid) AS frozen_mxid_age,
-        pg_database_size(current_database()) AS db_size
+        pg_database_size(:DBNAME) AS db_size
     FROM pg_catalog.pg_stat_database s
              JOIN pg_catalog.pg_database d ON s.datname = d.datname
-    WHERE s.datname = current_database();
+    WHERE s.datname = :DBNAME;
 END;
 $$;
 
@@ -123,8 +123,6 @@ AS $$
 BEGIN
     INSERT INTO pganalyze.stat_statements (
         collected_at,
-        userid,
-        dbid,
         queryid,
         query,
         calls,
@@ -149,8 +147,6 @@ BEGIN
     )
     SELECT
         now(),
-        userid,
-        dbid,
         queryid,
         query,
         calls,
@@ -236,7 +232,6 @@ BEGIN
 
     -- Insert parsed vacuums into vacuum_stats
     INSERT INTO pganalyze.vacuum_stats (
-        datname,
         schemaname,
         tablename,
         started_at,
@@ -250,7 +245,6 @@ BEGIN
         details
     )
     SELECT
-        split_part(substring(message FROM 'automatic vacuum of table "([^"]+)"'), '.', 1)::name AS datname,
         split_part(substring(message FROM 'automatic vacuum of table "([^"]+)"'), '.', 2)::name AS schemaname,
         split_part(substring(message FROM 'automatic vacuum of table "([^"]+)"'), '.', 3)::name AS tablename,
         log_time AS started_at,
@@ -263,9 +257,11 @@ BEGIN
         (message LIKE '%to prevent wraparound%') AS wraparound,
         message AS details
     FROM tmp_log
-    WHERE error_severity = 'LOG'
+    WHERE database_name = :DBNAME
+      AND error_severity = 'LOG'
       AND backend_type = 'autovacuum worker'
       AND (message LIKE 'automatic vacuum of table "%public.%'
+        OR message LIKE 'automatic vacuum of table "%uec.%"'
         OR message LIKE 'automatic vacuum of table "%pganalyze.%')
     ON CONFLICT DO NOTHING;
 
@@ -288,7 +284,7 @@ BEGIN
         (substring(message FROM 'plan:\n(\{.*)')::json #>> '{Plan,Shared I/O Read Time}')::double precision AS io_read_time,
         substring(message FROM 'plan:\n(\{.*)')::json
     FROM tmp_log
-    WHERE database_name = current_database()
+    WHERE database_name = :DBNAME
       AND user_name = 'grafana'
       AND error_severity = 'LOG'
       AND message LIKE 'duration: %'

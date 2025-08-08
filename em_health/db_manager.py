@@ -82,13 +82,7 @@ class DatabaseManager(PgClient):
             INSERT INTO public.instruments (
                 instrument, serial, model, name, template, server
             ) VALUES (%s, %s, %s, %s, %s, %s)
-            ON CONFLICT (instrument)
-            DO UPDATE SET
-                serial = EXCLUDED.serial,
-                model = EXCLUDED.model,
-                name = EXCLUDED.name,
-                template = EXCLUDED.template,
-                server = EXCLUDED.server
+            ON CONFLICT DO NOTHING
             RETURNING id
         """, values = (
             instr_dict["instrument"],

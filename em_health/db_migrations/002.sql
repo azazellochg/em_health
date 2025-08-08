@@ -28,6 +28,9 @@ DO $$
             );
             CREATE INDEX ON uec.errors (instrument_id, time ASC);
 
+            GRANT USAGE ON SCHEMA uec TO grafana;
+            GRANT SELECT ON ALL TABLES IN SCHEMA uec TO grafana;
+
             UPDATE public.schema_info SET version = 2;
         END IF;
     END $$;

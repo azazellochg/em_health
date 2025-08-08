@@ -3,8 +3,6 @@ CREATE SCHEMA IF NOT EXISTS pganalyze;
 -- Create tables
 CREATE TABLE pganalyze.database_stats (
                                           collected_at    TIMESTAMPTZ      DEFAULT now() PRIMARY KEY,
-                                          datid           OID              NOT NULL,
-                                          datname         NAME             NOT NULL,
                                           xact_commit     BIGINT           NOT NULL,
                                           xact_rollback   BIGINT           NOT NULL,
                                           blks_read       BIGINT           NOT NULL,
@@ -55,7 +53,6 @@ CREATE TABLE pganalyze.index_stats (
 );
 
 CREATE TABLE pganalyze.vacuum_stats (
-                                        datname                 NAME        NOT NULL,
                                         schemaname              NAME        NOT NULL,
                                         tablename               NAME        NOT NULL,
                                         started_at              TIMESTAMPTZ NOT NULL,
@@ -67,13 +64,11 @@ CREATE TABLE pganalyze.vacuum_stats (
                                         tuples_remain           BIGINT      NOT NULL,
                                         wraparound              BOOLEAN     NOT NULL,
                                         details                 TEXT        NOT NULL,
-                                        PRIMARY KEY (datname, started_at)
+                                        PRIMARY KEY (schemaname, tablename, started_at)
 );
 
 CREATE TABLE pganalyze.stat_statements (
                                            collected_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
-                                           userid                  OID         NOT NULL,
-                                           dbid                    OID         NOT NULL,
                                            queryid                 BIGINT      NOT NULL,
                                            query                   TEXT        NOT NULL,
                                            calls                   BIGINT      NOT NULL,
@@ -95,9 +90,18 @@ CREATE TABLE pganalyze.stat_statements (
                                            temp_blks_written       BIGINT      NOT NULL,
                                            blk_read_time           DOUBLE PRECISION NOT NULL,
                                            blk_write_time          DOUBLE PRECISION NOT NULL,
-                                           PRIMARY KEY (collected_at, userid, dbid, queryid)
+                                           PRIMARY KEY (collected_at, queryid)
 );
 CREATE INDEX IF NOT EXISTS stat_statements_queryid_time ON pganalyze.stat_statements (queryid, collected_at DESC);
+
+SELECT create_hypertable('pganalyze.stat_statements', by_range('collected_at', INTERVAL :TBL_STATEMENTS_INTERVAL));
+
+ALTER TABLE pganalyze.stat_statements SET (
+    timescaledb.compress,
+    timescaledb.compress_segmentby = 'queryid',
+    timescaledb.compress_orderby = 'collected_at DESC');
+
+SELECT add_compression_policy('pganalyze.stat_statements', INTERVAL :TBL_STATEMENTS_COMPRESSION);
 
 CREATE TABLE pganalyze.stat_explains (
                                          time           TIMESTAMPTZ NOT NULL,
@@ -109,7 +113,3 @@ CREATE TABLE pganalyze.stat_explains (
                                          plan           JSON        NOT NULL,
                                          PRIMARY KEY (time, queryid)
 );
-
-SELECT * FROM create_hypertable('pganalyze.stat_statements', 'collected_at', chunk_time_interval => INTERVAL :TBL_STATEMENTS_INTERVAL);
-ALTER TABLE pganalyze.stat_statements SET (timescaledb.compress, timescaledb.compress_segmentby = 'queryid');
-SELECT add_compression_policy('pganalyze.stat_statements', INTERVAL :TBL_STATEMENTS_COMPRESSION);
