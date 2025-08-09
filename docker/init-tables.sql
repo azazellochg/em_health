@@ -82,6 +82,7 @@ SELECT add_compression_policy('data', INTERVAL :TBL_DATA_COMPRESSION);
 
 GRANT USAGE ON SCHEMA public TO grafana;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO grafana;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO grafana;
 
 -- uec schema
 CREATE SCHEMA IF NOT EXISTS uec;
@@ -109,6 +110,7 @@ CREATE INDEX ON uec.errors (instrument_id, time ASC);
 
 GRANT USAGE ON SCHEMA uec TO grafana;
 GRANT SELECT ON ALL TABLES IN SCHEMA uec TO grafana;
+ALTER DEFAULT PRIVILEGES IN SCHEMA uec GRANT SELECT ON TABLES TO grafana;
 
 -- set schema version
 INSERT INTO schema_info (version) VALUES (3);
