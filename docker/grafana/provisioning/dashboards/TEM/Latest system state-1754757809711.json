@@ -69,18 +69,32 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 53,
+  "id": 14,
   "links": [
     {
       "asDropdown": true,
       "icon": "external link",
       "includeVars": false,
-      "keepTime": false,
+      "keepTime": true,
+      "tags": [
+        "overview"
+      ],
+      "targetBlank": false,
+      "title": "Overviews",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    },
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
       "tags": [
         "module"
       ],
-      "targetBlank": true,
-      "title": "Modules",
+      "targetBlank": false,
+      "title": "System modules",
       "tooltip": "",
       "type": "dashboards",
       "url": ""
@@ -109,7 +123,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -135,7 +150,7 @@
         },
         "showHeader": false
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -200,14 +215,16 @@
         },
         "viewMode": "list"
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "title": "Module alerts",
       "type": "alertlist"
     }
   ],
   "preload": false,
   "schemaVersion": 41,
-  "tags": [],
+  "tags": [
+    "overview"
+  ],
   "templating": {
     "list": [
       {
@@ -227,7 +244,7 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Krios 4 [Titan Krios G4] (4248)",
+          "text": "Glacios [Glacios] (9952833)",
           "value": "5"
         },
         "datasource": {
@@ -246,8 +263,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "315",
-          "value": "315"
+          "text": "1",
+          "value": "1"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -265,8 +282,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "568",
-          "value": "568"
+          "text": "399",
+          "value": "399"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -284,8 +301,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "334",
-          "value": "334"
+          "text": "352",
+          "value": "352"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -303,8 +320,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "132",
-          "value": "132"
+          "text": "162",
+          "value": "162"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -322,8 +339,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "474",
-          "value": "474"
+          "text": "272",
+          "value": "272"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -341,8 +358,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "1608",
-          "value": "1608"
+          "text": "-1",
+          "value": "-1"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -360,8 +377,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "158",
-          "value": "158"
+          "text": "303",
+          "value": "303"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -379,8 +396,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "439",
-          "value": "439"
+          "text": "304",
+          "value": "304"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -398,8 +415,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "179",
-          "value": "179"
+          "text": "25",
+          "value": "25"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -417,14 +434,14 @@
     ]
   },
   "time": {
-    "from": "2025-04-23T18:08:48.864Z",
-    "to": "2025-05-30T12:03:23.236Z"
+    "from": "now-30d",
+    "to": "now"
   },
   "timepicker": {
     "refresh_intervals": []
   },
   "timezone": "Europe/London",
-  "title": "Latest system state",
-  "uid": "4395e67b-0280-47fd-94a8-6840b3f1d893",
-  "version": 4
+  "title": "Fleet summary",
+  "uid": "4395e67b-0280-47fd-94a8-6840b3f44893",
+  "version": 6
 }

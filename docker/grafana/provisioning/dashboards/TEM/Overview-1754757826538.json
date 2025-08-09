@@ -62,8 +62,37 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 51,
-  "links": [],
+  "id": 5,
+  "links": [
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [
+        "overview"
+      ],
+      "targetBlank": false,
+      "title": "Overviews",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    },
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [
+        "module"
+      ],
+      "targetBlank": false,
+      "title": "System modules",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    }
+  ],
   "panels": [
     {
       "collapsed": false,
@@ -583,7 +612,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "yellow"
+                "color": "yellow",
+                "value": 0
               }
             ]
           }
@@ -610,7 +640,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -707,7 +737,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "yellow"
+                "color": "yellow",
+                "value": 0
               }
             ]
           }
@@ -734,7 +765,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -846,7 +877,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "yellow"
+                "color": "yellow",
+                "value": 0
               }
             ]
           },
@@ -874,7 +906,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -972,7 +1004,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "yellow"
+                "color": "yellow",
+                "value": 0
               }
             ]
           }
@@ -999,7 +1032,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1045,17 +1078,17 @@
   ],
   "preload": false,
   "schemaVersion": 41,
-  "tags": [],
+  "tags": [
+    "overview"
+  ],
   "templating": {
     "list": [
       {
         "allowCustomValue": false,
         "current": {
-          "text": [
-            "Glacios [Glacios] (9952833)"
-          ],
+          "text": "All",
           "value": [
-            "1"
+            "$__all"
           ]
         },
         "datasource": {
@@ -1090,12 +1123,12 @@
     ]
   },
   "time": {
-    "from": "2025-04-24T14:59:43.900Z",
-    "to": "2025-05-31T19:12:02.070Z"
+    "from": "now-30d",
+    "to": "now"
   },
   "timepicker": {},
-  "timezone": "",
-  "title": "Overview",
-  "uid": "4350492f-ef51-4e3f-a22b-14c44eed6a97",
-  "version": 1
+  "timezone": "Europe/London",
+  "title": "Fleet overview",
+  "uid": "4350492f-ef51-4e3f-a22b-14c55eed6a97",
+  "version": 14
 }

@@ -59,7 +59,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 49,
+  "id": 8,
   "links": [],
   "panels": [
     {
@@ -86,7 +86,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -168,7 +169,7 @@
           }
         ]
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -274,7 +275,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -301,7 +303,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -367,7 +369,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -394,7 +397,7 @@
         },
         "showHeader": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -402,9 +405,9 @@
             "uid": "${sourceTEM}"
           },
           "editorMode": "code",
-          "format": "time_series",
+          "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH selected_params AS (\n  SELECT instrument_id, param_id, param_name\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem IN ($subsystem)\n    AND component IN ($component)\n    AND param_name IN ($param)\n)\nSELECT\n  v.time,\n  v.value_num AS \"value\",\n  p.param_name AS \"__name__\"\nFROM data v\nJOIN selected_params p\n  ON v.param_id = p.param_id\n  AND v.instrument_id = p.instrument_id\nWHERE $__timeFilter(v.time)\nORDER BY v.time;\n",
+          "rawSql": "WITH selected_params AS (\n  SELECT instrument_id, param_id, param_name, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem IN ($subsystem)\n    AND component IN ($component)\n    AND param_name IN ($param)\n)\n\nSELECT\n  v.time,\n  p.param_name AS \"parameter\",\n  v.value_num AS \"value\",\n  e.name AS \"enumeration\"\nFROM data v\nJOIN selected_params p\n  ON v.param_id = p.param_id\n  AND v.instrument_id = p.instrument_id\nLEFT JOIN enumerations e\n  ON e.instrument_id = v.instrument_id\n  AND e.enum_id = p.enum_id\n  AND e.value = v.value_num\nWHERE $__timeFilter(v.time)\nORDER BY v.time;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -474,7 +477,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -502,7 +506,7 @@
         "showHeader": true,
         "sortBy": []
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -546,13 +550,15 @@
   ],
   "preload": false,
   "schemaVersion": 41,
-  "tags": [],
+  "tags": [
+    "dev"
+  ],
   "templating": {
     "list": [
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Glacios [Glacios] (9952833)",
+          "text": "Krios 1 [Titan Krios G2] (3299)",
           "value": "1"
         },
         "datasource": {
@@ -661,8 +667,8 @@
     ]
   },
   "time": {
-    "from": "2025-04-29T09:15:25.730Z",
-    "to": "2025-04-30T12:34:45.026Z"
+    "from": "now-7d",
+    "to": "now"
   },
   "timepicker": {
     "refresh_intervals": []
@@ -670,5 +676,5 @@
   "timezone": "Europe/London",
   "title": "Data browser",
   "uid": "bdc45e8d-6118-44ea-89f6-00c573b7016b",
-  "version": 1
+  "version": 10
 }
