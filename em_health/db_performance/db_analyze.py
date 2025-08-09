@@ -41,7 +41,8 @@ class DatabaseAnalyzer(DatabaseManager):
         self.execute_file(self.get_path("create_metric_tables.sql", folder="db_performance"),
                           {
                               "TBL_STATEMENTS_INTERVAL": os.getenv("TBL_STATEMENTS_INTERVAL", "6 hours"),
-                              "TBL_STATEMENTS_COMPRESSION": os.getenv("TBL_STATEMENTS_COMPRESSION", "7 days")
+                              "TBL_STATEMENTS_COMPRESSION": os.getenv("TBL_STATEMENTS_COMPRESSION", "7 days"),
+                              "TBL_STATS_RETENTION": os.getenv("TBL_STATS_RETENTION", "3 months")
                           })
         logger.info("Created pganalyze tables")
 
@@ -50,7 +51,8 @@ class DatabaseAnalyzer(DatabaseManager):
         self.execute_file(self.get_path("create_metric_funcs.sql", folder="db_performance"),
                           {
                               "DBNAME": self.db_name,
-                              "PGANALYZE_PASSWORD": os.getenv("PGANALYZE_PASSWORD")
+                              "PGANALYZE_PASSWORD": os.getenv("PGANALYZE_PASSWORD"),
+                              "TBL_STATS_RETENTION": os.getenv("TBL_STATS_RETENTION", "3 months")
                           })
         logger.info("Created pganalyze procedures")
 
@@ -68,6 +70,7 @@ class DatabaseAnalyzer(DatabaseManager):
             f"SELECT add_job('pganalyze.get_db_stats', schedule_interval=>'{dbstats_interval}'::interval);",
             f"SELECT add_job('pganalyze.get_table_stats', schedule_interval=>'{tblstats_interval}'::interval);",
             f"SELECT add_job('pganalyze.get_index_stats', schedule_interval=>'{idxstats_interval}'::interval);",
+            "SELECT add_job('pganalyze.purge_stats', schedule_interval=>'1 day'::interval);"
         ]
         for j in jobs:
             self.run_query(query=j)

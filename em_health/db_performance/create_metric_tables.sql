@@ -102,6 +102,7 @@ ALTER TABLE pganalyze.stat_statements SET (
     timescaledb.compress_orderby = 'collected_at DESC');
 
 SELECT add_compression_policy('pganalyze.stat_statements', INTERVAL :TBL_STATEMENTS_COMPRESSION);
+SELECT add_retention_policy('pganalyze.stat_statements', INTERVAL :TBL_STATS_RETENTION);
 
 CREATE TABLE pganalyze.stat_explains (
                                          time           TIMESTAMPTZ NOT NULL,

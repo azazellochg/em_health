@@ -6,35 +6,39 @@ DO $$
 
         IF current_version = 2 THEN
 
--- remove dbid from pganalyze.stat_statements, also remove userid from the pkey
-            SELECT remove_compression_policy('pganalyze.stat_statements');
-            SELECT decompress_chunk(chunk_table)
-            FROM show_chunks('pganalyze.stat_statements') AS chunk_table;
+            IF EXISTS(SELECT 1 FROM pg_namespace WHERE nspname = 'pganalyze') THEN
 
-            ALTER TABLE pganalyze.stat_statements
-                DROP CONSTRAINT stat_statements_pkey,
-                DROP COLUMN dbid,
-                DROP COLUMN userid,
-                ADD PRIMARY KEY (collected_at, queryid),
-                SET (
-                    timescaledb.compress,
-                    timescaledb.compress_segmentby = 'queryid',
-                    timescaledb.compress_orderby = 'collected_at DESC');
+                -- remove dbid from pganalyze.stat_statements, also remove userid from the pkey
+                PERFORM remove_compression_policy('pganalyze.stat_statements');
+                PERFORM decompress_chunk(chunk_table)
+                FROM show_chunks('pganalyze.stat_statements') AS chunk_table;
 
-            SELECT add_compression_policy('pganalyze.stat_statements', INTERVAL :TBL_STATEMENTS_COMPRESSION);
+                ALTER TABLE pganalyze.stat_statements
+                    DROP CONSTRAINT stat_statements_pkey,
+                    DROP COLUMN dbid,
+                    DROP COLUMN userid,
+                    ADD PRIMARY KEY (collected_at, queryid),
+                    SET (
+                        timescaledb.compress,
+                        timescaledb.compress_segmentby = 'queryid',
+                        timescaledb.compress_orderby = 'collected_at DESC');
 
--- remove datname from pganaluze.vacuum stats
-            ALTER TABLE pganalyze.vacuum_stats
-                DROP COLUMN datname,
-                DROP CONSTRAINT vacuum_stats_pkey,
-                ADD PRIMARY KEY (schemaname, tablename, started_at);
+                PERFORM add_compression_policy('pganalyze.stat_statements', INTERVAL :TBL_STATEMENTS_COMPRESSION);
+                PERFORM add_retention_policy('pganalyze.stat_statements', INTERVAL '3 months');
 
--- remove db columns from pganalyze.database_stats
-            ALTER TABLE pganalyze.database_stats
-                DROP COLUMN datname,
-                DROP COLUMN datid;
+                -- remove datname from pganaluze.vacuum stats
+                ALTER TABLE pganalyze.vacuum_stats
+                    DROP COLUMN datname,
+                    DROP CONSTRAINT vacuum_stats_pkey,
+                    ADD PRIMARY KEY (schemaname, tablename, started_at);
+
+                -- remove db columns from pganalyze.database_stats
+                ALTER TABLE pganalyze.database_stats
+                    DROP COLUMN datname,
+                    DROP COLUMN datid;
+            END IF;
 
             UPDATE public.schema_info SET version = 3;
 
         END IF;
-    END $$;
+    END $$ LANGUAGE plpgsql;

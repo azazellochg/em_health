@@ -292,6 +292,30 @@ BEGIN
 END;
 $$;
 
+-- Purge old data
+DROP FUNCTION IF EXISTS pganalyze.purge_stats;
+CREATE FUNCTION pganalyze.purge_stats(job_id int, config jsonb)
+    RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+AS $$
+BEGIN
+    DELETE FROM pganalyze.database_stats
+    WHERE collected_at < NOW() - INTERVAL :TBL_STATS_RETENTION;
+
+    DELETE FROM pganalyze.table_stats
+    WHERE collected_at < NOW() - INTERVAL :TBL_STATS_RETENTION;
+
+    DELETE FROM pganalyze.index_stats
+    WHERE collected_at < NOW() - INTERVAL :TBL_STATS_RETENTION;
+
+    DELETE FROM pganalyze.vacuum_stats
+    WHERE started_at < NOW() - INTERVAL :TBL_STATS_RETENTION;
+
+    DELETE FROM pganalyze.stat_explains
+    WHERE time < NOW() - INTERVAL :TBL_STATS_RETENTION;
+END;
+$$;
+
 -- Create a separate pganalyze user
 DO $$
     BEGIN
@@ -305,7 +329,7 @@ $$;
 
 GRANT pg_monitor TO pganalyze;
 GRANT USAGE ON SCHEMA pganalyze TO pganalyze;
-GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA pganalyze TO pganalyze;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA pganalyze TO pganalyze;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA pganalyze TO pganalyze;
 GRANT USAGE ON SCHEMA pganalyze TO grafana;
 GRANT SELECT ON ALL TABLES IN SCHEMA pganalyze TO grafana;
