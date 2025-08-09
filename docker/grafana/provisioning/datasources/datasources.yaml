@@ -19,7 +19,7 @@ datasources:
     type: postgres
     access: proxy
     isDefault: false
-    url: "$timescaledb:5432"
+    url: "timescaledb:5432"
     user: "grafana"
     secureJsonData:
       password: "$POSTGRES_GRAFANA_PASSWORD"
