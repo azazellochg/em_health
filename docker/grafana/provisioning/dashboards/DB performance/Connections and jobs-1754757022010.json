@@ -18,8 +18,23 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 13,
-  "links": [],
+  "id": 6,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "perf"
+      ],
+      "targetBlank": false,
+      "title": "Dashboards",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    }
+  ],
   "panels": [
     {
       "collapsed": false,
@@ -49,7 +64,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -78,7 +94,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -134,7 +150,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -228,7 +245,7 @@
           }
         ]
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -298,7 +315,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -307,36 +325,12 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Next run in"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "s"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Error Message"
-            },
-            "properties": [
-              {
-                "id": "custom.inspect",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
               "options": "Job ID"
             },
             "properties": [
               {
                 "id": "custom.width",
-                "value": 60
+                "value": 80
               }
             ]
           },
@@ -389,9 +383,15 @@
           ],
           "show": false
         },
-        "showHeader": true
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "Target method"
+          }
+        ]
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -448,7 +448,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -532,7 +533,7 @@
         },
         "showHeader": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -565,11 +566,38 @@
       ],
       "title": "Job details",
       "type": "table"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 15,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "id": 9,
+      "options": {
+        "code": {
+          "language": "sql",
+          "showLineNumbers": true,
+          "showMiniMap": false
+        },
+        "content": "$function",
+        "mode": "code"
+      },
+      "pluginVersion": "12.1.0",
+      "title": "Job $jobid function",
+      "type": "text"
     }
   ],
   "preload": false,
   "schemaVersion": 41,
-  "tags": [],
+  "tags": [
+    "perf"
+  ],
   "templating": {
     "list": [
       {
@@ -588,30 +616,49 @@
       },
       {
         "current": {
-          "text": "1",
-          "value": "1"
+          "text": "3",
+          "value": "3"
         },
         "hide": 2,
         "name": "jobid",
         "options": [
           {
             "selected": true,
-            "text": "1",
-            "value": "1"
+            "text": "3",
+            "value": "3"
           }
         ],
-        "query": "1",
+        "query": "3",
         "type": "textbox"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "CREATE OR REPLACE FUNCTION _timescaledb_functions.policy_job_stat_history_retention(job_id integer, config jsonb)\n RETURNS integer\n LANGUAGE plpgsql\n SET search_path TO 'pg_catalog', 'pg_temp'\nAS $function$\nDECLARE\n    drop_after INTERVAL;\n    numrows INTEGER;\nBEGIN\n    drop_after := config->>'drop_after';\n\n    DELETE\n    FROM _timescaledb_internal.bgw_job_stat_history\n    WHERE execution_finish < (now() - drop_after);\n\n    GET DIAGNOSTICS numrows = ROW_COUNT;\n\n    RETURN numrows;\nEND;\n$function$\n",
+          "value": "CREATE OR REPLACE FUNCTION _timescaledb_functions.policy_job_stat_history_retention(job_id integer, config jsonb)\n RETURNS integer\n LANGUAGE plpgsql\n SET search_path TO 'pg_catalog', 'pg_temp'\nAS $function$\nDECLARE\n    drop_after INTERVAL;\n    numrows INTEGER;\nBEGIN\n    drop_after := config->>'drop_after';\n\n    DELETE\n    FROM _timescaledb_internal.bgw_job_stat_history\n    WHERE execution_finish < (now() - drop_after);\n\n    GET DIAGNOSTICS numrows = ROW_COUNT;\n\n    RETURN numrows;\nEND;\n$function$\n"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${source}"
+        },
+        "definition": "SELECT pg_get_functiondef(p.oid) AS definition\nFROM pg_proc p\nJOIN pg_namespace n ON n.oid = p.pronamespace\nJOIN timescaledb_information.jobs j\n  ON j.proc_name = p.proname\n AND j.proc_schema = n.nspname\nWHERE j.job_id = $jobid",
+        "hide": 2,
+        "name": "function",
+        "options": [],
+        "query": "SELECT pg_get_functiondef(p.oid) AS definition\nFROM pg_proc p\nJOIN pg_namespace n ON n.oid = p.pronamespace\nJOIN timescaledb_information.jobs j\n  ON j.proc_name = p.proname\n AND j.proc_schema = n.nspname\nWHERE j.job_id = $jobid",
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
       }
     ]
   },
   "time": {
-    "from": "now-24h",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {},
-  "timezone": "browser",
+  "timezone": "Europe/London",
   "title": "Connections and jobs",
   "uid": "2ddfc99a-7e8a-402c-9f3f-b06c67af2509",
-  "version": 1
+  "version": 12
 }

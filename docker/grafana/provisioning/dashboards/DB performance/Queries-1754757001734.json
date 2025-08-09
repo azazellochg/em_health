@@ -18,8 +18,23 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 15,
-  "links": [],
+  "id": 4,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "perf"
+      ],
+      "targetBlank": false,
+      "title": "Dashboards",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    }
+  ],
   "panels": [
     {
       "collapsed": false,
@@ -83,7 +98,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -111,7 +127,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -168,7 +184,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -299,11 +316,11 @@
         "sortBy": [
           {
             "desc": true,
-            "displayName": "% of all runtime"
+            "displayName": "Avg time"
           }
         ]
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -398,7 +415,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -439,7 +457,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -522,7 +540,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -563,7 +582,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -631,7 +650,7 @@
         "content": "${query:raw}",
         "mode": "code"
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "title": "",
       "type": "text"
     },
@@ -671,7 +690,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -787,7 +807,7 @@
         },
         "showHeader": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -859,14 +879,16 @@
         "content": "$plan",
         "mode": "code"
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "title": "Plan",
       "type": "text"
     }
   ],
   "preload": false,
   "schemaVersion": 41,
-  "tags": [],
+  "tags": [
+    "perf"
+  ],
   "templating": {
     "list": [
       {
@@ -885,36 +907,36 @@
       },
       {
         "current": {
-          "text": "3255875516516917077",
-          "value": "3255875516516917077"
+          "text": "-6818636805151468009",
+          "value": "-6818636805151468009"
         },
         "hide": 2,
         "name": "queryid",
         "options": [
           {
             "selected": true,
-            "text": "3255875516516917077",
-            "value": "3255875516516917077"
+            "text": "-6818636805151468009",
+            "value": "-6818636805151468009"
           }
         ],
-        "query": "3255875516516917077",
+        "query": "-6818636805151468009",
         "type": "textbox"
       },
       {
         "current": {
-          "text": "SELECT\n  j.job_id AS \"Job ID\",\n  j.proc_schema || $1 || j.proc_name AS \"Method\",\n  j.hypertable_schema || $2 || j.hypertable_name AS \"Target hypertable\",\n  ROUND(EXTRACT($3 FROM js.last_run_duration) * $4) || $5 AS \"Duration\",\n  j.schedule_interval AS \"Interval\",\n  j.config AS \"Config\",\n  CASE \n    WHEN js.last_run_status <> $6 THEN je.err_message\n    ELSE $7\n  END AS \"Error message\"\nFROM timescaledb_information.jobs j\nLEFT JOIN timescaledb_information.job_stats js\n  ON j.job_id = js.job_id\nLEFT JOIN LATERAL (\n  SELECT err_message\n  FROM timescaledb_information.job_errors je\n  WHERE je.job_id = j.job_id\n  ORDER BY je.finish_time DESC\n  LIMIT $8\n) je ON $9\nWHERE \n  COALESCE(NULLIF($10, $11), $12)::int IS NOT NULL\n  AND j.job_id = COALESCE(NULLIF($13, $14), $15)::int",
-          "value": "SELECT\n  j.job_id AS \"Job ID\",\n  j.proc_schema || $1 || j.proc_name AS \"Method\",\n  j.hypertable_schema || $2 || j.hypertable_name AS \"Target hypertable\",\n  ROUND(EXTRACT($3 FROM js.last_run_duration) * $4) || $5 AS \"Duration\",\n  j.schedule_interval AS \"Interval\",\n  j.config AS \"Config\",\n  CASE \n    WHEN js.last_run_status <> $6 THEN je.err_message\n    ELSE $7\n  END AS \"Error message\"\nFROM timescaledb_information.jobs j\nLEFT JOIN timescaledb_information.job_stats js\n  ON j.job_id = js.job_id\nLEFT JOIN LATERAL (\n  SELECT err_message\n  FROM timescaledb_information.job_errors je\n  WHERE je.job_id = j.job_id\n  ORDER BY je.finish_time DESC\n  LIMIT $8\n) je ON $9\nWHERE \n  COALESCE(NULLIF($10, $11), $12)::int IS NOT NULL\n  AND j.job_id = COALESCE(NULLIF($13, $14), $15)::int"
+          "text": "WITH pre_aggregated AS (\n  SELECT\n    collected_at,\n    queryid,\n    SUM(calls) AS calls,\n    SUM(total_time) AS total_time,\n    SUM(blk_read_time) AS blk_read_time,\n    SUM(blk_write_time) AS blk_write_time\n  FROM pganalyze.stat_statements\n  WHERE collected_at BETWEEN $1 AND $2\n  GROUP BY collected_at, queryid\n),\ndeltas AS (\n  SELECT\n    time_bucket(INTERVAL $3, collected_at) AS bucket,\n    queryid,\n    calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_calls,\n    total_time - LAG(total_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_total_time,\n    blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_read_time,\n    blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_write_time\n  FROM pre_aggregated\n),\nexpanded AS (\n  SELECT\n    bucket,\n    delta_calls,\n    (delta_total_time / NULLIF(delta_calls, $4)::double precision) AS per_call_latency,\n    (delta_blk_read_time   delta_blk_write_time) / NULLIF(delta_calls, $5)::double precision AS per_call_io_time\n  FROM deltas\n  WHERE delta_calls > $6 AND delta_total_time >= $7\n),\naggregated AS (\n  SELECT\n    bucket,\n    percentile_agg(per_call_latency) AS latency_percentiles,\n    avg(per_call_io_time) AS avg_io\n  FROM expanded\n  GROUP BY bucket\n)\nSELECT\n  bucket,\n  approx_percentile($8, latency_percentiles) AS \"Median time\",\n  approx_percentile($9, latency_percentiles) AS \"P95 time\",\n  avg_io AS \"Avg I/O time\"\nFROM aggregated\nORDER BY bucket",
+          "value": "WITH pre_aggregated AS (\n  SELECT\n    collected_at,\n    queryid,\n    SUM(calls) AS calls,\n    SUM(total_time) AS total_time,\n    SUM(blk_read_time) AS blk_read_time,\n    SUM(blk_write_time) AS blk_write_time\n  FROM pganalyze.stat_statements\n  WHERE collected_at BETWEEN $1 AND $2\n  GROUP BY collected_at, queryid\n),\ndeltas AS (\n  SELECT\n    time_bucket(INTERVAL $3, collected_at) AS bucket,\n    queryid,\n    calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_calls,\n    total_time - LAG(total_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_total_time,\n    blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_read_time,\n    blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_write_time\n  FROM pre_aggregated\n),\nexpanded AS (\n  SELECT\n    bucket,\n    delta_calls,\n    (delta_total_time / NULLIF(delta_calls, $4)::double precision) AS per_call_latency,\n    (delta_blk_read_time   delta_blk_write_time) / NULLIF(delta_calls, $5)::double precision AS per_call_io_time\n  FROM deltas\n  WHERE delta_calls > $6 AND delta_total_time >= $7\n),\naggregated AS (\n  SELECT\n    bucket,\n    percentile_agg(per_call_latency) AS latency_percentiles,\n    avg(per_call_io_time) AS avg_io\n  FROM expanded\n  GROUP BY bucket\n)\nSELECT\n  bucket,\n  approx_percentile($8, latency_percentiles) AS \"Median time\",\n  approx_percentile($9, latency_percentiles) AS \"P95 time\",\n  avg_io AS \"Avg I/O time\"\nFROM aggregated\nORDER BY bucket"
         },
         "hide": 2,
         "name": "query",
         "options": [
           {
             "selected": true,
-            "text": "SELECT\n  j.job_id AS \"Job ID\",\n  j.proc_schema || $1 || j.proc_name AS \"Method\",\n  j.hypertable_schema || $2 || j.hypertable_name AS \"Target hypertable\",\n  ROUND(EXTRACT($3 FROM js.last_run_duration) * $4) || $5 AS \"Duration\",\n  j.schedule_interval AS \"Interval\",\n  j.config AS \"Config\",\n  CASE \n    WHEN js.last_run_status <> $6 THEN je.err_message\n    ELSE $7\n  END AS \"Error message\"\nFROM timescaledb_information.jobs j\nLEFT JOIN timescaledb_information.job_stats js\n  ON j.job_id = js.job_id\nLEFT JOIN LATERAL (\n  SELECT err_message\n  FROM timescaledb_information.job_errors je\n  WHERE je.job_id = j.job_id\n  ORDER BY je.finish_time DESC\n  LIMIT $8\n) je ON $9\nWHERE \n  COALESCE(NULLIF($10, $11), $12)::int IS NOT NULL\n  AND j.job_id = COALESCE(NULLIF($13, $14), $15)::int",
-            "value": "SELECT\n  j.job_id AS \"Job ID\",\n  j.proc_schema || $1 || j.proc_name AS \"Method\",\n  j.hypertable_schema || $2 || j.hypertable_name AS \"Target hypertable\",\n  ROUND(EXTRACT($3 FROM js.last_run_duration) * $4) || $5 AS \"Duration\",\n  j.schedule_interval AS \"Interval\",\n  j.config AS \"Config\",\n  CASE \n    WHEN js.last_run_status <> $6 THEN je.err_message\n    ELSE $7\n  END AS \"Error message\"\nFROM timescaledb_information.jobs j\nLEFT JOIN timescaledb_information.job_stats js\n  ON j.job_id = js.job_id\nLEFT JOIN LATERAL (\n  SELECT err_message\n  FROM timescaledb_information.job_errors je\n  WHERE je.job_id = j.job_id\n  ORDER BY je.finish_time DESC\n  LIMIT $8\n) je ON $9\nWHERE \n  COALESCE(NULLIF($10, $11), $12)::int IS NOT NULL\n  AND j.job_id = COALESCE(NULLIF($13, $14), $15)::int"
+            "text": "WITH pre_aggregated AS (\n  SELECT\n    collected_at,\n    queryid,\n    SUM(calls) AS calls,\n    SUM(total_time) AS total_time,\n    SUM(blk_read_time) AS blk_read_time,\n    SUM(blk_write_time) AS blk_write_time\n  FROM pganalyze.stat_statements\n  WHERE collected_at BETWEEN $1 AND $2\n  GROUP BY collected_at, queryid\n),\ndeltas AS (\n  SELECT\n    time_bucket(INTERVAL $3, collected_at) AS bucket,\n    queryid,\n    calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_calls,\n    total_time - LAG(total_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_total_time,\n    blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_read_time,\n    blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_write_time\n  FROM pre_aggregated\n),\nexpanded AS (\n  SELECT\n    bucket,\n    delta_calls,\n    (delta_total_time / NULLIF(delta_calls, $4)::double precision) AS per_call_latency,\n    (delta_blk_read_time   delta_blk_write_time) / NULLIF(delta_calls, $5)::double precision AS per_call_io_time\n  FROM deltas\n  WHERE delta_calls > $6 AND delta_total_time >= $7\n),\naggregated AS (\n  SELECT\n    bucket,\n    percentile_agg(per_call_latency) AS latency_percentiles,\n    avg(per_call_io_time) AS avg_io\n  FROM expanded\n  GROUP BY bucket\n)\nSELECT\n  bucket,\n  approx_percentile($8, latency_percentiles) AS \"Median time\",\n  approx_percentile($9, latency_percentiles) AS \"P95 time\",\n  avg_io AS \"Avg I/O time\"\nFROM aggregated\nORDER BY bucket",
+            "value": "WITH pre_aggregated AS (\n  SELECT\n    collected_at,\n    queryid,\n    SUM(calls) AS calls,\n    SUM(total_time) AS total_time,\n    SUM(blk_read_time) AS blk_read_time,\n    SUM(blk_write_time) AS blk_write_time\n  FROM pganalyze.stat_statements\n  WHERE collected_at BETWEEN $1 AND $2\n  GROUP BY collected_at, queryid\n),\ndeltas AS (\n  SELECT\n    time_bucket(INTERVAL $3, collected_at) AS bucket,\n    queryid,\n    calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_calls,\n    total_time - LAG(total_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_total_time,\n    blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_read_time,\n    blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_write_time\n  FROM pre_aggregated\n),\nexpanded AS (\n  SELECT\n    bucket,\n    delta_calls,\n    (delta_total_time / NULLIF(delta_calls, $4)::double precision) AS per_call_latency,\n    (delta_blk_read_time   delta_blk_write_time) / NULLIF(delta_calls, $5)::double precision AS per_call_io_time\n  FROM deltas\n  WHERE delta_calls > $6 AND delta_total_time >= $7\n),\naggregated AS (\n  SELECT\n    bucket,\n    percentile_agg(per_call_latency) AS latency_percentiles,\n    avg(per_call_io_time) AS avg_io\n  FROM expanded\n  GROUP BY bucket\n)\nSELECT\n  bucket,\n  approx_percentile($8, latency_percentiles) AS \"Median time\",\n  approx_percentile($9, latency_percentiles) AS \"P95 time\",\n  avg_io AS \"Avg I/O time\"\nFROM aggregated\nORDER BY bucket"
           }
         ],
-        "query": "SELECT\n  j.job_id AS \"Job ID\",\n  j.proc_schema || $1 || j.proc_name AS \"Method\",\n  j.hypertable_schema || $2 || j.hypertable_name AS \"Target hypertable\",\n  ROUND(EXTRACT($3 FROM js.last_run_duration) * $4) || $5 AS \"Duration\",\n  j.schedule_interval AS \"Interval\",\n  j.config AS \"Config\",\n  CASE \n    WHEN js.last_run_status <> $6 THEN je.err_message\n    ELSE $7\n  END AS \"Error message\"\nFROM timescaledb_information.jobs j\nLEFT JOIN timescaledb_information.job_stats js\n  ON j.job_id = js.job_id\nLEFT JOIN LATERAL (\n  SELECT err_message\n  FROM timescaledb_information.job_errors je\n  WHERE je.job_id = j.job_id\n  ORDER BY je.finish_time DESC\n  LIMIT $8\n) je ON $9\nWHERE \n  COALESCE(NULLIF($10, $11), $12)::int IS NOT NULL\n  AND j.job_id = COALESCE(NULLIF($13, $14), $15)::int",
+        "query": "WITH pre_aggregated AS (\n  SELECT\n    collected_at,\n    queryid,\n    SUM(calls) AS calls,\n    SUM(total_time) AS total_time,\n    SUM(blk_read_time) AS blk_read_time,\n    SUM(blk_write_time) AS blk_write_time\n  FROM pganalyze.stat_statements\n  WHERE collected_at BETWEEN $1 AND $2\n  GROUP BY collected_at, queryid\n),\ndeltas AS (\n  SELECT\n    time_bucket(INTERVAL $3, collected_at) AS bucket,\n    queryid,\n    calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_calls,\n    total_time - LAG(total_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_total_time,\n    blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_read_time,\n    blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_write_time\n  FROM pre_aggregated\n),\nexpanded AS (\n  SELECT\n    bucket,\n    delta_calls,\n    (delta_total_time / NULLIF(delta_calls, $4)::double precision) AS per_call_latency,\n    (delta_blk_read_time   delta_blk_write_time) / NULLIF(delta_calls, $5)::double precision AS per_call_io_time\n  FROM deltas\n  WHERE delta_calls > $6 AND delta_total_time >= $7\n),\naggregated AS (\n  SELECT\n    bucket,\n    percentile_agg(per_call_latency) AS latency_percentiles,\n    avg(per_call_io_time) AS avg_io\n  FROM expanded\n  GROUP BY bucket\n)\nSELECT\n  bucket,\n  approx_percentile($8, latency_percentiles) AS \"Median time\",\n  approx_percentile($9, latency_percentiles) AS \"P95 time\",\n  avg_io AS \"Avg I/O time\"\nFROM aggregated\nORDER BY bucket",
         "type": "textbox"
       },
       {
@@ -937,12 +959,12 @@
     ]
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {},
-  "timezone": "browser",
+  "timezone": "Europe/London",
   "title": "Queries",
   "uid": "f5f755f6-d55b-4f89-bfd7-36281dc0eec7",
-  "version": 6
+  "version": 5
 }

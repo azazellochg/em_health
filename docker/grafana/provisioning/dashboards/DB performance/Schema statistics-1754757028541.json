@@ -18,8 +18,23 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 16,
-  "links": [],
+  "id": 7,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "perf"
+      ],
+      "targetBlank": false,
+      "title": "Dashboards",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    }
+  ],
   "panels": [
     {
       "datasource": {
@@ -30,15 +45,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "fixedColor": "text",
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            }
+            "mode": "thresholds"
           },
           "links": [
             {
@@ -47,27 +54,40 @@
             }
           ],
           "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
           "unit": "decbytes"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 5,
+        "w": 24,
         "x": 0,
         "y": 0
       },
       "id": 1,
+      "maxPerRow": 4,
       "options": {
-        "displayLabels": [
-          "name"
-        ],
+        "displayMode": "basic",
         "legend": {
+          "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": false
         },
-        "pieType": "donut",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 56,
+        "namePlacement": "auto",
+        "orientation": "vertical",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -75,13 +95,12 @@
           "fields": "/^size_bytes$/",
           "values": true
         },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
+        "showUnfilled": false,
+        "sizing": "auto",
+        "text": {},
+        "valueMode": "text"
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -91,7 +110,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  schemaname || '.' || relname AS name,\n  pg_total_relation_size(schemaname || '.' || relname) AS size_bytes\nFROM \n  pg_stat_user_tables\nWHERE schemaname NOT LIKE '\\_timescaledb%'\nORDER BY \n  size_bytes DESC\n",
+          "rawSql": "SELECT\n  schemaname || '.' || relname AS name,\n  pg_total_relation_size(schemaname || '.' || relname) AS size_bytes\nFROM \n  pg_stat_user_tables\nWHERE schemaname = '$schema'\nORDER BY \n  size_bytes DESC\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -112,8 +131,8 @@
           }
         }
       ],
-      "title": "Select a table to analyze",
-      "type": "piechart"
+      "title": "Select table to analyze",
+      "type": "bargauge"
     },
     {
       "collapsed": false,
@@ -144,7 +163,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -176,7 +196,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -247,7 +267,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -286,7 +307,7 @@
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 100
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -342,7 +363,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -402,7 +424,7 @@
         },
         "showHeader": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -441,6 +463,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${source}"
       },
+      "description": "Num. distinct (*) means a fraction-based extimate",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -458,7 +481,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -498,7 +522,7 @@
         },
         "showHeader": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -567,7 +591,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -632,7 +657,7 @@
         },
         "showHeader": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -714,7 +739,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -743,7 +769,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -825,7 +851,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -853,7 +880,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -936,7 +963,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -965,7 +993,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1034,7 +1062,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -1073,7 +1102,7 @@
         },
         "showHeader": false
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1129,7 +1158,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -1159,7 +1189,11 @@
             "properties": [
               {
                 "id": "unit",
-                "value": "ms"
+                "value": "s"
+              },
+              {
+                "id": "custom.width",
+                "value": 120
               }
             ]
           },
@@ -1172,6 +1206,46 @@
               {
                 "id": "unit",
                 "value": "percent"
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tuples removed"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Anti-wraparound?"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 150
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Finished at"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
               }
             ]
           }
@@ -1197,7 +1271,7 @@
         },
         "showHeader": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1279,7 +1353,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -1329,7 +1404,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1411,7 +1486,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -1461,7 +1537,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1498,7 +1574,9 @@
   ],
   "preload": false,
   "schemaVersion": 41,
-  "tags": [],
+  "tags": [
+    "perf"
+  ],
   "templating": {
     "list": [
       {
@@ -1518,8 +1596,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "public.parameters",
-          "value": "public.parameters"
+          "text": "pganalyze.stat_statements",
+          "value": "pganalyze.stat_statements"
         },
         "hide": 2,
         "name": "table",
@@ -1530,24 +1608,52 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "21214",
-          "value": "21214"
+          "text": "184126",
+          "value": "184126"
         },
         "hide": 2,
         "name": "index",
         "options": [],
         "query": "",
         "type": "custom"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "pganalyze",
+          "value": "pganalyze"
+        },
+        "includeAll": false,
+        "name": "schema",
+        "options": [
+          {
+            "selected": false,
+            "text": "public",
+            "value": "public"
+          },
+          {
+            "selected": false,
+            "text": "uec",
+            "value": "uec"
+          },
+          {
+            "selected": true,
+            "text": "pganalyze",
+            "value": "pganalyze"
+          }
+        ],
+        "query": "public,uec,pganalyze",
+        "type": "custom"
       }
     ]
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {},
-  "timezone": "browser",
+  "timezone": "Europe/London",
   "title": "Schema statistics",
   "uid": "46837677-7190-44c2-b9bb-db869089ba49",
-  "version": 5
+  "version": 22
 }
