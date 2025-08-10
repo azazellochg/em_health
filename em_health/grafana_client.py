@@ -47,7 +47,7 @@ class GrafanaClient:
             "Content-Type": "application/json"
         }
 
-    def _request(self, method: str, endpoint: str, payload: dict = None) -> dict:
+    def __request(self, method: str, endpoint: str, payload: dict = None) -> dict:
         url = f"{self.base_url}{endpoint.lstrip('/')}"
         logger.debug("Grafana API %s request to %s: %s", method, url, payload)
 
@@ -69,7 +69,7 @@ class GrafanaClient:
         if tag:
             query_params += f"&tag={tag}"
 
-        return self._request("GET", query_params)
+        return self.__request("GET", query_params)
 
     def update_org_prefs(self, home_dashboard_name="Fleet overview", tag="overview") -> dict:
         dashboards = self.find_dashboard_by_name(home_dashboard_name, tag=tag)
@@ -78,8 +78,7 @@ class GrafanaClient:
             "weekStart": "monday",
             "homeDashboardUID": dashboards[0]["uid"] if dashboards else ""
         }
-        return self._request("PATCH", "org/preferences", payload)
-
+        return self.__request("PUT", "org/preferences", payload)
 
 if __name__ == "__main__":
     client = GrafanaClient()
