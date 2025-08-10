@@ -73,6 +73,7 @@ services:
       EMHEALTH_DEBUG: ${EMHEALTH_DEBUG}
     volumes:
       - grafana-storage:/var/lib/grafana
+      - ./grafana/provisioning/alerting:/etc/grafana/provisioning/alerting
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
       - backups:/backups
