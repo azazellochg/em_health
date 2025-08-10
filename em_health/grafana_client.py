@@ -38,7 +38,6 @@ class GrafanaClient:
 
     def __init__(self):
         self.base_url = GRAFANA_URL
-
         api_token = os.getenv("GRAFANA_API_TOKEN")
         if not api_token:
             raise ValueError("GRAFANA_API_TOKEN env var is not set")
@@ -50,7 +49,7 @@ class GrafanaClient:
 
     def _request(self, method: str, endpoint: str, payload: dict = None) -> dict:
         url = f"{self.base_url}{endpoint.lstrip('/')}"
-        logger.debug("Grafana API request: %s %s %s", method, url, payload)
+        logger.debug("Grafana API %s request to %s: %s", method, url, payload)
 
         resp: Response = requests.request(method=method, url=url,
                                           headers=self.headers, json=payload)
