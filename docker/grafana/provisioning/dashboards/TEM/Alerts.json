@@ -441,7 +441,7 @@
     "refresh_intervals": []
   },
   "timezone": "Europe/London",
-  "title": "Fleet summary",
-  "uid": "4395e67b-0280-47fd-94a8-6840b3f44893",
-  "version": 6
+  "title": "Alerts",
+  "uid": "4395e67b-0330-47fd-94a8-6840b3f44893",
+  "version": 7
 }

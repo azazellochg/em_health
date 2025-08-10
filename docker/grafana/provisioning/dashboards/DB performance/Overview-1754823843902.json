@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 17,
+  "id": 6,
   "links": [
     {
       "asDropdown": false,
@@ -171,6 +171,9 @@
           "values": true
         },
         "showPercentChange": false,
+        "text": {
+          "valueSize": 28
+        },
         "textMode": "value",
         "wideLayout": true
       },
@@ -1086,7 +1089,7 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 2,
+        "w": 4,
         "x": 0,
         "y": 25
       },
@@ -1203,8 +1206,8 @@
       },
       "gridPos": {
         "h": 6,
-        "w": 22,
-        "x": 2,
+        "w": 20,
+        "x": 4,
         "y": 25
       },
       "id": 35,
@@ -1288,7 +1291,7 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 2,
+        "w": 4,
         "x": 0,
         "y": 28
       },
@@ -1388,5 +1391,5 @@
   "timezone": "Europe/London",
   "title": "Overview",
   "uid": "ee46beab-c046-45a5-b547-23990e2ec0f3",
-  "version": 10
+  "version": 5
 }

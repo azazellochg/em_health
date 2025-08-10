@@ -110,7 +110,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  schemaname || '.' || relname AS name,\n  pg_total_relation_size(schemaname || '.' || relname) AS size_bytes\nFROM \n  pg_stat_user_tables\nWHERE schemaname = '$schema'\nORDER BY \n  size_bytes DESC\n",
+          "rawSql": "SELECT\n  relname AS name,\n  pg_total_relation_size(schemaname || '.' || relname) AS size_bytes\nFROM \n  pg_stat_user_tables\nWHERE schemaname = '$schema'\nORDER BY \n  size_bytes DESC\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1281,7 +1281,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  finished_at AS \"Finished at\",\n  duration AS \"Duration\",\n  tuples_removed AS \"Tuples removed\",\n  tuples_removed / (tuples_removed + tuples_remain) * 100.0 AS \"Effectiveness\",\n  wraparound AS \"Anti-wraparound?\",\n  details AS \"Details\"\nFROM pganalyze.vacuum_stats\nWHERE datname = current_database()\n  AND (schemaname || '.' || tablename) = '$table'\n  AND $__timeFilter(started_at)\nORDER BY finished_at DESC\n",
+          "rawSql": "SELECT\n  finished_at AS \"Finished at\",\n  duration AS \"Duration\",\n  tuples_removed AS \"Tuples removed\",\n  tuples_removed / (tuples_removed + tuples_remain) * 100.0 AS \"Effectiveness\",\n  wraparound AS \"Anti-wraparound?\",\n  details AS \"Details\"\nFROM pganalyze.vacuum_stats\nWHERE (schemaname || '.' || tablename) = '$table'\n  AND $__timeFilter(started_at)\nORDER BY finished_at DESC\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1620,14 +1620,14 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "pganalyze",
-          "value": "pganalyze"
+          "text": "public",
+          "value": "public"
         },
         "includeAll": false,
         "name": "schema",
         "options": [
           {
-            "selected": false,
+            "selected": true,
             "text": "public",
             "value": "public"
           },
@@ -1637,7 +1637,7 @@
             "value": "uec"
           },
           {
-            "selected": true,
+            "selected": false,
             "text": "pganalyze",
             "value": "pganalyze"
           }
@@ -1655,5 +1655,5 @@
   "timezone": "Europe/London",
   "title": "Schema statistics",
   "uid": "46837677-7190-44c2-b9bb-db869089ba49",
-  "version": 22
+  "version": 4
 }

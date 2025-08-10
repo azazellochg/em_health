@@ -1,0 +1,1478 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 18,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "perf"
+      ],
+      "targetBlank": false,
+      "title": "Dashboards",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    }
+  ],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "panels": [],
+      "title": "Overview",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "setting"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 7,
+        "x": 0,
+        "y": 1
+      },
+      "id": 6,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": false
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "  SELECT\n    name,\n    setting\n  FROM pg_settings\n  WHERE name IN (\n    'autovacuum_max_workers',\n    'autovacuum_vacuum_cost_delay',\n    'autovacuum_vacuum_threshold',\n    'autovacuum_freeze_max_age',\n    'autovacuum_vacuum_insert_threshold',\n    'autovacuum_vacuum_cost_limit',\n    'autovacuum_vacuum_scale_factor',\n    'autovacuum_multixact_freeze_max_age',\n    'autovacuum_vacuum_insert_scale_factor',\n    'autovacuum_naptime',\n    'autovacuum_work_mem'\n  )",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Config settings",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 5,
+        "x": 7,
+        "y": 1
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "vertical",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": false
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  COUNT(*) AS \"Total\",\n  COUNT(*) FILTER (WHERE wraparound) AS \"Anti-wraparound vacuums\"\nFROM pganalyze.vacuum_stats\nWHERE $__timeFilter(started_at)\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Total autovacuum count",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "width": 125
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Table"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 177
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last vacuum"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 160
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max duration"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 12,
+        "y": 1
+      },
+      "id": 11,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": true,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  schemaname || '.' || tablename AS \"Table\",\n  COUNT(*) AS \"Vacuum count\",\n  SUM(tuples_removed) || ' (' || ROUND(SUM(tuples_removed) / NULLIF(SUM(tuples_removed + tuples_remain), 0) * 100.0, 2) || '%)' AS \"Tuples removed\",\n  SUM(index_scans) AS \"Index scans\",\n  SUM(pages_removed) AS \"Pages removed\",\n  MAX(duration) AS \"Max duration\",\n  MAX(finished_at) AS \"Last vacuum\"\nFROM pganalyze.vacuum_stats\nWHERE $__timeFilter(started_at)\nGROUP BY schemaname, tablename\nORDER BY \"Tuples removed\" DESC\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "VACUUM summary",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "description": "How often an Anti-Wraparound VACUUM is estimated to be scheduled on average from all tables - this is a function of the rate of transaction ID consumption, as well as the autovacuum_freeze_max_age and vacuum_freeze_min_age settings. Higher values are better.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "h"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 5,
+        "x": 7,
+        "y": 4
+      },
+      "id": 8,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "/^avg_anti_wraparound_vacuum_frequency_hours$/",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": false
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH params AS (\n  SELECT\n    c.oid,\n    (c.relfrozenxid::text)::bigint AS relfrozenxid_int,\n    txid_current() AS current_xid,\n    (SELECT setting::bigint FROM pg_settings WHERE name = 'autovacuum_freeze_max_age') AS freeze_max_age,\n    (SELECT setting::bigint FROM pg_settings WHERE name = 'vacuum_freeze_min_age') AS freeze_min_age,\n    ((d.xact_commit + d.xact_rollback) / NULLIF(EXTRACT(EPOCH FROM (now() - COALESCE(d.stats_reset, pg_postmaster_start_time()) )), 0)) AS xid_per_sec\n  FROM pg_class c\n  CROSS JOIN pg_stat_database d\n  WHERE d.datname = current_database()\n    AND c.relkind = 'r'\n)\nSELECT\n  AVG(\n    CASE\n      WHEN xid_per_sec > 0 THEN (freeze_min_age / xid_per_sec) / 3600 -- hours\n      ELSE NULL\n    END\n  ) AS avg_anti_wraparound_vacuum_frequency_hours\nFROM params;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Anti-Wraparound Vacuum Frequency",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "description": "Theoretical maximum impact that VACUUM can have on your system",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "Bps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 5,
+        "x": 7,
+        "y": 7
+      },
+      "id": 16,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "/^max_vacuum_read_rate_bytes_per_sec$/",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": false
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH settings AS (\n  SELECT\n    (CASE \n       WHEN (SELECT setting FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_limit') = '-1'\n       THEN (SELECT setting::numeric FROM pg_settings WHERE name = 'vacuum_cost_limit')\n       ELSE (SELECT setting::numeric FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_limit')\n     END) AS vacuum_cost_limit_effective,\n    (SELECT setting::numeric FROM pg_settings WHERE name = 'vacuum_cost_page_miss') AS vacuum_cost_page_miss,\n    (SELECT setting::numeric FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_delay') AS autovacuum_vacuum_cost_delay,\n    8192 AS block_size_bytes -- 8kB block size\n)\nSELECT\n  (vacuum_cost_limit_effective / vacuum_cost_page_miss * block_size_bytes / autovacuum_vacuum_cost_delay) * 1000 AS max_vacuum_read_rate_bytes_per_sec\nFROM settings\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Max read I/O impact",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "description": "Theoretical maximum impact that VACUUM can have on your system",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "Bps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 5,
+        "x": 7,
+        "y": 10
+      },
+      "id": 17,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "/^max_vacuum_write_rate_bytes_per_sec$/",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": false
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH settings AS (\n  SELECT\n    (CASE \n       WHEN (SELECT setting FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_limit') = '-1'\n       THEN (SELECT setting::numeric FROM pg_settings WHERE name = 'vacuum_cost_limit')\n       ELSE (SELECT setting::numeric FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_limit')\n     END) AS vacuum_cost_limit_effective,\n    (SELECT setting::numeric FROM pg_settings WHERE name = 'vacuum_cost_page_dirty') AS vacuum_cost_page_dirty,\n    (SELECT setting::numeric FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_delay') AS autovacuum_vacuum_cost_delay,\n    8192 AS block_size_bytes -- 8kB block size\n)\nSELECT\n  (vacuum_cost_limit_effective / vacuum_cost_page_dirty * block_size_bytes / autovacuum_vacuum_cost_delay) * 1000 AS max_vacuum_write_rate_bytes_per_sec\nFROM settings\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Max write I/O impact",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 13
+      },
+      "id": 3,
+      "panels": [],
+      "title": "Bloat",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "description": "The estimated overall table bloat on this server or database - this is a very rough estimate and should be reviewed for individual tables. Only tables > 64kB are considered",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "avg_bloat_percent"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "total_bloat"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "decbytes"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 14
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH tables AS (\n  SELECT schemaname, tablename\n  FROM pg_tables\n  WHERE schemaname NOT SIMILAR TO '(pg_catalog|information_schema|_timescaledb%)'\n),\nbloat_data AS (\n  SELECT\n    stats.table_len,\n    (stats.dead_tuple_len + stats.approx_free_space)::numeric AS bloat_bytes,\n    ((stats.dead_tuple_len + stats.approx_free_space)::numeric / NULLIF(stats.table_len, 0)) AS bloat_ratio\n  FROM tables t,\n  LATERAL pgstattuple_approx(format('%I.%I', t.schemaname, t.tablename)) stats\n  WHERE stats.table_len >= 65536 -- 64kb min\n)\nSELECT\n  COALESCE(SUM(bloat_bytes), 0) AS total_bloat,\n  COALESCE(ROUND(100.0 * AVG(bloat_ratio), 2), 0) AS avg_bloat_percent\nFROM bloat_data\nWHERE bloat_ratio IS NOT NULL;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Est. Table Bloat",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "description": "The total number of tables on this database - databases with a lot of tables can often times suffer from more autovacuum scheduling challenges.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 14
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "/^total_tables$/",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS total_tables\nFROM pg_tables\nWHERE schemaname NOT SIMILAR TO '(pg_catalog|information_schema|_timescaledb%)'\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Total tables",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "description": "How long ago the xmin horizon was assigned, indicating up to which point VACUUM can clean up dead rows.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 14
+      },
+      "id": 12,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "/^approx_seconds_ago$/",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH xmin_candidates AS (\n  SELECT\n    COALESCE((\n      SELECT\n        CASE WHEN COALESCE(pg_catalog.age(backend_xid), 0) > COALESCE(pg_catalog.age(backend_xmin), 0)\n          THEN backend_xid::text::bigint\n          ELSE backend_xmin::text::bigint\n        END\n      FROM pg_catalog.pg_stat_activity\n      WHERE backend_xmin IS NOT NULL OR backend_xid IS NOT NULL\n      ORDER BY greatest(pg_catalog.age(backend_xmin), pg_catalog.age(backend_xid)) DESC\n      LIMIT 1\n    ), 0) AS backend,\n\n    COALESCE((\n      SELECT xmin::text::bigint\n      FROM pg_catalog.pg_replication_slots\n      WHERE xmin IS NOT NULL\n      ORDER BY pg_catalog.age(xmin) DESC\n      LIMIT 1\n    ), 0) AS replication_slot_xmin,\n\n    COALESCE((\n      SELECT catalog_xmin::text::bigint\n      FROM pg_catalog.pg_replication_slots\n      WHERE catalog_xmin IS NOT NULL\n      ORDER BY pg_catalog.age(catalog_xmin) DESC\n      LIMIT 1\n    ), 0) AS replication_slot_catalog_xmin,\n\n    COALESCE((\n      SELECT transaction::text::bigint\n      FROM pg_catalog.pg_prepared_xacts\n      ORDER BY pg_catalog.age(transaction) DESC\n      LIMIT 1\n    ), 0) AS prepare_xact,\n\n    COALESCE((\n      SELECT backend_xmin::text::bigint\n      FROM pg_catalog.pg_stat_replication\n      WHERE backend_xmin IS NOT NULL\n      ORDER BY pg_catalog.age(backend_xmin) DESC\n      LIMIT 1\n    ), 0) AS standby\n),\ntrue_xmin AS (\n  SELECT\n    LEAST(\n      backend,\n      replication_slot_xmin,\n      replication_slot_catalog_xmin,\n      prepare_xact,\n      standby\n    ) AS xmin\n  FROM xmin_candidates\n),\ntxn_rate AS (\n  SELECT\n    EXTRACT(epoch FROM (now() - COALESCE(stats_reset, pg_postmaster_start_time()))) AS seconds_since_startup,\n    (xact_commit + xact_rollback) AS total_txns,\n    CASE \n      WHEN (xact_commit + xact_rollback) > 0\n      THEN EXTRACT(epoch FROM (now() - COALESCE(stats_reset, pg_postmaster_start_time()))) / (xact_commit + xact_rollback)\n      ELSE NULL\n    END AS seconds_per_txn\n  FROM pg_stat_database\n  WHERE datname = current_database()\n)\nSELECT\n  CASE WHEN seconds_per_txn IS NOT NULL\n       THEN (txid_current() - xmin) * seconds_per_txn\n       ELSE NULL\n  END AS approx_seconds_ago\nFROM true_xmin CROSS JOIN txn_rate;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Xmin Horizon Assigned",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Data size"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "decbytes"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Est. bloat"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "decbytes"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Est. bloat %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "id": 7,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": true,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH per_table_options AS (\n  SELECT\n    n.nspname AS schema,\n    c.relname AS table,\n    opt.option_name,\n    opt.option_value\n  FROM pg_class c\n  JOIN pg_namespace n ON n.oid = c.relnamespace\n  CROSS JOIN LATERAL pg_options_to_table(c.reloptions) AS opt\n  WHERE c.relkind = 'r' -- only tables\n    AND n.nspname NOT LIKE '\\_timescaledb%'\n),\n\nsettings AS (\n  SELECT\n    name,\n    setting\n  FROM pg_settings\n  WHERE name IN (\n    'autovacuum_vacuum_threshold',\n    'autovacuum_vacuum_scale_factor'\n  )\n),\n\neffective_options AS (\n  SELECT\n    t.schema,\n    t.table,\n    MAX(CASE WHEN o.option_name = 'autovacuum_vacuum_scale_factor' THEN o.option_value END) AS table_scale_factor,\n    MAX(CASE WHEN o.option_name = 'autovacuum_vacuum_threshold' THEN o.option_value END) AS table_threshold\n  FROM (\n    SELECT DISTINCT n.nspname AS schema, c.relname AS table\n    FROM pg_class c\n    JOIN pg_namespace n ON n.oid = c.relnamespace\n    WHERE c.relkind = 'r'\n      AND n.nspname NOT SIMILAR TO '(pg_catalog|information_schema|_timescaledb%)'\n  ) t\n  LEFT JOIN per_table_options o ON o.schema = t.schema AND o.table = t.table\n  GROUP BY t.schema, t.table\n),\n\ntable_sizes AS (\n  SELECT \n  schemaname AS schema,\n  relname AS table,\n  pg_total_relation_size(schemaname || '.' || relname) AS table_size_bytes\nFROM \n  pg_stat_user_tables\nWHERE schemaname NOT LIKE '\\_timescaledb%'\n),\n\n-- estimated bloat (approximate, using pgstattuple_approx)\nbloat_stats AS (\n  SELECT\n    n.nspname AS schema,\n    c.relname AS table,\n    stats.approx_free_space AS free_bytes,\n    stats.approx_tuple_len AS live_bytes,\n    stats.dead_tuple_len AS dead_bytes,\n    stats.approx_free_percent AS free_percent,\n    stats.dead_tuple_percent AS dead_percent\n  FROM pg_class c\n  JOIN pg_namespace n ON n.oid = c.relnamespace\n  CROSS JOIN LATERAL pgstattuple_approx(format('%I.%I', n.nspname, c.relname)) AS stats\n  WHERE c.relkind = 'r'\n    AND n.nspname NOT SIMILAR TO '(pg_catalog|information_schema|_timescaledb%)'\n\n),\n\nlast_vacuum AS (\n  SELECT\n    schemaname AS schema,\n    relname AS table,\n    last_vacuum,\n    last_autovacuum\n  FROM pg_stat_user_tables\n  WHERE schemaname NOT LIKE '\\_timescaledb%'\n)\n\nSELECT\n  eo.schema AS \"Schema\",\n  eo.table AS \"Table\",\n  COALESCE(eo.table_scale_factor, '[default]') AS \"Scale factor\",\n  COALESCE(eo.table_threshold, '[default]') AS \"Threshold\",\n  ts.table_size_bytes AS \"Data size\",\n  bs.dead_bytes AS \"Est. bloat\",\n  bs.dead_percent AS \"Est. bloat %\",\n  GREATEST(lv.last_vacuum, lv.last_autovacuum) AS \"Last vacuumed\"\nFROM effective_options eo\nLEFT JOIN table_sizes ts ON ts.schema = eo.schema AND ts.table = eo.table\nLEFT JOIN bloat_stats bs ON bs.schema = eo.schema AND bs.table = eo.table\nLEFT JOIN last_vacuum lv ON lv.schema = eo.schema AND lv.table = eo.table\nORDER BY eo.schema, eo.table\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Table bloat info",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "id": 13,
+      "panels": [],
+      "title": "Freezing",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "description": "The rate of transaction IDs that are allocated per minute, as averaged over the last 24 hours. Higher allocation rates generally mean more freezing will be required.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "per minute"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 5,
+        "x": 0,
+        "y": 27
+      },
+      "id": 9,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "/^txn_id_allocation_per_minute_24h_avg$/",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": false
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  ROUND(\n    ((xact_commit + xact_rollback) / (LEAST(EXTRACT(EPOCH FROM now() - COALESCE(stats_reset, pg_postmaster_start_time())), 24 * 3600) / 60.0))::numeric,\n    2\n  ) AS txn_id_allocation_per_minute_24h_avg\nFROM pg_stat_database\nWHERE datname = current_database()\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Transaction ID Allocation",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "left",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 60,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "autovacuum_freeze_max_age"
+            },
+            "properties": [
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 10,
+        "x": 5,
+        "y": 27
+      },
+      "id": 14,
+      "interval": "10m",
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH threshold AS (\n  SELECT setting::bigint AS \"autovacuum_freeze_max_age\"\n  FROM pg_settings\n  WHERE name ='autovacuum_freeze_max_age'\n)\n\nSELECT\n  collected_at AS time,\n  frozen_xid_age,\n  (SELECT autovacuum_freeze_max_age FROM threshold) AS autovacuum_freeze_max_age\nFROM pganalyze.database_stats\nORDER BY collected_at",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Approaching Transaction ID Wraparound",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "left",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 60,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "autovacuum_multixact_freeze_max_age"
+            },
+            "properties": [
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 9,
+        "x": 15,
+        "y": 27
+      },
+      "id": 15,
+      "interval": "10m",
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH threshold AS (\n  SELECT setting::bigint AS \"autovacuum_multixact_freeze_max_age\"\n  FROM pg_settings\n  WHERE name ='autovacuum_multixact_freeze_max_age'\n)\n\nSELECT\n  collected_at AS time,\n  frozen_mxid_age,\n  (SELECT autovacuum_multixact_freeze_max_age FROM threshold) AS autovacuum_multixact_freeze_max_age\nFROM pganalyze.database_stats\nORDER BY collected_at",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Approaching Multixact ID Wraparound",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "description": "How much transaction ID space is utilized among the actual maximum available transaction IDs, in percent.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 5,
+        "x": 0,
+        "y": 30
+      },
+      "id": 10,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "/^xid_utilization_percent$/",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": false
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  ROUND(100.0 * age(datfrozenxid) / 4294967296, 4) AS xid_utilization_percent\nFROM pg_database\nWHERE datname = current_database()",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Transaction ID Utilization",
+      "type": "stat"
+    }
+  ],
+  "preload": false,
+  "schemaVersion": 41,
+  "tags": [
+    "perf"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "tem",
+          "value": "P1F7BE6908B217B4A"
+        },
+        "label": "Database",
+        "name": "source",
+        "options": [],
+        "query": "grafana-postgresql-datasource",
+        "refresh": 1,
+        "regex": "",
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "Europe/London",
+  "title": "VACUUM analysis",
+  "uid": "d0e487ca-67bd-4aa2-93fa-02b2afc1e2e3",
+  "version": 2
+}
