@@ -67,15 +67,14 @@ services:
       GF_SMTP_PASSWORD: ${GRAFANA_SMTP_PASSWORD}
       GF_SMTP_FROM_ADDRESS: ${GRAFANA_SMTP_ADDRESS}
       GF_SMTP_FROM_NAME: EMHealth
+      GRAFANA_EMAIL_TO: ${GRAFANA_EMAIL_TO}
       GF_SMTP_SKIP_VERIFY: ${GRAFANA_SMTP_SKIP_VERIFY}
       GF_PLUGIN_GRAFANA_IMAGE_RENDERER_RENDERING_IGNORE_HTTPS_ERRORS: false # https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#plugingrafana-image-renderer
       GF_UNIFIED_ALERTING_SCREENSHOTS_CAPTURE: true # https://grafana.com/docs/grafana/latest/alerting/configure-notifications/template-notifications/images-in-notifications/#configuration
       EMHEALTH_DEBUG: ${EMHEALTH_DEBUG}
     volumes:
       - grafana-storage:/var/lib/grafana
-      - ./grafana/provisioning/alerting:/etc/grafana/provisioning/alerting
-      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
-      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/provisioning:/etc/grafana/provisioning
       - backups:/backups
 
 volumes:
