@@ -322,7 +322,7 @@ DO $$
         IF NOT EXISTS (
             SELECT 1 FROM pg_roles WHERE rolname = 'pganalyze'
         ) THEN
-            CREATE ROLE pganalyze WITH LOGIN PASSWORD :PGANALYZE_PASSWORD CONNECTION LIMIT 5;
+            CREATE ROLE pganalyze WITH LOGIN PASSWORD :POSTGRES_PGANALYZE_PASSWORD CONNECTION LIMIT 5;
         END IF;
     END;
 $$;

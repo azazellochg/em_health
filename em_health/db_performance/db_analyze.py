@@ -51,7 +51,7 @@ class DatabaseAnalyzer(DatabaseManager):
         self.execute_file(self.get_path("create_metric_funcs.sql", folder="db_performance"),
                           {
                               "DBNAME": self.db_name,
-                              "PGANALYZE_PASSWORD": os.getenv("PGANALYZE_PASSWORD"),
+                              "POSTGRES_PGANALYZE_PASSWORD": os.getenv("POSTGRES_PGANALYZE_PASSWORD"),
                               "TBL_STATS_RETENTION": os.getenv("TBL_STATS_RETENTION", "3 months")
                           })
         logger.info("Created pganalyze procedures")
@@ -84,7 +84,7 @@ def main(dbname, action):
             db.create_metric_tables()
             db.create_metric_collectors()
 
-        pwd = os.getenv("PGANALYZE_PASSWORD")
+        pwd = os.getenv("POSTGRES_PGANALYZE_PASSWORD")
         with DatabaseAnalyzer(dbname, username="pganalyze", password=pwd) as db:
             db.schedule_metric_jobs()
 
