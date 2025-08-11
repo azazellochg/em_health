@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 18,
+  "id": 36,
   "links": [
     {
       "asDropdown": false,
@@ -244,16 +244,18 @@
       "id": 31,
       "options": {
         "colorMode": "none",
-        "graphMode": "none",
+        "graphMode": "area",
         "justifyMode": "auto",
-        "orientation": "auto",
+        "orientation": "horizontal",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [],
-          "fields": "/^pg_database_size$/",
-          "values": true
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^db_size$/",
+          "values": false
         },
-        "showPercentChange": false,
+        "showPercentChange": true,
         "textMode": "auto",
         "wideLayout": true
       },
@@ -267,7 +269,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT pg_database_size(current_database())",
+          "rawSql": "SELECT\n  collected_at AS time,\n  db_size - LAG(db_size) OVER (ORDER BY collected_at) AS db_size\nFROM pganalyze.database_stats\nWHERE $__timeFilter(collected_at) \nORDER BY collected_at\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -362,7 +364,7 @@
           "fields": "",
           "values": false
         },
-        "showPercentChange": false,
+        "showPercentChange": true,
         "textMode": "value",
         "wideLayout": true
       },
@@ -376,7 +378,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  collected_at AS time,\n  temp_files,\n  temp_bytes\nFROM pganalyze.database_stats\nORDER BY collected_at\n",
+          "rawSql": "SELECT\n  collected_at AS time,\n  temp_files - LAG(temp_files) OVER (ORDER BY collected_at) AS temp_files,\n  temp_bytes - LAG(temp_bytes) OVER (ORDER BY collected_at) AS temp_bytes\nFROM pganalyze.database_stats\nORDER BY collected_at\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1332,7 +1334,7 @@
     ]
   },
   "time": {
-    "from": "now-24h",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {
@@ -1351,5 +1353,5 @@
   "timezone": "Europe/London",
   "title": "Overview",
   "uid": "ee46beab-c046-45a5-b547-23990e2ec0f3",
-  "version": 5
+  "version": 3
 }

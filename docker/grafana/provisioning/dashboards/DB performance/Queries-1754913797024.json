@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 21,
+  "id": 34,
   "links": [
     {
       "asDropdown": false,
@@ -959,12 +959,12 @@
     ]
   },
   "time": {
-    "from": "now-24h",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "Europe/London",
   "title": "Queries",
   "uid": "f5f755f6-d55b-4f89-bfd7-36281dc0eec7",
-  "version": 7
+  "version": 2
 }

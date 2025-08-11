@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 29,
+  "id": 33,
   "links": [
     {
       "asDropdown": false,
@@ -1596,8 +1596,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "table_stats",
-          "value": "table_stats"
+          "text": "parameters",
+          "value": "parameters"
         },
         "hide": 2,
         "name": "table",
@@ -1620,14 +1620,14 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "pganalyze",
-          "value": "pganalyze"
+          "text": "public",
+          "value": "public"
         },
         "includeAll": false,
         "name": "schema",
         "options": [
           {
-            "selected": false,
+            "selected": true,
             "text": "public",
             "value": "public"
           },
@@ -1637,7 +1637,7 @@
             "value": "uec"
           },
           {
-            "selected": true,
+            "selected": false,
             "text": "pganalyze",
             "value": "pganalyze"
           }
@@ -1648,12 +1648,12 @@
     ]
   },
   "time": {
-    "from": "now-24h",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "Europe/London",
   "title": "Schema statistics",
   "uid": "46837677-7190-44c2-b9bb-db869089ba49",
-  "version": 8
+  "version": 2
 }
