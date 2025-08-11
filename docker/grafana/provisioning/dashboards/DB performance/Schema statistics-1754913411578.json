@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 7,
+  "id": 29,
   "links": [
     {
       "asDropdown": false,
@@ -206,7 +206,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n table_bytes + toast_bytes AS \"Data + TOAST size\",\n index_bytes AS \"Size of indexes\",\n total_bytes AS \"Total size\"\nFROM pganalyze.table_stats\nWHERE relid = '$table'::regclass::oid\nORDER BY collected_at DESC\nLIMIT 1;\n",
+          "rawSql": "SELECT\n table_bytes + toast_bytes AS \"Data + TOAST size\",\n index_bytes AS \"Size of indexes\",\n total_bytes AS \"Total size\"\nFROM pganalyze.table_stats\nWHERE relid = format('%I.%I', '$schema', '$table')::regclass::oid\nORDER BY collected_at DESC\nLIMIT 1;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -317,7 +317,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  collected_at AS time,\n  table_bytes AS \"Data size\",\n  index_bytes AS \"Index size\",\n  toast_bytes AS \"TOAST size\"\n  --total_bytes AS \"Total size\"\nFROM pganalyze.table_stats\nWHERE relid = '$table'::regclass::oid\nORDER BY collected_at;\n",
+          "rawSql": "SELECT\n  collected_at AS time,\n  table_bytes AS \"Data size\",\n  index_bytes AS \"Index size\",\n  toast_bytes AS \"TOAST size\"\n  --total_bytes AS \"Total size\"\nFROM pganalyze.table_stats\nWHERE relid = format('%I.%I', '$schema', '$table')::regclass::oid\n  AND $__timeFilter(collected_at) \n\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -434,7 +434,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH chunk_stats AS (\n  SELECT\n    ch.hypertable_name || '.' || ch.chunk_name AS \"Name\",\n    ch.range_start::text AS \"Start range\",\n    ch.range_end::text AS \"End range\",\n    pg_total_relation_size(quote_ident(ch.chunk_schema) || '.' || quote_ident(ch.chunk_name)) AS \"Size\",\n    CASE\n      WHEN (st.n_live_tup + st.n_dead_tup) = 0 THEN 0\n      ELSE st.n_dead_tup::float / NULLIF((st.n_live_tup + st.n_dead_tup), 0) * 100.0\n    END AS \"Dead rows\"\n  FROM\n    timescaledb_information.chunks ch\n  LEFT JOIN\n    pg_stat_user_tables st ON st.relname = ch.chunk_name\n  WHERE\n    ch.hypertable_schema = split_part('${table}', '.', 1)\n    AND ch.hypertable_name = split_part('${table}', '.', 2)\n)\nSELECT *\nFROM chunk_stats\nORDER BY \"Dead rows\" DESC\n",
+          "rawSql": "WITH chunk_stats AS (\n  SELECT\n    ch.hypertable_name || '.' || ch.chunk_name AS \"Name\",\n    ch.range_start::text AS \"Start range\",\n    ch.range_end::text AS \"End range\",\n    pg_total_relation_size(quote_ident(ch.chunk_schema) || '.' || quote_ident(ch.chunk_name)) AS \"Size\",\n    CASE\n      WHEN (st.n_live_tup + st.n_dead_tup) = 0 THEN 0\n      ELSE st.n_dead_tup::float / NULLIF((st.n_live_tup + st.n_dead_tup), 0) * 100.0\n    END AS \"Dead rows\"\n  FROM\n    timescaledb_information.chunks ch\n  LEFT JOIN\n    pg_stat_user_tables st ON st.relname = ch.chunk_name\n  WHERE\n    ch.hypertable_schema = '$schema' \n    AND ch.hypertable_name = '$table'\n)\nSELECT *\nFROM chunk_stats\nORDER BY \"Dead rows\" DESC\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -532,7 +532,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  a.attname AS \"Name\",\n  pg_catalog.format_type(a.atttypid, a.atttypmod) AS \"Type\",\n  ROUND((s.null_frac * 100)::numeric, 2) AS \"Null %\",\n  s.avg_width AS \"Avg. size (bytes)\",\n  CASE\n    WHEN s.n_distinct < 0 THEN\n      (ROUND(((-s.n_distinct) * c.reltuples)::numeric)::TEXT || '*')\n    ELSE\n      s.n_distinct::TEXT\n  END AS \"Num. distinct\",\n  CASE\n    WHEN EXISTS (\n      SELECT 1\n      FROM pg_index i\n      WHERE\n        i.indrelid = a.attrelid\n        AND a.attnum = ANY(i.indkey)\n    ) THEN 'yes'\n    ELSE 'no'\n  END AS \"Indexed?\"\nFROM\n  pg_attribute a\n  JOIN pg_class c ON a.attrelid = c.oid\n  JOIN pg_namespace n ON c.relnamespace = n.oid\n  LEFT JOIN pg_stats s ON\n    s.schemaname = n.nspname\n    AND s.tablename = c.relname\n    AND s.attname = a.attname\nWHERE\n  c.oid = '$table'::regclass::oid\n  AND a.attnum > 0\n  AND NOT a.attisdropped\nORDER BY\n  a.attnum;\n",
+          "rawSql": "SELECT\n  a.attname AS \"Name\",\n  pg_catalog.format_type(a.atttypid, a.atttypmod) AS \"Type\",\n  ROUND((s.null_frac * 100)::numeric, 2) AS \"Null %\",\n  s.avg_width AS \"Avg. size (bytes)\",\n  CASE\n    WHEN s.n_distinct < 0 THEN\n      (ROUND(((-s.n_distinct) * c.reltuples)::numeric)::TEXT || '*')\n    ELSE\n      s.n_distinct::TEXT\n  END AS \"Num. distinct\",\n  CASE\n    WHEN EXISTS (\n      SELECT 1\n      FROM pg_index i\n      WHERE\n        i.indrelid = a.attrelid\n        AND a.attnum = ANY(i.indkey)\n    ) THEN 'yes'\n    ELSE 'no'\n  END AS \"Indexed?\"\nFROM\n  pg_attribute a\n  JOIN pg_class c ON a.attrelid = c.oid\n  JOIN pg_namespace n ON c.relnamespace = n.oid\n  LEFT JOIN pg_stats s ON\n    s.schemaname = n.nspname\n    AND s.tablename = c.relname\n    AND s.attname = a.attname\nWHERE\n  s.schemaname = '$schema'\n  AND s.tablename = '$table'\n  AND a.attnum > 0\n  AND NOT a.attisdropped\nORDER BY\n  a.attnum;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -667,7 +667,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT DISTINCT ON (indexrelid)\n  indexrelid AS \"ID\",\n  indexrelname AS \"Name\",\n  size_bytes AS \"Size\"\nFROM pganalyze.index_stats\nWHERE relid = '$table'::regclass::oid\nORDER BY indexrelid, collected_at DESC;\n",
+          "rawSql": "SELECT DISTINCT ON (indexrelid)\n  indexrelid AS \"ID\",\n  indexrelname AS \"Name\",\n  size_bytes AS \"Size\"\nFROM pganalyze.index_stats\nWHERE relid = format('%I.%I', '$schema', '$table')::regclass::oid\nORDER BY indexrelid, collected_at DESC;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -779,7 +779,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  collected_at AS time,\n  size_bytes\nFROM pganalyze.index_stats\nWHERE indexrelid = $index\nORDER BY collected_at\n",
+          "rawSql": "SELECT\n  collected_at AS time,\n  size_bytes\nFROM pganalyze.index_stats\nWHERE indexrelid = $index\nAND $__timeFilter(collected_at) \n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -890,7 +890,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  collected_at AS time,\n  scan - LAG(scan) OVER (PARTITION BY relid ORDER BY collected_at) AS scans_per_interval\nFROM pganalyze.index_stats\nWHERE indexrelid = $index\nORDER BY collected_at\n",
+          "rawSql": "SELECT\n  collected_at AS time,\n  scan - LAG(scan) OVER (PARTITION BY relid ORDER BY collected_at) AS scans_per_interval\nFROM pganalyze.index_stats\nWHERE indexrelid = $index\nAND $__timeFilter(collected_at) ",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1003,7 +1003,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  collected_at AS time,\n  CASE \n    WHEN (blks_hit + blks_read) > 0 THEN ROUND(100.0 * blks_hit / (blks_hit + blks_read), 2)\n    ELSE 0\n  END AS \"% From Buffer Cache\",\n  CASE \n    WHEN (blks_hit + blks_read) > 0 THEN ROUND(100.0 * blks_read / (blks_hit + blks_read), 2)\n    ELSE 0\n  END AS \"% From Disk\"\nFROM pganalyze.index_stats\nWHERE indexrelid = $index\nORDER BY collected_at\n",
+          "rawSql": "SELECT\n  collected_at AS time,\n  CASE \n    WHEN (blks_hit + blks_read) > 0 THEN ROUND(100.0 * blks_hit / (blks_hit + blks_read), 2)\n    ELSE 0\n  END AS \"% From Buffer Cache\",\n  CASE \n    WHEN (blks_hit + blks_read) > 0 THEN ROUND(100.0 * blks_read / (blks_hit + blks_read), 2)\n    ELSE 0\n  END AS \"% From Disk\"\nFROM pganalyze.index_stats\nWHERE indexrelid = $index\nAND $__timeFilter(collected_at) \n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1112,7 +1112,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH per_table_options AS (\n  SELECT\n    opt.option_name,\n    opt.option_value\n  FROM pg_class c\n  JOIN pg_namespace n ON n.oid = c.relnamespace\n  CROSS JOIN LATERAL pg_options_to_table(c.reloptions) AS opt\n  WHERE c.oid = '$table'::regclass::oid\n),\nsettings AS (\n  SELECT\n    name,\n    setting\n  FROM pg_settings\n  WHERE name IN (\n    'autovacuum_vacuum_cost_delay',\n    'autovacuum_vacuum_threshold',\n    'autovacuum_freeze_max_age',\n    'autovacuum_vacuum_insert_threshold',\n    'autovacuum_vacuum_cost_limit',\n    'autovacuum_vacuum_scale_factor',\n    'autovacuum_multixact_freeze_max_age',\n    'autovacuum_vacuum_insert_scale_factor'\n  )\n)\nSELECT\n  s.name,\n  COALESCE(p.option_value, s.setting) AS effective_value\nFROM settings s\nLEFT JOIN per_table_options p ON p.option_name = s.name\nORDER BY s.name",
+          "rawSql": "WITH per_table_options AS (\n  SELECT\n    opt.option_name,\n    opt.option_value\n  FROM pg_class c\n  JOIN pg_namespace n ON n.oid = c.relnamespace\n  CROSS JOIN LATERAL pg_options_to_table(c.reloptions) AS opt\n  WHERE c.oid = format('%I.%I', '$schema', '$table')::regclass::oid\n),\nsettings AS (\n  SELECT\n    name,\n    setting\n  FROM pg_settings\n  WHERE name IN (\n    'autovacuum_vacuum_cost_delay',\n    'autovacuum_vacuum_threshold',\n    'autovacuum_freeze_max_age',\n    'autovacuum_vacuum_insert_threshold',\n    'autovacuum_vacuum_cost_limit',\n    'autovacuum_vacuum_scale_factor',\n    'autovacuum_multixact_freeze_max_age',\n    'autovacuum_vacuum_insert_scale_factor'\n  )\n)\nSELECT\n  s.name,\n  COALESCE(p.option_value, s.setting) AS effective_value\nFROM settings s\nLEFT JOIN per_table_options p ON p.option_name = s.name\nORDER BY s.name",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1281,7 +1281,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  finished_at AS \"Finished at\",\n  duration AS \"Duration\",\n  tuples_removed AS \"Tuples removed\",\n  tuples_removed / (tuples_removed + tuples_remain) * 100.0 AS \"Effectiveness\",\n  wraparound AS \"Anti-wraparound?\",\n  details AS \"Details\"\nFROM pganalyze.vacuum_stats\nWHERE (schemaname || '.' || tablename) = '$table'\n  AND $__timeFilter(started_at)\nORDER BY finished_at DESC\n",
+          "rawSql": "SELECT\n  finished_at AS \"Finished at\",\n  duration AS \"Duration\",\n  tuples_removed AS \"Tuples removed\",\n  tuples_removed / (tuples_removed + tuples_remain) * 100.0 AS \"Effectiveness\",\n  wraparound AS \"Anti-wraparound?\",\n  details AS \"Details\"\nFROM pganalyze.vacuum_stats\nWHERE schemaname = '$schema'\n  AND tablename = '$table'\n  AND $__timeFilter(started_at)\nORDER BY finished_at DESC\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1414,7 +1414,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH settings AS (\n  SELECT\n    c.oid,\n    c.relname,\n    COALESCE(\n      MAX(CASE WHEN optname = 'autovacuum_vacuum_threshold' THEN optvalue::int END),\n      (SELECT setting::int FROM pg_settings WHERE name = 'autovacuum_vacuum_threshold')\n    ) AS vacuum_threshold,\n    COALESCE(\n      MAX(CASE WHEN optname = 'autovacuum_vacuum_scale_factor' THEN optvalue::float END),\n      (SELECT setting::float FROM pg_settings WHERE name = 'autovacuum_vacuum_scale_factor')\n    ) AS vacuum_scale_factor\n  FROM pg_class c\n  LEFT JOIN LATERAL pg_options_to_table(c.reloptions) AS opt(optname, optvalue) ON true\n  WHERE c.oid = '$table'::regclass::oid\n  GROUP BY c.oid, c.relname\n)\nSELECT \n  ts.collected_at AS time,\n  ts.num_dead_rows AS dead_rows,\n  (s.vacuum_threshold + s.vacuum_scale_factor * c.reltuples) AS threshold\nFROM pganalyze.table_stats ts\nJOIN settings s ON ts.relid = s.oid\nJOIN pg_class c ON c.oid = ts.relid\nWHERE ts.relid = '$table'::regclass::oid\n  AND $__timeFilter(ts.collected_at)\nORDER BY ts.collected_at",
+          "rawSql": "WITH settings AS (\n  SELECT\n    c.oid,\n    c.relname,\n    COALESCE(\n      MAX(CASE WHEN optname = 'autovacuum_vacuum_threshold' THEN optvalue::int END),\n      (SELECT setting::int FROM pg_settings WHERE name = 'autovacuum_vacuum_threshold')\n    ) AS vacuum_threshold,\n    COALESCE(\n      MAX(CASE WHEN optname = 'autovacuum_vacuum_scale_factor' THEN optvalue::float END),\n      (SELECT setting::float FROM pg_settings WHERE name = 'autovacuum_vacuum_scale_factor')\n    ) AS vacuum_scale_factor\n  FROM pg_class c\n  LEFT JOIN LATERAL pg_options_to_table(c.reloptions) AS opt(optname, optvalue) ON true\n  WHERE c.oid = format('%I.%I', '$schema', '$table')::regclass::oid\n  GROUP BY c.oid, c.relname\n)\nSELECT \n  ts.collected_at AS time,\n  ts.num_dead_rows AS dead_rows,\n  (s.vacuum_threshold + s.vacuum_scale_factor * c.reltuples) AS threshold\nFROM pganalyze.table_stats ts\nJOIN settings s ON ts.relid = s.oid\nJOIN pg_class c ON c.oid = ts.relid\nWHERE ts.relid = format('%I.%I', '$schema', '$table')::regclass::oid\n  AND $__timeFilter(ts.collected_at)",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1547,7 +1547,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH threshold AS (\n  SELECT\n    c.oid AS relid,\n    COALESCE(\n      (SELECT option_value::int\n       FROM pg_options_to_table(c.reloptions) opt\n       WHERE opt.option_name = 'autovacuum_freeze_max_age'),\n      (SELECT setting::int\n       FROM pg_settings\n       WHERE name = 'autovacuum_freeze_max_age')\n    ) AS freeze_max_age\n  FROM pg_class c\n  JOIN pg_namespace n ON n.oid = c.relnamespace\n  WHERE n.nspname NOT LIKE '\\_timescaledb%'\n    AND c.relkind IN ('r','p')\n)\nSELECT\n  ts.collected_at AS time,\n  ts.frozen_xid_age,\n  t.freeze_max_age AS threshold\nFROM pganalyze.table_stats ts\nJOIN threshold t ON t.relid = ts.relid\nWHERE ts.relid = '$table'::regclass::oid\n  AND $__timeFilter(ts.collected_at)\nORDER BY ts.collected_at",
+          "rawSql": "WITH threshold AS (\n  SELECT\n    c.oid AS relid,\n    COALESCE(\n      (SELECT option_value::int\n       FROM pg_options_to_table(c.reloptions) opt\n       WHERE opt.option_name = 'autovacuum_freeze_max_age'),\n      (SELECT setting::int\n       FROM pg_settings\n       WHERE name = 'autovacuum_freeze_max_age')\n    ) AS freeze_max_age\n  FROM pg_class c\n  JOIN pg_namespace n ON n.oid = c.relnamespace\n  WHERE n.nspname NOT LIKE '\\_timescaledb%'\n    AND c.relkind IN ('r','p')\n)\nSELECT\n  ts.collected_at AS time,\n  ts.frozen_xid_age,\n  t.freeze_max_age AS threshold\nFROM pganalyze.table_stats ts\nJOIN threshold t ON t.relid = ts.relid\nWHERE ts.relid = format('%I.%I', '$schema', '$table')::regclass::oid\n  AND $__timeFilter(ts.collected_at)",
           "refId": "time series",
           "sql": {
             "columns": [
@@ -1596,8 +1596,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "pganalyze.stat_statements",
-          "value": "pganalyze.stat_statements"
+          "text": "table_stats",
+          "value": "table_stats"
         },
         "hide": 2,
         "name": "table",
@@ -1620,14 +1620,14 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "public",
-          "value": "public"
+          "text": "pganalyze",
+          "value": "pganalyze"
         },
         "includeAll": false,
         "name": "schema",
         "options": [
           {
-            "selected": true,
+            "selected": false,
             "text": "public",
             "value": "public"
           },
@@ -1637,7 +1637,7 @@
             "value": "uec"
           },
           {
-            "selected": false,
+            "selected": true,
             "text": "pganalyze",
             "value": "pganalyze"
           }
@@ -1648,12 +1648,12 @@
     ]
   },
   "time": {
-    "from": "now-7d",
+    "from": "now-24h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "Europe/London",
   "title": "Schema statistics",
   "uid": "46837677-7190-44c2-b9bb-db869089ba49",
-  "version": 4
+  "version": 8
 }

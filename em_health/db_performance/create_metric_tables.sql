@@ -92,14 +92,14 @@ CREATE TABLE pganalyze.stat_statements (
                                            blk_write_time          DOUBLE PRECISION NOT NULL,
                                            PRIMARY KEY (collected_at, queryid)
 );
-CREATE INDEX IF NOT EXISTS stat_statements_queryid_time ON pganalyze.stat_statements (queryid, collected_at DESC);
+CREATE INDEX IF NOT EXISTS stat_statements_queryid_time ON pganalyze.stat_statements (queryid, collected_at ASC);
 
 SELECT create_hypertable('pganalyze.stat_statements', by_range('collected_at', INTERVAL :TBL_STATEMENTS_INTERVAL));
 
 ALTER TABLE pganalyze.stat_statements SET (
     timescaledb.compress,
     timescaledb.compress_segmentby = 'queryid',
-    timescaledb.compress_orderby = 'collected_at DESC');
+    timescaledb.compress_orderby = 'collected_at ASC');
 
 SELECT add_compression_policy('pganalyze.stat_statements', INTERVAL :TBL_STATEMENTS_COMPRESSION);
 SELECT add_retention_policy('pganalyze.stat_statements', INTERVAL :TBL_STATS_RETENTION);

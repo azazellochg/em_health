@@ -56,6 +56,16 @@ class DatabaseAnalyzer(DatabaseManager):
                           })
         logger.info("Created pganalyze procedures")
 
+    def cleanup_jobs(self) -> None:
+        """ Delete existing jobs. """
+        jobs = self.run_query(
+            "SELECT job_id FROM timescaledb_information.jobs WHERE proc_schema = 'pganalyze'",
+            mode="fetchall")
+
+        if jobs:
+            self.cur.executemany("SELECT delete_job(%s)", jobs)
+            self.conn.commit()
+
     def schedule_metric_jobs(self) -> None:
         """ Schedule functions as TimescaleDB jobs. """
         logs_interval = os.getenv("JOB_LOGS_INTERVAL", "1 minutes")
@@ -76,13 +86,29 @@ class DatabaseAnalyzer(DatabaseManager):
             self.run_query(query=j)
         logger.info("Scheduled pganalyze jobs")
 
+    def create_stats_cagg(self):
+        """ Create cagg for pganalyze.stat_statements."""
+        mview = "stat_statements_cagg"
+        self.drop_mview(mview)
+        self.create_mview(mview)
+        self.force_refresh_cagg(mview)
+        self.schedule_cagg_refresh(mview, start_offset="3 months",
+                                   end_offset="3 minutes", interval="1 minute")
+        logger.info("Scheduled continuous aggregate refresh for %s", mview)
 
-def main(dbname, action):
+
+def main(dbname, action, force=False):
     if action == "create-perf-stats":
         with DatabaseAnalyzer(dbname) as db:
-            db.run_query("DROP SCHEMA IF EXISTS pganalyze CASCADE;")
-            db.create_metric_tables()
+            if force: # erase all data
+                db.run_query("DROP SCHEMA IF EXISTS pganalyze CASCADE;")
+                db.create_metric_tables()
+            else:
+                # keep the tables, only update jobs
+                db.cleanup_jobs()
+
             db.create_metric_collectors()
+            db.create_stats_cagg()
 
         pwd = os.getenv("POSTGRES_PGANALYZE_PASSWORD")
         with DatabaseAnalyzer(dbname, username="pganalyze", password=pwd) as db:

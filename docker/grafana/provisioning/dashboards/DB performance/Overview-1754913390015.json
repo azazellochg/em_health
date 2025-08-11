@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 6,
+  "id": 18,
   "links": [
     {
       "asDropdown": false,
@@ -414,46 +414,6 @@
       "type": "row"
     },
     {
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 4,
-        "x": 0,
-        "y": 5
-      },
-      "id": 37,
-      "options": {
-        "alertInstanceLabelFilter": "",
-        "alertName": "",
-        "dashboardAlerts": false,
-        "datasource": "-- Grafana --",
-        "folder": {
-          "title": "DB performance",
-          "uid": "eeqmrqx4rrldsf"
-        },
-        "groupBy": [],
-        "groupMode": "default",
-        "maxItems": 20,
-        "showInactiveAlerts": false,
-        "sortOrder": 1,
-        "stateFilter": {
-          "error": false,
-          "firing": true,
-          "noData": false,
-          "normal": false,
-          "pending": false,
-          "recovering": false
-        },
-        "viewMode": "list"
-      },
-      "pluginVersion": "12.1.0",
-      "title": "Alerts",
-      "type": "alertlist"
-    },
-    {
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "${source}"
@@ -513,8 +473,8 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 20,
-        "x": 4,
+        "w": 24,
+        "x": 0,
         "y": 5
       },
       "id": 38,
@@ -541,7 +501,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH pre_aggregated AS (\n  SELECT\n    collected_at,\n    queryid,\n    SUM(calls) AS calls,\n    SUM(total_time) AS total_time,\n    SUM(blk_read_time) AS blk_read_time,\n    SUM(blk_write_time) AS blk_write_time\n  FROM pganalyze.stat_statements\n  WHERE $__timeFilter(collected_at)\n  GROUP BY collected_at, queryid\n),\ndeltas AS (\n  SELECT\n    time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n    queryid,\n    calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_calls,\n    total_time - LAG(total_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_total_time,\n    blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_read_time,\n    blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_write_time\n  FROM pre_aggregated\n),\nexpanded AS (\n  SELECT\n    bucket,\n    delta_calls,\n    (delta_total_time / NULLIF(delta_calls, 0)::double precision) AS per_call_latency,\n    (delta_blk_read_time + delta_blk_write_time) / NULLIF(delta_calls, 0)::double precision AS per_call_io_time\n  FROM deltas\n  WHERE delta_calls > 0 AND delta_total_time >= 0\n),\naggregated AS (\n  SELECT\n    bucket,\n    percentile_agg(per_call_latency) AS latency_percentiles,\n    avg(per_call_io_time) AS avg_io\n  FROM expanded\n  GROUP BY bucket\n)\nSELECT\n  bucket,\n  approx_percentile(0.5, latency_percentiles) AS \"Median time\",\n  approx_percentile(0.95, latency_percentiles) AS \"P95 time\",\n  avg_io AS \"Avg I/O time\"\nFROM aggregated\nORDER BY bucket;\n",
+          "rawSql": "WITH deltas AS (\n  SELECT\n    bucket,\n    queryid,\n    calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY bucket) AS delta_calls,\n    total_time - LAG(total_time) OVER (PARTITION BY queryid ORDER BY bucket) AS delta_total_time,\n    blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY bucket) AS delta_blk_read_time,\n    blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY bucket) AS delta_blk_write_time\n  FROM stat_statements_cagg\n  WHERE $__timeFilter(bucket)\n),\nexpanded AS (\n  SELECT\n    bucket,\n    delta_calls,\n    (delta_total_time / NULLIF(delta_calls, 0)::double precision) AS per_call_latency,\n    (delta_blk_read_time + delta_blk_write_time) / NULLIF(delta_calls, 0)::double precision AS per_call_io_time\n  FROM deltas\n  WHERE delta_calls > 0 AND delta_total_time >= 0\n),\naggregated AS (\n  SELECT\n    bucket,\n    percentile_agg(per_call_latency) AS latency_percentiles,\n    avg(per_call_io_time) AS avg_io\n  FROM expanded\n  GROUP BY bucket\n)\nSELECT\n  bucket,\n  approx_percentile(0.5, latency_percentiles) AS \"Median time\",\n  approx_percentile(0.95, latency_percentiles) AS \"P95 time\",\n  avg_io AS \"Avg I/O time\"\nFROM aggregated\nORDER BY bucket;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1372,7 +1332,7 @@
     ]
   },
   "time": {
-    "from": "now-7d",
+    "from": "now-24h",
     "to": "now"
   },
   "timepicker": {

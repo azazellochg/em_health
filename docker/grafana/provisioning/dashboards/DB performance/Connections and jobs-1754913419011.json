@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 6,
+  "id": 24,
   "links": [
     {
       "asDropdown": false,
@@ -653,12 +653,15 @@
     ]
   },
   "time": {
-    "from": "now-7d",
+    "from": "now-24h",
     "to": "now"
   },
-  "timepicker": {},
+  "timepicker": {
+    "hidden": true,
+    "refresh_intervals": []
+  },
   "timezone": "Europe/London",
   "title": "Connections and jobs",
   "uid": "2ddfc99a-7e8a-402c-9f3f-b06c67af2509",
-  "version": 12
+  "version": 2
 }

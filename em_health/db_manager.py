@@ -296,7 +296,11 @@ class DatabaseManager(PgClient):
                        strings={"proc": proc, "period": period})
         logger.info("Scheduled refresh for %s every %s", name, period)
 
-    def schedule_cagg_refresh(self, name: str) -> None:
+    def schedule_cagg_refresh(self,
+                              name: str,
+                              start_offset: Optional[str] = None,
+                              end_offset: Optional[str] = None,
+                              interval: Optional[str] = None) -> None:
         """ Schedule a cont. aggregate refresh.
         Notes:
         1) The difference between start_offset and end_offset must be ≥ 2x bucket size.
@@ -310,6 +314,13 @@ class DatabaseManager(PgClient):
         Here we decided to cover 3 full buckets: D-4, D-3, D-2.
         We refresh every 12h since we want minimal latency before yesterday's stats are available
         """
+        if start_offset is None:
+            start_offset = os.getenv("CAGG_START_OFFSET", "4 days")
+        if end_offset is None:
+            end_offset = os.getenv("CAGG_END_OFFSET", "1 day")
+        if interval is None:
+            interval = os.getenv("CAGG_REFRESH_INTERVAL", "12 hours")
+
         self.run_query("""
             SELECT add_continuous_aggregate_policy({name},
             start_offset => INTERVAL {start_offset},
@@ -317,9 +328,9 @@ class DatabaseManager(PgClient):
             schedule_interval => INTERVAL {schedule_interval})
         """, strings={
             "name": name,
-            "start_offset": os.getenv("CAGG_START_OFFSET", "4 days"),
-            "end_offset": os.getenv("CAGG_END_OFFSET", "1 day"),
-            "schedule_interval": os.getenv("CAGG_REFRESH_INTERVAL", "12 hours")
+            "start_offset": start_offset,
+            "end_offset": end_offset,
+            "schedule_interval": interval
         })
         logger.info("Scheduled continuous aggregate refresh for %s", name)
 

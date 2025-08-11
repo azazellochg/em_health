@@ -53,7 +53,7 @@ def db_cmd(args):
 
     if action in ["create-perf-stats", "run-query", "explain-query"]:
         from em_health.db_performance.db_analyze import main as func
-        func(dbname, action)
+        func(dbname, action, getattr(args, "force", False))
 
     elif action in ["create-stats", "init-tables", "clean-all",
                     "clean-inst", "import-uec"]:
@@ -153,7 +153,10 @@ def main():
 
     # --- Developer tools ---
     db_subparsers.add_parser("init-tables", help="Create tables structure in the database [DEV]")
-    db_subparsers.add_parser("create-perf-stats", help="Setup DB performance measurements [DEV]")
+
+    perf = db_subparsers.add_parser("create-perf-stats", help="Setup DB performance measurements [DEV]")
+    perf.add_argument("-f", "--force", dest="force", action="store_true", help="Erase pganalyze data")
+
     db_subparsers.add_parser("run-query", help="Run a custom query [DEV]")
     db_subparsers.add_parser("explain-query", help="EXPLAIN a custom query [DEV]")
 
