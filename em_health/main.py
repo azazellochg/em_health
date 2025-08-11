@@ -155,7 +155,8 @@ def main():
     db_subparsers.add_parser("init-tables", help="Create tables structure in the database [DEV]")
 
     perf = db_subparsers.add_parser("create-perf-stats", help="Setup DB performance measurements [DEV]")
-    perf.add_argument("-f", "--force", dest="force", action="store_true", help="Erase pganalyze data")
+    perf.add_argument("-f", "--force", dest="force", action="store_true",
+                      help="Erase existing pganalyze data and recreate tables")
 
     db_subparsers.add_parser("run-query", help="Run a custom query [DEV]")
     db_subparsers.add_parser("explain-query", help="EXPLAIN a custom query [DEV]")

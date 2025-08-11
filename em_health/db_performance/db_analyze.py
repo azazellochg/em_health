@@ -94,7 +94,6 @@ class DatabaseAnalyzer(DatabaseManager):
         self.force_refresh_cagg(mview)
         self.schedule_cagg_refresh(mview, start_offset="3 months",
                                    end_offset="3 minutes", interval="1 minute")
-        logger.info("Scheduled continuous aggregate refresh for %s", mview)
 
 
 def main(dbname, action, force=False):
