@@ -1,3 +1,7 @@
+\set TBL_DATA_PARTITIONS 6
+\set TBL_DATA_CHUNK_INTERVAL '1 day'
+\set TBL_DATA_COMPRESSION '3 days'
+
 CREATE EXTENSION IF NOT EXISTS timescaledb;
 CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit;
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
@@ -67,7 +71,7 @@ SELECT create_hypertable(
                time_column_name := 'time',
                partitioning_column := 'instrument_id',
                number_partitions := :TBL_DATA_PARTITIONS,
-               chunk_time_interval := INTERVAL :TBL_DATA_CHUNK_INTERVAL,
+               chunk_time_interval := INTERVAL :'TBL_DATA_CHUNK_INTERVAL',
                if_not_exists := TRUE
        );
 
@@ -78,7 +82,7 @@ ALTER TABLE data
         timescaledb.compress_segmentby = 'instrument_id, param_id'
         );
 
-SELECT add_compression_policy('data', INTERVAL :TBL_DATA_COMPRESSION);
+SELECT add_compression_policy('data', INTERVAL :'TBL_DATA_COMPRESSION');
 
 GRANT USAGE ON SCHEMA public TO grafana;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO grafana;
