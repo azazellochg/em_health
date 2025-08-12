@@ -53,9 +53,9 @@ class FileWatcher:
         """
         self.path = path
         self.json_fn = json_fn
-        self.interval = interval or os.getenv("WATCH_INTERVAL", 300)
-        self.stable_time = stable_time or os.getenv("WATCH_SIZE_COUNTER", 10)
-        self.max_workers = max_workers or os.getenv("WATCH_MAX_WORKERS", 4)
+        self.interval = interval or int(os.getenv("WATCH_INTERVAL", 300))
+        self.stable_time = stable_time or int(os.getenv("WATCH_SIZE_COUNTER", 10))
+        self.max_workers = max_workers or int(os.getenv("WATCH_MAX_WORKERS", 4))
         self.observer = PollingObserver(timeout=self.interval)
         self.executor = ThreadPoolExecutor(max_workers=self.max_workers)
         self.processed_files = set()

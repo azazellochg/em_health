@@ -72,19 +72,28 @@ class DatabaseManager(PgClient):
 
         self.conn.commit()
 
-    def add_instrument(self, instr_dict: dict) -> (int, str):
+    def add_instrument(self, instr_dict: dict) -> tuple[int, str]:
         """ Populate the instrument metadata table.
         :param instr_dict: input dict with microscope metadata
-        :return: id of a newly created instrument
+        :return: id and name of a newly created instrument
         """
         instrument_name = instr_dict["name"]
         row = self.run_query("""
-            INSERT INTO public.instruments (
-                instrument, serial, model, name, template, server
-            ) VALUES (%s, %s, %s, %s, %s, %s)
-            ON CONFLICT DO NOTHING
-            RETURNING id
+            WITH s AS (
+                SELECT id FROM instruments WHERE instrument = %s OR serial = %s
+            ),
+            i AS (
+                INSERT INTO instruments (instrument, serial, model, name, template, server)
+                SELECT %s, %s, %s, %s, %s, %s
+                WHERE NOT EXISTS (SELECT 1 FROM s)
+                RETURNING id
+            )
+            SELECT id FROM i
+            UNION ALL
+            SELECT id FROM s
         """, values = (
+            instr_dict["instrument"],
+            instr_dict["serial"],
             instr_dict["instrument"],
             instr_dict["serial"],
             instr_dict["model"],
@@ -245,7 +254,7 @@ class DatabaseManager(PgClient):
                 if buffer:
                     yield ''.join(buffer)
 
-            chunk_size = os.getenv("WRITE_DATA_CHUNK_SIZE", 65536)
+            chunk_size = int(os.getenv("WRITE_DATA_CHUNK_SIZE", 65536))
             try:
                 with self.cur.copy(query) as copy:
                     for chunk in stream_chunks(rows, chunk_size):

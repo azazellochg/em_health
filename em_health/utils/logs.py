@@ -35,7 +35,7 @@ try:
 except ImportError:
     HAS_MEMORY_PROFILER = False
 
-DEBUG = os.getenv("EMHEALTH_DEBUG", False)
+DEBUG = bool(os.getenv("EMHEALTH_DEBUG", False))
 
 
 class PrefixFormatter(logging.Formatter):
