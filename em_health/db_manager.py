@@ -359,7 +359,7 @@ class DatabaseManager(PgClient):
         """ Real-time aggregates automatically add the most recent data when
         you query your continuous aggregate. """
         self.run_query("ALTER MATERIALIZED VIEW {name} set (timescaledb.materialized_only = false)",
-                       strings={"name": name})
+                       {"name": name})
 
     def create_mview(self, name: str) -> None:
         """ Create a new materialized view or a continuous aggregate. """
