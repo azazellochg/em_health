@@ -346,6 +346,12 @@ class DatabaseManager(PgClient):
         self.conn.autocommit = False
         logger.info("Forced continuous aggregate refresh for %s", name)
 
+    def enable_rt_cagg(self, name: str) -> None:
+        """ Real-time aggregates automatically add the most recent data when
+        you query your continuous aggregate. """
+        self.run_query("ALTER MATERIALIZED VIEW {name} set (timescaledb.materialized_only = false)",
+                       strings={"name": name})
+
     def create_mview(self, name: str) -> None:
         """ Create a new materialized view or a continuous aggregate. """
         if "." in name:
@@ -404,6 +410,7 @@ def main(dbname, action, instrument=None, date=None):
                 if is_cagg:
                     db.force_refresh_cagg(mview)
                     db.schedule_cagg_refresh(mview)
+                    db.enable_rt_cagg(mview)
                 else:
                     db.schedule_mview_refresh(mview)
                 db.run_query("GRANT SELECT ON public.{mview} TO grafana",
