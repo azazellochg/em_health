@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 24,
+  "id": 32,
   "links": [
     {
       "asDropdown": false,
@@ -616,26 +616,26 @@
       },
       {
         "current": {
-          "text": "3",
-          "value": "3"
+          "text": "1128",
+          "value": "1128"
         },
         "hide": 2,
         "name": "jobid",
         "options": [
           {
             "selected": true,
-            "text": "3",
-            "value": "3"
+            "text": "1128",
+            "value": "1128"
           }
         ],
-        "query": "3",
+        "query": "1128",
         "type": "textbox"
       },
       {
         "allowCustomValue": false,
         "current": {
-          "text": "CREATE OR REPLACE FUNCTION _timescaledb_functions.policy_job_stat_history_retention(job_id integer, config jsonb)\n RETURNS integer\n LANGUAGE plpgsql\n SET search_path TO 'pg_catalog', 'pg_temp'\nAS $function$\nDECLARE\n    drop_after INTERVAL;\n    numrows INTEGER;\nBEGIN\n    drop_after := config->>'drop_after';\n\n    DELETE\n    FROM _timescaledb_internal.bgw_job_stat_history\n    WHERE execution_finish < (now() - drop_after);\n\n    GET DIAGNOSTICS numrows = ROW_COUNT;\n\n    RETURN numrows;\nEND;\n$function$\n",
-          "value": "CREATE OR REPLACE FUNCTION _timescaledb_functions.policy_job_stat_history_retention(job_id integer, config jsonb)\n RETURNS integer\n LANGUAGE plpgsql\n SET search_path TO 'pg_catalog', 'pg_temp'\nAS $function$\nDECLARE\n    drop_after INTERVAL;\n    numrows INTEGER;\nBEGIN\n    drop_after := config->>'drop_after';\n\n    DELETE\n    FROM _timescaledb_internal.bgw_job_stat_history\n    WHERE execution_finish < (now() - drop_after);\n\n    GET DIAGNOSTICS numrows = ROW_COUNT;\n\n    RETURN numrows;\nEND;\n$function$\n"
+          "text": "CREATE OR REPLACE PROCEDURE _timescaledb_functions.policy_refresh_continuous_aggregate(IN job_id integer, IN config jsonb)\n LANGUAGE c\nAS '$libdir/timescaledb-2.21.1', $procedure$ts_policy_refresh_cagg_proc$procedure$\n",
+          "value": "CREATE OR REPLACE PROCEDURE _timescaledb_functions.policy_refresh_continuous_aggregate(IN job_id integer, IN config jsonb)\n LANGUAGE c\nAS '$libdir/timescaledb-2.21.1', $procedure$ts_policy_refresh_cagg_proc$procedure$\n"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -663,5 +663,5 @@
   "timezone": "Europe/London",
   "title": "Connections and jobs",
   "uid": "2ddfc99a-7e8a-402c-9f3f-b06c67af2509",
-  "version": 2
+  "version": 1
 }

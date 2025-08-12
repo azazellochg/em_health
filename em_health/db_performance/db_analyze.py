@@ -88,11 +88,11 @@ class DatabaseAnalyzer(DatabaseManager):
 
     def create_stats_cagg(self):
         """ Create cagg for pganalyze.stat_statements."""
-        mview = "stat_statements_cagg"
+        mview = "pganalyze.stat_statements_cagg"
         self.drop_mview(mview)
         self.create_mview(mview)
         self.force_refresh_cagg(mview)
-        self.schedule_cagg_refresh(mview, start_offset="3 months",
+        self.schedule_cagg_refresh(mview, start_offset="1 month",
                                    end_offset="3 minutes", interval="1 minute")
 
 

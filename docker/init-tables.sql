@@ -113,4 +113,4 @@ GRANT SELECT ON ALL TABLES IN SCHEMA uec TO grafana;
 ALTER DEFAULT PRIVILEGES IN SCHEMA uec GRANT SELECT ON TABLES TO grafana;
 
 -- set schema version
-INSERT INTO schema_info (version) VALUES (3);
+INSERT INTO schema_info (version) VALUES (1);

@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 31,
+  "id": 39,
   "links": [
     {
       "asDropdown": false,
@@ -961,7 +961,13 @@
           ],
           "show": false
         },
-        "showHeader": true
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Est. bloat %"
+          }
+        ]
       },
       "pluginVersion": "12.1.0",
       "targets": [
@@ -1467,12 +1473,21 @@
     ]
   },
   "time": {
-    "from": "now-7d",
+    "from": "now-24h",
     "to": "now"
   },
-  "timepicker": {},
+  "timepicker": {
+    "refresh_intervals": [
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ]
+  },
   "timezone": "Europe/London",
   "title": "VACUUM analysis",
   "uid": "d0e487ca-67bd-4aa2-93fa-02b2afc1e2e3",
-  "version": 2
+  "version": 3
 }

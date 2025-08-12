@@ -1,5 +1,5 @@
 -- Create a materialized view of query statistics
-CREATE MATERIALIZED VIEW stat_statements_cagg
+CREATE MATERIALIZED VIEW pganalyze.stat_statements_cagg
             WITH (timescaledb.continuous)
 AS
 SELECT

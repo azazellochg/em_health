@@ -348,9 +348,14 @@ class DatabaseManager(PgClient):
 
     def create_mview(self, name: str) -> None:
         """ Create a new materialized view or a continuous aggregate. """
-        view_fn = self.get_path(target=name+".sql", folder="views")
+        if "." in name:
+            schema, name = name.split(".", 1)
+        else:
+            schema = "public"
+
+        view_fn = self.get_path(target=name+".sql", folder="views/" + schema)
         self.execute_file(view_fn)
-        logger.info("Created materialized view %s", name)
+        logger.info("Created materialized view %s.%s", schema, name)
 
     def migrate_db(self, latest_ver: int):
         """ Migrate db to the latest version. """

@@ -24,7 +24,7 @@
           "type": "grafana-postgresql-datasource",
           "uid": "${sourceTEM}"
         },
-        "enable": true,
+        "enable": false,
         "filter": {
           "exclude": false,
           "ids": [
@@ -69,7 +69,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 14,
+  "id": 27,
   "links": [
     {
       "asDropdown": true,
@@ -112,6 +112,92 @@
             "mode": "thresholds"
           },
           "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 27,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "12.1.0",
+      "repeat": "instrument",
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH param_map AS (\n  SELECT *\n  FROM (VALUES\n    ($param_id_server, 'TEM server'),\n    ($param_id_feg, 'FEG'),\n    ($param_id_ht, 'High Tension'),\n    ($param_id_autoloader, 'Autoloader'),\n    ($param_id_tempctrl, 'Temperature'),\n    ($param_id_stage, 'Stage'),\n    ($param_id_optics, 'Optics'),\n    ($param_id_filter, 'Energy filter'),\n    ($param_id_detectors, 'Detectors')\n\n  ) AS t(param_id, custom_name)\n),\nranked AS (\n  SELECT\n    pm.custom_name,\n    d.value_num,\n    d.time,\n    ROW_NUMBER() OVER (\n      PARTITION BY d.param_id\n      ORDER BY d.time DESC\n    ) AS rn_last,\n    MAX(d.time) FILTER (WHERE d.value_num = 0)\n      OVER (PARTITION BY d.param_id) AS last_zero_time\n  FROM data d\n  JOIN param_map pm\n    ON pm.param_id = d.param_id\n  WHERE d.instrument_id = $instrument\n)\nSELECT\n  custom_name,\n  value_num AS last_value,\n  last_zero_time\nFROM ranked\nWHERE rn_last = 1\nORDER BY custom_name;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "$instrument status",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceTEM}"
+      },
+      "description": "Product family and timestamps are fetched from real data, the rest is setup by your config",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
             "align": "center",
             "cellOptions": {
               "type": "auto"
@@ -133,11 +219,12 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 7,
+        "w": 24,
         "x": 0,
-        "y": 0
+        "y": 10
       },
-      "id": 25,
+      "id": 26,
+      "maxPerRow": 6,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -148,7 +235,7 @@
           ],
           "show": false
         },
-        "showHeader": false
+        "showHeader": true
       },
       "pluginVersion": "12.1.0",
       "targets": [
@@ -160,7 +247,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH info AS (\n  SELECT \n    '${instrument:text}' AS microscope,\n    \n    -- Get platform (ProductFamily)\n    (\n      SELECT e.name\n      FROM data d\n      JOIN parameters p ON d.param_id = p.param_id\n      JOIN enumerations e ON e.enum_id = p.enum_id AND e.value = d.value_num\n      WHERE d.instrument_id = $instrument\n        AND p.instrument_id = $instrument\n        AND p.param_name = 'ProductFamily'\n        AND d.value_num > 0\n        AND e.instrument_id = $instrument\n      LIMIT 1\n    ) AS platform,\n\n    -- Get serial number\n    (\n      SELECT d.value_num\n      FROM data d\n      JOIN parameters p ON d.param_id = p.param_id\n      WHERE d.instrument_id = $instrument\n        AND p.instrument_id = $instrument\n        AND p.param_name = 'SerialNumber'\n        AND d.value_num > 0\n      LIMIT 1\n    ) AS serial,\n\n    -- Get D-number\n    (\n      SELECT d.value_num\n      FROM data d\n      JOIN parameters p ON d.param_id = p.param_id\n      WHERE d.instrument_id = $instrument\n        AND p.instrument_id = $instrument\n        AND p.param_name = 'ProductID'\n        AND d.value_num > 0\n      LIMIT 1\n    ) AS dnumber,\n\n    -- Time range\n    (\n      SELECT MAX(time) FROM data WHERE instrument_id = $instrument\n    ) AS latest_data,\n\n    (\n      SELECT MIN(time) FROM data WHERE instrument_id = $instrument\n    ) AS oldest_data\n)\n\n-- Pivot output\nSELECT 'Microscope' AS label, microscope AS value FROM info\nUNION ALL\nSELECT 'Platform', platform FROM info\nUNION ALL\nSELECT 'Serial #', serial::text FROM info\nUNION ALL\nSELECT 'D-number', dnumber::text FROM info\nUNION ALL\nSELECT 'Latest data', latest_data::text FROM info\nUNION ALL\nSELECT 'Oldest data', oldest_data::text FROM info;\n",
+          "rawSql": "WITH family_param AS (\n  SELECT instrument_id, param_id, enum_id\n  FROM parameters\n  WHERE param_name = 'ProductFamily'\n),\n\nproduct_family AS (\n  SELECT DISTINCT ON (p.instrument_id)\n    p.instrument_id,\n    e.name AS product_family\n  FROM data d\n  JOIN family_param p ON p.param_id = d.param_id AND p.instrument_id = d.instrument_id\n  JOIN enumerations e ON e.instrument_id = p.instrument_id AND e.enum_id = p.enum_id AND e.value = d.value_num\n  WHERE d.value_num > 0\n  ORDER BY p.instrument_id, d.time DESC\n),\n\ninstrument_time AS (\n  SELECT\n    instrument_id,\n    MAX(time) AS latest_data,\n    MIN(time) AS oldest_data\n  FROM data\n  GROUP BY instrument_id\n)\n\nSELECT \n  i.name AS \"Name\",\n  i.serial AS \"Serial\",\n  i.model AS \"Model\",\n  f.product_family AS \"Product family\",\n  i.server AS \"Server IP\",\n  i.ds_version AS \"Data services\",\n  t.oldest_data AS \"Oldest data\",\n  t.latest_data AS \"Latest data\"\nFROM instruments i\nJOIN product_family f ON f.instrument_id = i.id\nJOIN instrument_time t ON t.instrument_id = i.id\nORDER BY i.name;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -181,7 +268,7 @@
           }
         }
       ],
-      "title": "System details",
+      "title": "Instruments summary",
       "type": "table"
     },
     {
@@ -192,8 +279,8 @@
       "gridPos": {
         "h": 8,
         "w": 9,
-        "x": 7,
-        "y": 0
+        "x": 0,
+        "y": 18
       },
       "id": 1,
       "options": {
@@ -244,14 +331,15 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Glacios [Glacios] (9952833)",
-          "value": "5"
+          "text": "Krios 1 [Titan Krios G2] (3299)",
+          "value": "1"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
           "uid": "${sourceTEM}"
         },
         "definition": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
+        "includeAll": true,
         "name": "instrument",
         "options": [],
         "query": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
@@ -263,8 +351,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "1",
-          "value": "1"
+          "text": "399",
+          "value": "399"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -282,8 +370,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "399",
-          "value": "399"
+          "text": "237",
+          "value": "237"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -301,8 +389,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "352",
-          "value": "352"
+          "text": "247",
+          "value": "247"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -320,8 +408,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "162",
-          "value": "162"
+          "text": "262",
+          "value": "262"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -339,8 +427,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "272",
-          "value": "272"
+          "text": "156",
+          "value": "156"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -377,8 +465,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "303",
-          "value": "303"
+          "text": "186",
+          "value": "186"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -396,8 +484,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "304",
-          "value": "304"
+          "text": "187",
+          "value": "187"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -415,8 +503,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "25",
-          "value": "25"
+          "text": "358",
+          "value": "358"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -443,5 +531,5 @@
   "timezone": "Europe/London",
   "title": "Alerts",
   "uid": "4395e67b-0330-47fd-94a8-6840b3f44893",
-  "version": 7
+  "version": 15
 }
