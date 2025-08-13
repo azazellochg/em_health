@@ -130,16 +130,14 @@ class ImportXML:
                                     "name": param.get("Name"),
                                     "display_name": param.get("DisplayName"),
                                     "type": known_types[param.get("Type")],
-                                    #"event_id": param.get("EventID"),
-                                    #"event_name": param.get("EventName"),
+                                    "event_id": param.get("EventID"),
+                                    "event_name": param.get("EventName"),
                                     "enum": param.get("EnumerationName", None),
                                     "storage_unit": param.get("StorageUnit") or None,
                                     "display_unit": param.get("DisplayUnit") or None,
                                     "display_scale": param.get("DisplayScale") or None,  # Log or Linear
-                                    #"format_string": param.get("FormatString"),  # F1 or F2
-                                    #"max_log_interval": param.get("MaxLogInterval"),
-                                    #"abs_min": param.get("AbsoluteMinimum"),
-                                    #"abs_max": param.get("AbsoluteMaximum"),
+                                    "abs_min": param.get("AbsoluteMinimum"),
+                                    "abs_max": param.get("AbsoluteMaximum"),
                                 }
 
                     break  # only a single instrument is supported

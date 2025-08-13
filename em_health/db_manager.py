@@ -178,11 +178,12 @@ class DatabaseManager(PgClient):
 
         insert_sql = """
             INSERT INTO public.parameters (
-                instrument_id,
-                param_id, subsystem, component, param_name, display_name,
-                display_unit, storage_unit, display_scale, enum_id, value_type
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT DO NOTHING
+                instrument_id, param_id,
+                subsystem, component, param_name, display_name,
+                display_unit, storage_unit, enum_id, value_type,
+                event_id, event_name, abs_min, abs_max
+            ) VALUES
+            (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
 
         # Batch inserts
@@ -196,9 +197,12 @@ class DatabaseManager(PgClient):
                 p_dict["display_name"],
                 p_dict["display_unit"],
                 p_dict["storage_unit"],
-                p_dict["display_scale"],
                 enums_dict.get(enum) if (enum := p_dict.get("enum")) else None,
-                p_dict["type"]
+                p_dict["type"],
+                p_dict["event_id"],
+                p_dict["event_name"],
+                p_dict["abs_min"],
+                p_dict["abs_max"]
             ) for param_id, p_dict in params_dict.items()
         ]
 

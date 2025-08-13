@@ -3,7 +3,7 @@ Installation
 
 FEI/Thermo Fisher Scientific (TFS) electron microscopes store instrument data using `Data Services` software
 on the microscope PC (MPC). This data includes event logging (Health Monitor), system configuration, alarms (error codes) etc.
-The `Data Services` backend uses Microsoft SQL Server with several databases.
+The `Data Services` backend uses Microsoft SQL Server (and PostgreSQL on new systems) with several databases.
 
 Various applications like Health Monitor, FEI Viewer, UEC viewer, and D2i Data Collector access this data. Since the
 `Data Services` API is proprietary and TFS does not provide remote SQL server access, data can only be accessed
