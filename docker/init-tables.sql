@@ -144,65 +144,69 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA uec GRANT SELECT ON TABLES TO grafana;
 INSERT INTO schema_info (version) VALUES (1);
 
 -- functions and triggers -------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION parameters_upsert_trigger()
+-- BEFORE INSERT trigger: upsert logic
+CREATE OR REPLACE FUNCTION parameters_upsert_before_insert()
 RETURNS trigger AS $$
-DECLARE
-    OLD_ROW public.parameters%ROWTYPE;
 BEGIN
+    -- If exists, update instead of insert
     IF EXISTS (
         SELECT 1
-        FROM public.parameters p
-        WHERE p.instrument_id = NEW.instrument_id
-          AND p.param_id = NEW.param_id
-    ) THEN
-        -- Fetch old row
-        SELECT * INTO STRICT OLD_ROW
         FROM public.parameters
         WHERE instrument_id = NEW.instrument_id
+          AND param_id = NEW.param_id
+    ) THEN
+        UPDATE public.parameters
+        SET subsystem = NEW.subsystem,
+            component = NEW.component,
+            param_name = NEW.param_name,
+            display_name = NEW.display_name,
+            display_unit = NEW.display_unit,
+            storage_unit = NEW.storage_unit,
+            enum_id = NEW.enum_id,
+            value_type = NEW.value_type,
+            event_id = NEW.event_id,
+            event_name = NEW.event_name,
+            abs_min = NEW.abs_min,
+            abs_max = NEW.abs_max
+        WHERE instrument_id = NEW.instrument_id
           AND param_id = NEW.param_id;
-
-        -- Compare
-        IF ROW(OLD_ROW.*) IS DISTINCT FROM ROW(NEW.*) THEN
-            INSERT INTO parameters_history (
-                instrument_id, param_id, subsystem, component, param_name, display_name,
-                display_unit, storage_unit, enum_id, value_type, event_id, event_name,
-                abs_min, abs_max
-            )
-            VALUES (
-                       OLD_ROW.instrument_id, OLD_ROW.param_id, OLD_ROW.subsystem, OLD_ROW.component, OLD_ROW.param_name, OLD_ROW.display_name,
-                       OLD_ROW.display_unit, OLD_ROW.storage_unit, OLD_ROW.enum_id, OLD_ROW.value_type, OLD_ROW.event_id, OLD_ROW.event_name,
-                       OLD_ROW.abs_min, OLD_ROW.abs_max
-                   );
-
-            -- Log message
-            RAISE NOTICE 'Updating parameter % (instrument %), old values: %, new values: %',
-                NEW.param_id, NEW.instrument_id, OLD_ROW, NEW;
-
-            UPDATE public.parameters
-            SET subsystem = NEW.subsystem,
-                component = NEW.component,
-                param_name = NEW.param_name,
-                display_name = NEW.display_name,
-                display_unit = NEW.display_unit,
-                storage_unit = NEW.storage_unit,
-                enum_id = NEW.enum_id,
-                value_type = NEW.value_type,
-                event_id = NEW.event_id,
-                event_name = NEW.event_name,
-                abs_min = NEW.abs_min,
-                abs_max = NEW.abs_max
-            WHERE instrument_id = NEW.instrument_id
-              AND param_id = NEW.param_id;
-        END IF;
-
-        RETURN NULL; -- Skip insert
+        RETURN NULL; -- skip insert
     ELSE
-        RETURN NEW; -- Insert proceeds normally
+        RETURN NEW; -- proceed with insert
     END IF;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER parameters_upsert
+CREATE TRIGGER parameters_upsert_before_insert
 BEFORE INSERT ON public.parameters
 FOR EACH ROW
-EXECUTE FUNCTION parameters_upsert_trigger();
+EXECUTE FUNCTION parameters_upsert_before_insert();
+
+
+-- AFTER UPDATE trigger: log old parameter values to history
+CREATE OR REPLACE FUNCTION parameters_log_after_update()
+RETURNS trigger AS $$
+BEGIN
+    IF ROW(OLD.*) IS DISTINCT FROM ROW(NEW.*) THEN
+        INSERT INTO public.parameters_history (
+            instrument_id, param_id, subsystem, component, param_name, display_name,
+            display_unit, storage_unit, enum_id, value_type, event_id, event_name,
+            abs_min, abs_max
+        )
+        VALUES (
+            OLD.instrument_id, OLD.param_id, OLD.subsystem, OLD.component, OLD.param_name, OLD.display_name,
+            OLD.display_unit, OLD.storage_unit, OLD.enum_id, OLD.value_type, OLD.event_id, OLD.event_name,
+            OLD.abs_min, OLD.abs_max
+        );
+
+        RAISE NOTICE 'Updated parameter % (instrument %)', NEW.param_id, NEW.instrument_id;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER parameters_log_after_update
+AFTER UPDATE ON public.parameters
+FOR EACH ROW
+EXECUTE FUNCTION parameters_log_after_update();
