@@ -74,7 +74,7 @@ def update_cmd(args):
 
 def test_cmd(args=None):
     import unittest
-    from em_health.tests.test_parser import TestXMLImport
+    from em_health.tests.test_hm import TestXMLImport
     suite = unittest.TestLoader().loadTestsFromTestCase(TestXMLImport)
     unittest.TextTestRunner(verbosity=2).run(suite)
 

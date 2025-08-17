@@ -48,7 +48,7 @@ class TestXMLImport(unittest.TestCase):
                        dbm: DatabaseManager,
                        query: str,
                        values: tuple,
-                       expected_result: int | str,
+                       expected_result: int | str | float,
                        do_return: bool = False):
         result = dbm.run_query(query, values=values, mode="fetchone")
         if do_return:
@@ -112,32 +112,79 @@ class TestXMLImport(unittest.TestCase):
 
         self.run_test_query(dbm, "SELECT COUNT(*) FROM public.data WHERE instrument_id = %s and time > %s",
                             (instrument_id, "2025-07-28 11:00:00+0"), 1333)
-        print("[OK] database test")
+        print("[OK] database test #1")
 
-    def test_parsing(self):
+    def check_db2(self, dbm: DatabaseManager, instrument_id: int):
+        # check updated enums and history table
+        eid = self.run_test_query(dbm, "SELECT id FROM public.enum_types WHERE instrument_id = %s AND name= %s",
+                                  (instrument_id, "FegState_enum"), expected_result=-1, do_return=True)
+
+        self.run_test_query(dbm, "SELECT value FROM public.enum_values WHERE enum_id = %s AND member_name = %s",
+                            (eid, "Operate"), 99)
+        self.run_test_query(dbm, "SELECT value FROM public.enum_values WHERE enum_id = %s AND member_name = %s",
+                            (eid, "Standby"), 100)
+        self.run_test_query(dbm, "SELECT value FROM public.enum_values_history WHERE enum_id = %s AND member_name = %s",
+                            (eid, "Operate"), 4)
+        self.run_test_query(dbm, "SELECT value FROM public.enum_values_history WHERE enum_id = %s AND member_name = %s",
+                            (eid, "Standby"), 5)
+
+        # check updated params and history table
+        self.run_test_query(dbm, "SELECT abs_min FROM public.parameters WHERE instrument_id = %s AND param_id=%s",
+                            (instrument_id, 351), 250.5)
+        self.run_test_query(dbm, "SELECT abs_min FROM public.parameters_history WHERE instrument_id = %s AND param_id=%s",
+                            (instrument_id, 351), 273.15)
+
+        print("[OK] database test #2")
+
+    @staticmethod
+    def modify_input(enums: dict[str, dict],
+                     params: dict[int, dict]):
+        enums["FegState_enum"]["Operate"] = 99
+        enums["FegState_enum"]["Standby"] = 100
+        params[351]["abs_min"] = 250.5
+
+    def test_hm(self):
         parser = ImportXML(XML_FN, JSON_INFO)
-
         parser.parse_enumerations()
         self.check_enumerations(parser.enum_values)
-
         parser.parse_parameters()
         self.check_parameters(parser.params)
 
         instr_dict = parser.get_microscope_dict()
 
         with DatabaseManager(parser.db_name) as dbm:
-            instrument_id, instrument_name = dbm.add_instrument(instr_dict)
-            enum_ids = dbm.add_enumerations(instrument_id, parser.enum_values, instrument_name)
-            dbm.add_parameters(instrument_id, parser.params, enum_ids, instrument_name)
+            try:
+                dbm.clean_instrument_data(instrument_serial=9999)
+                # first import
+                instrument_id, instrument_name = dbm.add_instrument(instr_dict)
+                enum_ids = dbm.add_enumerations(instrument_id, parser.enum_values, instrument_name)
+                dbm.add_parameters(instrument_id, parser.params, enum_ids, instrument_name)
 
-            # convert to list since we need to iterate twice
-            datapoints = list(parser.parse_values(instrument_id, parser.params, instrument_name))
+                # convert to list since we need to iterate twice
+                datapoints = list(parser.parse_values(instrument_id, parser.params, instrument_name))
+                self.check_datapoints(datapoints)
 
-            self.check_datapoints(datapoints)
+                dbm.write_data(datapoints, instrument_name)
+                self.check_db(dbm, instrument_id)
 
-            dbm.write_data(datapoints, instrument_name, nocopy=True)
-            self.check_db(dbm, instrument_id)
-            #dbm.clean_instrument_data(instrument_serial=9999)
+                # modify enums and params
+                self.modify_input(parser.enum_values, parser.params)
+
+                # second import
+                instrument_id, instrument_name = dbm.add_instrument(instr_dict)
+                enum_ids = dbm.add_enumerations(instrument_id, parser.enum_values, instrument_name)
+                dbm.add_parameters(instrument_id, parser.params, enum_ids, instrument_name)
+
+                self.check_datapoints(datapoints)
+                dbm.write_data(datapoints, instrument_name, nocopy=True)
+                self.check_db2(dbm, instrument_id)
+
+                # clean-up
+                dbm.clean_instrument_data(instrument_serial=9999)
+
+            except:
+                dbm.conn.rollback()
+                dbm.clean_instrument_data(instrument_serial=9999)
 
 
 if __name__ == '__main__':
