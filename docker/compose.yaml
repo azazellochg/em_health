@@ -2,7 +2,7 @@ name: emhealth
 
 services:
   timescaledb:
-    image: timescale/timescaledb-ha:pg17
+    build: .
     container_name: timescaledb
     restart: always
     environment:

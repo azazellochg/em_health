@@ -27,8 +27,6 @@
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-from datetime import datetime, timedelta, timezone
-import struct
 from typing import Literal, Optional, Dict, Any
 import psycopg
 from psycopg import sql
@@ -233,57 +231,3 @@ class PgClient(BaseDBClient):
         if mode == "commit":
             self.conn.commit()
         # else None implicitly returned
-
-
-class MSClient(BaseDBClient):
-    """ MSSQL DB client. """
-    def __init__(self, db_name: str, **kwargs):
-        super().__init__(db_name, 'MSSQL_USER', 'MSSQL_PASSWORD',
-                         '', 57659, **kwargs)
-        self.host = kwargs["host"]
-
-    @staticmethod
-    def handle_datetimeoffset(dto_value) -> datetime:
-        """ Microsoft SQL Server returns values from a DATETIMEOFFSET column
-        as SQL type -155, which does not have native support in pyodbc.
-        See https://github.com/mkleehammer/pyodbc/issues/134#issuecomment-281739794
-        """
-        tup = struct.unpack("<6hI2h", dto_value)  # e.g., (2017, 3, 16, 10, 35, 18, 500000000, -6, 0)
-        return datetime(tup[0], tup[1], tup[2], tup[3], tup[4], tup[5], tup[6] // 1000,
-                        timezone(timedelta(hours=tup[7], minutes=tup[8])))
-
-    def connect(self):
-        import pyodbc
-        self.conn = pyodbc.connect(
-            "DRIVER={ODBC Driver 18 for SQL Server};"
-            f"SERVER={self.host},{self.port};"
-            f"DATABASE={self.db_name};"
-            f"UID={self.username};"
-            f"PWD={self.password};"
-            "TrustServerCertificate=yes;"
-            "Encrypt=no;",
-            timeout=3
-        )
-        self.cur = self.conn.cursor()
-        self.conn.add_output_converter(-155, self.handle_datetimeoffset)
-        logger.info("Connected to MSSQL %s@%s: database %s",
-                    self.username, self.host, self.db_name)
-
-    def run_query(
-            self,
-            query: str,
-            mode: Literal["fetchone", "fetchall"] = "fetchall",
-    ):
-        """
-        Execute an SQL query and optionally return results.
-
-        :param query: SQL query string.
-        :param mode: fetch mode or commit.
-        """
-        logger.debug("Executing query:\n%s", query)
-        self.cur.execute(query)
-
-        if mode == "fetchone":
-            return self.cur.fetchone()
-        if mode == "fetchall":
-            return self.cur.fetchall()

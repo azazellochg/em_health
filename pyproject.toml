@@ -21,7 +21,6 @@ dependencies = [
     'psycopg',
     'watchdog',
     'python-dotenv',
-    'pyodbc',
     'requests'
 ]
 
