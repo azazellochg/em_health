@@ -25,12 +25,9 @@ CREATE TABLE pganalyze.database_stats (
 CREATE TABLE pganalyze.table_stats (
                                        collected_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
                                        relid           OID         NOT NULL,
-                                       schemaname      NAME        NOT NULL,
-                                       tablename       NAME        NOT NULL,
                                        table_bytes     BIGINT      NOT NULL,
                                        index_bytes     BIGINT      NOT NULL,
                                        toast_bytes     BIGINT      NOT NULL,
-                                       total_bytes     BIGINT      NOT NULL,
                                        frozen_xid_age  BIGINT      NOT NULL,
                                        num_dead_rows   BIGINT      NOT NULL,
                                        num_live_rows   BIGINT      NOT NULL,
@@ -40,7 +37,6 @@ CREATE TABLE pganalyze.table_stats (
 CREATE TABLE pganalyze.index_stats (
                                        collected_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
                                        indexrelid           OID         NOT NULL,
-                                       indexrelname         NAME        NOT NULL,
                                        relid                OID         NOT NULL,
                                        size_bytes           BIGINT      NOT NULL,
                                        scan                 BIGINT      NOT NULL,
@@ -53,18 +49,16 @@ CREATE TABLE pganalyze.index_stats (
 );
 
 CREATE TABLE pganalyze.vacuum_stats (
-                                        schemaname              NAME        NOT NULL,
-                                        tablename               NAME        NOT NULL,
+                                        relid                   OID         NOT NULL,
                                         started_at              TIMESTAMPTZ NOT NULL,
                                         finished_at             TIMESTAMPTZ NOT NULL,
-                                        duration                DOUBLE PRECISION NOT NULL,
                                         index_scans             BIGINT      NOT NULL,
                                         pages_removed           BIGINT      NOT NULL,
                                         tuples_removed          BIGINT      NOT NULL,
                                         tuples_remain           BIGINT      NOT NULL,
                                         wraparound              BOOLEAN     NOT NULL,
                                         details                 TEXT        NOT NULL,
-                                        PRIMARY KEY (schemaname, tablename, started_at)
+                                        PRIMARY KEY (relid, started_at)
 );
 
 CREATE TABLE pganalyze.stat_statements (

@@ -83,6 +83,7 @@ def profile(fn):
 
         # Measure time and memory together, only once
         t0 = time.perf_counter()
+
         def _target():
             retval[0] = fn(*args, **kwargs)
 

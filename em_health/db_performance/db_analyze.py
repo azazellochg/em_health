@@ -50,7 +50,6 @@ class DatabaseAnalyzer(DatabaseManager):
         """ Create functions to collect statistics. """
         self.execute_file(self.get_path("create_metric_funcs.sql", folder="db_performance"),
                           {
-                              "DBNAME": self.db_name,
                               "POSTGRES_PGANALYZE_PASSWORD": os.getenv("POSTGRES_PGANALYZE_PASSWORD"),
                               "TBL_STATS_RETENTION": os.getenv("TBL_STATS_RETENTION", "3 months")
                           })
@@ -99,7 +98,7 @@ class DatabaseAnalyzer(DatabaseManager):
 def main(dbname, action, force=False):
     if action == "create-perf-stats":
         with DatabaseAnalyzer(dbname) as db:
-            if force: # erase all data
+            if force:  # erase all data
                 db.run_query("DROP SCHEMA IF EXISTS pganalyze CASCADE;")
                 db.create_metric_tables()
             else:

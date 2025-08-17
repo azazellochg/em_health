@@ -18,10 +18,10 @@ BEGIN
         s.tup_inserted, s.tup_updated, s.tup_deleted, s.tup_fetched, s.tup_returned,
         s.temp_files, s.temp_bytes, s.deadlocks, s.blk_read_time, s.blk_write_time,
         age(d.datfrozenxid) AS frozen_xid_age, mxid_age(d.datminmxid) AS frozen_mxid_age,
-        pg_database_size(:DBNAME) AS db_size
+        pg_database_size(current_database()) AS db_size
     FROM pg_catalog.pg_stat_database s
              JOIN pg_catalog.pg_database d ON s.datname = d.datname
-    WHERE s.datname = :DBNAME;
+    WHERE s.datname = current_database();
 END;
 $$;
 
@@ -33,19 +33,21 @@ CREATE FUNCTION pganalyze.get_table_stats(job_id INT DEFAULT NULL, config JSONB 
 AS $$
 BEGIN
     INSERT INTO pganalyze.table_stats (
-        collected_at, relid,
-        schemaname, tablename,
-        table_bytes, index_bytes, toast_bytes, total_bytes,
+        collected_at,
+        relid,
+        table_bytes,
+        index_bytes,
+        toast_bytes,
         frozen_xid_age,
         num_dead_rows,
         num_live_rows
     )
     SELECT
-        now() AS collected_at, s.relid,
-        s.schemaname, s.relname,
-        pg_table_size(s.relid), pg_indexes_size(s.relid),
+        now() AS collected_at,
+        s.relid,
+        pg_table_size(s.relid),
+        pg_indexes_size(s.relid),
         pg_total_relation_size(s.relid) - pg_table_size(s.relid) - pg_indexes_size(s.relid),
-        pg_total_relation_size(s.relid),
         age(c.relfrozenxid) AS frozen_xid_age,
         COALESCE(st.n_dead_tup, 0) AS num_dead_rows,
         COALESCE(st.n_live_tup, 0) AS num_live_rows
@@ -65,9 +67,15 @@ AS $$
 BEGIN
     INSERT INTO pganalyze.index_stats (
         collected_at,
-        indexrelid, indexrelname, relid, size_bytes,
-        scan, tup_read, tup_fetch,
-        blks_read, blks_hit, exclusively_locked
+        indexrelid,
+        relid,
+        size_bytes,
+        scan,
+        tup_read,
+        tup_fetch,
+        blks_read,
+        blks_hit,
+        exclusively_locked
     )
     WITH locked_relids AS (
         SELECT DISTINCT relation indexrelid
@@ -77,7 +85,6 @@ BEGIN
     SELECT
         now() AS collected_at,
         s.indexrelid,
-        s.indexrelname,
         s.relid,
         COALESCE(pg_catalog.pg_relation_size(s.indexrelid), 0) AS size_bytes,
         COALESCE(s.idx_scan, 0) AS scan,
@@ -100,7 +107,6 @@ BEGIN
     SELECT
         now() AS collected_at,
         l.indexrelid,
-        c.relname AS indexrelname,
         c.relnamespace AS relid,
         0,
         0,
@@ -232,11 +238,9 @@ BEGIN
 
     -- Insert parsed vacuums into vacuum_stats
     INSERT INTO pganalyze.vacuum_stats (
-        schemaname,
-        tablename,
+        relid,
         started_at,
         finished_at,
-        duration,
         index_scans,
         pages_removed,
         tuples_removed,
@@ -245,11 +249,13 @@ BEGIN
         details
     )
     SELECT
-        split_part(substring(message FROM 'automatic vacuum of table "([^"]+)"'), '.', 2)::name AS schemaname,
-        split_part(substring(message FROM 'automatic vacuum of table "([^"]+)"'), '.', 3)::name AS tablename,
+        regexp_replace(
+                substring(message FROM 'automatic vacuum of table "([^"]+)"'),
+                '^[^.]+\.',  -- remove leading "dbname."
+                ''
+        )::regclass::oid AS relid,
         log_time AS started_at,
         log_time + (substring(message FROM 'elapsed: ([0-9\.]+) s')::double precision * interval '1 second') AS finished_at,
-        substring(message FROM 'elapsed: ([0-9\.]+) s')::double precision AS duration,
         substring(message FROM 'index scans: (\d+)')::bigint AS index_scans,
         substring(message FROM 'pages: (\d+) removed')::bigint AS pages_removed,
         substring(message FROM 'tuples: (\d+) removed')::bigint AS tuples_removed,
@@ -257,7 +263,7 @@ BEGIN
         (message LIKE '%to prevent wraparound%') AS wraparound,
         message AS details
     FROM tmp_log
-    WHERE database_name = :DBNAME
+    WHERE database_name = current_database()
       AND error_severity = 'LOG'
       AND backend_type = 'autovacuum worker'
       AND (message LIKE 'automatic vacuum of table "%public.%'
@@ -284,7 +290,7 @@ BEGIN
         (substring(message FROM 'plan:\n(\{.*)')::json #>> '{Plan,Shared I/O Read Time}')::double precision AS io_read_time,
         substring(message FROM 'plan:\n(\{.*)')::json
     FROM tmp_log
-    WHERE database_name = :DBNAME
+    WHERE database_name = current_database()
       AND user_name = 'grafana'
       AND error_severity = 'LOG'
       AND message LIKE 'duration: %'
