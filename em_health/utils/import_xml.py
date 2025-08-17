@@ -51,7 +51,7 @@ class ImportXML:
         self.json_info = json_info
         self.microscope = None
         self.db_name = None
-        self.enumerations: dict[str, dict] = {}
+        self.enum_values: dict[str, dict] = {}
         self.params: dict[int, dict] = {}
 
         if self.path.endswith('.xml.gz'):
@@ -59,6 +59,7 @@ class ImportXML:
         else:
             self.file = open(self.path, 'rb')
         self.context = ET.iterparse(self.file, events=("end",))
+        # Be aware, you have to parse sections in their order, i.e. enumerations first!
 
     def get_microscope_dict(self) -> dict:
         """ Return microscope dictionary. """
@@ -84,19 +85,19 @@ class ImportXML:
             if self.__match(elem, "Enumerations"):
                 for enum_elem in elem.findall('ns:Enumeration', namespaces=NS):
                     enum_name = enum_elem.get("Name")
-                    self.enumerations[enum_name] = {}
+                    self.enum_values[enum_name] = {}
 
                     for literal in enum_elem.findall('ns:Literal', namespaces=NS):
                         literal_name = literal.get("Name")
                         literal_value = int(literal.text.strip())
-                        self.enumerations[enum_name][literal_name] = literal_value
+                        self.enum_values[enum_name][literal_name] = literal_value
 
                 elem.clear()
                 break
 
         if DEBUG:
             logger.debug("Parsed enumerations:")
-            for e in self.enumerations.items():
+            for e in self.enum_values.items():
                 logger.debug(e)
 
     def parse_parameters(self) -> None:
@@ -104,7 +105,8 @@ class ImportXML:
         known_types = {
             'Int': 'int',
             'Float': 'float',
-            'String': 'str'
+            'String': 'str',
+            'Boolean': 'bool',
         }
 
         for event, elem in self.context:
@@ -127,17 +129,16 @@ class ImportXML:
                                 self.params[param_id] = {
                                     "subsystem": subsystem_name,
                                     "component": component_name,
-                                    "name": param.get("Name"),
+                                    "param_name": param.get("Name"),
+                                    "enum_name": param.get("EnumerationName", None),
                                     "display_name": param.get("DisplayName"),
-                                    "type": known_types[param.get("Type")],
+                                    "display_unit": param.get("DisplayUnit") or None,
+                                    "storage_unit": param.get("StorageUnit") or None,
+                                    "value_type": known_types[param.get("Type")],
                                     "event_id": param.get("EventID"),
                                     "event_name": param.get("EventName"),
-                                    "enum": param.get("EnumerationName", None),
-                                    "storage_unit": param.get("StorageUnit") or None,
-                                    "display_unit": param.get("DisplayUnit") or None,
-                                    "display_scale": param.get("DisplayScale") or None,  # Log or Linear
-                                    "abs_min": param.get("AbsoluteMinimum"),
-                                    "abs_max": param.get("AbsoluteMaximum"),
+                                    "abs_min": param.get("AbsoluteMinimum") or None,
+                                    "abs_max": param.get("AbsoluteMaximum") or None
                                 }
 
                     break  # only a single instrument is supported
@@ -172,9 +173,9 @@ class ImportXML:
                 if param_dict is None:
                     logger.error("Parameter %d not found, skipping", param_id,
                                  extra={"prefix": instrument_name})
-                    elem.clear() # clear skipped elements
+                    elem.clear()  # clear skipped elements
                     continue
-                value_type = param_dict["type"]
+                value_type = param_dict["value_type"]
                 instr_id = str(instr_id)
                 param_id = str(param_id)
 
@@ -246,7 +247,7 @@ class ImportXML:
                 return '\\N', str(value)
             elif value_type == "float":
                 return str(value), '\\N'
-            elif value_type == "int":  # works for int and IntEnum
+            elif value_type in ["int", "bool"]:  # works for int, IntEnum, bool
                 return str(int(value)), '\\N'
             else:
                 raise ValueError
@@ -292,8 +293,8 @@ def main(xml_fn, json_fn, nocopy):
 
         with DatabaseManager(xmlparser.db_name) as dbm:
             instrument_id, instrument_name = dbm.add_instrument(instr_dict)
-            enums_dict = dbm.add_enumerations(instrument_id, xmlparser.enumerations, instrument_name)
-            dbm.add_parameters(instrument_id, xmlparser.params, enums_dict, instrument_name)
+            enum_ids = dbm.add_enumerations(instrument_id, xmlparser.enum_values, instrument_name)
+            dbm.add_parameters(instrument_id, xmlparser.params, enum_ids, instrument_name)
             datapoints = xmlparser.parse_values(instrument_id, xmlparser.params, instrument_name)
             dbm.write_data(datapoints, instrument_name, nocopy=nocopy)
     else:

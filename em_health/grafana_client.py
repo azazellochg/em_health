@@ -39,7 +39,7 @@ class GrafanaClient:
     def __init__(self):
         self.base_url = GRAFANA_URL
         api_token = os.getenv("GRAFANA_API_TOKEN")
-        if not api_token:
+        if api_token in ["None", "", None]:
             raise ValueError("GRAFANA_API_TOKEN env var is not set")
 
         self.headers = {

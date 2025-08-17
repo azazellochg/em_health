@@ -48,11 +48,16 @@ class TestXMLImport(unittest.TestCase):
                        dbm: DatabaseManager,
                        query: str,
                        values: tuple,
-                       expected_result: int | str):
+                       expected_result: int | str,
+                       do_return: bool = False):
         result = dbm.run_query(query, values=values, mode="fetchone")
-        self.assertEqual(result[0], expected_result)
+        if do_return:
+            # ignore expected_result
+            return result[0]
+        else:
+            self.assertEqual(result[0], expected_result)
 
-    def check_enumerations(self, enums:dict[str, dict]):
+    def check_enumerations(self, enums: dict[str, dict]):
         self.assertEqual(len(enums), 41)
         self.assertEqual(enums["MicroscopeType"]["Tecnai"], 2)
         self.assertEqual(enums["VacuumState_enum"]["AllVacuumColumnValvesClosed"], 6)
@@ -62,9 +67,9 @@ class TestXMLImport(unittest.TestCase):
     def check_parameters(self, params: dict[int, dict]):
         self.assertEqual(len(params), 391)
         self.assertIn(171, params)
-        self.assertEqual(params[184]["name"], "Laldwr")
+        self.assertEqual(params[184]["param_name"], "Laldwr")
         self.assertEqual(params[231]["display_name"], "Emission Current")
-        self.assertEqual(params[400]["enum"], "CameraInsertStatus_enum")
+        self.assertEqual(params[400]["enum_name"], "CameraInsertStatus_enum")
         print("[OK] parameters test")
 
     def check_datapoints(self, points: list[tuple]):
@@ -84,32 +89,36 @@ class TestXMLImport(unittest.TestCase):
         print("[OK] datapoints test")
 
     def check_db(self, dbm: DatabaseManager, instrument_id: int):
-        self.run_test_query(dbm, "SELECT model FROM instruments WHERE serial = %s",
+        self.run_test_query(dbm, "SELECT model FROM public.instruments WHERE serial = %s",
                             (9999,), "Test instrument")
 
-        self.run_test_query(dbm, "SELECT COUNT(DISTINCT enum_id) FROM enumerations WHERE instrument_id= %s",
+        self.run_test_query(dbm, "SELECT COUNT(id) FROM public.enum_types WHERE instrument_id= %s",
                             (instrument_id,), 41)
 
-        self.run_test_query(dbm, "SELECT value FROM enumerations WHERE instrument_id = %s AND enum = %s AND name = %s",
-                            (instrument_id, "FegState_enum", "Operate"), 4)
+        eid = self.run_test_query(dbm, "SELECT id FROM public.enum_types WHERE instrument_id = %s AND name= %s",
+                                  (instrument_id, "FegState_enum"), expected_result=-1, do_return=True)
 
-        self.run_test_query(dbm, "SELECT COUNT(*) FROM parameters WHERE instrument_id = %s",
+        self.run_test_query(dbm, "SELECT value FROM public.enum_values WHERE enum_id = %s AND member_name = %s",
+                            (eid, "Operate"), 4)
+
+        self.run_test_query(dbm, "SELECT COUNT(*) FROM public.parameters WHERE instrument_id = %s",
                             (instrument_id,), 391)
 
-        self.run_test_query(dbm, "SELECT param_name FROM parameters WHERE instrument_id = %s AND param_id=%s",
+        self.run_test_query(dbm, "SELECT param_name FROM public.parameters WHERE instrument_id = %s AND param_id=%s",
                             (instrument_id, 184), "Laldwr")
 
-        self.run_test_query(dbm, "SELECT COUNT(*) FROM data WHERE instrument_id = %s",
+        self.run_test_query(dbm, "SELECT COUNT(*) FROM public.data WHERE instrument_id = %s",
                             (instrument_id,), 1889)
 
-        self.run_test_query(dbm, "SELECT COUNT(*) FROM data WHERE instrument_id = %s and time > %s",
+        self.run_test_query(dbm, "SELECT COUNT(*) FROM public.data WHERE instrument_id = %s and time > %s",
                             (instrument_id, "2025-07-28 11:00:00+0"), 1333)
         print("[OK] database test")
 
     def test_parsing(self):
         parser = ImportXML(XML_FN, JSON_INFO)
+
         parser.parse_enumerations()
-        self.check_enumerations(parser.enumerations)
+        self.check_enumerations(parser.enum_values)
 
         parser.parse_parameters()
         self.check_parameters(parser.params)
@@ -118,8 +127,8 @@ class TestXMLImport(unittest.TestCase):
 
         with DatabaseManager(parser.db_name) as dbm:
             instrument_id, instrument_name = dbm.add_instrument(instr_dict)
-            enums_dict = dbm.add_enumerations(instrument_id, parser.enumerations, instrument_name)
-            dbm.add_parameters(instrument_id, parser.params, enums_dict, instrument_name)
+            enum_ids = dbm.add_enumerations(instrument_id, parser.enum_values, instrument_name)
+            dbm.add_parameters(instrument_id, parser.params, enum_ids, instrument_name)
 
             # convert to list since we need to iterate twice
             datapoints = list(parser.parse_values(instrument_id, parser.params, instrument_name))
@@ -128,7 +137,7 @@ class TestXMLImport(unittest.TestCase):
 
             dbm.write_data(datapoints, instrument_name, nocopy=True)
             self.check_db(dbm, instrument_id)
-            dbm.clean_instrument_data(instrument_serial=9999)
+            #dbm.clean_instrument_data(instrument_serial=9999)
 
 
 if __name__ == '__main__':

@@ -53,16 +53,10 @@ class DatabaseManager(PgClient):
             raise ValueError("Wrong serial number")
 
         if since is None:
-            # delete all data for instrument
-            self.run_query("DELETE FROM public.data WHERE instrument_id = %s",
-                           values=(instrument_id,))
-            self.run_query("DELETE FROM public.parameters WHERE instrument_id = %s",
-                           values=(instrument_id,))
-            self.run_query("DELETE FROM public.enumerations WHERE instrument_id = %s",
-                           values=(instrument_id,))
+            # cascade delete all data for the instrument
             self.run_query("DELETE FROM public.instruments WHERE id = %s",
                            values=(instrument_id,))
-            logger.info("Deleted instrument %s", instrument_serial)
+            logger.info("Deleted instrument %s and all associated data", instrument_serial)
         else:
             from_date = datetime.strptime(since, "%d-%m-%Y").replace(tzinfo=timezone.utc)
             self.run_query("DELETE FROM public.data WHERE instrument_id = %s AND time < %s",
@@ -75,7 +69,8 @@ class DatabaseManager(PgClient):
     def add_instrument(self, instr_dict: dict) -> tuple[int, str]:
         """ Populate the instrument metadata table.
         :param instr_dict: input dict with microscope metadata
-        :return: id and name of a newly created instrument
+        :return: id and name of the instrument
+        We always return id for either new or existing instrument
         """
         instrument_name = instr_dict["name"]
         row = self.run_query("""
@@ -88,10 +83,10 @@ class DatabaseManager(PgClient):
                 WHERE NOT EXISTS (SELECT 1 FROM s)
                 RETURNING id
             )
-            SELECT id FROM i
+            SELECT id, TRUE AS is_new FROM i
             UNION ALL
-            SELECT id FROM s
-        """, values = (
+            SELECT id, FALSE AS is_new FROM s
+        """, values=(
             instr_dict["instrument"],
             instr_dict["serial"],
             instr_dict["instrument"],
@@ -102,75 +97,74 @@ class DatabaseManager(PgClient):
             instr_dict["server"]
         ), mode="fetchone")
 
-        logger.info("Updated instruments table", extra={"prefix": instrument_name})
-        instrument_id = row[0] if row else None
+        instrument_id, is_new = row
+
+        if is_new:
+            logger.info("Updated instruments table", extra={"prefix": instrument_name})
+        else:
+            logger.info("Instrument already exists", extra={"prefix": instrument_name})
 
         return instrument_id, instrument_name
 
     def add_enumerations(self,
                          instrument_id: int,
                          enums_dict: dict,
-                         instrument_name: str) -> dict:
+                         instrument_name: str) -> dict[str, int]:
         """ Populate the enumerations for TEM or SEM.
         Each enum value is stored as a separate SQL row.
         :param instrument_id: Instrument id
         :param enums_dict: input dict
         :param instrument_name: Instrument name
-        :return a dict {enum_type: enum_id}
+        :return a dict {enum_types.name: enum_types.id}
         """
-        output_dict = {}
-        logger.info("Found %d enumerations (%s values)",
-                    len(enums_dict), sum(len(inner) for inner in enums_dict.values()),
+        logger.info("Found %d enumerations", len(enums_dict),
                     extra={"prefix": instrument_name})
 
-        # Get max enum_id
-        row = self.run_query("""
-            SELECT COALESCE(MAX(enum_id), 0)
-            FROM public.enumerations
-            WHERE instrument_id = %s
-        """, values=(instrument_id,), mode="fetchone")
-
-        max_enum_id = row[0]
-        new_enum_id = max_enum_id + 1
-
-        # Prepare insert statement
-        insert_sql = """
-            INSERT INTO public.enumerations (
-            instrument_id, enum_id, enum, name, value
-            )
-            VALUES (%s, %s, %s, %s, %s)
+        # Batch insert enum_types
+        self.cur.executemany("""
+            INSERT INTO public.enum_types (instrument_id, name)
+            VALUES (%s, %s)
             ON CONFLICT DO NOTHING
-        """
+        """, (
+            (instrument_id, enum_name)
+            for enum_name in enums_dict.keys()
+        ))
 
-        # Batch inserts
-        data_to_insert = []
-        for enum, enum_values in enums_dict.items():
-            data_to_insert.extend(
-                (instrument_id, new_enum_id, enum, name, value)
-                for name, value in enum_values.items()
-            )
-            output_dict[enum] = new_enum_id
-            new_enum_id += 1
+        # Fetch IDs for inserted enums
+        rows = self.run_query("SELECT id, name FROM public.enum_types WHERE instrument_id = %s",
+                              values=(instrument_id,),
+                              mode="fetchall")
+        enum_name_to_id = {name: eid for eid, name in rows}
 
-        self.cur.executemany(insert_sql, data_to_insert)
+        # Batch insert all enum_values
+        self.cur.executemany("""
+            INSERT INTO public.enum_values (enum_id, member_name, value)
+            VALUES (%s, %s, %s)
+        """, (
+            (enum_name_to_id[enum_name], member_name, value)
+            for enum_name, data in enums_dict.items()
+            for member_name, value in data.items()
+        ))
 
-        row = self.run_query("SELECT COUNT(*) FROM public.enumerations", mode="fetchone")
+        row = self.run_query("SELECT COUNT(*) FROM public.enum_types WHERE instrument_id = %s",
+                             values=(instrument_id,),
+                             mode="fetchone")
         row_count = row[0] if row else None
         self.conn.commit()
-        logger.info("Updated enumerations table (total %d rows)", row_count,
+        logger.info("Updated enum_types table (%d rows)", row_count,
                     extra={"prefix": instrument_name})
 
-        return output_dict
+        return enum_name_to_id
 
     def add_parameters(self,
                        instrument_id: int,
                        params_dict: dict,
-                       enums_dict: dict,
+                       enums_ids: dict,
                        instrument_name: str) -> None:
         """ Populate parameters table with associated metadata.
         :param instrument_id: Instrument id
         :param params_dict: input params dict
-        :param enums_dict: input enums dict
+        :param enums_ids: input enums dict
         :param instrument_name: Instrument name
         """
         logger.info("Found %d parameters", len(params_dict),
@@ -193,12 +187,12 @@ class DatabaseManager(PgClient):
                 param_id,
                 p_dict["subsystem"],
                 p_dict["component"],
-                p_dict["name"],
+                p_dict["param_name"],
                 p_dict["display_name"],
                 p_dict["display_unit"],
                 p_dict["storage_unit"],
-                enums_dict.get(enum) if (enum := p_dict.get("enum")) else None,
-                p_dict["type"],
+                enums_ids.get(enum) if (enum := p_dict.get("enum_name")) else None,
+                p_dict["value_type"],
                 p_dict["event_id"],
                 p_dict["event_name"],
                 p_dict["abs_min"],
@@ -208,10 +202,12 @@ class DatabaseManager(PgClient):
 
         self.cur.executemany(insert_sql, data_to_insert)
 
-        row = self.run_query("SELECT COUNT(*) FROM public.parameters", mode="fetchone")
+        row = self.run_query("SELECT COUNT(*) FROM public.parameters WHERE instrument_id = %s",
+                             values=(instrument_id,),
+                             mode="fetchone")
         row_count = row[0] if row else None
         self.conn.commit()
-        logger.info("Updated parameters table (total %d rows)", row_count,
+        logger.info("Updated parameters table (%d rows)", row_count,
                     extra={"prefix": instrument_name})
 
     #@profile
@@ -268,10 +264,7 @@ class DatabaseManager(PgClient):
                              extra={"prefix": instrument_name})
                 raise
 
-        row = self.run_query("SELECT COUNT(*) FROM public.data", mode="fetchone")
-        row_count = row[0] if row else None
-        logger.info("Updated data table (total %d rows)", row_count,
-                    extra={"prefix": instrument_name})
+        logger.info("Updated data table", extra={"prefix": instrument_name})
 
     def drop_mview(self, name: str, is_cagg: bool = False) -> None:
         """ Delete a materialized view. """
@@ -353,7 +346,7 @@ class DatabaseManager(PgClient):
         instantly, so you don't have to wait for the data to be aggregated.
         Here we aggregate all historical data that has been imported so far.
         """
-        self.conn.autocommit = True # required since CALL cannot be executed inside a transaction
+        self.conn.autocommit = True  # required since CALL cannot be executed inside a transaction
         self.run_query("CALL refresh_continuous_aggregate({name}, NULL, NULL)",
                        strings={"name": name})
         self.conn.autocommit = False
@@ -392,6 +385,144 @@ class DatabaseManager(PgClient):
             logger.info("Database schema is up-to-date")
         else:
             raise ValueError("Database version is higher than expected")
+
+    def import_uec(self):
+        if any(os.getenv(var) in ["None", "", None] for var in ["MSSQL_USER", "MSSQL_PASSWORD"]):
+            logger.warning("MSSQL_USER and MSSQL_PASSWORD are not set.")
+            exit(0)
+
+        servers = self.run_query("""
+            SELECT id, server FROM public.instruments
+            WHERE server IS NOT NULL
+        """, mode="fetchall")
+
+        if not servers:
+            raise ValueError("No servers found in the public.instrument table")
+
+        for instr_id, server in servers:
+            name = f"mssql_{instr_id}"
+            t_definitions = f"{name}_error_definitions"
+            t_notifications = f"{name}_error_notifications"
+
+            self.setup_fdw(str(server), name)
+            self.create_fdw_tables(name, t_definitions, t_notifications)
+            self.setup_import_fdw(name, instr_id, t_definitions, t_notifications)
+            self.run_query(f"SELECT add_job('uec.import_from_{name}', schedule_interval=>'1 hour')")
+
+            logger.info("Scheduled UEC import job for instrument %s", instr_id)
+
+    def setup_fdw(self, server: str, name: str):
+        """ Create a foreign data wrapper for the MSSQL database. """
+        self.run_query("""
+            CREATE SERVER IF NOT EXISTS {name}
+            FOREIGN DATA WRAPPER tds_fdw
+            OPTIONS (
+                servername {server},
+                port '1433',
+                database 'DS'
+            );
+
+            CREATE USER MAPPING IF NOT EXISTS FOR public
+            SERVER {name}
+            OPTIONS (username {user}, password {password});
+        """, identifiers={"name": name}, strings={
+            "server": server,
+            "user": os.getenv("MSSQL_USER"),
+            "password": os.getenv("MSSQL_PASSWORD")
+        })
+
+    def create_fdw_tables(self, name: str, t_definitions: str, t_notifications: str):
+        """ Create tables for foreign data wrapper. """
+        self.run_query(f"""
+            CREATE SCHEMA IF NOT EXISTS fdw;
+            CREATE FOREIGN TABLE IF NOT EXISTS fdw.{t_definitions} (
+                ErrorDefinitionID INTEGER,
+                SubsystemID INTEGER,
+                Subsystem TEXT,
+                DeviceTypeID INTEGER,
+                DeviceType TEXT,
+                DeviceInstanceID INTEGER,
+                DeviceInstance TEXT,
+                ErrorCodeID INTEGER,
+                ErrorCode TEXT
+            ) SERVER {name}
+            OPTIONS (schema_name 'qry', table_name 'ErrorDefinitions');
+        """, {"t_definitions": t_definitions, "name": name})
+
+        self.run_query(f"""
+            CREATE FOREIGN TABLE IF NOT EXISTS fdw.{t_notifications} (
+                ErrorDtm TIMESTAMPTZ,
+                ErrorDefinitionID INTEGER,
+                MessageText TEXT
+            ) SERVER {name}
+            OPTIONS (schema_name 'qry', table_name 'ErrorNotifications');
+        """, {"t_notifications": t_notifications, "name": name})
+
+    def setup_import_fdw(self,
+                         name: str,
+                         instr_id: int,
+                         t_definitions: str,
+                         t_notifications: str):
+        """ Create a function to import data from the MS SQL database. """
+        job = f"import_from_{name}"
+        self.run_query(f"""
+            DROP FUNCTION IF EXISTS uec.{job};
+            CREATE FUNCTION uec.{job}(job_id INT DEFAULT NULL, config JSONB DEFAULT NULL)
+            RETURNS void
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+               -- 1. Device types
+                INSERT INTO uec.device_type (DeviceTypeID, IdentifyingName)
+                SELECT DISTINCT fdw.DeviceTypeID, fdw.DeviceType
+                FROM fdw.{t_definitions} fdw
+                LEFT JOIN uec.device_type dt ON dt.DeviceTypeID = fdw.DeviceTypeID
+                WHERE dt.DeviceTypeID IS NULL;
+
+                -- 2. Device instances
+                INSERT INTO uec.device_instance (DeviceInstanceID, DeviceTypeID, IdentifyingName)
+                SELECT DISTINCT fdw.DeviceInstanceID, fdw.DeviceTypeID, fdw.DeviceInstance
+                FROM fdw.{t_definitions} fdw
+                LEFT JOIN uec.device_instance di
+                    ON di.DeviceInstanceID = fdw.DeviceInstanceID AND di.DeviceTypeID = fdw.DeviceTypeID
+                WHERE di.DeviceInstanceID IS NULL;
+
+                -- 3. Error codes
+                INSERT INTO uec.error_code (DeviceTypeID, ErrorCodeID, IdentifyingName)
+                SELECT DISTINCT fdw.DeviceTypeID, fdw.ErrorCodeID, fdw.ErrorCode
+                FROM fdw.{t_definitions} fdw
+                LEFT JOIN uec.error_code ec
+                    ON ec.DeviceTypeID = fdw.DeviceTypeID AND ec.ErrorCodeID = fdw.ErrorCodeID
+                WHERE ec.ErrorCodeID IS NULL;
+
+                -- 4. Subsystems
+                INSERT INTO uec.subsystem (SubsystemID, IdentifyingName)
+                SELECT DISTINCT fdw.SubsystemID, fdw.Subsystem
+                FROM fdw.{t_definitions} fdw
+                LEFT JOIN uec.subsystem ss ON ss.SubsystemID = fdw.SubsystemID
+                WHERE ss.SubsystemID IS NULL;
+
+                -- 5. Error definitions
+                INSERT INTO uec.error_definitions (ErrorDefinitionID, SubsystemID, DeviceTypeID, ErrorCodeID, DeviceInstanceID)
+                SELECT fdw.ErrorDefinitionID, fdw.SubsystemID, fdw.DeviceTypeID, fdw.ErrorCodeID, fdw.DeviceInstanceID
+                FROM fdw.{t_definitions} fdw
+                LEFT JOIN uec.error_definitions ed ON ed.ErrorDefinitionID = fdw.ErrorDefinitionID
+                WHERE ed.ErrorDefinitionID IS NULL;
+
+                -- 6. Error notifications
+                INSERT INTO uec.errors (Time, InstrumentID, ErrorID, MessageText)
+                SELECT
+                    fdw.ErrorDtm,
+                    {instr_id},
+                    ed.ErrorDefinitionID,
+                    fdw.MessageText
+                FROM fdw.{t_notifications} fdw
+                JOIN uec.error_definitions ed ON ed.ErrorDefinitionID = fdw.ErrorDefinitionID
+                ON CONFLICT (Time, InstrumentID, ErrorID) DO NOTHING;
+            END;
+            $$;
+        """, {"job": job, "t_definitions": t_definitions, "t_notifications": t_notifications},
+                       strings={"instr_id": instr_id})
 
 
 def main(dbname, action, instrument=None, date=None):
@@ -468,5 +599,5 @@ def main(dbname, action, instrument=None, date=None):
             db.migrate_db(latest_ver)
 
     elif action == "import-uec":
-        from em_health.uec_manager import UECManager
-        UECManager(dbname).run_all_tasks()
+        with DatabaseManager(dbname) as db:
+            db.import_uec()
