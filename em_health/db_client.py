@@ -139,43 +139,56 @@ class PgClient(BaseDBClient):
         self.conn.commit()
 
     def clean_db(self) -> None:
-        """ Erase all public tables in the database. """
+        """Erase all public/uec tables, materialized views, and CAGGs in the database."""
 
-        def drop_objects(query: str, drop_template: str, label: str):
+        def drop_objects(query: str, object_type: str, drop_kind: str, schema_from_query: bool = False):
+            """Fetch object names (and optionally schema) from query and drop them."""
             objects = self.run_query(query, mode="fetchall")
-            for obj in objects:
-                name = obj[0]
-                self.run_query(drop_template, {"name": name})
-                logger.info("Dropped %s: %s", label, name)
+            for row in objects:
+                if schema_from_query:
+                    tbl_schema, name = row
+                else:
+                    tbl_schema = "public"
+                    name = row[0]
+                self.run_query(
+                    "DROP {kind} IF EXISTS {schema}.{name} CASCADE",
+                    identifiers={"schema": tbl_schema, "name": name},
+                    strings={"kind": drop_kind},
+                )
+                logger.info("Dropped %s: %s.%s", object_type, tbl_schema, name)
 
+        # Drop continuous aggregates (CAGGs) in public
         drop_objects(
             """
-                SELECT view_name
-                FROM timescaledb_information.continuous_aggregates
-                WHERE view_schema = 'public'
+            SELECT view_name
+            FROM timescaledb_information.continuous_aggregates
+            WHERE view_schema = 'public'
             """,
-            "DROP MATERIALIZED VIEW IF EXISTS {name} CASCADE",
-            "CAGG"
+            object_type="CAGG",
+            drop_kind="MATERIALIZED VIEW"
         )
 
+        # Drop materialized views in public
         drop_objects(
             """
-                SELECT matviewname
-                FROM pg_matviews
-                WHERE schemaname = 'public'
+            SELECT matviewname
+            FROM pg_matviews
+            WHERE schemaname = 'public'
             """,
-            "DROP MATERIALIZED VIEW IF EXISTS {name} CASCADE",
-            "materialized view"
+            object_type="materialized view",
+            drop_kind="MATERIALIZED VIEW"
         )
 
+        # Drop tables in public and uec schemas together
         drop_objects(
             """
-                SELECT tablename
-                FROM pg_tables
-                WHERE schemaname = 'public'
+            SELECT schemaname, tablename
+            FROM pg_tables
+            WHERE schemaname IN ('public', 'uec')
             """,
-            "DROP TABLE IF EXISTS {name} CASCADE",
-            "table"
+            object_type="table",
+            drop_kind="TABLE",
+            schema_from_query=True
         )
 
         self.conn.commit()

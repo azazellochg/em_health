@@ -61,6 +61,8 @@ class DatabaseManager(PgClient):
             from_date = datetime.strptime(since, "%d-%m-%Y").replace(tzinfo=timezone.utc)
             self.run_query("DELETE FROM public.data WHERE instrument_id = %s AND time < %s",
                            values=(instrument_id, from_date))
+            self.run_query("DELETE FROM uec.errors WHERE InstrumentId = %s AND Time < %s",
+                           values=(instrument_id, from_date))
             logger.info("Deleted data older than %s for instrument %s",
                         from_date, instrument_serial)
 
