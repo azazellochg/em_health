@@ -18,8 +18,8 @@ WITH state_param AS (
              p.param_id,
              e.value AS running_value
          FROM state_param p
-                  JOIN enumerations e ON e.enum_id = p.enum_id AND p.instrument_id = e.instrument_id
-         WHERE e.name = 'Running'
+                  JOIN enum_values e ON e.enum_id = p.enum_id
+         WHERE e.member_name = 'Running'
      ),
 
      -- 3. Tag raw data with is_running flag

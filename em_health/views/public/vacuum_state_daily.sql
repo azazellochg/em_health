@@ -9,25 +9,23 @@ WITH vacuum_param AS (
      -- map enum values to open/closed/cryocycle/unknown states
      enum_states AS (
          SELECT
-             e.instrument_id,
-             e.value AS enum_value_num,
+             vp.instrument_id,
+             e.value AS enum_value,
              CASE
-                 WHEN e.name IN (
+                 WHEN e.member_name IN (
                                  'ColumnConditioning', 'Column Conditioning', 'TMPmOnColumn',
                                  'CryoCycle', 'Cryo Cycle', 'CryoCycle_Time', 'CryoCycle_Delay'
                      ) THEN 'cryocycle'
-                 WHEN e.name IN (
+                 WHEN e.member_name IN (
                                  'All Vacuum [Closed]', 'AllVacuumColumnValvesClosed', 'AllVacuum_LinersClosed'
                      ) THEN 'closed'
-                 WHEN e.name IN (
+                 WHEN e.member_name IN (
                                  'All Vacuum [Opened]', 'AllVacuumColumnValvesOpened', 'AllVacuum_LinersOpened'
                      ) THEN 'open'
                  ELSE 'unknown'
                  END AS state
-         FROM enumerations e
-         WHERE (e.instrument_id, e.enum_id) IN (
-             SELECT instrument_id, enum_id FROM vacuum_param
-         )
+         FROM enum_values e
+         JOIN vacuum_param vp ON e.enum_id = vp.enum_id
      ),
 
      -- filter all vacuum states to get durations of 3 states above
@@ -39,7 +37,7 @@ WITH vacuum_param AS (
              es.state
          FROM data d
                   JOIN enum_states es
-                       ON d.value_num = es.enum_value_num AND d.instrument_id = es.instrument_id
+                       ON d.value_num = es.enum_value AND d.instrument_id = es.instrument_id
          WHERE (d.instrument_id, d.param_id) IN (
              SELECT instrument_id, param_id FROM vacuum_param
          )
