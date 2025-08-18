@@ -69,7 +69,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 27,
+  "id": 7,
   "links": [
     {
       "asDropdown": true,
@@ -247,7 +247,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH family_param AS (\n  SELECT instrument_id, param_id, enum_id\n  FROM parameters\n  WHERE param_name = 'ProductFamily'\n),\n\nproduct_family AS (\n  SELECT DISTINCT ON (p.instrument_id)\n    p.instrument_id,\n    e.name AS product_family\n  FROM data d\n  JOIN family_param p ON p.param_id = d.param_id AND p.instrument_id = d.instrument_id\n  JOIN enumerations e ON e.instrument_id = p.instrument_id AND e.enum_id = p.enum_id AND e.value = d.value_num\n  WHERE d.value_num > 0\n  ORDER BY p.instrument_id, d.time DESC\n),\n\ninstrument_time AS (\n  SELECT\n    instrument_id,\n    MAX(time) AS latest_data,\n    MIN(time) AS oldest_data\n  FROM data\n  GROUP BY instrument_id\n)\n\nSELECT \n  i.name AS \"Name\",\n  i.serial AS \"Serial\",\n  i.model AS \"Model\",\n  f.product_family AS \"Product family\",\n  i.server AS \"Server IP\",\n  i.ds_version AS \"Data services\",\n  t.oldest_data AS \"Oldest data\",\n  t.latest_data AS \"Latest data\"\nFROM instruments i\nJOIN product_family f ON f.instrument_id = i.id\nJOIN instrument_time t ON t.instrument_id = i.id\nORDER BY i.name;\n",
+          "rawSql": "WITH family_param AS (\n  SELECT instrument_id, param_id, enum_id\n  FROM parameters\n  WHERE param_name = 'ProductFamily'\n),\n\nproduct_family AS (\n  SELECT DISTINCT ON (p.instrument_id)\n    p.instrument_id,\n    e.member_name AS product_family\n  FROM data d\n  JOIN family_param p ON p.param_id = d.param_id AND p.instrument_id = d.instrument_id\n  JOIN enum_values e ON e.enum_id = p.enum_id AND e.value = d.value_num\n  WHERE d.value_num > 0\n  ORDER BY p.instrument_id, d.time DESC\n),\n\ninstrument_time AS (\n  SELECT\n    instrument_id,\n    MAX(time) AS latest_data,\n    MIN(time) AS oldest_data\n  FROM data\n  GROUP BY instrument_id\n)\n\nSELECT \n  i.name AS \"Name\",\n  i.serial AS \"Serial\",\n  i.model AS \"Model\",\n  f.product_family AS \"Product family\",\n  i.server AS \"Server IP\",\n  i.ds_version AS \"Data services\",\n  t.oldest_data AS \"Oldest data\",\n  t.latest_data AS \"Latest data\"\nFROM instruments i\nJOIN product_family f ON f.instrument_id = i.id\nJOIN instrument_time t ON t.instrument_id = i.id\nORDER BY i.name;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -531,5 +531,5 @@
   "timezone": "Europe/London",
   "title": "Alerts",
   "uid": "4395e67b-0330-47fd-94a8-6840b3f44893",
-  "version": 15
+  "version": 2
 }

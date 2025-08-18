@@ -24,7 +24,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 63,
+  "id": 5,
   "links": [
     {
       "asDropdown": true,
@@ -59,7 +59,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
                 "color": "#EAB839",
@@ -117,7 +118,7 @@
         "textMode": "value_and_name",
         "wideLayout": false
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -202,7 +203,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -236,7 +238,7 @@
           }
         ]
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -246,7 +248,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH matching_params AS (\n  SELECT param_id, component, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND subsystem = 'Compustage'\n    AND param_name = 'MoveError'\n    AND component IN ('X', 'Y', 'Z', 'A', 'B')\n),\n\nerrors AS (\n  SELECT\n    d.time,\n    p.component,\n    d.value_num AS error_code,\n    p.enum_id\n  FROM data d\n  JOIN matching_params p ON d.param_id = p.param_id\n  WHERE d.instrument_id = $instrument \n    AND $__timeFilter(d.time)\n)\n\nSELECT\n  e.time AS \"Time\",\n  'Compustage.' || e.component AS \"Component\",\n  en.name AS \"Error\"\nFROM errors e\nLEFT JOIN enumerations en\n  ON en.instrument_id = $instrument\n AND en.enum_id = e.enum_id\n AND en.value = e.error_code\nORDER BY e.time DESC;\n",
+          "rawSql": "WITH matching_params AS (\n  SELECT param_id, component, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND subsystem = 'Compustage'\n    AND param_name = 'MoveError'\n    AND component IN ('X', 'Y', 'Z', 'A', 'B')\n),\n\nerrors AS (\n  SELECT\n    d.time,\n    p.component,\n    d.value_num AS error_code,\n    p.enum_id\n  FROM data d\n  JOIN matching_params p ON d.param_id = p.param_id\n  WHERE d.instrument_id = $instrument \n    AND $__timeFilter(d.time)\n)\n\nSELECT\n  e.time AS \"Time\",\n  'Compustage.' || e.component AS \"Component\",\n  en.member_name AS \"Error\"\nFROM errors e\nLEFT JOIN enum_values en\n ON en.enum_id = e.enum_id\n AND en.value = e.error_code\nORDER BY e.time DESC;\n",
           "refId": "stage errors",
           "sql": {
             "columns": [
@@ -275,7 +277,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH static_error_params AS (\n  SELECT *\n  FROM (VALUES\n    ('AvaC1', 'C1X', 'C1X_ErrorState'),\n    ('AvaC1', 'C1Y', 'C1Y_ErrorState'),\n    ('AvaC2', 'C2X', 'C2X_ErrorState'),\n    ('AvaC2', 'C2Y', 'C2Y_ErrorState'),\n    ('AvaObj', 'OBJX', 'OBJX_ErrorState'),\n    ('AvaObj', 'OBJY', 'OBJY_ErrorState'),\n    ('AvaSA', 'SAX', 'SAX_ErrorState'),\n    ('AvaSA', 'SAY', 'SAY_ErrorState')\n  ) AS t(subsystem, component, param_name)\n),\n\nmatching_params1 AS (\n  SELECT param_id, component, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem = 'Apertures'\n    AND param_name = 'MoveError'\n    AND component IN ('C1.X', 'C1.Y', 'C2.X', 'C2.Y', 'OBJ.X', 'OBJ.Y', 'SA.X', 'SA.Y')\n),\n\nmatching_params2 AS (\n  SELECT p.param_id, p.component, p.enum_id\n  FROM parameters p\n  JOIN static_error_params t\n    ON p.subsystem = t.subsystem\n   AND p.component = t.component\n   AND p.param_name = t.param_name\n  WHERE p.instrument_id = $instrument\n),\n\nall_errors AS (\n  SELECT\n    v.time,\n    p.component,\n    v.value_num AS error_code,\n    p.enum_id\n  FROM data v\n  JOIN matching_params1 p ON v.param_id = p.param_id\n  WHERE v.instrument_id = $instrument\n    AND $__timeFilter(v.time)\n\n  UNION ALL\n\n  SELECT\n    v.time,\n    p.component,\n    v.value_num AS error_code,\n    p.enum_id\n  FROM data v\n  JOIN matching_params2 p ON v.param_id = p.param_id\n  WHERE v.instrument_id = $instrument\n    AND $__timeFilter(v.time)\n    AND v.value_num != 0\n)\n\nSELECT\n  e.time AS \"Time\",\n  'Apertures.' || e.component AS \"Component\",\n  en.name AS \"Error\"\nFROM all_errors e\nLEFT JOIN enumerations en\n  ON en.instrument_id = $instrument\n  AND en.enum_id = e.enum_id\n  AND en.value = e.error_code\nORDER BY e.time DESC;\n",
+          "rawSql": "WITH static_error_params AS (\n  SELECT *\n  FROM (VALUES\n    ('AvaC1', 'C1X', 'C1X_ErrorState'),\n    ('AvaC1', 'C1Y', 'C1Y_ErrorState'),\n    ('AvaC2', 'C2X', 'C2X_ErrorState'),\n    ('AvaC2', 'C2Y', 'C2Y_ErrorState'),\n    ('AvaObj', 'OBJX', 'OBJX_ErrorState'),\n    ('AvaObj', 'OBJY', 'OBJY_ErrorState'),\n    ('AvaSA', 'SAX', 'SAX_ErrorState'),\n    ('AvaSA', 'SAY', 'SAY_ErrorState')\n  ) AS t(subsystem, component, param_name)\n),\n\nmatching_params1 AS (\n  SELECT param_id, component, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem = 'Apertures'\n    AND param_name = 'MoveError'\n    AND component IN ('C1.X', 'C1.Y', 'C2.X', 'C2.Y', 'OBJ.X', 'OBJ.Y', 'SA.X', 'SA.Y')\n),\n\nmatching_params2 AS (\n  SELECT p.param_id, p.component, p.enum_id\n  FROM parameters p\n  JOIN static_error_params t\n    ON p.subsystem = t.subsystem\n   AND p.component = t.component\n   AND p.param_name = t.param_name\n  WHERE p.instrument_id = $instrument\n),\n\nall_errors AS (\n  SELECT\n    v.time,\n    p.component,\n    v.value_num AS error_code,\n    p.enum_id\n  FROM data v\n  JOIN matching_params1 p ON v.param_id = p.param_id\n  WHERE v.instrument_id = $instrument\n    AND $__timeFilter(v.time)\n\n  UNION ALL\n\n  SELECT\n    v.time,\n    p.component,\n    v.value_num AS error_code,\n    p.enum_id\n  FROM data v\n  JOIN matching_params2 p ON v.param_id = p.param_id\n  WHERE v.instrument_id = $instrument\n    AND $__timeFilter(v.time)\n    AND v.value_num != 0\n)\n\nSELECT\n  e.time AS \"Time\",\n  'Apertures.' || e.component AS \"Component\",\n  en.member_name AS \"Error\"\nFROM all_errors e\nLEFT JOIN enum_values en\n  ON en.enum_id = e.enum_id\n  AND en.value = e.error_code\nORDER BY e.time DESC;\n",
           "refId": "aperture move errors",
           "sql": {
             "columns": [
@@ -355,7 +357,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -386,7 +389,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -413,7 +417,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -460,7 +465,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -495,7 +501,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -539,7 +546,7 @@
           }
         ]
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -605,7 +612,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -636,7 +644,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -663,7 +672,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -710,7 +720,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -745,7 +756,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -789,7 +801,7 @@
           }
         ]
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -855,7 +867,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -886,7 +899,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -913,7 +927,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -960,7 +975,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -995,7 +1011,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -1039,7 +1056,7 @@
           }
         ]
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1105,7 +1122,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -1136,7 +1154,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -1163,7 +1182,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -1210,7 +1230,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -1245,7 +1266,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -1289,7 +1311,7 @@
           }
         ]
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1355,7 +1377,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -1386,7 +1409,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -1413,7 +1437,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -1460,7 +1485,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -1495,7 +1521,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -1539,7 +1566,7 @@
           }
         ]
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1618,7 +1645,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -1649,7 +1677,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -1676,7 +1705,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -1723,7 +1753,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -1758,7 +1789,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -1802,7 +1834,7 @@
           }
         ]
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1868,7 +1900,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -1899,7 +1932,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -1926,7 +1960,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -1973,7 +2008,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -2008,7 +2044,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -2052,7 +2089,7 @@
           }
         ]
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -2118,7 +2155,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -2149,7 +2187,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -2176,7 +2215,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -2223,7 +2263,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -2258,7 +2299,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -2302,7 +2344,7 @@
           }
         ]
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -2368,7 +2410,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -2399,7 +2442,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -2426,7 +2470,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -2473,7 +2518,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -2508,7 +2554,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -2552,7 +2599,7 @@
           }
         ]
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -2618,7 +2665,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -2649,7 +2697,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -2676,7 +2725,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -2723,7 +2773,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -2758,7 +2809,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -2802,7 +2854,7 @@
           }
         ]
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -2868,7 +2920,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -2899,7 +2952,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -2926,7 +2980,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -2973,7 +3028,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -3008,7 +3064,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -3052,7 +3109,7 @@
           }
         ]
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -3118,7 +3175,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -3149,7 +3207,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -3176,7 +3235,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -3223,7 +3283,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -3258,7 +3319,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -3302,7 +3364,7 @@
           }
         ]
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -3368,7 +3430,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -3399,7 +3462,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -3426,7 +3490,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -3473,7 +3538,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -3508,7 +3574,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -3552,7 +3619,7 @@
           }
         ]
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -3618,7 +3685,7 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Krios 3 [Titan Krios G3i] (3593)",
+          "text": "Krios 4 [Titan Krios G4] (4248)",
           "value": "4"
         },
         "datasource": {
@@ -3637,8 +3704,8 @@
     ]
   },
   "time": {
-    "from": "2025-04-23T18:08:48.864Z",
-    "to": "2025-05-30T12:03:23.236Z"
+    "from": "2025-05-12T03:06:06.050Z",
+    "to": "2025-06-17T21:00:40.422Z"
   },
   "timepicker": {
     "refresh_intervals": []
@@ -3646,5 +3713,5 @@
   "timezone": "Europe/London",
   "title": "Module | Motion",
   "uid": "4395e67b-0280-47fd-94a8-684004567800",
-  "version": 4
+  "version": 2
 }

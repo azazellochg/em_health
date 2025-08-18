@@ -13,19 +13,19 @@ WITH vacuum_param AS (
              e.value AS enum_value,
              CASE
                  WHEN e.member_name IN (
-                                 'ColumnConditioning', 'Column Conditioning', 'TMPmOnColumn',
-                                 'CryoCycle', 'Cryo Cycle', 'CryoCycle_Time', 'CryoCycle_Delay'
+                                        'ColumnConditioning', 'Column Conditioning', 'TMPmOnColumn',
+                                        'CryoCycle', 'Cryo Cycle', 'CryoCycle_Time', 'CryoCycle_Delay'
                      ) THEN 'cryocycle'
                  WHEN e.member_name IN (
-                                 'All Vacuum [Closed]', 'AllVacuumColumnValvesClosed', 'AllVacuum_LinersClosed'
+                                        'All Vacuum [Closed]', 'AllVacuumColumnValvesClosed', 'AllVacuum_LinersClosed'
                      ) THEN 'closed'
                  WHEN e.member_name IN (
-                                 'All Vacuum [Opened]', 'AllVacuumColumnValvesOpened', 'AllVacuum_LinersOpened'
+                                        'All Vacuum [Opened]', 'AllVacuumColumnValvesOpened', 'AllVacuum_LinersOpened'
                      ) THEN 'open'
                  ELSE 'unknown'
                  END AS state
          FROM enum_values e
-         JOIN vacuum_param vp ON e.enum_id = vp.enum_id
+                  JOIN vacuum_param vp ON e.enum_id = vp.enum_id
      ),
 
      -- filter all vacuum states to get durations of 3 states above

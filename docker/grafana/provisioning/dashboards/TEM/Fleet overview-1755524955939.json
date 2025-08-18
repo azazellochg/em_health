@@ -11,12 +11,6 @@
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
         "name": "Annotations & Alerts",
-        "target": {
-          "limit": 100,
-          "matchAny": false,
-          "tags": [],
-          "type": "dashboard"
-        },
         "type": "dashboard"
       },
       {
@@ -28,10 +22,9 @@
         "filter": {
           "exclude": false,
           "ids": [
-            2,
-            12,
             14,
-            3,
+            7,
+            9,
             13
           ]
         },
@@ -65,21 +58,36 @@
       }
     ]
   },
+  "description": "General overview of all systems",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 64,
+  "id": 9,
   "links": [
     {
       "asDropdown": true,
       "icon": "external link",
       "includeVars": false,
-      "keepTime": false,
+      "keepTime": true,
+      "tags": [
+        "overview"
+      ],
+      "targetBlank": false,
+      "title": "Overviews",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    },
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
       "tags": [
         "module"
       ],
       "targetBlank": false,
-      "title": "Modules",
+      "title": "System modules",
       "tooltip": "",
       "type": "dashboards",
       "url": ""
@@ -94,9 +102,9 @@
         "x": 0,
         "y": 0
       },
-      "id": 16,
+      "id": 2,
       "panels": [],
-      "title": "Status",
+      "title": "Beam time",
       "type": "row"
     },
     {
@@ -104,68 +112,127 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
+      "description": "Beam time is based on the vacuum state of each instrument",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "fixed"
           },
           "custom": {
-            "axisPlacement": "auto",
-            "fillOpacity": 60,
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
-            },
-            "insertNulls": 3600000,
-            "lineWidth": 3,
-            "spanNulls": true
+            }
           },
-          "mappings": [
-            {
-              "options": {
-                "0": {
-                  "color": "red",
-                  "index": 1,
-                  "text": "DOWN"
-                },
-                "1": {
-                  "color": "green",
-                  "index": 0,
-                  "text": "UP"
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "unit": "percent"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "cryocycle"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
                 }
               },
-              "type": "value"
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
               {
-                "color": "green"
+                "id": "displayName",
+                "value": "Cryo-cycle"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "open"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "displayName",
+                "value": "Col.valves open"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "closed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "displayName",
+                "value": "Col.valves closed"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "off"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Offline"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed"
+                }
               }
             ]
           }
-        },
-        "overrides": []
+        ]
       },
       "gridPos": {
-        "h": 7,
-        "w": 12,
+        "h": 6,
+        "w": 24,
         "x": 0,
         "y": 1
       },
-      "id": 2,
+      "id": 1,
+      "maxPerRow": 6,
       "options": {
-        "alignValue": "center",
+        "displayLabels": [
+          "percent"
+        ],
         "legend": {
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": false
         },
-        "mergeValues": true,
-        "rowHeight": 0.5,
-        "showValue": "always",
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
         "tooltip": {
           "hideZeros": false,
           "mode": "single",
@@ -173,6 +240,8 @@
         }
       },
       "pluginVersion": "12.0.1",
+      "repeat": "instrument",
+      "repeatDirection": "h",
       "targets": [
         {
           "datasource": {
@@ -180,9 +249,9 @@
             "uid": "${sourceTEM}"
           },
           "editorMode": "code",
-          "format": "time_series",
+          "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH matching_param AS (\n  SELECT\n    component,\n    param_id\n  FROM\n    parameters p\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'Availability'\n    AND display_name IN ('Camera availability', 'Availability')\n)\nSELECT\n  v.time,\n  p.component,\n  v.value_num\nFROM\n  data v\n  JOIN matching_param p ON v.param_id = p.param_id\nWHERE\n  instrument_id = $instrument\n  AND $__timeFilter(v.time)\nORDER BY\n  v.time",
+          "rawSql": "SELECT\n  state,\n  SUM(seconds) AS duration_seconds,\n  ROUND(100.0 * SUM(seconds) / NULLIF(SUM(SUM(seconds)) OVER (), 0), 2) AS percentage\nFROM vacuum_state_daily\nWHERE $__timeFilter(day)\n  AND instrument_id = $instrument\nGROUP BY state\nORDER BY percentage DESC;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -203,93 +272,88 @@
           }
         }
       ],
-      "title": "Detectors status",
+      "title": "$instrument",
       "transformations": [
         {
-          "id": "renameByRegex",
+          "id": "rowsToFields",
           "options": {
-            "regex": "^value_num (.+)$",
-            "renamePattern": "$1"
+            "mappings": [
+              {
+                "fieldName": "duration_seconds",
+                "handlerKey": "__ignore"
+              }
+            ]
           }
         }
       ],
-      "type": "state-timeline"
+      "type": "piechart"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 7
+      },
+      "id": 3,
+      "panels": [],
+      "title": "Utilization",
+      "type": "row"
     },
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
+      "description": "Average amount of time EPU or Tomo  acquisition is running ",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "fixed"
+            "mode": "thresholds"
           },
-          "custom": {
-            "axisPlacement": "auto",
-            "fillOpacity": 60,
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": 3600000,
-            "lineWidth": 3,
-            "spanNulls": true
-          },
-          "mappings": [
-            {
-              "options": {
-                "0": {
-                  "color": "red",
-                  "index": 0,
-                  "text": "DOWN"
-                },
-                "1": {
-                  "color": "green",
-                  "index": 1,
-                  "text": "UP"
-                }
-              },
-              "type": "value"
-            }
-          ],
-          "noValue": "UP",
+          "decimals": 0,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
           "thresholds": {
-            "mode": "absolute",
+            "mode": "percentage",
             "steps": [
               {
                 "color": "green"
               }
             ]
-          }
+          },
+          "unit": "percent"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 12,
-        "y": 1
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 8
       },
-      "id": 13,
+      "id": 4,
+      "maxPerRow": 6,
       "options": {
-        "alignValue": "center",
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": true
         },
-        "mergeValues": true,
-        "rowHeight": 0.5,
-        "showValue": "auto",
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
       },
       "pluginVersion": "12.0.1",
+      "repeat": "instrument",
+      "repeatDirection": "h",
       "targets": [
         {
           "datasource": {
@@ -297,10 +361,10 @@
             "uid": "${sourceTEM}"
           },
           "editorMode": "code",
-          "format": "time_series",
+          "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH matching_params AS (\n  SELECT\n    component,\n    param_id\n  FROM\n    parameters p\n  WHERE\n    instrument_id = $instrument\n    AND subsystem = 'EnergyFilterBrick'\n    AND param_name IN ('EnergyFilterSlitAvailable', 'EnergyFilterIsAvailable')\n)\nSELECT\n  v.time,\n  p.component,\n  v.value_num\nFROM\n  data v\n  JOIN matching_params p ON v.param_id = p.param_id\nWHERE\n  instrument_id = $instrument\n  AND $__timeFilter(v.time)\nORDER BY\n  v.time",
-          "refId": "A",
+          "rawSql": "-- Total EPU time\nWITH epu_sum AS (\n  SELECT\n    SUM(running_duration) AS total_epu\n  FROM epu_acquisition_daily\n  WHERE instrument_id = $instrument\n    AND $__timeFilter(time)\n),\n\n-- Total Tomo time\ntomo_sum AS (\n  SELECT\n    SUM(running_duration) AS total_tomo\n  FROM tomo_acquisition_daily\n  WHERE instrument_id = $instrument\n    AND $__timeFilter(time)\n),\n\n-- Day count in range (inclusive)\ndate_range AS (\n  SELECT\n    (DATE_TRUNC('day', to_timestamp($__to / 1000.0)::timestamptz)::date -\n     DATE_TRUNC('day', to_timestamp($__from / 1000.0)::timestamptz)::date + 1\n    ) AS num_days\n)\n\n-- Final result\nSELECT\n  ROUND(COALESCE(e.total_epu, 0) / (d.num_days * 86400.0) * 100.0, 2) AS epu_utilization_percent,\n  ROUND(COALESCE(t.total_tomo, 0) / (d.num_days * 86400.0) * 100.0, 2) AS tomo_utilization_percent\nFROM epu_sum e, tomo_sum t, date_range d\n",
+          "refId": "uptime",
           "sql": {
             "columns": [
               {
@@ -320,7 +384,7 @@
           }
         }
       ],
-      "title": "EF status",
+      "title": "$instrument",
       "transformations": [
         {
           "id": "organize",
@@ -329,107 +393,33 @@
             "includeByName": {},
             "indexByName": {},
             "renameByName": {
-              "value_num EnergyFilterAvailability": "Filter",
-              "value_num Slit": "Slit"
+              "epu_utilization_percent": "EPU",
+              "tomo_utilization_percent": "Tomo"
             }
           }
         }
       ],
-      "type": "state-timeline"
+      "type": "gauge"
     },
     {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green"
-              },
-              {
-                "color": "yellow",
-                "value": 1
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
+      "collapsed": false,
       "gridPos": {
-        "h": 5,
-        "w": 3,
+        "h": 1,
+        "w": 24,
         "x": 0,
-        "y": 8
+        "y": 14
       },
-      "id": 15,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "value_and_name",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.0.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "WITH matching_params AS (\n  SELECT component, param_id\n  FROM parameters \n  WHERE instrument_id = $instrument \n    AND param_name = 'NrDisconnectionsFromCSU'\n)\n\nSELECT \n  p.component, \n  MAX(d.value_num) - MIN(d.value_num) AS counter_delta\nFROM data d\nJOIN matching_params p ON p.param_id = d.param_id\nWHERE d.instrument_id = $instrument \n  AND $__timeFilter(d.time)\nGROUP BY p.component\n",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "CSU disconnects",
-      "transformations": [
-        {
-          "id": "rowsToFields",
-          "options": {}
-        }
-      ],
-      "type": "stat"
+      "id": 12,
+      "panels": [],
+      "title": "Last cryo cycle",
+      "type": "row"
     },
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -444,36 +434,71 @@
               },
               {
                 "color": "yellow",
-                "value": 1
+                "value": 21
+              },
+              {
+                "color": "red",
+                "value": 28
+              }
+            ]
+          },
+          "unit": "days"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ColumnCryoCycleDuration"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "column"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "AutoloaderCryoCycleDuration"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "autoloader"
               }
             ]
           }
-        },
-        "overrides": []
+        ]
       },
       "gridPos": {
-        "h": 5,
-        "w": 9,
-        "x": 3,
-        "y": 8
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 15
       },
-      "id": 18,
+      "id": 11,
+      "maxPerRow": 6,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
         "justifyMode": "center",
-        "orientation": "vertical",
+        "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [],
+          "calcs": [
+            "min"
+          ],
           "fields": "",
           "values": true
         },
         "showPercentChange": false,
         "textMode": "value_and_name",
-        "wideLayout": true
+        "wideLayout": false
       },
       "pluginVersion": "12.0.1",
+      "repeat": "instrument",
+      "repeatDirection": "h",
       "targets": [
         {
           "datasource": {
@@ -483,7 +508,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH matching_params AS (\n  SELECT param_id, enum_id\n  FROM parameters \n  WHERE instrument_id = $instrument \n    AND param_name = 'AvailabilityReason'\n    AND component = 'EF-CCD'\n)\n\nSELECT \n  COUNT(*) AS \"Errors\",\n  e.name AS \"Error type\"\nFROM data d\nJOIN matching_params p ON p.param_id = d.param_id\nJOIN enumerations e \n  ON e.instrument_id = $instrument \n  AND e.enum_id = p.enum_id\n  AND e.value = d.value_num\nWHERE d.instrument_id = $instrument \n  AND $__timeFilter(d.time)\n  AND e.name NOT IN ('CameraAvailable', 'RPCConnectionEstablished')\nGROUP BY e.name\nORDER BY \"Error type\" DESC\n",
+          "rawSql": "WITH param_ids AS (\n  SELECT param_name, param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name IN ('AutoloaderCryoCycleDuration', 'ColumnCryoCycleDuration')\n),\nzero_start AS (\n  SELECT\n    p.param_name,\n    d.time AS cryo_start_time\n  FROM param_ids p\n  JOIN LATERAL (\n    SELECT time\n    FROM (\n      SELECT\n        time,\n        value_num,\n        LAG(value_num) OVER (ORDER BY time) AS prev_value\n      FROM data\n      WHERE instrument_id = $instrument\n        AND param_id = p.param_id\n    ) sub\n    WHERE value_num = 0 AND prev_value IS DISTINCT FROM 0\n    ORDER BY time DESC\n    LIMIT 1\n  ) d ON true\n)\n\nSELECT\n  param_name,\n  CURRENT_DATE - cryo_start_time::date AS days_since_cryocycle_start,\n  cryo_start_time\nFROM zero_start",
           "refId": "A",
           "sql": {
             "columns": [
@@ -504,12 +529,18 @@
           }
         }
       ],
-      "title": "EF-CCD GMS errors",
+      "title": "$instrument",
       "transformations": [
         {
-          "disabled": true,
           "id": "rowsToFields",
-          "options": {}
+          "options": {
+            "mappings": [
+              {
+                "fieldName": "cryo_start_time",
+                "handlerKey": "__ignore"
+              }
+            ]
+          }
         }
       ],
       "type": "stat"
@@ -520,11 +551,11 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 13
+        "y": 19
       },
-      "id": 17,
+      "id": 5,
       "panels": [],
-      "title": "Parameters",
+      "title": "Specimen throughput",
       "type": "row"
     },
     {
@@ -535,14 +566,14 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "fixedColor": "#808080",
             "mode": "palette-classic"
           },
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "Pa",
+            "axisGridShow": true,
+            "axisLabel": "Cartridges",
             "axisPlacement": "left",
             "barAlignment": 0,
             "barWidthFactor": 0.6,
@@ -555,132 +586,16 @@
               "viz": false
             },
             "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "log": 10,
-              "type": "log"
+            "lineInterpolation": "smooth",
+            "lineStyle": {
+              "fill": "solid"
             },
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "decimals": 2,
-          "mappings": [],
-          "max": 0.05,
-          "min": 0.00005,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green"
-              }
-            ]
-          },
-          "unit": "sci"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 0,
-        "y": 14
-      },
-      "id": 12,
-      "options": {
-        "legend": {
-          "calcs": [
-            "min",
-            "max",
-            "median"
-          ],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.0.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "-- Step 1: Get ProductFamily\nWITH family AS (\n  SELECT e.name AS family_name\n  FROM data d\n  JOIN parameters p ON d.param_id = p.param_id\n  JOIN enumerations e ON e.enum_id = p.enum_id AND e.value = d.value_num\n  WHERE d.instrument_id = $instrument\n    AND p.instrument_id = $instrument\n    AND p.param_name = 'ProductFamily'\n    AND d.value_num > 0\n    AND e.instrument_id = $instrument\n  LIMIT 1\n),\n\n-- Step 2: Decide pressure param name\nselected_param_name AS (\n  SELECT CASE\n    WHEN family_name = 'Talos' THEN 'PPmPressure'\n    ELSE 'CCGpPressure'\n  END AS param_name\n  FROM family\n),\n\n-- Step 3: Get param_id for selected pressure parameter\nmatching_param AS (\n  SELECT param_id\n  FROM parameters p\n  JOIN selected_param_name s ON p.param_name = s.param_name\n  WHERE p.instrument_id = $instrument\n)\n\n-- Final: Fetch pressure time series\nSELECT\n  time_bucket(INTERVAL '$__interval', d.time) AS time,\n  AVG(d.value_num) AS pressure\nFROM data d\nJOIN matching_param mp ON d.param_id = mp.param_id\nWHERE d.instrument_id = $instrument AND $__timeFilter(d.time)\nGROUP BY time\nORDER BY d.time;\n",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "Projection vacuum",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "#808080",
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "left",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
+            "lineWidth": 2,
+            "pointSize": 10,
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "auto",
+            "showPoints": "always",
             "spanNulls": true,
             "stacking": {
               "group": "A",
@@ -690,33 +605,31 @@
               "mode": "off"
             }
           },
-          "decimals": 1,
+          "decimals": 0,
+          "fieldMinMax": false,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "yellow",
+                "value": 0
               }
             ]
-          },
-          "unit": "amp"
+          }
         },
         "overrides": []
       },
       "gridPos": {
         "h": 7,
-        "w": 12,
-        "x": 12,
-        "y": 14
+        "w": 24,
+        "x": 0,
+        "y": 20
       },
-      "id": 14,
+      "id": 7,
       "options": {
         "legend": {
-          "calcs": [
-            "min",
-            "max"
-          ],
+          "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
@@ -727,7 +640,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -737,8 +650,8 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH matching_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem = 'MdlFluScreenBrick'\n    AND param_name = 'ScreenCurrent'\n)\n\nSELECT\n  time_bucket(INTERVAL '$__interval', d.time) AS time,\n  AVG(d.value_num) AS current\nFROM data d\nJOIN matching_param mp ON d.param_id = mp.param_id\nWHERE d.instrument_id = $instrument AND $__timeFilter(d.time)\nGROUP BY time\nORDER BY d.time;\n",
-          "refId": "A",
+          "rawSql": "SELECT\n  lcd.day AS time,\n  i.name AS instrument,\n  lcd.daily_cartridge_count AS value\nFROM load_counters_daily lcd\nJOIN instruments i ON i.id = lcd.instrument_id\nWHERE\n  lcd.instrument_id IN ($instrument)\n  AND $__timeFilter(lcd.day)\nORDER BY lcd.day;\n",
+          "refId": "counters",
           "sql": {
             "columns": [
               {
@@ -758,7 +671,16 @@
           }
         }
       ],
-      "title": "Screen current",
+      "title": "Autogrid loads per day",
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^value (.*)",
+            "renamePattern": "$1"
+          }
+        }
+      ],
       "type": "timeseries"
     },
     {
@@ -776,7 +698,7 @@
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisGridShow": true,
-            "axisLabel": "",
+            "axisLabel": "Cassettes",
             "axisPlacement": "left",
             "barAlignment": 0,
             "barWidthFactor": 0.6,
@@ -788,48 +710,48 @@
               "tooltip": false,
               "viz": false
             },
-            "insertNulls": 3600000,
+            "insertNulls": false,
             "lineInterpolation": "smooth",
+            "lineStyle": {
+              "fill": "solid"
+            },
             "lineWidth": 2,
-            "pointSize": 5,
+            "pointSize": 10,
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "always",
             "spanNulls": true,
             "stacking": {
               "group": "A",
               "mode": "none"
             },
             "thresholdsStyle": {
-              "mode": "dashed"
+              "mode": "off"
             }
           },
-          "decimals": 1,
+          "decimals": 0,
+          "fieldMinMax": false,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
-              },
-              {
-                "color": "orange",
-                "value": -15
+                "color": "yellow",
+                "value": 0
               }
             ]
-          },
-          "unit": "celsius"
+          }
         },
         "overrides": []
       },
       "gridPos": {
         "h": 7,
-        "w": 12,
+        "w": 24,
         "x": 0,
-        "y": 21
+        "y": 27
       },
-      "id": 3,
+      "id": 9,
       "options": {
         "legend": {
           "calcs": [],
@@ -839,11 +761,11 @@
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "multi",
+          "mode": "single",
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -853,8 +775,8 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH matching_params AS (\n  SELECT\n    param_id,\n    component\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'SensorTemperature'\n    AND display_name = 'Sensor temperature'\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', v.time) AS time,\n  p.component,\n  AVG(v.value_num - 273.15) AS temperature\nFROM\n  data v\n  JOIN matching_params p ON v.param_id = p.param_id\nWHERE\n  v.instrument_id = $instrument\n  AND $__timeFilter(v.time)\n  AND v.value_num != 0 -- filter bad values early\nGROUP BY\n  time,\n  p.component\nORDER BY\n  time;",
-          "refId": "A",
+          "rawSql": "SELECT\n  lcd.day AS time,\n  i.name AS instrument,\n  lcd.daily_cassette_count AS value\nFROM load_counters_daily lcd\nJOIN instruments i ON lcd.instrument_id = i.id\nWHERE\n  lcd.instrument_id IN ($instrument)\n  AND $__timeFilter(lcd.day)\nORDER BY lcd.day;\n",
+          "refId": "counters",
           "sql": {
             "columns": [
               {
@@ -874,12 +796,279 @@
           }
         }
       ],
-      "title": "Sensor temperature",
+      "title": "Cassette loads per day",
       "transformations": [
         {
           "id": "renameByRegex",
           "options": {
-            "regex": "^temperature (.+)$",
+            "regex": "^value (.+)$",
+            "renamePattern": "$1"
+          }
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 34
+      },
+      "id": 10,
+      "panels": [],
+      "title": "Data throughput",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceTEM}"
+      },
+      "description": "Only for Falcon cameras",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisGridShow": true,
+            "axisLabel": "Tb",
+            "axisPlacement": "left",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 2,
+            "pointSize": 10,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "always",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 2,
+          "fieldMinMax": false,
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "yellow",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "dectbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 35
+      },
+      "id": 13,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  dcd.day AS time,\n  i.name AS instrument,\n  SUM(dcd.daily_terabytes) AS value\nFROM data_counters_daily dcd\nJOIN instruments i ON dcd.instrument_id = i.id\nWHERE\n  dcd.instrument_id IN ($instrument)\n  AND $__timeFilter(dcd.day)\nGROUP BY dcd.day, i.name\nORDER BY dcd.day;\n",
+          "refId": "data",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Offloaded data per day",
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^value (.+)$",
+            "renamePattern": "$1"
+          }
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceTEM}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisGridShow": true,
+            "axisLabel": "images",
+            "axisPlacement": "left",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 2,
+            "pointSize": 10,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "always",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "fieldMinMax": false,
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "yellow",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 42
+      },
+      "id": 14,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  icd.day AS time,\n  i.name AS instrument,\n  SUM(icd.daily_images) AS value\nFROM image_counters_daily icd\nJOIN instruments i ON icd.instrument_id = i.id\nWHERE\n  icd.instrument_id IN ($instrument)\n  AND $__timeFilter(icd.day)\nGROUP BY icd.day, i.name\nORDER BY icd.day;\n",
+          "refId": "uptime",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Acquisitions per day",
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^value (.+)$",
             "renamePattern": "$1"
           }
         }
@@ -890,10 +1079,33 @@
   "preload": false,
   "schemaVersion": 41,
   "tags": [
-    "module"
+    "overview"
   ],
   "templating": {
     "list": [
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "All",
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${sourceTEM}"
+        },
+        "definition": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
+        "includeAll": true,
+        "multi": true,
+        "name": "instrument",
+        "options": [],
+        "query": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
       {
         "allowCustomValue": false,
         "current": {
@@ -907,37 +1119,16 @@
         "refresh": 1,
         "regex": "/^tem$/",
         "type": "datasource"
-      },
-      {
-        "allowCustomValue": false,
-        "current": {
-          "text": "Krios 3 [Titan Krios G3i] (3593)",
-          "value": "4"
-        },
-        "datasource": {
-          "type": "grafana-postgresql-datasource",
-          "uid": "${sourceTEM}"
-        },
-        "definition": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
-        "name": "instrument",
-        "options": [],
-        "query": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
-        "refresh": 1,
-        "regex": "",
-        "sort": 1,
-        "type": "query"
       }
     ]
   },
   "time": {
-    "from": "2025-05-08T17:56:48.764Z",
-    "to": "2025-05-09T13:49:19.698Z"
+    "from": "now-30d",
+    "to": "now"
   },
-  "timepicker": {
-    "refresh_intervals": []
-  },
+  "timepicker": {},
   "timezone": "Europe/London",
-  "title": "Module | Detectors",
-  "uid": "4395e67b-0280-47fd-94a8-648553f10800",
-  "version": 4
+  "title": "Fleet overview",
+  "uid": "4350492f-ef51-4e3f-a22b-14c55eed6a97",
+  "version": 1
 }

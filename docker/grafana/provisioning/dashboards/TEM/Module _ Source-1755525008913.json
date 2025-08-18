@@ -72,7 +72,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 61,
+  "id": 18,
   "links": [
     {
       "asDropdown": true,
@@ -118,7 +118,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -148,7 +149,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -219,7 +220,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -256,7 +258,7 @@
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 100
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -266,7 +268,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH state_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'FegStates'\n    AND param_name = 'FegState'\n    AND display_name = 'Feg State'\n),\n\nenums AS (\n  SELECT e.enum_id, e.name, e.value\n  FROM enumerations e\n  JOIN state_param p ON p.enum_id = e.enum_id\n  WHERE e.instrument_id = $instrument\n)\n\nSELECT\n  e.name AS \"State\",\n  COUNT(*) AS \"Count\"\nFROM data d\nJOIN state_param p ON d.param_id = p.param_id\nJOIN enums e ON e.enum_id = p.enum_id\n  AND e.value = d.value_num\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nGROUP BY e.name\nORDER BY \"Count\" DESC\n",
+          "rawSql": "WITH state_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'FegStates'\n    AND param_name = 'FegState'\n    AND display_name = 'Feg State'\n),\n\nenums AS (\n  SELECT e.enum_id, e.member_name, e.value\n  FROM enum_values e\n  JOIN state_param p ON p.enum_id = e.enum_id\n)\n\nSELECT\n  e.member_name AS \"State\",\n  COUNT(*) AS \"Count\"\nFROM data d\nJOIN state_param p ON d.param_id = p.param_id\nJOIN enums e ON e.enum_id = p.enum_id\n  AND e.value = d.value_num\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nGROUP BY e.member_name\nORDER BY \"Count\" DESC\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -342,7 +344,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -394,7 +397,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -459,7 +462,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -488,7 +492,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -574,7 +578,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -602,7 +607,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -685,7 +690,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -713,7 +719,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -762,7 +768,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -792,7 +799,7 @@
         "textMode": "value_and_name",
         "wideLayout": false
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -892,7 +899,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -920,7 +928,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -990,7 +998,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -1029,7 +1038,7 @@
         },
         "showHeader": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1078,7 +1087,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -1108,7 +1118,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "editorMode": "code",
@@ -1153,7 +1163,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -1182,7 +1193,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1231,7 +1242,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -1261,7 +1273,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1347,7 +1359,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -1375,7 +1388,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1461,7 +1474,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -1489,7 +1503,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1584,7 +1598,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -1612,7 +1627,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1684,7 +1699,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -1702,7 +1718,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "orange",
@@ -1739,7 +1756,7 @@
         "textMode": "value_and_name",
         "wideLayout": false
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1749,7 +1766,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH state_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'HTTank'\n    AND param_name = 'HTTankState'\n),\n\nenum_on_value AS (\n  SELECT e.value\n  FROM enumerations e\n  JOIN state_param p ON e.enum_id = p.enum_id\n  WHERE e.instrument_id = $instrument\n    AND e.name = 'On'\n  LIMIT 1\n)\n\nSELECT\n  COUNT(*) AS \"Error count\",\n  MAX(d.time) AS \"Latest error\"\nFROM data d\nJOIN state_param p ON d.param_id = p.param_id\nCROSS JOIN enum_on_value eo\nWHERE d.instrument_id = $instrument\n  AND d.value_num != eo.value\n  AND $__timeFilter(d.time)\n",
+          "rawSql": "WITH state_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'HTTank'\n    AND param_name = 'HTTankState'\n),\n\nenum_on_value AS (\n  SELECT e.value\n  FROM enum_values e\n  JOIN state_param p ON e.enum_id = p.enum_id\n  WHERE e.member_name = 'On'\n  LIMIT 1\n)\n\nSELECT\n  COUNT(*) AS \"Error count\",\n  MAX(d.time) AS \"Latest error\"\nFROM data d\nJOIN state_param p ON d.param_id = p.param_id\nCROSS JOIN enum_on_value eo\nWHERE d.instrument_id = $instrument\n  AND d.value_num != eo.value\n  AND $__timeFilter(d.time)\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1788,7 +1805,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -1817,7 +1835,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1903,7 +1921,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
                 "color": "#EAB839",
@@ -1935,7 +1954,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -2021,7 +2040,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -2043,7 +2063,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "orange",
@@ -2096,7 +2117,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -2160,7 +2181,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -2192,7 +2214,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -2251,7 +2273,7 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Glacios [Glacios] (9952833)",
+          "text": "Krios 1 [Titan Krios G2] (3299)",
           "value": "1"
         },
         "datasource": {
@@ -2270,8 +2292,8 @@
     ]
   },
   "time": {
-    "from": "2025-05-07T06:30:39.295Z",
-    "to": "2025-05-16T10:58:21.507Z"
+    "from": "now-90d",
+    "to": "now"
   },
   "timepicker": {
     "refresh_intervals": []
@@ -2279,5 +2301,5 @@
   "timezone": "Europe/London",
   "title": "Module | Source",
   "uid": "4395e67b-0345-47fd-94a8-684004567800",
-  "version": 4
+  "version": 3
 }

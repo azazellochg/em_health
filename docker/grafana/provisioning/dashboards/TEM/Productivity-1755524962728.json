@@ -905,7 +905,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH state_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'AutomatedAcquisitionState'\n    AND subsystem = 'EPU'\n)\n\nSELECT\n  ss.start_time AS \"Start time\",\n  ss.end_time AS \"End time\",\n  ss.total_image_counter AS \"Total images\",\n  CASE \n    WHEN EXTRACT(EPOCH FROM (ss.end_time - ss.start_time)) > 0 THEN\n      ss.total_image_counter / (EXTRACT(EPOCH FROM (ss.end_time - ss.start_time)) / 3600.0)\n    ELSE NULL\n  END AS \"Images/hour\",\n  e.name AS \"Status\"\nFROM epu_counters ss\nJOIN state_param esp ON TRUE\nLEFT JOIN enumerations e\n  ON e.instrument_id = ss.instrument_id\n  AND e.enum_id = esp.enum_id\n  AND e.value = ss.end_state_value\nWHERE ss.instrument_id = $instrument\n  AND $__timeFilter(ss.start_time)\nORDER BY ss.start_time;\n",
+          "rawSql": "WITH state_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'AutomatedAcquisitionState'\n    AND subsystem = 'EPU'\n)\n\nSELECT\n  ss.start_time AS \"Start time\",\n  ss.end_time AS \"End time\",\n  ss.total_image_counter AS \"Total images\",\n  CASE \n    WHEN EXTRACT(EPOCH FROM (ss.end_time - ss.start_time)) > 0 THEN\n      ss.total_image_counter / (EXTRACT(EPOCH FROM (ss.end_time - ss.start_time)) / 3600.0)\n    ELSE NULL\n  END AS \"Images/hour\",\n  e.member_name AS \"Status\"\nFROM epu_counters ss\nJOIN state_param esp ON TRUE\nLEFT JOIN enum_values e\n  ON e.enum_id = esp.enum_id\n  AND e.value = ss.end_state_value\nWHERE ss.instrument_id = $instrument\n  AND $__timeFilter(ss.start_time)\nORDER BY ss.start_time;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1075,7 +1075,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH state_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name IN ('Tomo5TiltSeriesState', 'TiltSeries')\n    AND subsystem = 'Tomography'\n)\n\nSELECT\n  ss.start_time AS \"Start time\",\n  ss.end_time AS \"End time\",\n  ss.total_image_counter AS \"Total images\",\n  CASE \n    WHEN EXTRACT(EPOCH FROM (ss.end_time - ss.start_time)) > 0 THEN\n      ss.total_image_counter / (EXTRACT(EPOCH FROM (ss.end_time - ss.start_time)) / 3600.0)\n    ELSE NULL\n  END AS \"Images/hour\",\n  e.name AS \"Status\"\nFROM tomo_counters ss\nJOIN state_param esp ON TRUE\nLEFT JOIN enumerations e\n  ON e.instrument_id = ss.instrument_id\n  AND e.enum_id = esp.enum_id\n  AND e.value = ss.end_state_value\nWHERE ss.instrument_id = $instrument\n  AND $__timeFilter(ss.start_time)\nORDER BY ss.start_time;\n",
+          "rawSql": "WITH state_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name IN ('Tomo5TiltSeriesState', 'TiltSeries')\n    AND subsystem = 'Tomography'\n)\n\nSELECT\n  ss.start_time AS \"Start time\",\n  ss.end_time AS \"End time\",\n  ss.total_image_counter AS \"Total images\",\n  CASE \n    WHEN EXTRACT(EPOCH FROM (ss.end_time - ss.start_time)) > 0 THEN\n      ss.total_image_counter / (EXTRACT(EPOCH FROM (ss.end_time - ss.start_time)) / 3600.0)\n    ELSE NULL\n  END AS \"Images/hour\",\n  e.member_name AS \"Status\"\nFROM tomo_counters ss\nJOIN state_param esp ON TRUE\nLEFT JOIN enum_values e\n  ON e.enum_id = esp.enum_id\n  AND e.value = ss.end_state_value\nWHERE ss.instrument_id = $instrument\n  AND $__timeFilter(ss.start_time)\nORDER BY ss.start_time;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1181,5 +1181,5 @@
   "timezone": "Europe/London",
   "title": "Productivity",
   "uid": "6b926c0e-9894-4124-9c6e-75cf6d9d898a",
-  "version": 5
+  "version": 2
 }

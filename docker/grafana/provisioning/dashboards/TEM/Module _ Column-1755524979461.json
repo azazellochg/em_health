@@ -110,7 +110,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 60,
+  "id": 10,
   "links": [
     {
       "asDropdown": true,
@@ -143,7 +143,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -175,7 +176,7 @@
         "textMode": "value",
         "wideLayout": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -224,7 +225,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -256,7 +258,7 @@
         "textMode": "value",
         "wideLayout": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -305,7 +307,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -324,7 +327,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -363,7 +367,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -373,7 +377,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "-- 1. Try to get VbfpvState param\nWITH state_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND param_name = 'VbfpvState'\n    AND subsystem = 'MdlVacuumBrick'\n),\n\nhas_state AS (\n  SELECT COUNT(*) > 0 AS exists FROM state_param\n),\n\n-- 2. Get value for VALVE_OPENED or Open\nrunning_enum AS (\n  SELECT p.param_id, e.value AS running_value\n  FROM state_param p\n  JOIN enumerations e ON e.enum_id = p.enum_id\n  WHERE e.instrument_id = $instrument \n    AND e.name IN ('VALVE_OPENED', 'Open')\n),\n\n-- 3a. Use VbfpvState-based transitions if available\nstate_data AS (\n  SELECT\n    d.time,\n    d.value_num AS acquisition_state,\n    CASE WHEN d.value_num = r.running_value THEN 1 ELSE 0 END AS is_running\n  FROM data d\n  JOIN running_enum r ON d.param_id = r.param_id\n  WHERE d.instrument_id = $instrument \n    AND $__timeFilter(d.time)\n),\n\ntransitions AS (\n  SELECT\n    time,\n    is_running,\n    LAG(is_running) OVER (ORDER BY time) AS prev_running\n  FROM state_data\n),\n\nstart_events AS (\n  SELECT time AS start_time\n  FROM transitions\n  WHERE is_running = 1 AND (prev_running IS NULL OR prev_running = 0)\n),\n\nend_events AS (\n  SELECT time AS end_time\n  FROM transitions\n  WHERE is_running = 0 AND prev_running = 1\n),\n\nvbfpv_segments AS (\n  SELECT s.start_time, MIN(e.end_time) AS end_time\n  FROM start_events s\n  JOIN end_events e ON e.end_time > s.start_time\n  GROUP BY s.start_time\n),\n\n-- 3b. Fallback: detect PIRbfPressure decreasing\npressure_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument AND param_name = 'PIRbfPressure'\n  LIMIT 1\n),\n\npressure_data AS (\n  SELECT\n    d.time,\n    d.value_num,\n    LAG(d.value_num) OVER (ORDER BY d.time) AS prev_value\n  FROM data d\n  JOIN pressure_param p ON d.param_id = p.param_id\n  WHERE d.instrument_id = $instrument AND $__timeFilter(d.time)\n),\n\npressure_transitions AS (\n  SELECT\n    time,\n    CASE WHEN value_num < prev_value THEN 1 ELSE 0 END AS is_decreasing,\n    LAG(CASE WHEN value_num < prev_value THEN 1 ELSE 0 END) OVER (ORDER BY time) AS prev_decreasing\n  FROM pressure_data\n),\n\npressure_starts AS (\n  SELECT time AS start_time\n  FROM pressure_transitions\n  WHERE is_decreasing = 1 AND (prev_decreasing = 0 OR prev_decreasing IS NULL)\n),\n\npressure_ends AS (\n  SELECT time AS end_time\n  FROM pressure_transitions\n  WHERE is_decreasing = 0 AND prev_decreasing = 1\n),\n\npressure_segments AS (\n  SELECT s.start_time, MIN(e.end_time) AS end_time\n  FROM pressure_starts s\n  JOIN pressure_ends e ON e.end_time > s.start_time\n  GROUP BY s.start_time\n),\n\n-- 4. Use vbfpv_segments if param exists, otherwise fallback\nfinal_segments AS (\n  SELECT * FROM vbfpv_segments WHERE (SELECT exists FROM has_state)\n  UNION ALL\n  SELECT * FROM pressure_segments WHERE NOT (SELECT exists FROM has_state)\n),\n\nsegment_with_durations AS (\n  SELECT\n    start_time,\n    end_time,\n    EXTRACT(EPOCH FROM end_time - start_time) AS duration_sec,\n    LEAD(start_time) OVER (ORDER BY start_time) AS next_start\n  FROM final_segments\n)\n\nSELECT\n  AVG(duration_sec) AS \"Avg duration\",\n  AVG(EXTRACT(EPOCH FROM next_start - end_time)) AS \"Avg time between cycles\"\nFROM segment_with_durations\nWHERE next_start IS NOT NULL;\n",
+          "rawSql": "-- 1. Try to get VbfpvState param\nWITH state_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND param_name = 'VbfpvState'\n    AND subsystem = 'MdlVacuumBrick'\n),\n\nhas_state AS (\n  SELECT COUNT(*) > 0 AS exists FROM state_param\n),\n\n-- 2. Get value for VALVE_OPENED or Open\nrunning_enum AS (\n  SELECT p.param_id, e.value AS running_value\n  FROM state_param p\n  JOIN enum_values e ON e.enum_id = p.enum_id\n  WHERE e.member_name IN ('VALVE_OPENED', 'Open')\n),\n\n-- 3a. Use VbfpvState-based transitions if available\nstate_data AS (\n  SELECT\n    d.time,\n    d.value_num AS acquisition_state,\n    CASE WHEN d.value_num = r.running_value THEN 1 ELSE 0 END AS is_running\n  FROM data d\n  JOIN running_enum r ON d.param_id = r.param_id\n  WHERE d.instrument_id = $instrument \n    AND $__timeFilter(d.time)\n),\n\ntransitions AS (\n  SELECT\n    time,\n    is_running,\n    LAG(is_running) OVER (ORDER BY time) AS prev_running\n  FROM state_data\n),\n\nstart_events AS (\n  SELECT time AS start_time\n  FROM transitions\n  WHERE is_running = 1 AND (prev_running IS NULL OR prev_running = 0)\n),\n\nend_events AS (\n  SELECT time AS end_time\n  FROM transitions\n  WHERE is_running = 0 AND prev_running = 1\n),\n\nvbfpv_segments AS (\n  SELECT s.start_time, MIN(e.end_time) AS end_time\n  FROM start_events s\n  JOIN end_events e ON e.end_time > s.start_time\n  GROUP BY s.start_time\n),\n\n-- 3b. Fallback: detect PIRbfPressure decreasing\npressure_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument AND param_name = 'PIRbfPressure'\n  LIMIT 1\n),\n\npressure_data AS (\n  SELECT\n    d.time,\n    d.value_num,\n    LAG(d.value_num) OVER (ORDER BY d.time) AS prev_value\n  FROM data d\n  JOIN pressure_param p ON d.param_id = p.param_id\n  WHERE d.instrument_id = $instrument AND $__timeFilter(d.time)\n),\n\npressure_transitions AS (\n  SELECT\n    time,\n    CASE WHEN value_num < prev_value THEN 1 ELSE 0 END AS is_decreasing,\n    LAG(CASE WHEN value_num < prev_value THEN 1 ELSE 0 END) OVER (ORDER BY time) AS prev_decreasing\n  FROM pressure_data\n),\n\npressure_starts AS (\n  SELECT time AS start_time\n  FROM pressure_transitions\n  WHERE is_decreasing = 1 AND (prev_decreasing = 0 OR prev_decreasing IS NULL)\n),\n\npressure_ends AS (\n  SELECT time AS end_time\n  FROM pressure_transitions\n  WHERE is_decreasing = 0 AND prev_decreasing = 1\n),\n\npressure_segments AS (\n  SELECT s.start_time, MIN(e.end_time) AS end_time\n  FROM pressure_starts s\n  JOIN pressure_ends e ON e.end_time > s.start_time\n  GROUP BY s.start_time\n),\n\n-- 4. Use vbfpv_segments if param exists, otherwise fallback\nfinal_segments AS (\n  SELECT * FROM vbfpv_segments WHERE (SELECT exists FROM has_state)\n  UNION ALL\n  SELECT * FROM pressure_segments WHERE NOT (SELECT exists FROM has_state)\n),\n\nsegment_with_durations AS (\n  SELECT\n    start_time,\n    end_time,\n    EXTRACT(EPOCH FROM end_time - start_time) AS duration_sec,\n    LEAD(start_time) OVER (ORDER BY start_time) AS next_start\n  FROM final_segments\n)\n\nSELECT\n  AVG(duration_sec) AS \"Avg duration\",\n  AVG(EXTRACT(EPOCH FROM next_start - end_time)) AS \"Avg time between cycles\"\nFROM segment_with_durations\nWHERE next_start IS NOT NULL;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -432,7 +436,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -496,7 +501,7 @@
         },
         "showHeader": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -506,7 +511,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH target_params AS (\n  SELECT param_id, param_name, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem = 'HalTemOpticsBrick'\n    AND component = 'Firmware states'\n),\n\ntarget_enums AS (\n  SELECT e.enum_id, e.value\n  FROM enumerations e\n  JOIN target_params p ON p.enum_id = e.enum_id\n  WHERE e.instrument_id = $instrument\n    AND e.name = 'Normal'\n  LIMIT 1\n)\n\nSELECT\n  p.param_name AS \"Board\",\n  COUNT(*) AS \"Errors\",\n  MAX(d.time) AS \"Last error\"\nFROM data d\nJOIN target_params p ON p.param_id = d.param_id\nJOIN target_enums e ON p.enum_id = e.enum_id\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\n  AND d.value_num != e.value\nGROUP BY p.param_name\nORDER BY MAX(d.time) DESC\n",
+          "rawSql": "WITH target_params AS (\n  SELECT param_id, param_name, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem = 'HalTemOpticsBrick'\n    AND component = 'Firmware states'\n),\n\ntarget_enums AS (\n  SELECT e.enum_id, e.value\n  FROM enum_values e\n  JOIN target_params p ON p.enum_id = e.enum_id\n  WHERE e.member_name = 'Normal'\n  LIMIT 1\n)\n\nSELECT\n  p.param_name AS \"Board\",\n  COUNT(*) AS \"Errors\",\n  MAX(d.time) AS \"Last error\"\nFROM data d\nJOIN target_params p ON p.param_id = d.param_id\nJOIN target_enums e ON p.enum_id = e.enum_id\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\n  AND d.value_num != e.value\nGROUP BY p.param_name\nORDER BY MAX(d.time) DESC\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -552,7 +557,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -616,7 +622,7 @@
         },
         "showHeader": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -626,7 +632,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH target_params AS (\n  SELECT param_id, param_name, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem IN ('HalTemOpticsBrick', 'HalOpticsBrick')\n    AND (component = 'Operational states' OR (component = 'Optics' AND param_name = 'Optics_OperationalState'))\n),\n\ntarget_enums AS (\n  SELECT e.enum_id, e.value\n  FROM enumerations e\n  JOIN target_params p ON p.enum_id = e.enum_id\n  WHERE e.instrument_id = $instrument\n    AND e.name = 'Up'\n  LIMIT 1\n)\n\nSELECT\n  p.param_name AS \"Board\",\n  COUNT(*) AS \"Offline events\",\n  MAX(d.time) AS \"Last event\"\nFROM data d\nJOIN target_params p ON p.param_id = d.param_id\nJOIN target_enums e ON p.enum_id = e.enum_id\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\n  AND d.value_num != e.value\nGROUP BY p.param_name\nORDER BY MAX(d.time) DESC\n",
+          "rawSql": "WITH target_params AS (\n  SELECT param_id, param_name, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem IN ('HalTemOpticsBrick', 'HalOpticsBrick')\n    AND (component = 'Operational states' OR (component = 'Optics' AND param_name = 'Optics_OperationalState'))\n),\n\ntarget_enums AS (\n  SELECT e.enum_id, e.value\n  FROM enum_values e\n  JOIN target_params p ON p.enum_id = e.enum_id\n  WHERE e.member_name = 'Up'\n  LIMIT 1\n)\n\nSELECT\n  p.param_name AS \"Board\",\n  COUNT(*) AS \"Offline events\",\n  MAX(d.time) AS \"Last event\"\nFROM data d\nJOIN target_params p ON p.param_id = d.param_id\nJOIN target_enums e ON p.enum_id = e.enum_id\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\n  AND d.value_num != e.value\nGROUP BY p.param_name\nORDER BY MAX(d.time) DESC\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -713,7 +719,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
                 "color": "#EAB839",
@@ -753,7 +760,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -846,7 +853,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
                 "color": "#EAB839",
@@ -886,7 +894,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -981,7 +989,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -1008,7 +1017,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1079,7 +1088,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -1109,7 +1119,7 @@
         "textMode": "value_and_name",
         "wideLayout": false
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1207,7 +1217,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
                 "color": "#EAB839",
@@ -1243,7 +1254,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1323,7 +1334,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -1360,7 +1372,7 @@
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 100
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1370,7 +1382,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH state_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'IGPcl'\n    AND param_name = 'IGPclState'\n),\n\nenums AS (\n  SELECT e.enum_id, e.name, e.value\n  FROM enumerations e\n  JOIN state_param p ON p.enum_id = e.enum_id\n  WHERE e.instrument_id = $instrument\n)\n\nSELECT\n  e.name AS \"State\",\n  COUNT(*) AS \"Count\"\nFROM data d\nJOIN state_param p ON d.param_id = p.param_id\nJOIN enums e ON e.enum_id = p.enum_id\n  AND e.value = d.value_num\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nGROUP BY e.name\nORDER BY \"Count\" DESC\n",
+          "rawSql": "WITH state_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'IGPcl'\n    AND param_name = 'IGPclState'\n),\n\nenums AS (\n  SELECT e.enum_id, e.member_name, e.value\n  FROM enum_values e\n  JOIN state_param p ON p.enum_id = e.enum_id\n)\n\nSELECT\n  e.member_name AS \"State\",\n  COUNT(*) AS \"Count\"\nFROM data d\nJOIN state_param p ON d.param_id = p.param_id\nJOIN enums e ON e.enum_id = p.enum_id\n  AND e.value = d.value_num\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nGROUP BY e.member_name\nORDER BY \"Count\" DESC\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1409,7 +1421,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -1439,7 +1452,7 @@
         "textMode": "value_and_name",
         "wideLayout": false
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1537,7 +1550,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
                 "color": "#EAB839",
@@ -1573,7 +1587,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1653,7 +1667,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -1690,7 +1705,7 @@
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 100
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1700,7 +1715,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH state_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'IGPco'\n    AND param_name = 'IGPcoState'\n),\n\nenums AS (\n  SELECT e.enum_id, e.name, e.value\n  FROM enumerations e\n  JOIN state_param p ON p.enum_id = e.enum_id\n  WHERE e.instrument_id = $instrument\n)\n\nSELECT\n  e.name AS \"State\",\n  COUNT(*) AS \"Count\"\nFROM data d\nJOIN state_param p ON d.param_id = p.param_id\nJOIN enums e ON e.enum_id = p.enum_id\n  AND e.value = d.value_num\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nGROUP BY e.name\nORDER BY \"Count\" DESC\n",
+          "rawSql": "WITH state_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'IGPco'\n    AND param_name = 'IGPcoState'\n),\n\nenums AS (\n  SELECT e.enum_id, e.member_name, e.value\n  FROM enum_values e\n  JOIN state_param p ON p.enum_id = e.enum_id\n)\n\nSELECT\n  e.member_name AS \"State\",\n  COUNT(*) AS \"Count\"\nFROM data d\nJOIN state_param p ON d.param_id = p.param_id\nJOIN enums e ON e.enum_id = p.enum_id\n  AND e.value = d.value_num\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nGROUP BY e.member_name\nORDER BY \"Count\" DESC\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1746,7 +1761,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -1768,7 +1784,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green"
+                      "color": "green",
+                      "value": 0
                     },
                     {
                       "color": "yellow",
@@ -1825,7 +1842,7 @@
         },
         "showHeader": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "targets": [
         {
           "datasource": {
@@ -1884,7 +1901,7 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Krios 3 [Titan Krios G3i] (3593)",
+          "text": "Krios 4 [Titan Krios G4] (4248)",
           "value": "4"
         },
         "datasource": {
@@ -1903,8 +1920,8 @@
     ]
   },
   "time": {
-    "from": "2025-04-24T09:08:06.607Z",
-    "to": "2025-05-29T20:50:32.948Z"
+    "from": "now-90d",
+    "to": "now"
   },
   "timepicker": {
     "refresh_intervals": []
@@ -1912,5 +1929,5 @@
   "timezone": "Europe/London",
   "title": "Module | Column",
   "uid": "4395e67b-0345-47fd-94a8-684533567800",
-  "version": 4
+  "version": 6
 }

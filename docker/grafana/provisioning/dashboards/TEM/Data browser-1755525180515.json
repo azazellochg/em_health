@@ -59,7 +59,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 8,
+  "id": 30,
   "links": [],
   "panels": [
     {
@@ -407,7 +407,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH selected_params AS (\n  SELECT instrument_id, param_id, param_name, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem IN ($subsystem)\n    AND component IN ($component)\n    AND param_name IN ($param)\n)\n\nSELECT\n  v.time,\n  p.param_name AS \"parameter\",\n  v.value_num AS \"value\",\n  e.name AS \"enumeration\"\nFROM data v\nJOIN selected_params p\n  ON v.param_id = p.param_id\n  AND v.instrument_id = p.instrument_id\nLEFT JOIN enumerations e\n  ON e.instrument_id = v.instrument_id\n  AND e.enum_id = p.enum_id\n  AND e.value = v.value_num\nWHERE $__timeFilter(v.time)\nORDER BY v.time;\n",
+          "rawSql": "WITH selected_params AS (\n  SELECT instrument_id, param_id, param_name, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem IN ($subsystem)\n    AND component IN ($component)\n    AND param_name IN ($param)\n)\n\nSELECT\n  v.time,\n  p.param_name AS \"parameter\",\n  v.value_num AS \"value\",\n  e.member_name AS \"enumeration\"\nFROM data v\nJOIN selected_params p\n  ON v.param_id = p.param_id\n  AND v.instrument_id = p.instrument_id\nLEFT JOIN enum_values e\n  ON e.enum_id = p.enum_id\n  AND e.value = v.value_num\nWHERE $__timeFilter(v.time)\nORDER BY v.time;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -516,7 +516,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH target_param AS (\n  SELECT enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem IN ($subsystem)\n    AND component IN ($component)\n    AND param_name IN ($param)\n)\n\nSELECT e.enum_id, e.enum, e.name, e.value\nFROM enumerations e\nWHERE e.instrument_id = $instrument\n  AND (\n    NOT EXISTS (SELECT 1 FROM target_param)\n    OR e.enum_id IN (SELECT enum_id FROM target_param)\n  );\n",
+          "rawSql": "WITH target_param AS (\n  SELECT enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem IN ($subsystem)\n    AND component IN ($component)\n    AND param_name IN ($param)\n)\n\nSELECT\n et.id AS enum_id,\n et.name AS enum_name,\n ev.member_name,\n ev.value\nFROM enum_values ev\nJOIN enum_types et ON et.id = ev.enum_id\nWHERE et.instrument_id = $instrument\n  AND (\n    NOT EXISTS (SELECT 1 FROM target_param)\n    OR et.id IN (SELECT enum_id FROM target_param)\n  )\nORDER BY ev.value",
           "refId": "A",
           "sql": {
             "columns": [
@@ -579,10 +579,10 @@
         "allowCustomValue": false,
         "current": {
           "text": [
-            "AcquisitionServer"
+            "EPU"
           ],
           "value": [
-            "AcquisitionServer"
+            "EPU"
           ]
         },
         "datasource": {
@@ -604,10 +604,10 @@
         "allowCustomValue": false,
         "current": {
           "text": [
-            "FalconECCamera"
+            "AutomatedAcquisition"
           ],
           "value": [
-            "FalconECCamera"
+            "AutomatedAcquisition"
           ]
         },
         "datasource": {
@@ -629,10 +629,10 @@
         "allowCustomValue": false,
         "current": {
           "text": [
-            "Availability"
+            "AutomatedAcquisitionState"
           ],
           "value": [
-            "Availability"
+            "AutomatedAcquisitionState"
           ]
         },
         "datasource": {
@@ -667,7 +667,7 @@
     ]
   },
   "time": {
-    "from": "now-7d",
+    "from": "now-90d",
     "to": "now"
   },
   "timepicker": {
@@ -676,5 +676,5 @@
   "timezone": "Europe/London",
   "title": "Data browser",
   "uid": "bdc45e8d-6118-44ea-89f6-00c573b7016b",
-  "version": 10
+  "version": 1
 }
