@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 39,
+  "id": 3,
   "links": [
     {
       "asDropdown": false,
@@ -325,7 +325,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  schemaname || '.' || tablename AS \"Table\",\n  COUNT(*) AS \"Vacuum count\",\n  SUM(tuples_removed) || ' (' || ROUND(SUM(tuples_removed) / NULLIF(SUM(tuples_removed + tuples_remain), 0) * 100.0, 2) || '%)' AS \"Tuples removed\",\n  SUM(index_scans) AS \"Index scans\",\n  SUM(pages_removed) AS \"Pages removed\",\n  MAX(duration) AS \"Max duration\",\n  MAX(finished_at) AS \"Last vacuum\"\nFROM pganalyze.vacuum_stats\nWHERE $__timeFilter(started_at)\nGROUP BY schemaname, tablename\nORDER BY \"Tuples removed\" DESC\n",
+          "rawSql": "SELECT\n    n.nspname || '.' || c.relname AS \"Table\",\n    COUNT(*) AS \"Vacuum count\",\n    SUM(v.tuples_removed) || ' (' || \n        ROUND(\n            SUM(v.tuples_removed) / NULLIF(SUM(v.tuples_removed + v.tuples_remain), 0) * 100.0, \n            2\n        ) || '%)' AS \"Tuples removed\",\n    SUM(v.index_scans) AS \"Index scans\",\n    SUM(v.pages_removed) AS \"Pages removed\",\n    MAX(v.finished_at - v.started_at) AS \"Max duration\",\n    MAX(v.finished_at) AS \"Last vacuum\"\nFROM pganalyze.vacuum_stats v\nJOIN pg_class c ON c.oid = v.relid\nJOIN pg_namespace n ON n.oid = c.relnamespace\nWHERE $__timeFilter(v.started_at)\nGROUP BY n.nspname, c.relname\nORDER BY \"Tuples removed\" DESC",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1489,5 +1489,5 @@
   "timezone": "Europe/London",
   "title": "VACUUM analysis",
   "uid": "d0e487ca-67bd-4aa2-93fa-02b2afc1e2e3",
-  "version": 3
+  "version": 2
 }

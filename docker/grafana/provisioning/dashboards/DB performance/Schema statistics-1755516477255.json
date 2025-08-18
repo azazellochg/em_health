@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 37,
+  "id": 13,
   "links": [
     {
       "asDropdown": false,
@@ -206,7 +206,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n table_bytes + toast_bytes AS \"Data + TOAST size\",\n index_bytes AS \"Size of indexes\",\n total_bytes AS \"Total size\"\nFROM pganalyze.table_stats\nWHERE relid = format('%I.%I', '$schema', '$table')::regclass::oid\nORDER BY collected_at DESC\nLIMIT 1;\n",
+          "rawSql": "SELECT\n table_bytes + toast_bytes AS \"Data + TOAST size\",\n index_bytes AS \"Size of indexes\",\n table_bytes + index_bytes + toast_bytes AS \"Total size\"\nFROM pganalyze.table_stats\nWHERE relid = format('%I.%I', '$schema', '$table')::regclass::oid\nORDER BY collected_at DESC\nLIMIT 1;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -317,7 +317,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  collected_at AS time,\n  table_bytes AS \"Data size\",\n  index_bytes AS \"Index size\",\n  toast_bytes AS \"TOAST size\"\n  --total_bytes AS \"Total size\"\nFROM pganalyze.table_stats\nWHERE relid = format('%I.%I', '$schema', '$table')::regclass::oid\n  AND $__timeFilter(collected_at) \n\n",
+          "rawSql": "SELECT\n  collected_at AS time,\n  table_bytes AS \"Data size\",\n  index_bytes AS \"Index size\",\n  toast_bytes AS \"TOAST size\"\nFROM pganalyze.table_stats\nWHERE relid = format('%I.%I', '$schema', '$table')::regclass::oid\n  AND $__timeFilter(collected_at) \n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -667,7 +667,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT DISTINCT ON (indexrelid)\n  indexrelid AS \"ID\",\n  indexrelname AS \"Name\",\n  size_bytes AS \"Size\"\nFROM pganalyze.index_stats\nWHERE relid = format('%I.%I', '$schema', '$table')::regclass::oid\nORDER BY indexrelid, collected_at DESC;\n",
+          "rawSql": "SELECT DISTINCT ON (i.indexrelid)\n    i.indexrelid AS \"ID\",\n    c.relname AS \"Name\",\n    i.size_bytes AS \"Size\"\nFROM pganalyze.index_stats i\nJOIN pg_class c ON c.oid = i.indexrelid\nWHERE i.relid = format('%I.%I', '$schema', '$table')::regclass::oid\nORDER BY i.indexrelid, i.collected_at DESC;\n\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1281,7 +1281,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  finished_at AS \"Finished at\",\n  duration AS \"Duration\",\n  tuples_removed AS \"Tuples removed\",\n  tuples_removed / (tuples_removed + tuples_remain) * 100.0 AS \"Effectiveness\",\n  wraparound AS \"Anti-wraparound?\",\n  details AS \"Details\"\nFROM pganalyze.vacuum_stats\nWHERE schemaname = '$schema'\n  AND tablename = '$table'\n  AND $__timeFilter(started_at)\nORDER BY finished_at DESC\n",
+          "rawSql": "SELECT\n  finished_at AS \"Finished at\",\n  finished_at-started_at AS \"Duration\",\n  tuples_removed AS \"Tuples removed\",\n  tuples_removed / (tuples_removed + tuples_remain) * 100.0 AS \"Effectiveness\",\n  wraparound AS \"Anti-wraparound?\",\n  details AS \"Details\"\nFROM pganalyze.vacuum_stats\nWHERE relid = format('%I.%I', '$schema', '$table')::regclass::oid\n  AND $__timeFilter(started_at)\nORDER BY finished_at DESC\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1608,8 +1608,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "26529",
-          "value": "26529"
+          "text": "23051",
+          "value": "23051"
         },
         "hide": 2,
         "name": "index",
@@ -1664,5 +1664,5 @@
   "timezone": "Europe/London",
   "title": "Schema statistics",
   "uid": "46837677-7190-44c2-b9bb-db869089ba49",
-  "version": 3
+  "version": 7
 }
