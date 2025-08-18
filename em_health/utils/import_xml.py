@@ -172,7 +172,7 @@ class ImportXML:
                 param_id = int(elem.get("ParameterID"))
                 param_dict = params_dict.get(param_id)
                 if param_dict is None:
-                    logger.error("Parameter %d not found, skipping", param_id,
+                    logger.error("Parameter ID %d not found, skipping", param_id,
                                  extra={"prefix": instrument_name})
                     elem.clear()  # clear skipped elements
                     continue

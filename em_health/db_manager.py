@@ -247,8 +247,9 @@ class DatabaseManager(PgClient):
                 size = 0
                 for row in rows:
                     newrow = "\t".join(col for col in row) + "\n"
-                    size += len(newrow.encode("utf-8"))
-                    buffer.append(newrow)
+                    encoded = newrow.encode("utf-8")
+                    buffer.append(encoded)
+                    size += len(encoded)
                     if size >= max_size:
                         yield ''.join(buffer)
                         buffer.clear()
@@ -256,7 +257,8 @@ class DatabaseManager(PgClient):
                 if buffer:
                     yield ''.join(buffer)
 
-            chunk_size = int(os.getenv("WRITE_DATA_CHUNK_SIZE", 65536))
+            # avg row size is ~ 175 bytes, below will give about ~50k rows per chunk
+            chunk_size = int(os.getenv("WRITE_DATA_CHUNK_SIZE", 8*1024*1024))  # 8 Mb
             try:
                 with self.cur.copy(query) as copy:
                     for chunk in stream_chunks(rows, chunk_size):
