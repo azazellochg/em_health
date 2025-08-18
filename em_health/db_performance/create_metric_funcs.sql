@@ -153,30 +153,32 @@ BEGIN
     )
     SELECT
         now(),
-        queryid,
-        query,
-        calls,
-        total_exec_time,
-        min_exec_time,
-        max_exec_time,
-        mean_exec_time,
-        stddev_exec_time,
-        rows,
-        shared_blks_hit,
-        shared_blks_read,
-        shared_blks_dirtied,
-        shared_blks_written,
-        local_blks_hit,
-        local_blks_read,
-        local_blks_dirtied,
-        local_blks_written,
-        temp_blks_read,
-        temp_blks_written,
-        shared_blk_read_time,
-        shared_blk_write_time
-    FROM public.pg_stat_statements
+        s.queryid,
+        s.query,
+        s.calls,
+        s.total_exec_time,
+        s.min_exec_time,
+        s.max_exec_time,
+        s.mean_exec_time,
+        s.stddev_exec_time,
+        s.rows,
+        s.shared_blks_hit,
+        s.shared_blks_read,
+        s.shared_blks_dirtied,
+        s.shared_blks_written,
+        s.local_blks_hit,
+        s.local_blks_read,
+        s.local_blks_dirtied,
+        s.local_blks_written,
+        s.temp_blks_read,
+        s.temp_blks_written,
+        s.shared_blk_read_time,
+        s.shared_blk_write_time
+    FROM public.pg_stat_statements s
+    JOIN pg_database d ON d.oid = s.dbid
     WHERE userid = 'grafana'::regrole::oid
       AND queryid IS NOT NULL
+      AND d.datname = current_database()
     ON CONFLICT DO NOTHING;
 END;
 $$;
