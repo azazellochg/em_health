@@ -101,11 +101,17 @@ class TestXMLImport(unittest.TestCase):
         self.run_test_query(dbm, "SELECT value FROM public.enum_values WHERE enum_id = %s AND member_name = %s",
                             (eid, "Operate"), 4)
 
+        self.run_test_query(dbm, "SELECT COUNT(*) FROM public.enum_values WHERE enum_id = %s",
+                            (eid,), 8)
+
         self.run_test_query(dbm, "SELECT COUNT(*) FROM public.parameters WHERE instrument_id = %s",
                             (instrument_id,), 391)
 
         self.run_test_query(dbm, "SELECT param_name FROM public.parameters WHERE instrument_id = %s AND param_id=%s",
                             (instrument_id, 184), "Laldwr")
+
+        self.run_test_query(dbm, "SELECT enum_id FROM public.parameters WHERE param_name = %s",
+                            ("FegState",), eid)
 
         self.run_test_query(dbm, "SELECT COUNT(*) FROM public.data WHERE instrument_id = %s",
                             (instrument_id,), 1889)
@@ -153,38 +159,32 @@ class TestXMLImport(unittest.TestCase):
         instr_dict = parser.get_microscope_dict()
 
         with DatabaseManager(parser.db_name) as dbm:
-            try:
-                dbm.clean_instrument_data(instrument_serial=9999)
-                # first import
-                instrument_id, instrument_name = dbm.add_instrument(instr_dict)
-                enum_ids = dbm.add_enumerations(instrument_id, parser.enum_values, instrument_name)
-                dbm.add_parameters(instrument_id, parser.params, enum_ids, instrument_name)
+            # first import
+            instrument_id, instrument_name = dbm.add_instrument(instr_dict)
+            enum_ids = dbm.add_enumerations(instrument_id, parser.enum_values, instrument_name)
+            dbm.add_parameters(instrument_id, parser.params, enum_ids, instrument_name)
 
-                # convert to list since we need to iterate twice
-                datapoints = list(parser.parse_values(instrument_id, parser.params, instrument_name))
-                self.check_datapoints(datapoints)
+            # convert to list since we need to iterate twice
+            datapoints = list(parser.parse_values(instrument_id, parser.params, instrument_name))
+            self.check_datapoints(datapoints)
 
-                dbm.write_data(datapoints, instrument_name)
-                self.check_db(dbm, instrument_id)
+            dbm.write_data(datapoints, instrument_name)
+            self.check_db(dbm, instrument_id)
 
-                # modify enums and params
-                self.modify_input(parser.enum_values, parser.params)
+            # modify enums and params
+            self.modify_input(parser.enum_values, parser.params)
 
-                # second import
-                instrument_id, instrument_name = dbm.add_instrument(instr_dict)
-                enum_ids = dbm.add_enumerations(instrument_id, parser.enum_values, instrument_name)
-                dbm.add_parameters(instrument_id, parser.params, enum_ids, instrument_name)
+            # second import
+            instrument_id, instrument_name = dbm.add_instrument(instr_dict)
+            enum_ids = dbm.add_enumerations(instrument_id, parser.enum_values, instrument_name)
+            dbm.add_parameters(instrument_id, parser.params, enum_ids, instrument_name)
 
-                self.check_datapoints(datapoints)
-                dbm.write_data(datapoints, instrument_name, nocopy=True)
-                self.check_db2(dbm, instrument_id)
+            self.check_datapoints(datapoints)
+            dbm.write_data(datapoints, instrument_name, nocopy=True)
+            self.check_db2(dbm, instrument_id)
 
-                # clean-up
-                dbm.clean_instrument_data(instrument_serial=9999)
-
-            except:
-                dbm.conn.rollback()
-                dbm.clean_instrument_data(instrument_serial=9999)
+            # clean-up
+            dbm.clean_instrument_data(instrument_serial=9999)
 
 
 if __name__ == '__main__':
