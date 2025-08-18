@@ -92,7 +92,7 @@ d. Press **Save**.
 
 .. image:: /_static/HM_export.png
 
-2. [Recommended] Compress output XML using GZIP (`gzip file.xml`) and transfer file.xml.gz to Linux. This reduces the file size >10 times.
+2. [Recommended] Transfer file.xml.gz to Linux and compress it using GZIP (`gzip file.xml`). This reduces the file size >10 times.
 3. Configure instruments in `instruments.json`. See `help <settings.html>`_ for details
 4. Import data (this may take a few minutes depending on the number of parameters and amount of data):
 
@@ -143,7 +143,7 @@ UEC
 Universal Error Codes (UECs) or Alarms from an instrument are stored in a database separate from Health Monitor events and
 can be typically displayed with UEC Viewer on the MPC. You could also install *FEI UEC Notifications Exporter* and save UECs to XML,
 but this is not supported by ``EMHealth``. If you have the credentials to access the MSSQL server on MPC,
-you can import UECs from MSSQL into ``EMHealth`` database. To make it work, MSSQL_USER and MSSQL_PASSWORD has to be defined,
+you can import UECs from MSSQL into ``EMHealth`` database. To make it work, MSSQL_USER and MSSQL_PASSWORD have to be defined,
 as well as the *server* field for each instrument in the `instruments.json`.
 
     .. code-block::

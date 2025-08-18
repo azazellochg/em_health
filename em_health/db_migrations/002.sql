@@ -2,7 +2,7 @@ DO $$
     DECLARE
         current_version INTEGER;
     BEGIN
-        SELECT version INTO current_version FROM public.schema_info LIMIT 1;
+        SELECT MAX(version) INTO current_version FROM public.schema_info;
 
         IF current_version = 1 THEN
             -- tbd
