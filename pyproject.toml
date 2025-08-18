@@ -18,7 +18,7 @@ classifiers=[
 ]
 license = {file = "LICENSE"}
 dependencies = [
-    'psycopg',
+    'psycopg[binary]',
     'watchdog',
     'python-dotenv',
     'requests'

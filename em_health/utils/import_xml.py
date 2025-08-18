@@ -161,6 +161,7 @@ class ImportXML:
         :param instrument_name: instrument name
         :return an Iterator of tuples
         """
+        instr_id = str(instr_id)
         for event, elem in self.context:
             if self.__match(elem, "Values"):
                 start, end = elem.get("Start"), elem.get("End")
@@ -176,7 +177,6 @@ class ImportXML:
                     elem.clear()  # clear skipped elements
                     continue
                 value_type = param_dict["value_type"]
-                instr_id = str(instr_id)
                 param_id = str(param_id)
 
                 param_values_elem = elem.find('ns:ParameterValues', namespaces=NS)
