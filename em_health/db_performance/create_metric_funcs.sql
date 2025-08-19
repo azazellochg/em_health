@@ -265,12 +265,11 @@ BEGIN
         (message LIKE '%to prevent wraparound%') AS wraparound,
         message AS details
     FROM tmp_log
-    WHERE database_name = current_database()
-      AND error_severity = 'LOG'
+    WHERE error_severity = 'LOG'
       AND backend_type = 'autovacuum worker'
-      AND (message LIKE 'automatic vacuum of table "%public.%'
-        OR message LIKE 'automatic vacuum of table "%uec.%"'
-        OR message LIKE 'automatic vacuum of table "%pganalyze.%')
+      AND (message LIKE 'automatic vacuum of table "' || current_database() || '.public.%'
+        OR message LIKE 'automatic vacuum of table "' || current_database() || '.uec.%'
+        OR message LIKE 'automatic vacuum of table "' || current_database() || '.pganalyze.%')
     ON CONFLICT DO NOTHING;
 
     -- Insert parsed plans into stat_explains
@@ -286,7 +285,7 @@ BEGIN
     SELECT
         log_time,
         query_id,
-        substring(message FROM '^duration: ([\d.]+) ms')::double precision,
+        substring(message FROM 'duration: ([\d.]+) ms')::double precision,
         (substring(message FROM 'plan:\n(\{.*)')::json #>> '{Plan,Total Cost}')::double precision AS total_cost,
         (substring(message FROM 'plan:\n(\{.*)')::json #>> '{Plan,Shared Read Blocks}')::bigint * 8192 AS bytes_read,
         (substring(message FROM 'plan:\n(\{.*)')::json #>> '{Plan,Shared I/O Read Time}')::double precision AS io_read_time,
