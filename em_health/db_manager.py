@@ -78,7 +78,7 @@ class DatabaseManager(PgClient):
         instrument_id = self.run_query("""
             INSERT INTO instruments (instrument, serial, model, name, template, server)
             VALUES (%s, %s, %s, %s, %s, %s)
-            ON CONFLICT DO UPDATE SET instrument = EXCLUDED.instrument
+            ON CONFLICT (instrument) DO UPDATE SET instrument = EXCLUDED.instrument
             RETURNING id;
         """, values=(
             instr_dict["instrument"],
@@ -87,7 +87,7 @@ class DatabaseManager(PgClient):
             instrument_name,
             instr_dict["template"],
             instr_dict["server"]
-        ), mode="fetchone")
+        ), mode="fetchone")[0]
 
         logger.info("Updated instruments table", extra={"prefix": instrument_name})
 
