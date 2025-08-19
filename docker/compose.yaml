@@ -73,6 +73,8 @@ services:
       - grafana-storage:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
       - backups:/backups
+    tmpfs:
+      - /var/lib/grafana/plugins   # keeps plugins in container only
 
 volumes:
   pgdata:

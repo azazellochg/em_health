@@ -24,7 +24,7 @@ muteTimes:
 
 contactPoints:
     - orgId: 1
-      name: grafana-default-email
+      name: grafana-email
       receivers:
         - uid: first_uid
           type: email
