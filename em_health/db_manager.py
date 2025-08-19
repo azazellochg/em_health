@@ -27,7 +27,7 @@
 import os
 import psycopg.errors
 from datetime import datetime, timezone
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Any
 
 from em_health.db_client import PgClient
 from em_health.utils.logs import logger, profile
@@ -242,13 +242,21 @@ class DatabaseManager(PgClient):
                 FROM STDIN WITH (FORMAT text)
             """
 
+            def format_col(col: Any) -> str:
+                if col is None:
+                    return "\\N"
+                if isinstance(col, datetime):
+                    # PostgreSQL COPY expects 'YYYY-MM-DD HH:MM:SS.sss+00' ISO 8601 string
+                    return col.strftime("%Y-%m-%d %H:%M:%S.%f%z")[:-3]
+                return str(col)
+
             def stream_chunks(rows: Iterable[tuple], max_size: int) -> Iterable[str]:
-                buffer = []
+                buffer: list[str] = []
                 size = 0
                 for row in rows:
-                    newrow = "\t".join(col for col in row) + "\n"
+                    newrow = "\t".join(format_col(col) for col in row) + "\n"
                     encoded = newrow.encode("utf-8")
-                    buffer.append(encoded)
+                    buffer.append(newrow)
                     size += len(encoded)
                     if size >= max_size:
                         yield ''.join(buffer)

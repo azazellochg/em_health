@@ -161,7 +161,6 @@ class ImportXML:
         :param instrument_name: instrument name
         :return an Iterator of tuples
         """
-        instr_id = str(instr_id)
         for event, elem in self.context:
             if self.__match(elem, "Values"):
                 start, end = elem.get("Start"), elem.get("End")
@@ -177,7 +176,6 @@ class ImportXML:
                     elem.clear()  # clear skipped elements
                     continue
                 value_type = param_dict["value_type"]
-                param_id = str(param_id)
 
                 param_values_elem = elem.find('ns:ParameterValues', namespaces=NS)
                 if param_values_elem is not None:
@@ -187,7 +185,6 @@ class ImportXML:
                         value_text_raw = value_elem.text
                         value_num, value_text = self.__convert_value(param_id, value_text_raw, value_type)
 
-                        # all values must be strings
                         point = (timestamp, instr_id, param_id, value_num, value_text)
                         yield point
 
@@ -208,8 +205,8 @@ class ImportXML:
         return elem.tag.endswith(f"}}{name}")
 
     @staticmethod
-    def __parse_ts_to_utc(ts: str) -> str:
-        """ Parse timestamp string into UTC ISO 8601 string as expected by COPY.
+    def __parse_ts_to_utc(ts: str) -> datetime:
+        """ Parse timestamp string into UTC.
         Removes colon from the timezone, e.g.:
         "2025-05-18T10:39:36.982+01:00" → "2025-05-18T10:39:36.982+0100"
         :param ts: input timestamp string
@@ -227,28 +224,28 @@ class ImportXML:
         for time_format in time_formats:
             try:
                 dt_local = datetime.strptime(ts_fixed, time_format)
-                dt_utc = dt_local.astimezone(timezone.utc)
-                # PostgreSQL COPY expects 'YYYY-MM-DD HH:MM:SS.sss+00'
-                return dt_utc.strftime("%Y-%m-%d %H:%M:%S.%f%z")[:-3]
+                return dt_local.astimezone(timezone.utc)
             except ValueError:
                 continue
 
         raise ValueError(f"Unsupported time format: {ts}")
 
     @staticmethod
-    def __convert_value(param_id: str,
+    def __convert_value(param_id: int,
                         value: str,
                         value_type: str):
         """ Convert the param value according to type.
-        Returns value_num, value_text as strings.
+        Returns value_num, value_text.
         """
         try:
             if value_type == "str":
-                return '\\N', str(value)
+                return None, str(value)
             elif value_type == "float":
-                return str(value), '\\N'
-            elif value_type in ["int", "bool"]:  # works for int, IntEnum, bool
-                return str(int(value)), '\\N'
+                return float(value), None
+            elif value_type == "int":  # works for int, IntEnum
+                return int(value), None
+            elif value_type == "bool":
+                return int(bool(value)), None
             else:
                 raise ValueError
         except (ValueError, TypeError):

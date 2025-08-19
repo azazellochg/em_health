@@ -26,6 +26,7 @@
 
 import os.path
 import unittest
+from datetime import datetime as dt, timezone as tz
 
 from em_health.utils.import_xml import ImportXML
 from em_health.db_manager import DatabaseManager
@@ -74,8 +75,8 @@ class TestXMLImport(unittest.TestCase):
 
     def check_datapoints(self, points: list[tuple]):
         expected = {
-            ("2025-07-28 10:48:42.685000+0", "347"): "5.602248",
-            ("2025-07-28 11:24:02.283000+0", "93"): "2"
+            (dt(2025,7,28,10,48,42,685000, tzinfo=tz.utc), 347): 5.602248,
+            (dt(2025,7,28,11,24,2,283000,tzinfo=tz.utc), 93): 2
         }
 
         match_count = 0
@@ -110,8 +111,8 @@ class TestXMLImport(unittest.TestCase):
         self.run_test_query(dbm, "SELECT param_name FROM public.parameters WHERE instrument_id = %s AND param_id=%s",
                             (instrument_id, 184), "Laldwr")
 
-        self.run_test_query(dbm, "SELECT enum_id FROM public.parameters WHERE param_name = %s",
-                            ("FegState",), eid)
+        self.run_test_query(dbm, "SELECT enum_id FROM public.parameters WHERE instrument_id = %s AND param_name = %s",
+                            (instrument_id, "FegState",), eid)
 
         self.run_test_query(dbm, "SELECT COUNT(*) FROM public.data WHERE instrument_id = %s",
                             (instrument_id,), 1889)
