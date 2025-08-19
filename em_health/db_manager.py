@@ -75,19 +75,11 @@ class DatabaseManager(PgClient):
         We always return id for either new or existing instrument
         """
         instrument_name = instr_dict["name"]
-        row = self.run_query("""
-            WITH s AS (
-                SELECT id FROM instruments WHERE instrument = %s OR serial = %s
-            ),
-            i AS (
-                INSERT INTO instruments (instrument, serial, model, name, template, server)
-                SELECT %s, %s, %s, %s, %s, %s
-                WHERE NOT EXISTS (SELECT 1 FROM s)
-                RETURNING id
-            )
-            SELECT id, TRUE AS is_new FROM i
-            UNION ALL
-            SELECT id, FALSE AS is_new FROM s
+        instrument_id = self.run_query("""
+            INSERT INTO instruments (instrument, serial, model, name, template, server)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT DO UPDATE SET instrument = EXCLUDED.instrument
+            RETURNING id;
         """, values=(
             instr_dict["instrument"],
             instr_dict["serial"],
@@ -99,12 +91,7 @@ class DatabaseManager(PgClient):
             instr_dict["server"]
         ), mode="fetchone")
 
-        instrument_id, is_new = row
-
-        if is_new:
-            logger.info("Updated instruments table", extra={"prefix": instrument_name})
-        else:
-            logger.info("Instrument already exists", extra={"prefix": instrument_name})
+        logger.info("Updated instruments table", extra={"prefix": instrument_name})
 
         return instrument_id, instrument_name
 
