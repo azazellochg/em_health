@@ -83,8 +83,6 @@ class DatabaseManager(PgClient):
         """, values=(
             instr_dict["instrument"],
             instr_dict["serial"],
-            instr_dict["instrument"],
-            instr_dict["serial"],
             instr_dict["model"],
             instrument_name,
             instr_dict["template"],
