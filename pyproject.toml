@@ -11,7 +11,7 @@ readme = {file = "README.rst", content-type = "text/x-rst"}
 requires-python = "<3.13"
 keywords = ["microscope", "health monitoring", "TEM", "SEM"]
 classifiers=[
-    'Development Status :: 3 - Alpha',
+    'Development Status :: 4 - Beta',
     'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
     'Programming Language :: Python :: 3',
     'Operating System :: POSIX :: Linux',
@@ -40,8 +40,12 @@ where = ["."]
 include = ["em_health*"]
 
 [tool.setuptools.package-data]
-em_health = ["db_performance/*.sql", "views/*.sql",
-    "instruments.json", "db_migrations/*.sql"]
+em_health = [
+    "db_performance/*.sql",
+    "views/*/*.sql",
+    "instruments.json",
+    "db_migrations/*.sql"
+]
 
 [tool.setuptools]
 include-package-data = true
