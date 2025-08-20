@@ -383,133 +383,15 @@ class DatabaseManager(PgClient):
         if not servers:
             raise ValueError("No servers found in the public.instrument table")
 
+        from em_health.fdw_manager import FDWManager
+
         for instr_id, server in servers:
-            name = f"mssql_{instr_id}"
-            t_definitions = f"{name}_error_definitions"
-            t_notifications = f"{name}_error_notifications"
-
-            self.setup_fdw(str(server), name)
-            self.create_fdw_tables(name, t_definitions, t_notifications)
-            self.setup_import_fdw(name, instr_id, t_definitions, t_notifications)
-
-            jobname = f"uec.import_from_{name}"
+            fdw = FDWManager(self, "tds_fdw", server, instr_id)
+            job_name = fdw.setup_import_job_ms()
             self.run_query("SELECT add_job({jobname}, schedule_interval=>'1 hour')",
-                           strings={"jobname": jobname})
+                           strings={"jobname": job_name})
 
             logger.info("Scheduled UEC import job for instrument %s", instr_id)
-
-    def setup_fdw(self, server: str, name: str):
-        """ Create a foreign data wrapper for the MSSQL database. """
-        self.run_query("""
-            CREATE SERVER IF NOT EXISTS {name}
-            FOREIGN DATA WRAPPER tds_fdw
-            OPTIONS (
-                servername {server},
-                port '1433',
-                database 'DS'
-            );
-
-            CREATE USER MAPPING IF NOT EXISTS FOR public
-            SERVER {name}
-            OPTIONS (username {user}, password {password});
-        """, identifiers={"name": name}, strings={
-            "server": server,
-            "user": os.getenv("MSSQL_USER"),
-            "password": os.getenv("MSSQL_PASSWORD")
-        })
-
-    def create_fdw_tables(self, name: str, t_definitions: str, t_notifications: str):
-        """ Create tables for foreign data wrapper. """
-        self.run_query("""
-            CREATE SCHEMA IF NOT EXISTS fdw;
-            CREATE FOREIGN TABLE IF NOT EXISTS fdw.{t_definitions} (
-                ErrorDefinitionID INTEGER,
-                SubsystemID INTEGER,
-                Subsystem TEXT,
-                DeviceTypeID INTEGER,
-                DeviceType TEXT,
-                DeviceInstanceID INTEGER,
-                DeviceInstance TEXT,
-                ErrorCodeID INTEGER,
-                ErrorCode TEXT
-            ) SERVER {name}
-            OPTIONS (schema_name 'qry', table_name 'ErrorDefinitions');
-        """, {"t_definitions": t_definitions, "name": name})
-
-        self.run_query("""
-            CREATE FOREIGN TABLE IF NOT EXISTS fdw.{t_notifications} (
-                ErrorDtm TIMESTAMPTZ,
-                ErrorDefinitionID INTEGER,
-                MessageText TEXT
-            ) SERVER {name}
-            OPTIONS (schema_name 'qry', table_name 'ErrorNotifications');
-        """, {"t_notifications": t_notifications, "name": name})
-
-    def setup_import_fdw(self,
-                         name: str,
-                         instr_id: int,
-                         t_definitions: str,
-                         t_notifications: str):
-        """ Create a function to import data from the MS SQL database. """
-        job = f"import_from_{name}"
-        self.run_query("""
-            DROP FUNCTION IF EXISTS uec.{job};
-            CREATE FUNCTION uec.{job}(job_id INT DEFAULT NULL, config JSONB DEFAULT NULL)
-            RETURNS void
-            LANGUAGE plpgsql
-            AS $$
-            BEGIN
-               -- 1. Device types
-                INSERT INTO uec.device_type (DeviceTypeID, IdentifyingName)
-                SELECT DISTINCT fdw.DeviceTypeID, fdw.DeviceType
-                FROM fdw.{t_definitions} fdw
-                LEFT JOIN uec.device_type dt ON dt.DeviceTypeID = fdw.DeviceTypeID
-                WHERE dt.DeviceTypeID IS NULL;
-
-                -- 2. Device instances
-                INSERT INTO uec.device_instance (DeviceInstanceID, DeviceTypeID, IdentifyingName)
-                SELECT DISTINCT fdw.DeviceInstanceID, fdw.DeviceTypeID, fdw.DeviceInstance
-                FROM fdw.{t_definitions} fdw
-                LEFT JOIN uec.device_instance di
-                    ON di.DeviceInstanceID = fdw.DeviceInstanceID AND di.DeviceTypeID = fdw.DeviceTypeID
-                WHERE di.DeviceInstanceID IS NULL;
-
-                -- 3. Error codes
-                INSERT INTO uec.error_code (DeviceTypeID, ErrorCodeID, IdentifyingName)
-                SELECT DISTINCT fdw.DeviceTypeID, fdw.ErrorCodeID, fdw.ErrorCode
-                FROM fdw.{t_definitions} fdw
-                LEFT JOIN uec.error_code ec
-                    ON ec.DeviceTypeID = fdw.DeviceTypeID AND ec.ErrorCodeID = fdw.ErrorCodeID
-                WHERE ec.ErrorCodeID IS NULL;
-
-                -- 4. Subsystems
-                INSERT INTO uec.subsystem (SubsystemID, IdentifyingName)
-                SELECT DISTINCT fdw.SubsystemID, fdw.Subsystem
-                FROM fdw.{t_definitions} fdw
-                LEFT JOIN uec.subsystem ss ON ss.SubsystemID = fdw.SubsystemID
-                WHERE ss.SubsystemID IS NULL;
-
-                -- 5. Error definitions
-                INSERT INTO uec.error_definitions (ErrorDefinitionID, SubsystemID, DeviceTypeID, ErrorCodeID, DeviceInstanceID)
-                SELECT fdw.ErrorDefinitionID, fdw.SubsystemID, fdw.DeviceTypeID, fdw.ErrorCodeID, fdw.DeviceInstanceID
-                FROM fdw.{t_definitions} fdw
-                LEFT JOIN uec.error_definitions ed ON ed.ErrorDefinitionID = fdw.ErrorDefinitionID
-                WHERE ed.ErrorDefinitionID IS NULL;
-
-                -- 6. Error notifications
-                INSERT INTO uec.errors (Time, InstrumentID, ErrorID, MessageText)
-                SELECT
-                    fdw.ErrorDtm,
-                    {instr_id},
-                    ed.ErrorDefinitionID,
-                    fdw.MessageText
-                FROM fdw.{t_notifications} fdw
-                JOIN uec.error_definitions ed ON ed.ErrorDefinitionID = fdw.ErrorDefinitionID
-                ON CONFLICT (Time, InstrumentID, ErrorID) DO NOTHING;
-            END;
-            $$;
-        """, {"job": job, "t_definitions": t_definitions, "t_notifications": t_notifications},
-                       strings={"instr_id": instr_id})
 
 
 def main(dbname, action, instrument=None, date=None):

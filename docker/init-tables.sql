@@ -4,6 +4,7 @@ CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit;
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 CREATE EXTENSION IF NOT EXISTS pgstattuple;
 CREATE EXTENSION IF NOT EXISTS tds_fdw;
+CREATE EXTENSION IF NOT EXISTS postgres_fdw;
 
 
 -- public schema ----------------------------------------------------------------------------------
