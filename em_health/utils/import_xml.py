@@ -255,23 +255,23 @@ class ImportXML:
 def main(xml_fn, json_fn, nocopy):
     # Validate JSON file
     if not (os.path.exists(json_fn) and json_fn.endswith(".json")):
-        logger.error(f"Settings file '{json_fn}' not found or is not a .json file.")
+        logger.error("Settings file '%s' not found or is not a .json file.", json_fn)
         sys.exit(1)
 
     try:
         with open(json_fn, encoding="utf-8") as f:
             json_info = json.load(f)
             if not json_info:
-                logger.error(f"Settings file '{json_fn}' is empty or invalid.")
+                logger.error("Settings file '%s' is empty or invalid.", json_fn)
                 sys.exit(1)
             logger.debug("Loaded json_info: %s", json_info)
     except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse JSON file '{json_fn}': {e}")
+        logger.error("Failed to parse JSON file '%s': %s", json_fn, e)
         sys.exit(1)
 
     # Validate xml path
     if not os.path.exists(xml_fn):
-        logger.error(f"Input xml not found: {xml_fn}")
+        logger.error("Input xml not found: %s", xml_fn)
         sys.exit(1)
 
     _, extension = os.path.splitext(xml_fn)

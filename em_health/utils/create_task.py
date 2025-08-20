@@ -71,9 +71,10 @@ class CreateTaskCmd:
         with open(task_file, "w", encoding="utf-8") as f:
             f.write(cmd_content)
 
-        logger.info(f"Created file: {os.path.abspath(task_file)}\n"
+        logger.info("Created file: %s\n"
                     "Create a task in the Task Scheduler on a Windows system with Health Monitor "
-                    f"to run the above script every hour. See documentation for details.")
+                    "to run the above script every hour. See documentation for details.",
+                    {os.path.abspath(task_file)})
 
 
 def main(serial, exe, json_fn):

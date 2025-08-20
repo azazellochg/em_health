@@ -142,7 +142,7 @@ def main(input_path, json_fn, interval):
 
     # Validate JSON file
     if not (os.path.exists(json_fn) and json_fn.endswith(".json")):
-        logger.error(f"Settings file '{json_fn}' not found or is not a .json file.")
+        logger.error("Settings file '%s' not found or is not a .json file.", json_fn)
         sys.exit(1)
 
     watcher = FileWatcher(path=input_path, json_fn=json_fn, interval=interval)

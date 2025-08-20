@@ -117,13 +117,13 @@ class DatabaseManager(PgClient):
         logger.info("Updated public.enum_types table (%d rows)", self.cur.rowcount,
                     extra={"prefix": self.instrument_name})
 
-        # Fetch IDs for inserted enums
+        # Fetch IDs for ALL enums
         rows = self.run_query("SELECT id, name FROM public.enum_types WHERE instrument_id = %s",
                               values=(instrument_id,),
                               mode="fetchall")
         enum_name_to_id = {name: eid for eid, name in rows}
 
-        # Batch insert all enum_values
+        # Batch insert enum_values
         self.cur.executemany("""
             INSERT INTO public.enum_values (enum_id, member_name, value)
             VALUES (%s, %s, %s)
@@ -368,7 +368,7 @@ class DatabaseManager(PgClient):
         elif current_ver == latest_ver:
             logger.info("Database schema is up-to-date")
         else:
-            raise ValueError("Database version is higher than expected")
+            raise ValueError("Schema version is higher than expected")
 
     def import_uec(self):
         if any(os.getenv(var) in ["None", "", None] for var in ["MSSQL_USER", "MSSQL_PASSWORD"]):
@@ -391,7 +391,10 @@ class DatabaseManager(PgClient):
             self.setup_fdw(str(server), name)
             self.create_fdw_tables(name, t_definitions, t_notifications)
             self.setup_import_fdw(name, instr_id, t_definitions, t_notifications)
-            self.run_query(f"SELECT add_job('uec.import_from_{name}', schedule_interval=>'1 hour')")
+
+            jobname = f"uec.import_from_{name}"
+            self.run_query("SELECT add_job({jobname}, schedule_interval=>'1 hour')",
+                           strings={"jobname": jobname})
 
             logger.info("Scheduled UEC import job for instrument %s", instr_id)
 
@@ -417,7 +420,7 @@ class DatabaseManager(PgClient):
 
     def create_fdw_tables(self, name: str, t_definitions: str, t_notifications: str):
         """ Create tables for foreign data wrapper. """
-        self.run_query(f"""
+        self.run_query("""
             CREATE SCHEMA IF NOT EXISTS fdw;
             CREATE FOREIGN TABLE IF NOT EXISTS fdw.{t_definitions} (
                 ErrorDefinitionID INTEGER,
@@ -433,7 +436,7 @@ class DatabaseManager(PgClient):
             OPTIONS (schema_name 'qry', table_name 'ErrorDefinitions');
         """, {"t_definitions": t_definitions, "name": name})
 
-        self.run_query(f"""
+        self.run_query("""
             CREATE FOREIGN TABLE IF NOT EXISTS fdw.{t_notifications} (
                 ErrorDtm TIMESTAMPTZ,
                 ErrorDefinitionID INTEGER,
@@ -449,7 +452,7 @@ class DatabaseManager(PgClient):
                          t_notifications: str):
         """ Create a function to import data from the MS SQL database. """
         job = f"import_from_{name}"
-        self.run_query(f"""
+        self.run_query("""
             DROP FUNCTION IF EXISTS uec.{job};
             CREATE FUNCTION uec.{job}(job_id INT DEFAULT NULL, config JSONB DEFAULT NULL)
             RETURNS void
