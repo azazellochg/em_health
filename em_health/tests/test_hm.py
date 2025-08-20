@@ -161,27 +161,27 @@ class TestXMLImport(unittest.TestCase):
 
         with DatabaseManager(parser.db_name) as dbm:
             # first import
-            instrument_id, instrument_name = dbm.add_instrument(instr_dict)
-            enum_ids = dbm.add_enumerations(instrument_id, parser.enum_values, instrument_name)
-            dbm.add_parameters(instrument_id, parser.params, enum_ids, instrument_name)
+            instrument_id = dbm.add_instrument(instr_dict)
+            enum_ids = dbm.add_enumerations(instrument_id, parser.enum_values)
+            dbm.add_parameters(instrument_id, parser.params, enum_ids)
 
             # convert to list since we need to iterate twice
-            datapoints = list(parser.parse_values(instrument_id, parser.params, instrument_name))
+            datapoints = list(parser.parse_values(instrument_id, parser.params))
             self.check_datapoints(datapoints)
 
-            dbm.write_data(datapoints, instrument_name)
+            dbm.write_data(datapoints)
             self.check_db(dbm, instrument_id)
 
             # modify enums and params
             self.modify_input(parser.enum_values, parser.params)
 
             # second import
-            instrument_id, instrument_name = dbm.add_instrument(instr_dict)
-            enum_ids = dbm.add_enumerations(instrument_id, parser.enum_values, instrument_name)
-            dbm.add_parameters(instrument_id, parser.params, enum_ids, instrument_name)
+            instrument_id = dbm.add_instrument(instr_dict)
+            enum_ids = dbm.add_enumerations(instrument_id, parser.enum_values)
+            dbm.add_parameters(instrument_id, parser.params, enum_ids)
 
             self.check_datapoints(datapoints)
-            dbm.write_data(datapoints, instrument_name, nocopy=True)
+            dbm.write_data(datapoints, nocopy=True)
             self.check_db2(dbm, instrument_id)
 
             # clean-up

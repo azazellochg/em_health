@@ -33,7 +33,7 @@ import xml.etree.ElementTree as ET
 from typing import Iterable
 
 from em_health.db_manager import DatabaseManager
-from em_health.utils.logs import DEBUG, logger
+from em_health.utils.logs import logger
 
 
 NS = {'ns': 'HealthMonitorExport http://schemas.fei.com/HealthMonitor/Export/2009/07'}
@@ -50,6 +50,7 @@ class ImportXML:
         self.path = path
         self.json_info = json_info
         self.microscope = None
+        self.instrument_name = None
         self.db_name = None
         self.enum_values: dict[str, dict] = {}
         self.params: dict[int, dict] = {}
@@ -72,6 +73,7 @@ class ImportXML:
         for m in self.json_info:
             if m.get("instrument") == instr_name:
                 self.microscope = m
+                self.instrument_name = m.get("name")
                 self.db_name = m.get("type")
                 if self.db_name not in ["tem", "sem"]:
                     raise ValueError(f"Database name {self.db_name} is not recognized")
@@ -81,10 +83,15 @@ class ImportXML:
 
     def parse_enumerations(self) -> None:
         """ Parse enumerations from xml. """
+        get_instrument = True
         for event, elem in self.context:
             if self.__match(elem, "Enumerations"):
                 for enum_elem in elem.findall('ns:Enumeration', namespaces=NS):
                     enum_name = enum_elem.get("Name")
+                    if get_instrument:
+                        instr_name = enum_elem.get("Instrument")
+                        self.set_microscope(instr_name)
+                        get_instrument = False
                     self.enum_values[enum_name] = {}
 
                     for literal in enum_elem.findall('ns:Literal', namespaces=NS):
@@ -95,10 +102,9 @@ class ImportXML:
                 elem.clear()
                 break
 
-        if DEBUG:
-            logger.debug("Parsed enumerations:")
-            for e in self.enum_values.items():
-                logger.debug(e)
+        logger.info("Found %d enumerations", len(self.enum_values), extra={"prefix": self.instrument_name})
+        logger.debug("Parsed enumerations:", extra={"prefix": self.instrument_name})
+        logger.debug(json.dumps(self.enum_values, sort_keys=True, indent=2))
 
     def parse_parameters(self) -> None:
         """ Parse parameters from xml. """
@@ -113,9 +119,6 @@ class ImportXML:
             if self.__match(elem, "Instruments"):
 
                 for instrument in elem.findall('ns:Instrument', namespaces=NS):
-                    instr_name = instrument.get("Name")
-                    self.set_microscope(instr_name)
-
                     for subsystem in instrument.findall('ns:Component', namespaces=NS):
                         subsystem_name = subsystem.get("Name")
 
@@ -146,33 +149,30 @@ class ImportXML:
                 elem.clear()
                 break
 
-        if DEBUG:
-            logger.debug("Parsed parameters:")
-            for p in sorted(self.params.keys()):
-                logger.debug(f"{p}: {self.params[p]}")
+        logger.info("Found %d parameters", len(self.params), extra={"prefix": self.instrument_name})
+        logger.debug("Parsed parameters:", extra={"prefix": self.instrument_name})
+        logger.debug(json.dumps(self.params, sort_keys=True, indent=2))
 
     def parse_values(self,
                      instr_id: int,
-                     params_dict: dict,
-                     instrument_name: str) -> Iterable[tuple]:
+                     params_dict: dict) -> Iterable[tuple]:
         """ Parse parameters values from XML.
         :param instr_id: instrument id from the instrument table
         :param params_dict: input parameters dict, here only used to fetch param type
-        :param instrument_name: instrument name
         :return an Iterator of tuples
         """
         for event, elem in self.context:
             if self.__match(elem, "Values"):
                 start, end = elem.get("Start"), elem.get("End")
                 logger.info("Parsed values from %s to %s", start, end,
-                            extra={"prefix": instrument_name})
+                            extra={"prefix": self.instrument_name})
 
             elif self.__match(elem, "ValueData"):
                 param_id = int(elem.get("ParameterID"))
                 param_dict = params_dict.get(param_id)
                 if param_dict is None:
                     logger.error("Parameter ID %d not found, skipping", param_id,
-                                 extra={"prefix": instrument_name})
+                                 extra={"prefix": self.instrument_name})
                     elem.clear()  # clear skipped elements
                     continue
                 value_type = param_dict["value_type"]
@@ -289,11 +289,11 @@ def main(xml_fn, json_fn, nocopy):
         instr_dict = xmlparser.get_microscope_dict()
 
         with DatabaseManager(xmlparser.db_name) as dbm:
-            instrument_id, instrument_name = dbm.add_instrument(instr_dict)
-            enum_ids = dbm.add_enumerations(instrument_id, xmlparser.enum_values, instrument_name)
-            dbm.add_parameters(instrument_id, xmlparser.params, enum_ids, instrument_name)
-            datapoints = xmlparser.parse_values(instrument_id, xmlparser.params, instrument_name)
-            dbm.write_data(datapoints, instrument_name, nocopy=nocopy)
+            instrument_id = dbm.add_instrument(instr_dict)
+            enum_ids = dbm.add_enumerations(instrument_id, xmlparser.enum_values)
+            dbm.add_parameters(instrument_id, xmlparser.params, enum_ids)
+            datapoints = xmlparser.parse_values(instrument_id, xmlparser.params)
+            dbm.write_data(datapoints, nocopy=nocopy)
     else:
         logger.error("File %s has wrong format", xml_fn)
         sys.exit(1)

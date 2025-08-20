@@ -39,6 +39,10 @@ class DatabaseManager(PgClient):
         with DatabaseManager(dbname) as db:
             ...
     """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.instrument_name = None
+
     def clean_instrument_data(self,
                               instrument_serial: int,
                               since: Optional[str] = None) -> None:
@@ -68,13 +72,12 @@ class DatabaseManager(PgClient):
 
         self.conn.commit()
 
-    def add_instrument(self, instr_dict: dict) -> tuple[int, str]:
+    def add_instrument(self, instr_dict: dict) -> int:
         """ Populate the instrument metadata table.
         :param instr_dict: input dict with microscope metadata
-        :return: id and name of the instrument
-        We always return id for either new or existing instrument
+        :return: id and of the new or existing instrument
         """
-        instrument_name = instr_dict["name"]
+        self.instrument_name = instr_dict["name"]
         instrument_id = self.run_query("""
             INSERT INTO instruments (instrument, serial, model, name, template, server)
             VALUES (%s, %s, %s, %s, %s, %s)
@@ -84,29 +87,24 @@ class DatabaseManager(PgClient):
             instr_dict["instrument"],
             instr_dict["serial"],
             instr_dict["model"],
-            instrument_name,
+            self.instrument_name,
             instr_dict["template"],
             instr_dict["server"]
         ), mode="fetchone")[0]
 
-        logger.info("Updated instruments table", extra={"prefix": instrument_name})
+        logger.info("Updated public.instruments table", extra={"prefix": self.instrument_name})
 
-        return instrument_id, instrument_name
+        return instrument_id
 
     def add_enumerations(self,
                          instrument_id: int,
-                         enums_dict: dict,
-                         instrument_name: str) -> dict[str, int]:
+                         enums_dict: dict) -> dict[str, int]:
         """ Populate the enumerations for TEM or SEM.
         Each enum value is stored as a separate SQL row.
         :param instrument_id: Instrument id
         :param enums_dict: input dict
-        :param instrument_name: Instrument name
         :return a dict {enum_types.name: enum_types.id}
         """
-        logger.info("Found %d enumerations", len(enums_dict),
-                    extra={"prefix": instrument_name})
-
         # Batch insert enum_types
         self.cur.executemany("""
             INSERT INTO public.enum_types (instrument_id, name)
@@ -116,6 +114,8 @@ class DatabaseManager(PgClient):
             (instrument_id, enum_name)
             for enum_name in enums_dict.keys()
         ))
+        logger.info("Updated public.enum_types table (%d rows)", self.cur.rowcount,
+                    extra={"prefix": self.instrument_name})
 
         # Fetch IDs for inserted enums
         rows = self.run_query("SELECT id, name FROM public.enum_types WHERE instrument_id = %s",
@@ -133,30 +133,22 @@ class DatabaseManager(PgClient):
             for member_name, value in data.items()
         ))
 
-        row = self.run_query("SELECT COUNT(*) FROM public.enum_types WHERE instrument_id = %s",
-                             values=(instrument_id,),
-                             mode="fetchone")
-        row_count = row[0] if row else None
+        logger.info("Updated public.enum_values table (%d rows)", self.cur.rowcount,
+                    extra={"prefix": self.instrument_name})
+
         self.conn.commit()
-        logger.info("Updated enum_types table (%d rows)", row_count,
-                    extra={"prefix": instrument_name})
 
         return enum_name_to_id
 
     def add_parameters(self,
                        instrument_id: int,
                        params_dict: dict,
-                       enums_ids: dict,
-                       instrument_name: str) -> None:
+                       enums_ids: dict) -> None:
         """ Populate parameters table with associated metadata.
         :param instrument_id: Instrument id
         :param params_dict: input params dict
         :param enums_ids: input enums dict
-        :param instrument_name: Instrument name
         """
-        logger.info("Found %d parameters", len(params_dict),
-                    extra={"prefix": instrument_name})
-
         insert_sql = """
             INSERT INTO public.parameters (
                 instrument_id, param_id,
@@ -188,19 +180,13 @@ class DatabaseManager(PgClient):
         ]
 
         self.cur.executemany(insert_sql, data_to_insert)
-
-        row = self.run_query("SELECT COUNT(*) FROM public.parameters WHERE instrument_id = %s",
-                             values=(instrument_id,),
-                             mode="fetchone")
-        row_count = row[0] if row else None
         self.conn.commit()
-        logger.info("Updated parameters table (%d rows)", row_count,
-                    extra={"prefix": instrument_name})
+        logger.info("Updated public.parameters table (%d rows)", self.cur.rowcount,
+                    extra={"prefix": self.instrument_name})
 
     #@profile
     def write_data(self,
                    rows: Iterable[tuple],
-                   instrument_name: str,
                    nocopy: bool = False) -> None:
         """ Write raw values to the data table using COPY and a pre-serialized text buffer.
         We do not sort input data, since:
@@ -208,12 +194,11 @@ class DatabaseManager(PgClient):
          - TimescaleDB data table has chunking with compression, chunks will be sorted by time
 
         :param rows: Iterable of tuples
-        :param instrument_name: Instrument name
         :param nocopy: If True, revert to executemany with duplicate handling
         """
         if nocopy:
             logger.info("No-copy mode. Duplicate entries are ignored.",
-                        extra={"prefix": instrument_name})
+                        extra={"prefix": self.instrument_name})
             query = """
                 INSERT INTO public.data (time, instrument_id, param_id, value_num, value_text)
                 VALUES (%s, %s, %s, %s, %s)
@@ -221,6 +206,7 @@ class DatabaseManager(PgClient):
             """
             self.cur.executemany(query, rows)
             self.conn.commit()
+
         else:
             query = """
                 COPY public.data (time, instrument_id, param_id, value_num, value_text)
@@ -258,10 +244,11 @@ class DatabaseManager(PgClient):
                         copy.write(chunk)
             except psycopg.errors.UniqueViolation as e:
                 logger.error("Duplicate entries found: %s", e,
-                             extra={"prefix": instrument_name})
+                             extra={"prefix": self.instrument_name})
                 raise
 
-        logger.info("Updated data table", extra={"prefix": instrument_name})
+        logger.info("Updated public.data table (%d rows)", self.cur.rowcount,
+                    extra={"prefix": self.instrument_name})
 
     def drop_mview(self, name: str, is_cagg: bool = False) -> None:
         """ Delete a materialized view. """
