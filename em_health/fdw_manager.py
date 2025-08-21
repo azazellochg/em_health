@@ -133,7 +133,7 @@ class FDWManager:
         """ Create tables for Postgres FDW. """
         self.dbm.run_query("""
             IMPORT FOREIGN SCHEMA core
-            LIMIT TO (event_property, event_property_type, event_type, parameter_type)
+            LIMIT TO (event_property, event_property_type, event_type, parameter_type, instrument_event_config)
             FROM SERVER {name}
             INTO {schema};
         """, {"schema": self.fdw_schema, "name": self.name})
@@ -218,22 +218,122 @@ class FDWManager:
 
         return job_name
 
-    def query_pg_events(self, since: str = None):
-        """ Query events from Postgres FDW. """
+    def query_pg_events(self):
+        """ Query new events from Postgres FDW. """
         return self.dbm.run_query("""
             SELECT
                 event_property_type_id AS param_id,
                 event_dtm AS time,
-                value_float,
-                value_int,
-                value_string,
-                value_bool
+                COALESCE(
+                    value_float,
+                    value_int::double precision,
+                    value_bool::int::double precision
+                ) AS value_num,
+                value_string AS value_text
             FROM {schema}.event_property
-            WHERE event_dtm > {since}
-        """, {"schema": self.fdw_schema}, strings={"since": since}, mode="fetchall")
+            WHERE event_dtm > COALESCE(
+                (SELECT MAX(time) FROM public.data WHERE instrument_id = {instr_id}),
+                '1900-01-01'
+            )
+        """,
+                                  {"schema": self.fdw_schema},
+                                  strings={"instr_id": self.instr_id},
+                                  mode="fetchall")
+
+    def query_pg_enums(self):
+        """ Query enumerations from Postgres. """
+
+        # Get param_id:enum_name mapping
+        params_with_enums = self.dbm.run_query("""
+            -- Get config values for existing parameters
+            WITH config_ids AS (
+                SELECT DISTINCT upd_config_id AS config_id
+                FROM {schema}.event_property_type
+                WHERE is_active = true
+            ),
+
+            config_xml AS (
+                SELECT cfg.config_id, iec.config
+                FROM config_ids cfg
+                JOIN {schema}.instrument_event_config iec
+                    ON cfg.config_id = iec.instrument_event_config_id
+            ),
+
+            -- Clean invalid namespace attributes from XML
+            cleaned AS (
+                SELECT
+                    config_id,
+                    regexp_replace(
+                        config::text,
+                        'xmlns:nil="[^"]*"',
+                        '',
+                        'g'
+                    )::xml AS config
+                FROM config_xml
+            )
+
+            -- Extract all Parm nodes with Enum attribute
+            SELECT DISTINCT 
+                (xpath('/Parm/@ID', unnest(xpath('//Instrument//Parm[@Enum]', config))))[1]::text::int AS param_id,
+                (xpath('/Parm/@Enum', unnest(xpath('//Instrument//Parm[@Enum]', config))))[1]::text AS enum_name
+            FROM cleaned
+            ORDER BY param_id
+        """, {"schema": self.fdw_schema}, mode="fetchall")
+
+        # Get enum_name:member_name:value mapping
+        enum_values = self.dbm.run_query("""
+            WITH config_ids AS (
+                SELECT DISTINCT upd_config_id AS config_id
+                FROM {schema}.event_property_type
+                WHERE is_active = true
+            ),
+
+            config_xml AS (
+                SELECT cfg.config_id, iec.config
+                FROM config_ids cfg
+                JOIN {schema}.instrument_event_config iec
+                  ON cfg.config_id = iec.instrument_event_config_id
+            ),
+
+            cleaned AS (
+                SELECT
+                    config_id,
+                    regexp_replace(
+                        config::text,
+                        'xmlns:nil="[^"]*"',
+                        '',
+                        'g'
+                    )::xml AS config
+                FROM config_xml
+            ),
+
+            -- Unnest Enums cleanly
+            enum_nodes AS (
+                SELECT
+                    unnest(xpath('//Enum', config)) AS enum_node
+                FROM cleaned
+            ),
+
+            -- Extract values from each Enum node
+            enums AS (
+                SELECT
+                    (xpath('/Enum/@Name', enum_node))[1]::text AS name,
+                    unnest(xpath('/Enum/Value', enum_node)) AS value_node
+                FROM enum_nodes
+            )
+
+            SELECT DISTINCT
+                name,
+                (xpath('Value/@Name', value_node))[1]::text AS member_name,
+                (xpath('Value/@ID', value_node))[1]::text::int AS value
+            FROM enums
+            ORDER BY name, value
+        """, {"schema": self.fdw_schema}, mode="fetchall")
+
+        return params_with_enums, enum_values
 
     def query_pg_parameters(self):
-        """ Query parameters data from Postgres.
+        """ Query new parameters data from Postgres.
         A single event (id/name) can be used by multiple parameters (id/name).
         event_property_type_id is unique per instrument
         ept.event_type_id+ept.identifying_name must be unique
@@ -248,17 +348,17 @@ class FDWManager:
                 ept.display_units AS display_unit,
                 ept.storage_units AS storage_unit,
                 pt.identifying_name AS value_type,
-                ept.absolute_min,
-                ept.absolute_max,
+                ept.absolute_min AS abs_min,
+                ept.absolute_max AS abs_max,
                 ept.caution_min,
                 ept.caution_max,
                 ept.warning_min,
                 ept.warning_max,
                 ept.critical_min,
                 ept.critical_max,
-                ept.is_active AS is_active
             FROM {schema}.event_property_type ept
             JOIN {schema}.parameter_type pt ON pt.parameter_type_id = ept.parameter_type_id
             JOIN {schema}.event_type et ON et.event_type_id = ept.event_type_id
+            WHERE ept.is_active = true
             ORDER BY ept.event_property_type_id
         """, {"schema": self.fdw_schema}, mode="fetchall")
