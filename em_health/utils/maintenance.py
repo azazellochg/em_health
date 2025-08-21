@@ -31,25 +31,28 @@ from pathlib import Path
 
 from em_health.utils.logs import logger
 
-DOCKER_COMPOSE_FILE = "docker/compose.yaml"
+DOCKER_COMPOSE_FILE = "compose.yaml"
 PG_CONTAINER = "timescaledb"
 GRAFANA_CONTAINER = "grafana"
-BACKUP_VOLUME = "backups"
-GRAFANA_VOLUME = "grafana-storage"
-BACKUP_PATH = "/backups"
+BACKUP_PATH = "backups"
+
+
+def chdir_docker_dir():
+    """ Chdir to the em_health/docker. """
+    package_root = Path(__file__).resolve().parents[2] / "docker"
+    os.chdir(package_root)
 
 
 def run_command(command: str, capture_output=False, check=True):
     """Run a shell command with logging."""
-    logger.debug("Running command: %s", command)
+    logger.info("Running command: %s", command)
     return subprocess.run(command, shell=True, check=check,
                           capture_output=capture_output, text=True)
 
 
 def update():
     """Update Docker containers and migrate db."""
-    package_root = Path(__file__).resolve().parents[2]
-    os.chdir(package_root)
+    chdir_docker_dir()
 
     commands = [
         f"docker compose -f {DOCKER_COMPOSE_FILE} down",
@@ -68,43 +71,37 @@ def update():
     logger.info("Finished updating")
 
 
-def fix_volume_permissions():
-    """Ensure backup volume permissions are correct."""
-    run_command(f"docker run --rm -v {BACKUP_VOLUME}:{BACKUP_PATH} busybox sh -c 'chmod a+rwx {BACKUP_PATH}'")
-
-
 def backup(dbname="tem"):
     """Backup TimescaleDB and Grafana."""
-    fix_volume_permissions()
+    chdir_docker_dir()
     timestamp = datetime.now().strftime("%d%m%Y_%H%M%S")
 
-    pg_backup = f"{BACKUP_PATH}/pg_{dbname}_{timestamp}.dump"
-    grafana_backup = f"{BACKUP_PATH}/grafana_{timestamp}.db"
+    pg_backup = Path(BACKUP_PATH) / f"pg_{dbname}_{timestamp}.dump"
+    grafana_backup = Path(BACKUP_PATH) / f"grafana_{timestamp}.db"
 
-    logger.info("Backing up TimescaleDB '%s' to %s", dbname, pg_backup)
-    run_command(f"docker exec {PG_CONTAINER} pg_dump -Fc -d {dbname} -f {pg_backup}")
+    logger.info("Backing up TimescaleDB '%s' to %s", dbname, pg_backup.resolve())
+    run_command(f"docker exec {PG_CONTAINER} pg_dump -Fc -d {dbname} -f /{pg_backup}")
 
-    logger.info("Backing up Grafana DB to %s", grafana_backup)
-    run_command(f"docker exec {GRAFANA_CONTAINER} cp -p /var/lib/grafana/grafana.db {grafana_backup}")
+    logger.info("Backing up Grafana DB to %s", grafana_backup.resolve())
+    run_command(f"docker cp -a {GRAFANA_CONTAINER}:/var/lib/grafana/grafana.db {grafana_backup}")
 
 
 def list_backups():
     """Return a list of backup files."""
-    result = run_command(f"docker exec {PG_CONTAINER} ls {BACKUP_PATH}",
-                         capture_output=True)
-    return result.stdout.strip().splitlines()
+    chdir_docker_dir()
+    files = [f for f in Path(BACKUP_PATH).iterdir() if f.suffix in (".db", ".dump")]
+    return files
 
 
-def restore(dbname, backup_file):
+def restore(dbname, backup_file: Path):
     """Restore TimescaleDB or Grafana from backup file."""
-    fix_volume_permissions()
-
-    if backup_file.endswith(".db"):
+    chdir_docker_dir()
+    print(os.getcwd())
+    if backup_file.suffix == ".db":
         logger.info("Restoring Grafana DB from %s", backup_file)
         commands = [
             f"docker stop {GRAFANA_CONTAINER}",
-            f"docker run --rm -v {GRAFANA_VOLUME}:/var/lib/grafana -v {BACKUP_VOLUME}:{BACKUP_PATH} "
-            f"busybox sh -c 'cp -p {BACKUP_PATH}/{backup_file} /var/lib/grafana/grafana.db'",
+            f"docker cp -a {backup_file} {GRAFANA_CONTAINER}:/var/lib/grafana/grafana.db",
             f"docker start {GRAFANA_CONTAINER}"
         ]
     else:
@@ -115,7 +112,7 @@ def restore(dbname, backup_file):
         prefix = f"docker exec {PG_CONTAINER}"
         commands = [
             f"{prefix} psql -d {dbname} -c 'SELECT timescaledb_pre_restore();'",
-            f"{prefix} pg_restore -Fc -d {dbname} {BACKUP_PATH}/{backup_file}",
+            f"{prefix} pg_restore -Fc -d {dbname} /{backup_file}",
             f"{prefix} psql -d {dbname} -c 'SELECT timescaledb_post_restore();'"
         ]
 
@@ -128,7 +125,7 @@ def restore(dbname, backup_file):
 def main(dbname, action):
     """Run update/backup/restore interactively."""
     if action == "update":
-        logger.info("We assume you have already run 'pip install em_heath'")
+        logger.info("We assume you have already run 'pip install em_health'")
         confirm = input("Do you want to backup before updating? (Y/N): ").strip().lower()
         if confirm.startswith("y"):
             backup(dbname)

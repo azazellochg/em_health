@@ -15,7 +15,7 @@ services:
       - pgdata:/home/postgres/pgdata
       - ./init-tables.sql:/docker-entrypoint-initdb.d/init-tables.sql:ro
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
-      - backups:/backups
+      - ./backups:/backups
     command: >
       postgres
       -c shared_preload_libraries=timescaledb,pg_stat_statements,auto_explain
@@ -72,7 +72,7 @@ services:
     volumes:
       - grafana-storage:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
-      - backups:/backups
+      - ./backups:/backups
     tmpfs:
       - /var/lib/grafana/plugins   # keeps plugins in container only
 

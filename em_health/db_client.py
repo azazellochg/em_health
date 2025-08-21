@@ -139,59 +139,10 @@ class PgClient(BaseDBClient):
         self.conn.commit()
 
     def clean_db(self) -> None:
-        """Erase all public/uec tables, materialized views, and CAGGs in the database."""
-
-        def drop_objects(query: str, object_type: str, drop_kind: str, schema_from_query: bool = False):
-            """Fetch object names (and optionally schema) from query and drop them."""
-            objects = self.run_query(query, mode="fetchall")
-            for row in objects:
-                if schema_from_query:
-                    tbl_schema, name = row
-                else:
-                    tbl_schema = "public"
-                    name = row[0]
-                self.run_query(
-                    "DROP {kind} IF EXISTS {schema}.{name} CASCADE",
-                    identifiers={"schema": tbl_schema, "name": name},
-                    strings={"kind": drop_kind},
-                )
-                logger.info("Dropped %s: %s.%s", object_type, tbl_schema, name)
-
-        # Drop continuous aggregates (CAGGs) in public
-        drop_objects(
-            """
-            SELECT view_name
-            FROM timescaledb_information.continuous_aggregates
-            WHERE view_schema = 'public'
-            """,
-            object_type="CAGG",
-            drop_kind="MATERIALIZED VIEW"
-        )
-
-        # Drop materialized views in public
-        drop_objects(
-            """
-            SELECT matviewname
-            FROM pg_matviews
-            WHERE schemaname = 'public'
-            """,
-            object_type="materialized view",
-            drop_kind="MATERIALIZED VIEW"
-        )
-
-        # Drop tables in public and uec schemas together
-        drop_objects(
-            """
-            SELECT schemaname, tablename
-            FROM pg_tables
-            WHERE schemaname IN ('public', 'uec')
-            """,
-            object_type="table",
-            drop_kind="TABLE",
-            schema_from_query=True
-        )
-
-        self.conn.commit()
+        """Erase all tables, materialized views, CAGGs and functions in the database."""
+        fn = self.get_path("clean-db.sql", folder="../docker")
+        self.execute_file(fn)
+        logger.info("Cleaned all objects in the database")
 
     def create_tables(self) -> None:
         """ Create tables in the database. """
