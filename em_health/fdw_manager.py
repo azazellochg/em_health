@@ -149,52 +149,67 @@ class FDWManager:
             LANGUAGE plpgsql
             AS $$
             BEGIN
-               -- 1. Device types
-                INSERT INTO uec.device_type (DeviceTypeID, IdentifyingName)
-                SELECT DISTINCT fdw.DeviceTypeID, fdw.DeviceType
-                FROM {schema}.error_definitions fdw
-                LEFT JOIN uec.device_type dt ON dt.DeviceTypeID = fdw.DeviceTypeID
-                WHERE dt.DeviceTypeID IS NULL;
+                -- Get new error definitions
+                WITH new_error_types AS (
+                    SELECT *
+                    FROM {schema}.error_definitions edf
+                    WHERE edf.ErrorDefinitionID > COALESCE((SELECT MAX(ErrorDefinitionID) FROM uec.error_definitions), 0)
+                )
 
-                -- 2. Device instances
-                INSERT INTO uec.device_instance (DeviceInstanceID, DeviceTypeID, IdentifyingName)
-                SELECT DISTINCT fdw.DeviceInstanceID, fdw.DeviceTypeID, fdw.DeviceInstance
-                FROM {schema}.error_definitions fdw
-                LEFT JOIN uec.device_instance di
-                    ON di.DeviceInstanceID = fdw.DeviceInstanceID AND di.DeviceTypeID = fdw.DeviceTypeID
-                WHERE di.DeviceInstanceID IS NULL;
-
-                -- 3. Error codes
-                INSERT INTO uec.error_code (DeviceTypeID, ErrorCodeID, IdentifyingName)
-                SELECT DISTINCT fdw.DeviceTypeID, fdw.ErrorCodeID, fdw.ErrorCode
-                FROM {schema}.error_definitions fdw
-                LEFT JOIN uec.error_code ec
-                    ON ec.DeviceTypeID = fdw.DeviceTypeID AND ec.ErrorCodeID = fdw.ErrorCodeID
-                WHERE ec.ErrorCodeID IS NULL;
-
-                -- 4. Subsystems
+               -- Subsystems
                 INSERT INTO uec.subsystem (SubsystemID, IdentifyingName)
-                SELECT DISTINCT fdw.SubsystemID, fdw.Subsystem
-                FROM {schema}.error_definitions fdw
-                LEFT JOIN uec.subsystem ss ON ss.SubsystemID = fdw.SubsystemID
-                WHERE ss.SubsystemID IS NULL;
+                SELECT DISTINCT SubsystemID, Subsystem
+                FROM new_error_types
+                ON CONFLICT (SubsystemID) DO NOTHING;
 
-                -- 5. Error definitions
-                INSERT INTO uec.error_definitions (ErrorDefinitionID, SubsystemID, DeviceTypeID, ErrorCodeID, DeviceInstanceID)
-                SELECT fdw.ErrorDefinitionID, fdw.SubsystemID, fdw.DeviceTypeID, fdw.ErrorCodeID, fdw.DeviceInstanceID
-                FROM {schema}.error_definitions fdw
-                LEFT JOIN uec.error_definitions ed ON ed.ErrorDefinitionID = fdw.ErrorDefinitionID
-                WHERE ed.ErrorDefinitionID IS NULL;
+                -- Device Types
+                INSERT INTO uec.device_type (DeviceTypeID, IdentifyingName)
+                SELECT DISTINCT DeviceTypeID, DeviceType
+                FROM new_error_types
+                ON CONFLICT (DeviceTypeID) DO NOTHING;
 
-                -- 6. Error notifications
+                -- Device Instances
+                INSERT INTO uec.device_instance (DeviceInstanceID, DeviceTypeID, IdentifyingName)
+                SELECT DISTINCT DeviceInstanceID, DeviceTypeID, DeviceInstance
+                FROM new_error_types
+                ON CONFLICT (DeviceInstanceID, DeviceTypeID) DO NOTHING;
+
+                -- Error Codes
+                INSERT INTO uec.error_code (DeviceTypeID, ErrorCodeID, IdentifyingName)
+                SELECT DISTINCT DeviceTypeID, ErrorCodeID, ErrorCode
+                FROM new_error_types
+                ON CONFLICT (DeviceTypeID, ErrorCodeID) DO NOTHING;
+
+                -- Error definitions
+                INSERT INTO uec.error_definitions (
+                    ErrorDefinitionID,
+                    SubsystemID,
+                    DeviceTypeID,
+                    ErrorCodeID,
+                    DeviceInstanceID
+                )
+                SELECT
+                    n.ErrorDefinitionID,
+                    n.SubsystemID,
+                    n.DeviceTypeID,
+                    n.ErrorCodeID,
+                    n.DeviceInstanceID
+                FROM new_error_types n
+                ON CONFLICT (ErrorDefinitionID) DO NOTHING;
+
+                -- Error notifications
                 INSERT INTO uec.errors (Time, InstrumentID, ErrorID, MessageText)
                 SELECT
-                    fdw.ErrorDtm,
+                    f.ErrorDtm,
                     {instr_id},
                     ed.ErrorDefinitionID,
-                    fdw.MessageText
-                FROM {schema}.error_notifications fdw
-                JOIN uec.error_definitions ed ON ed.ErrorDefinitionID = fdw.ErrorDefinitionID
+                    f.MessageText
+                FROM {schema}.error_notifications en
+                JOIN uec.error_definitions ed ON ed.ErrorDefinitionID = en.ErrorDefinitionID
+                WHERE en.ErrorDtm > COALESCE(
+                    (SELECT MAX(Time) FROM uec.errors WHERE InstrumentID = {instr_id}),
+                    '1900-01-01'
+                )
                 ON CONFLICT (Time, InstrumentID, ErrorID) DO NOTHING;
             END;
             $$;

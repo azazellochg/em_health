@@ -155,13 +155,13 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO grafana;
 -- uec tables -------------------------------------------------------------------------------------
 CREATE SCHEMA IF NOT EXISTS uec;
 
--- Creating uec.device_type'
+-- Creating uec.device_type
 CREATE TABLE IF NOT EXISTS uec.device_type (
                                                DeviceTypeID INTEGER PRIMARY KEY,
                                                IdentifyingName TEXT NOT NULL UNIQUE
 );
 
--- Creating uec.device_instance'
+-- Creating uec.device_instance
 CREATE TABLE IF NOT EXISTS uec.device_instance (
                                                    DeviceInstanceID INTEGER NOT NULL,
                                                    DeviceTypeID INTEGER NOT NULL REFERENCES uec.device_type(DeviceTypeID),
@@ -170,7 +170,7 @@ CREATE TABLE IF NOT EXISTS uec.device_instance (
                                                    UNIQUE (DeviceTypeID, IdentifyingName)
 );
 
--- Creating uec.error_code'
+-- Creating uec.error_code
 CREATE TABLE IF NOT EXISTS uec.error_code (
                                               DeviceTypeID INTEGER NOT NULL REFERENCES uec.device_type(DeviceTypeID),
                                               ErrorCodeID INTEGER NOT NULL,
@@ -178,13 +178,13 @@ CREATE TABLE IF NOT EXISTS uec.error_code (
                                               PRIMARY KEY (DeviceTypeID, ErrorCodeID)
 );
 
--- Creating uec.subsystem'
+-- Creating uec.subsystem
 CREATE TABLE IF NOT EXISTS uec.subsystem (
                                              SubsystemID INTEGER PRIMARY KEY,
                                              IdentifyingName TEXT NOT NULL UNIQUE
 );
 
--- Creating uec.error_definitions'
+-- Creating uec.error_definitions
 CREATE TABLE IF NOT EXISTS uec.error_definitions (
                                                      ErrorDefinitionID INTEGER PRIMARY KEY,
                                                      SubsystemID INTEGER NOT NULL REFERENCES uec.subsystem(SubsystemID),
@@ -200,7 +200,7 @@ CREATE TABLE IF NOT EXISTS uec.error_definitions (
                                                              REFERENCES uec.error_code(DeviceTypeID, ErrorCodeID)
 );
 
--- Creating uec.errors'
+-- Creating uec.errors
 CREATE TABLE IF NOT EXISTS uec.errors (
                                           Time TIMESTAMPTZ NOT NULL,
                                           InstrumentID INTEGER NOT NULL REFERENCES public.instruments(id) ON DELETE CASCADE,
