@@ -76,7 +76,8 @@ class FDWManager:
             "password": os.getenv("MSSQL_PASSWORD")
         })
 
-        logger.info("Connected to MSSQL %s@%s:57659 database DS", user, self.server)
+        logger.info("Setup foreign server MSSQL %s@%s:57659 database DS",
+                    user, self.server)
 
     def setup_fdw_postgres(self):
         """ Create a foreign data wrapper for a Postgres database. """
@@ -100,7 +101,8 @@ class FDWManager:
             "password": os.getenv("MSSQL_PASSWORD")
         })
 
-        logger.info("Connected to PostgreSQL %s@%s:60659 database ds", user, self.server)
+        logger.info("Setup foreign server PostgreSQL %s@%s:60659 database ds",
+                    user, self.server)
 
     def create_fdw_tables_ms(self):
         """ Create tables for MSSQL FDW. """
@@ -235,8 +237,7 @@ class FDWManager:
                 (SELECT MAX(time) FROM public.data WHERE instrument_id = {instr_id}),
                 '1900-01-01'
             )
-        """,
-                                  {"schema": self.fdw_schema},
+        """,{"schema": self.fdw_schema},
                                   strings={"instr_id": self.instr_id},
                                   mode="fetchall")
 
@@ -246,72 +247,54 @@ class FDWManager:
         # Get param_id:enum_name mapping
         params_with_enums = self.dbm.run_query("""
             -- Get config values for existing parameters
-            WITH config_ids AS (
-                SELECT DISTINCT upd_config_id AS config_id
-                FROM {schema}.event_property_type
-                WHERE is_active = true
-            ),
-
-            config_xml AS (
-                SELECT cfg.config_id, iec.config
-                FROM config_ids cfg
-                JOIN {schema}.instrument_event_config iec
-                    ON cfg.config_id = iec.instrument_event_config_id
-            ),
-
-            -- Clean invalid namespace attributes from XML
-            cleaned AS (
-                SELECT
-                    config_id,
+            WITH config_xml AS (
+                SELECT 
                     regexp_replace(
-                        config::text,
+                        iec.config::text,
                         'xmlns:nil="[^"]*"',
-                        '',
-                        'g'
+                        ''
                     )::xml AS config
-                FROM config_xml
+                FROM (
+                    SELECT DISTINCT upd_config_id
+                    FROM {schema}.event_property_type
+                    WHERE is_active = true
+                ) ept
+                JOIN {schema}.instrument_event_config iec
+                    ON iec.instrument_event_config_id = ept.upd_config_id
             )
 
             -- Extract all Parm nodes with Enum attribute
-            SELECT DISTINCT 
+            SELECT DISTINCT
                 (xpath('/Parm/@ID', unnest(xpath('//Instrument//Parm[@Enum]', config))))[1]::text::int AS param_id,
                 (xpath('/Parm/@Enum', unnest(xpath('//Instrument//Parm[@Enum]', config))))[1]::text AS enum_name
-            FROM cleaned
+            FROM config_xml
             ORDER BY param_id
         """, {"schema": self.fdw_schema}, mode="fetchall")
 
         # Get enum_name:member_name:value mapping
         enum_values = self.dbm.run_query("""
-            WITH config_ids AS (
-                SELECT DISTINCT upd_config_id AS config_id
-                FROM {schema}.event_property_type
-                WHERE is_active = true
-            ),
-
-            config_xml AS (
-                SELECT cfg.config_id, iec.config
-                FROM config_ids cfg
-                JOIN {schema}.instrument_event_config iec
-                  ON cfg.config_id = iec.instrument_event_config_id
-            ),
-
-            cleaned AS (
-                SELECT
-                    config_id,
+            -- Get config values for existing parameters
+            WITH config_xml AS (
+                SELECT 
                     regexp_replace(
-                        config::text,
+                        iec.config::text,
                         'xmlns:nil="[^"]*"',
-                        '',
-                        'g'
+                        ''
                     )::xml AS config
-                FROM config_xml
+                FROM (
+                    SELECT DISTINCT upd_config_id
+                    FROM {schema}.event_property_type
+                    WHERE is_active = true
+                ) ept
+                JOIN {schema}.instrument_event_config iec
+                    ON iec.instrument_event_config_id = ept.upd_config_id
             ),
 
             -- Unnest Enums cleanly
             enum_nodes AS (
                 SELECT
                     unnest(xpath('//Enum', config)) AS enum_node
-                FROM cleaned
+                FROM config_xml
             ),
 
             -- Extract values from each Enum node
@@ -335,7 +318,7 @@ class FDWManager:
     def query_pg_parameters(self):
         """ Query new parameters data from Postgres.
         A single event (id/name) can be used by multiple parameters (id/name).
-        event_property_type_id is unique per instrument
+        event_property_type_id (param_id) is unique per instrument
         ept.event_type_id+ept.identifying_name must be unique
         """
         return self.dbm.run_query("""
