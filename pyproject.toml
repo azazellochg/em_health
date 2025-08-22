@@ -41,10 +41,10 @@ include = ["em_health*"]
 
 [tool.setuptools.package-data]
 em_health = [
-    "db_performance/*.sql",
-    "views/*/*.sql",
     "instruments.json",
-    "db_migrations/*.sql"
+    "sql/*/*.sql",
+    "sql/*.sql",
+    "tests/*.xml"
 ]
 
 [tool.setuptools]

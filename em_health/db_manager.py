@@ -25,7 +25,6 @@
 # **************************************************************************
 
 import os
-import subprocess
 
 import psycopg.errors
 from datetime import datetime, timezone
@@ -351,7 +350,7 @@ class DatabaseManager(PgClient):
         else:
             schema = "public"
 
-        view_fn = self.get_path(target=name+".sql", folder="views/" + schema)
+        view_fn = self.get_path(target=name+".sql", folder=schema)
         self.execute_file(view_fn)
         logger.info("Created materialized view %s.%s", schema, name)
 
@@ -363,7 +362,7 @@ class DatabaseManager(PgClient):
 
         if current_ver < latest_ver:
             for v in range(current_ver + 1, latest_ver + 1):
-                view_fn = self.get_path(target=f"{v:03d}.sql", folder="db_migrations")
+                view_fn = self.get_path(target=f"{v:03d}.sql", folder="migrations")
                 self.execute_file(view_fn,
                                   {"TBL_STATEMENTS_COMPRESSION": os.getenv("TBL_STATEMENTS_COMPRESSION")})
             logger.info("Database schema migrated to version %s", latest_ver)

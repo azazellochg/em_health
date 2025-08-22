@@ -86,12 +86,12 @@ class BaseDBClient(ABC):
 
     @staticmethod
     def get_path(target: str, folder: Optional[str] = None) -> Path:
-        """ Build a full path starting from the current file's directory.
+        """ Build a full path starting from the em_health/sql directory.
         :param target: Target file name.
         :param folder: Optional subfolder name.
         :return: Absolute Path object.
         """
-        base_dir = Path(__file__).parent
+        base_dir = Path(__file__).parent / "sql"
         if folder:
             return (base_dir / folder / target).resolve()
         return (base_dir / target).resolve()
@@ -140,13 +140,13 @@ class PgClient(BaseDBClient):
 
     def clean_db(self) -> None:
         """Erase all tables, materialized views, CAGGs and functions in the database."""
-        fn = self.get_path("clean-db.sql", folder="../docker")
+        fn = self.get_path("clean-db.sql")
         self.execute_file(fn)
         logger.info("Cleaned all objects in the database")
 
     def create_tables(self) -> None:
         """ Create tables in the database. """
-        fn = self.get_path("init-tables.sql", folder="../docker")
+        fn = self.get_path("init-tables.sql")
         self.execute_file(fn)
         logger.info("Created public tables")
 

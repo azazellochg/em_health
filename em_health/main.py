@@ -52,7 +52,7 @@ def db_cmd(args):
     action = args.action
 
     if action in ["create-perf-stats", "run-query", "explain-query"]:
-        from em_health.db_performance.db_analyze import main as func
+        from em_health.db_analyze import main as func
         func(dbname, action, getattr(args, "force", False))
 
     elif action in ["create-stats", "init-tables", "clean-all",
