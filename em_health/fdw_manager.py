@@ -142,21 +142,22 @@ class FDWManager:
 
     def setup_import_job_ms(self) -> str:
         """ Create a function to import data from the MSSQL database. """
-        job_name = f"import_from_{self.name}"
+        job_name = f"uec.import_from_{self.name}"
 
-        self.dbm.run_query("""
-            DROP FUNCTION IF EXISTS uec.{job};
-            CREATE FUNCTION uec.{job}(job_id INT DEFAULT NULL, config JSONB DEFAULT NULL)
+        # you cannot pass identifiers as variables to plpgsql, so we use f-string
+        self.dbm.run_query(f"""
+            DROP FUNCTION IF EXISTS {job_name};
+            CREATE FUNCTION {job_name}(job_id INT DEFAULT NULL, config JSONB DEFAULT NULL)
             RETURNS void
             LANGUAGE plpgsql
             AS $$
             BEGIN
                 -- Get new error definitions
-                WITH new_error_types AS (
+                CREATE TEMP TABLE new_error_types ON COMMIT DROP AS (
                     SELECT *
-                    FROM {schema}.error_definitions edf
+                    FROM {self.fdw_schema}.error_definitions edf
                     WHERE edf.ErrorDefinitionID > COALESCE((SELECT MAX(ErrorDefinitionID) FROM uec.error_definitions), 0)
-                )
+                );
 
                -- Subsystems
                 INSERT INTO uec.subsystem (SubsystemID, IdentifyingName)
@@ -202,21 +203,20 @@ class FDWManager:
                 -- Error notifications
                 INSERT INTO uec.errors (Time, InstrumentID, ErrorID, MessageText)
                 SELECT
-                    f.ErrorDtm,
-                    {instr_id},
+                    en.ErrorDtm,
+                    {self.instr_id},
                     ed.ErrorDefinitionID,
-                    f.MessageText
-                FROM {schema}.error_notifications en
+                    en.MessageText
+                FROM {self.fdw_schema}.error_notifications en
                 JOIN uec.error_definitions ed ON ed.ErrorDefinitionID = en.ErrorDefinitionID
                 WHERE en.ErrorDtm > COALESCE(
-                    (SELECT MAX(Time) FROM uec.errors WHERE InstrumentID = {instr_id}),
+                    (SELECT MAX(Time) FROM uec.errors WHERE InstrumentID = {self.instr_id}),
                     '1900-01-01'
                 )
                 ON CONFLICT (Time, InstrumentID, ErrorID) DO NOTHING;
             END;
             $$;
-        """, {"job": job_name, "schema": self.fdw_schema},
-                       strings={"instr_id": self.instr_id})
+        """)
 
         return job_name
 

@@ -387,7 +387,7 @@ class DatabaseManager(PgClient):
         from em_health.fdw_manager import FDWManager
 
         for instr_id, server in servers:
-            fdw = FDWManager(self, "tds_fdw", server, instr_id)
+            fdw = FDWManager(self, "tds_fdw", str(server), instr_id)
             job_name = fdw.setup_import_job_ms()
             self.run_query("SELECT add_job({jobname}, schedule_interval=>'1 hour')",
                            strings={"jobname": job_name})
