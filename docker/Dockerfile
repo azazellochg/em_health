@@ -13,10 +13,10 @@ ENV PG=17 \
 # --------- Metadata ----------
 LABEL org.opencontainers.image.title="Custom PostgreSQL image with TimescaleDB, Toolkit & TDS-FDW" \
       org.opencontainers.image.description="Postgres ${PG} + TimescaleDB ${TS_VERSION} + Toolkit ${TLK_VERSION} + TDS-FDW ${TDS_VERSION}" \
-      org.opencontainers.image.version="${TS_VERSION}" \
+      org.opencontainers.image.version="0.1" \
       org.opencontainers.image.authors="Grigory Sharov <gsharov@mrc-lmb.cam.ac.uk>" \
       org.opencontainers.image.licenses="GPL-3.0-or-later" \
-      org.opencontainers.image.source="https://github.com/azazellochg/images"
+      org.opencontainers.image.source="https://github.com/azazellochg/em_health"
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
