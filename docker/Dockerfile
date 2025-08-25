@@ -1,20 +1,95 @@
-FROM timescale/timescaledb-ha:pg17
+# ---------- Builder stage ----------
+FROM postgres:17-trixie AS builder
 
-USER root
+ENV PG=17 \
+    TS_VERSION=2.21.3 \
+    TLK_VERSION=1.21.0 \
+    TDS_VERSION=v2.0.4 \
+    CARGO_HOME=/build/cargo \
+    RUSTUP_HOME=/build/rustup \
+    PGRX_HOME=/build/pgrx \
+    PATH=/build/cargo/bin:$PATH
 
-ENV TDS_FDW_VERSION 2.0.4
+# --------- Metadata ----------
+LABEL org.opencontainers.image.title="Custom PostgreSQL image with TimescaleDB, Toolkit & TDS-FDW" \
+      org.opencontainers.image.description="Postgres ${PG} + TimescaleDB ${TS_VERSION} + Toolkit ${TLK_VERSION} + TDS-FDW ${TDS_VERSION}" \
+      org.opencontainers.image.version="${TS_VERSION}" \
+      org.opencontainers.image.authors="Grigory Sharov <gsharov@mrc-lmb.cam.ac.uk>" \
+      org.opencontainers.image.licenses="GPL-3.0-or-later" \
+      org.opencontainers.image.source="https://github.com/azazellochg/images"
 
-RUN apt update && apt install -y --no-install-recommends \
-        libsybdb5 freetds-dev freetds-common gnupg gcc make wget postgresql-server-dev-17 \
-    && wget https://github.com/tds-fdw/tds_fdw/archive/v${TDS_FDW_VERSION}.tar.gz -O /tmp/tds_fdw.tar.gz \
-    && cd /tmp && tar xzf tds_fdw.tar.gz \
-    && cd tds_fdw-${TDS_FDW_VERSION} && make USE_PGXS=1 && make USE_PGXS=1 install \
-    && apt purge -y gcc make postgresql-server-dev-17 wget \
-    && apt autoremove -y \
-    && rm -rf /tmp/tds_fdw* /var/lib/apt/lists/*
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libsybdb5 \
+    freetds-dev \
+    freetds-common \
+    postgresql-server-dev-$PG \
+    gcc \
+    cmake \
+    make \
+    git \
+    curl \
+    ca-certificates \
+    clang \
+    llvm \
+    libssl-dev \
+    pkg-config
+
+# ---------- Install Rust & cargo-pgrx ----------
+RUN mkdir -p $PGRX_HOME \
+  && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path \
+  && cargo install --version '=0.12.9' --force cargo-pgrx \
+  && cargo pgrx init --pg${PG} pg_config
+
+# ---------- Build TimescaleDB ----------
+RUN mkdir -p /build \
+    && git clone --branch $TS_VERSION https://github.com/timescale/timescaledb /build/timescaledb \
+    && cd /build/timescaledb \
+    && ./bootstrap -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                   -DREGRESS_CHECKS=OFF -DTAP_CHECKS=OFF \
+                   -DGENERATE_DOWNGRADE_SCRIPT=ON \
+                   -DWARNINGS_AS_ERRORS=OFF \
+                   -DPROJECT_INSTALL_METHOD="docker" \
+    && cd build && make install \
+    && sed -r -i "s/[#]*\s*(shared_preload_libraries)\s*=\s*'(.*)'/\1 = 'timescaledb,\2'/;s/,'/'/" \
+         /usr/share/postgresql/$PG/postgresql.conf.sample
+
+# ---------- Build Timescale Toolkit ----------
+RUN git clone --branch $TLK_VERSION https://github.com/timescale/timescaledb-toolkit.git /build/timescaledb-toolkit \
+    && cd /build/timescaledb-toolkit/extension \
+    && cargo pgrx install --release \
+    && cargo run --manifest-path ../tools/post-install/Cargo.toml -- pg_config
+
+# ---------- Build TDS-FDW ----------
+RUN git clone --branch $TDS_VERSION https://github.com/tds-fdw/tds_fdw.git /build/tds_fdw \
+    && cd /build/tds_fdw \
+    && make USE_PGXS=1 \
+    && make install USE_PGXS=1
 
 # change the date format used by freetds
 # https://github.com/tds-fdw/tds_fdw/issues/271#issuecomment-731581415
 RUN echo "[default]\n\tdate format = %b %e %Y %I:%M:%S.%z%p" >> /etc/freetds/locales.conf
 
+# ---------- Runtime stage ----------
+FROM postgres:17-trixie AS release
+
+ENV PG=17
+
+# Copy built extensions & freetds runtime only
+COPY --from=builder /usr/lib/postgresql/$PG /usr/lib/postgresql/$PG
+COPY --from=builder /usr/share/postgresql/$PG/extension/ /usr/share/postgresql/$PG/extension/
+COPY --from=builder /etc/freetds/ /etc/freetds/
+
+# freetds runtime deps and timescaledb tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libsybdb5 freetds-common curl ca-certificates \
+    && curl -L -o /tmp/timescaledb-tools.deb "https://packagecloud.io/timescale/timescaledb/packages/debian/trixie/timescaledb-tools_0.18.1~debian13_amd64.deb/download.deb?distro_version_id=221" \
+    && dpkg -i /tmp/timescaledb-tools.deb \
+    && rm -f /tmp/timescaledb-tools.deb \
+    && apt-get purge -y curl ca-certificates \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Drop privileges
 USER postgres
+WORKDIR /var/lib/postgresql

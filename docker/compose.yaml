@@ -2,17 +2,18 @@ name: emhealth
 
 services:
   timescaledb:
-    build: .
+    image: ghcr.io/azazellochg/timescaledb:dev
     container_name: timescaledb
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_GRAFANA_PASSWORD: ${POSTGRES_GRAFANA_PASSWORD}
+      PGDATA: /var/lib/postgresql/17/docker
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/home/postgres/pgdata
+      - pgdata:/var/lib/postgresql
       - ../em_health/sql/init-tables.sql:/docker-entrypoint-initdb.d/init-tables.sql:ro
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
       - ./backups:/backups
@@ -79,4 +80,3 @@ services:
 volumes:
   pgdata:
   grafana-storage:
-  backups:

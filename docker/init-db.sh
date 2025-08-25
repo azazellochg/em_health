@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
-psql -v ON_ERROR_STOP=1 <<-EOSQL
+psql -v ON_ERROR_STOP=1 <<EOSQL
     CREATE DATABASE tem;
     CREATE DATABASE sem;
     CREATE ROLE grafana WITH LOGIN PASSWORD '${POSTGRES_GRAFANA_PASSWORD}';
@@ -13,3 +13,6 @@ for db in tem sem; do
   echo "Creating initial db structure for: $db"
   psql -v ON_ERROR_STOP=1 --dbname="$db" -f /docker-entrypoint-initdb.d/init-tables.sql
 done
+
+echo "Running timescaledb-tune..."
+timescaledb-tune --quiet --yes

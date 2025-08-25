@@ -1,6 +1,6 @@
 -- Creating extensions ----------------------------------------------------------------------------
-CREATE EXTENSION IF NOT EXISTS timescaledb;
-CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit;
+CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE ;
+CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit CASCADE;
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 CREATE EXTENSION IF NOT EXISTS pgstattuple;
 CREATE EXTENSION IF NOT EXISTS tds_fdw;
