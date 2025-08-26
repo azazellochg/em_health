@@ -55,7 +55,7 @@ def db_cmd(args):
         from em_health.db_analyze import main as func
         func(dbname, action, getattr(args, "force", False))
 
-    elif action in ["create-stats", "init-tables", "clean-all",
+    elif action in ["create-stats", "clean-all",
                     "clean-inst", "import-uec"]:
         from em_health.db_manager import main as func
         func(dbname, action,
@@ -150,8 +150,6 @@ def main():
     db_subparsers.add_parser("import-uec", help="Import UEC data from microscope servers")
 
     # --- Developer tools ---
-    db_subparsers.add_parser("init-tables", help="Create tables structure in the database [DEV]")
-
     perf = db_subparsers.add_parser("create-perf-stats", help="Setup DB performance measurements [DEV]")
     perf.add_argument("-f", "--force", dest="force", action="store_true",
                       help="Erase existing pganalyze data and recreate tables")

@@ -83,7 +83,9 @@ def backup(dbname="tem"):
     run_command(f"docker exec {PG_CONTAINER} pg_dump -Fc -d {dbname} -f /{pg_backup}")
 
     logger.info("Backing up Grafana DB to %s", grafana_backup.resolve())
-    run_command(f"docker cp -a {GRAFANA_CONTAINER}:/var/lib/grafana/grafana.db {grafana_backup}")
+    run_command(f"docker stop {GRAFANA_CONTAINER}")
+    run_command(f"docker cp {GRAFANA_CONTAINER}:/var/lib/grafana/grafana.db {grafana_backup}")
+    run_command(f"docker start {GRAFANA_CONTAINER}")
 
 
 def list_backups():
@@ -101,22 +103,25 @@ def restore(dbname, backup_file: Path):
         logger.info("Restoring Grafana DB from %s", backup_file)
         commands = [
             f"docker stop {GRAFANA_CONTAINER}",
-            f"docker cp -a {backup_file} {GRAFANA_CONTAINER}:/var/lib/grafana/grafana.db",
+            f"docker cp {backup_file} {GRAFANA_CONTAINER}:/var/lib/grafana/grafana.db",
+            f"docker exec {GRAFANA_CONTAINER} chown grafana:root /var/lib/grafana/grafana.db",
             f"docker start {GRAFANA_CONTAINER}"
         ]
+        for cmd in commands:
+            run_command(cmd)
+
     else:
         logger.info("Restoring TimescaleDB '%s' from %s", dbname, backup_file)
-        run_command(
-            f"docker exec {PG_CONTAINER} psql -d {dbname} -c 'SELECT timescaledb_pre_restore();'"
+        cmd = (
+            f'docker exec {PG_CONTAINER} bash -c "'
+            f'psql -d postgres -c \\"DROP DATABASE IF EXISTS {dbname};\\" && '
+            f'psql -d postgres -c \\"CREATE DATABASE {dbname};\\" && '
+            f'psql -v ON_ERROR_STOP=1 -d {dbname} -f /docker-entrypoint-initdb.d/init-tables.sql && '
+            f'psql -d {dbname} -c \\"SELECT timescaledb_pre_restore();\\" && '
+            f'pg_restore -Fc -d {dbname} /{backup_file} && '
+            f'psql -d {dbname} -c \\"SELECT timescaledb_post_restore();\\"'
+            f'"'
         )
-        prefix = f"docker exec {PG_CONTAINER}"
-        commands = [
-            f"{prefix} psql -d {dbname} -c 'SELECT timescaledb_pre_restore();'",
-            f"{prefix} pg_restore -Fc -d {dbname} /{backup_file}",
-            f"{prefix} psql -d {dbname} -c 'SELECT timescaledb_post_restore();'"
-        ]
-
-    for cmd in commands:
         run_command(cmd)
 
     logger.info("Restore completed")
@@ -137,8 +142,7 @@ def main(dbname, action):
         backup(dbname)
 
     elif action == "restore":
-        confirm = input("If restoring TimescaleDB, the target DB must be empty.\n"
-                        "Run 'emhealth db clean-all' before restoring.\n"
+        confirm = input("Restoring will DELETE existing database.\n"
                         "Type YES to continue: ")
         if confirm != "YES":
             logger.warning("Restore aborted by user.")

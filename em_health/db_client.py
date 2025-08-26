@@ -138,18 +138,6 @@ class PgClient(BaseDBClient):
         self.cur.execute(raw_sql)
         self.conn.commit()
 
-    def clean_db(self) -> None:
-        """Erase all tables, materialized views, CAGGs and functions in the database."""
-        fn = self.get_path("clean-db.sql")
-        self.execute_file(fn)
-        logger.info("Cleaned all objects in the database")
-
-    def create_tables(self) -> None:
-        """ Create tables in the database. """
-        fn = self.get_path("init-tables.sql")
-        self.execute_file(fn)
-        logger.info("Created public tables")
-
     def run_query(
             self,
             query: str,

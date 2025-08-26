@@ -430,11 +430,6 @@ def main(dbname, action, instrument=None, date=None):
                 db.run_query("GRANT SELECT ON public.{mview} TO grafana",
                              {"mview": mview})
 
-    elif action == "init-tables":
-        logger.info("Creating new table structure for database %s", dbname)
-        with DatabaseManager(dbname) as db:
-            db.create_tables()
-
     elif action == "clean-all":
         print(f"!!! WARNING: You are about to DELETE ALL DATA from database {dbname} !!!")
         confirm = input("Type YES to continue: ")
@@ -442,8 +437,16 @@ def main(dbname, action, instrument=None, date=None):
             print("Aborted.")
             return
         logger.info("Deleting ALL data from database %s", dbname)
-        with DatabaseManager(dbname) as db:
-            db.clean_db()
+
+        from em_health.utils.maintenance import run_command
+        cmd = (
+            f'docker exec timescaledb bash -c "'
+            f'psql -d postgres -c \\"DROP DATABASE IF EXISTS {dbname};\\" && '
+            f'psql -d postgres -c \\"CREATE DATABASE {dbname};\\" && '
+            f'psql -v ON_ERROR_STOP=1 -d {dbname} -f /docker-entrypoint-initdb.d/init-tables.sql'
+            f'"'
+        )
+        run_command(cmd)
 
     elif action == "clean-inst":
         # verify args
