@@ -96,3 +96,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Drop privileges
 USER postgres
 WORKDIR /var/lib/postgresql
+
+# Keep the original entrypoint
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["postgres"]
