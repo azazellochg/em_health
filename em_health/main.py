@@ -39,7 +39,7 @@ def import_cmd(args):
 
 def create_task_cmd(args):
     from em_health.utils.create_task import main as func
-    func(args.instrument, args.exe, args.settings)
+    func(args.exe, args.settings)
 
 
 def watch_cmd(args):
@@ -113,8 +113,6 @@ def main():
     # --- Create Task command ---
     task_parser = subparsers.add_parser("create-task",
                                         help="Create a Windows batch file to export Health Monitor data")
-    task_parser.add_argument("-i", dest="instrument", type=int, required=True,
-                             help="Instrument serial number (must be in instruments.json)")
     task_parser.add_argument("-e", dest="exe", type=str, default=HM_EXE,
                              help=f"Custom path to Health Monitor executable (default: '{HM_EXE}')")
     task_parser.add_argument("-s", dest="settings", required=True,

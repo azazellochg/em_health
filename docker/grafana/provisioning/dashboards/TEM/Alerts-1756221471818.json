@@ -69,7 +69,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 7,
+  "id": 17,
   "links": [
     {
       "asDropdown": true,
@@ -247,7 +247,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH family_param AS (\n  SELECT instrument_id, param_id, enum_id\n  FROM parameters\n  WHERE param_name = 'ProductFamily'\n),\n\nproduct_family AS (\n  SELECT DISTINCT ON (p.instrument_id)\n    p.instrument_id,\n    e.member_name AS product_family\n  FROM data d\n  JOIN family_param p ON p.param_id = d.param_id AND p.instrument_id = d.instrument_id\n  JOIN enum_values e ON e.enum_id = p.enum_id AND e.value = d.value_num\n  WHERE d.value_num > 0\n  ORDER BY p.instrument_id, d.time DESC\n),\n\ninstrument_time AS (\n  SELECT\n    instrument_id,\n    MAX(time) AS latest_data,\n    MIN(time) AS oldest_data\n  FROM data\n  GROUP BY instrument_id\n)\n\nSELECT \n  i.name AS \"Name\",\n  i.serial AS \"Serial\",\n  i.model AS \"Model\",\n  f.product_family AS \"Product family\",\n  i.server AS \"Server IP\",\n  i.ds_version AS \"Data services\",\n  t.oldest_data AS \"Oldest data\",\n  t.latest_data AS \"Latest data\"\nFROM instruments i\nJOIN product_family f ON f.instrument_id = i.id\nJOIN instrument_time t ON t.instrument_id = i.id\nORDER BY i.name;\n",
+          "rawSql": "WITH family_param AS (\n  SELECT instrument_id, param_id, enum_id\n  FROM parameters\n  WHERE param_name = 'ProductFamily'\n),\n\nproduct_family AS (\n  SELECT p.instrument_id, latest.member_name AS product_family\n  FROM family_param p\n  JOIN LATERAL (\n    SELECT e.member_name\n    FROM data d\n    JOIN enum_values e\n      ON e.enum_id = p.enum_id\n     AND e.value = d.value_num\n    WHERE d.instrument_id = p.instrument_id\n      AND d.param_id = p.param_id\n      AND d.value_num > 0\n      AND d.time > now() - interval '10 days'\n    ORDER BY d.time DESC\n    LIMIT 1\n  ) latest ON true\n),\n\ninstrument_time AS (\n  SELECT i.id AS instrument_id,\n         latest.time AS latest_data,\n         oldest.time AS oldest_data\n  FROM instruments i\n  JOIN LATERAL (\n    SELECT time\n    FROM data d\n    WHERE d.instrument_id = i.id\n    ORDER BY time DESC\n    LIMIT 1\n  ) latest ON true\n  JOIN LATERAL (\n    SELECT time\n    FROM data d\n    WHERE d.instrument_id = i.id\n    ORDER BY time ASC\n    LIMIT 1\n  ) oldest ON true\n)\n\n\nSELECT \n  i.name AS \"Name\",\n  i.serial AS \"Serial\",\n  i.model AS \"Model\",\n  f.product_family AS \"Product family\",\n  i.server AS \"Server IP\",\n  i.ds_version AS \"Data services\",\n  t.oldest_data AS \"Oldest data\",\n  t.latest_data AS \"Latest data\"\nFROM instruments i\nJOIN product_family f ON f.instrument_id = i.id\nJOIN instrument_time t ON t.instrument_id = i.id\nORDER BY i.name",
           "refId": "A",
           "sql": {
             "columns": [

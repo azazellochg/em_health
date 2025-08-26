@@ -42,8 +42,7 @@ RUN mkdir -p $PGRX_HOME \
   && cargo pgrx init --pg${PG} pg_config
 
 # ---------- Build TimescaleDB ----------
-RUN mkdir -p /build \
-    && git clone --branch $TS_VERSION https://github.com/timescale/timescaledb /build/timescaledb \
+RUN git clone --branch $TS_VERSION https://github.com/timescale/timescaledb /build/timescaledb \
     && cd /build/timescaledb \
     && ./bootstrap -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                    -DREGRESS_CHECKS=OFF -DTAP_CHECKS=OFF \
@@ -69,6 +68,10 @@ RUN git clone --branch $TDS_VERSION https://github.com/tds-fdw/tds_fdw.git /buil
 # change the date format used by freetds
 # https://github.com/tds-fdw/tds_fdw/issues/271#issuecomment-731581415
 RUN echo "[default]\n\tdate format = %b %e %Y %I:%M:%S.%z%p" >> /etc/freetds/locales.conf
+
+# ---------- Clean up to reduce CI cache bloat ----------
+RUN rm -rf /build \
+    && apt-get clean
 
 # ---------- Runtime stage ----------
 FROM postgres:17-trixie AS release

@@ -69,13 +69,27 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 8,
+  "id": 19,
   "links": [
     {
       "asDropdown": true,
       "icon": "external link",
       "includeVars": false,
-      "keepTime": false,
+      "keepTime": true,
+      "tags": [
+        "overview"
+      ],
+      "targetBlank": false,
+      "title": "Overviews",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    },
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
       "tags": [
         "module"
       ],
@@ -1475,7 +1489,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'TempCtrl'\n    AND param_name = 'Laldwr'\n),\n\nbucketed AS (\n  SELECT\n    time_bucket('30 seconds', v.time) AS bucket,\n    AVG(v.value_num) AS avg_value\n  FROM data v\n  JOIN matching_param p ON v.param_id = p.param_id\n  WHERE v.instrument_id = $instrument\n    AND $__timeFilter(v.time)\n  GROUP BY bucket\n),\n\nlagged AS (\n  SELECT\n    bucket,\n    avg_value,\n    LAG(avg_value, 1) OVER (ORDER BY bucket) AS val_1,\n    LAG(avg_value, 2) OVER (ORDER BY bucket) AS val_2,\n    LAG(avg_value, 3) OVER (ORDER BY bucket) AS val_3\n  FROM bucketed\n),\n\nlabeled AS (\n  SELECT *,\n    CASE\n      WHEN val_3 < val_2 AND val_2 < val_1 AND val_1 < avg_value THEN true\n      ELSE false\n    END AS is_peak\n  FROM lagged\n),\n\nwith_peak_groups AS (\n  SELECT *,\n    CASE\n      WHEN is_peak AND NOT LAG(is_peak, 1, false) OVER (ORDER BY bucket) THEN 1\n      ELSE 0\n    END AS new_peak_start\n  FROM labeled\n),\n\npeak_groups AS (\n  SELECT *,\n    SUM(new_peak_start) OVER (ORDER BY bucket) AS peak_group_id\n  FROM with_peak_groups\n),\n\nranked_peaks AS (\n  SELECT\n    bucket AS time,\n    avg_value,\n    peak_group_id,\n    RANK() OVER (PARTITION BY peak_group_id ORDER BY avg_value DESC) AS val_rank\n  FROM peak_groups\n  WHERE is_peak\n),\n\ncollapsed_peaks AS (\n  SELECT\n    time,\n    avg_value AS value,\n    'Refill' AS type\n  FROM ranked_peaks\n  WHERE val_rank = 1 AND avg_value > 90\n),\n\nraw_values AS (\n  SELECT\n    bucket AS time,\n    avg_value AS value,\n    'LN level' AS type\n  FROM bucketed\n)\n\n-- Final combined output\nSELECT * FROM raw_values\nUNION ALL\nSELECT * FROM collapsed_peaks\nORDER BY time;\n",
+          "rawSql": "WITH matching_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'TempCtrl'\n    AND param_name = 'Laldwr'\n),\n\nbucketed AS (\n  SELECT\n    time_bucket('30 seconds', v.time) AS bucket,\n    AVG(v.value_num) AS avg_value\n  FROM data v\n  JOIN matching_param p ON v.param_id = p.param_id\n  WHERE v.instrument_id = $instrument\n    AND $__timeFilter(v.time)\n  GROUP BY bucket\n),\n\nlagged AS (\n  SELECT\n    bucket,\n    avg_value,\n    LAG(avg_value, 1) OVER (ORDER BY bucket) AS val_1,\n    LAG(avg_value, 2) OVER (ORDER BY bucket) AS val_2,\n    LAG(avg_value, 3) OVER (ORDER BY bucket) AS val_3\n  FROM bucketed\n),\n\nlabeled AS (\n  SELECT *,\n    CASE\n      -- Rule 1: threshold crossing (for sparse data / sudden jump)\n      WHEN avg_value > 90 AND (val_1 < 90 OR val_1 IS NULL) THEN true\n\n      -- Rule 2: local maximum compared to neighbors (for dense data)\n      WHEN avg_value >= COALESCE(val_1, -1e9)\n       AND avg_value >= COALESCE(val_2, -1e9)\n       AND avg_value >= COALESCE(val_3, -1e9)\n       AND avg_value > 90\n      THEN true\n\n      ELSE false\n    END AS is_peak\n  FROM lagged\n),\n\nwith_peak_groups AS (\n  SELECT *,\n    CASE\n      WHEN is_peak AND NOT LAG(is_peak, 1, false) OVER (ORDER BY bucket) THEN 1\n      ELSE 0\n    END AS new_peak_start\n  FROM labeled\n),\n\npeak_groups AS (\n  SELECT *,\n    SUM(new_peak_start) OVER (ORDER BY bucket) AS peak_group_id\n  FROM with_peak_groups\n),\n\nranked_peaks AS (\n  SELECT\n    bucket AS time,\n    avg_value,\n    peak_group_id,\n    RANK() OVER (PARTITION BY peak_group_id ORDER BY avg_value DESC) AS val_rank\n  FROM peak_groups\n  WHERE is_peak\n),\n\ncollapsed_peaks AS (\n  SELECT\n    time,\n    avg_value AS value,\n    'Refill' AS type\n  FROM ranked_peaks\n  WHERE val_rank = 1\n),\n\nraw_values AS (\n  SELECT\n    bucket AS time,\n    avg_value AS value,\n    'LN level' AS type\n  FROM bucketed\n)\n\n-- Final combined output\nSELECT * FROM raw_values\nUNION ALL\nSELECT * FROM collapsed_peaks\nORDER BY time;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1897,7 +1911,7 @@
     ]
   },
   "time": {
-    "from": "now-30d",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {
@@ -1906,5 +1920,5 @@
   "timezone": "Europe/London",
   "title": "Module | Autoloader",
   "uid": "4395e67b-0280-47fd-94a8-655603f10800",
-  "version": 1
+  "version": 7
 }

@@ -116,7 +116,21 @@
       "asDropdown": true,
       "icon": "external link",
       "includeVars": false,
-      "keepTime": false,
+      "keepTime": true,
+      "tags": [
+        "overview"
+      ],
+      "targetBlank": false,
+      "title": "Overviews",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    },
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
       "tags": [
         "module"
       ],
@@ -770,7 +784,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND subsystem IN ('HalOpticsBrick', 'HalTemOpticsBrick')\n    AND component IN ('Lens temperatures', 'LensTemperatures')\n    AND param_name LIKE '%emperature'\n)\n\n  SELECT\n    time_bucket('1 hour', d.time) AS time,\n    p.param_name,\n    approx_percentile(0.5, percentile_agg(d.value_num)) - 273.15 AS median_1h\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    AND d.value_num > 0\n  GROUP BY time, p.param_name\n  ORDER BY time\n",
+          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND subsystem IN ('HalOpticsBrick', 'HalTemOpticsBrick')\n    AND component IN ('Lens temperatures', 'LensTemperatures')\n    AND param_name LIKE '%emperature'\n)\nSELECT\n    time_bucket_gapfill('1 hour', d.time) AS time,\n    p.param_name,\n    locf(approx_percentile(0.5, percentile_agg(d.value_num)) - 273.15) AS median_1h\nFROM data d\nJOIN param_ids p ON p.param_id = d.param_id\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\n  AND d.value_num > 0\nGROUP BY 1, 2\nORDER BY 1\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -904,7 +918,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND subsystem IN ('HalOpticsBrick', 'HalTemOpticsBrick')\n    AND component IN ('Lens temperatures', 'LensTemperatures')\n    AND param_name LIKE '%emperature'\n)\n\n  SELECT\n    time_bucket('24 hour', d.time) AS time,\n    p.param_name,\n    approx_percentile(0.5, percentile_agg(d.value_num)) - 273.15 AS median_24h\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    AND d.value_num > 0\n  GROUP BY time, p.param_name\n  ORDER BY time\n",
+          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND subsystem IN ('HalOpticsBrick', 'HalTemOpticsBrick')\n    AND component IN ('Lens temperatures', 'LensTemperatures')\n    AND param_name LIKE '%emperature'\n)\n\n  SELECT\n    time_bucket_gapfill('24 hour', d.time) AS time,\n    p.param_name,\n    approx_percentile(0.5, percentile_agg(d.value_num)) - 273.15 AS median_24h\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    AND d.value_num > 0\n  GROUP BY 1,2\n  ORDER BY 1\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -981,10 +995,8 @@
               "mode": "off"
             }
           },
-          "decimals": 2,
+          "decimals": 1,
           "mappings": [],
-          "max": 5,
-          "min": -5,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1027,7 +1039,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND subsystem IN ('HalOpticsBrick', 'HalTemOpticsBrick')\n    AND component IN ('Lens temperatures', 'LensTemperatures')\n    AND param_name LIKE '%emperature'\n)\n\nSELECT\n  time_bucket(INTERVAL '12 hours', d.time) AS time,\n  p.param_name,\n  MAX(d.value_num - 273.15) - MIN(d.value_num - 273.15) AS stability_12h\nFROM data d\nJOIN param_ids p ON p.param_id = d.param_id\nWHERE\n  d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\n  AND d.value_num > 0  -- filter out invalid readings\nGROUP BY time, p.param_name\nORDER BY time;\n",
+          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND subsystem IN ('HalOpticsBrick', 'HalTemOpticsBrick')\n    AND component IN ('Lens temperatures', 'LensTemperatures')\n    AND param_name LIKE '%emperature'\n)\n\nSELECT\n  time_bucket(INTERVAL '12 hours', d.time) AS time,\n  p.param_name,\n  MAX(d.value_num - 273.15) - MIN(d.value_num - 273.15) AS stability_12h\nFROM data d\nJOIN param_ids p ON p.param_id = d.param_id\nWHERE\n  d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\n  AND d.value_num > 0  -- filter out invalid readings\nGROUP BY 1, 2\nORDER BY 1;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1901,8 +1913,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Krios 4 [Titan Krios G4] (4248)",
-          "value": "4"
+          "text": "Glacios [Glacios] (9952833)",
+          "value": "5"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -1920,7 +1932,7 @@
     ]
   },
   "time": {
-    "from": "now-90d",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {
@@ -1929,5 +1941,5 @@
   "timezone": "Europe/London",
   "title": "Module | Column",
   "uid": "4395e67b-0345-47fd-94a8-684533567800",
-  "version": 6
+  "version": 8
 }

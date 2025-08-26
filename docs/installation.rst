@@ -105,19 +105,20 @@ d. Press **Save**.
 Automated Import Setup
 ~~~~~~~~~~~~~~~~~~~~~~
 
-1. Generate Windows batch file for each instrument, the serial number (i.e. 3299 below) should match `instruments.json` file:
+1. Generate Windows batch file for all instruments in the `instruments.json` file:
 
    .. code-block::
 
-       emhealth create-task -i 3299 -s em_health/instruments.json
+       emhealth create-task -s em_health/instruments.json
 
-2. Open `3299_export_hm_data.cmd` and change the output (`-f 3299_data.xml`) to a full path pointing to a shared location, available from Linux PC. Make sure the file name terminates with \*_data.xml
+.. note:: We are exporting data sequentially. It appears that Health Monitor can lose data if several export commands are run in parallel.
+
+2. Open `export_hm_data.cmd` and change the output files (e.g. `-f 3299_data.xml`) to a full path pointing to a shared location, available from Linux PC. Make sure the file name terminates with \*_data.xml
 3. [Windows] Create a new task in Task Scheduler to trigger the generated script every hour indefinitely. The script will keep overwriting the output xml file. See `help page <task.html>`_ for details
 
 .. note:: The task will run only when a user is logged on. This is because the network drives are mounted on a per-user basis.
 
-4. If necessary, create similar scripts and tasks for other instruments.
-5. Start the watchdog service, which checks the directory every 5 minutes for modified files matching \*_data.xml or \*_data.xml.gz:
+4. Start the watchdog service, which checks the directory every 5 minutes for modified files matching \*_data.xml or \*_data.xml.gz:
 
    .. code-block::
 

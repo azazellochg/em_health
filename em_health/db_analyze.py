@@ -148,11 +148,13 @@ def main(dbname, action, force=False):
     elif action in ["run-query", "explain-query"]:
         custom_query = """
             -- paste your query below
+            select * from pg_stat_statements limit 1
         """
 
         if action == "explain-query":
-            custom_query = "EXPLAIN (ANALYZE, BUFFERS) " + custom_query
+            custom_query = "EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) " + custom_query
 
         with DatabaseAnalyzer(dbname) as db:
-            result = db.run_query(custom_query, mode="fetchall", row_factory=dict_row)
-            print(result)
+            result = db.run_query(custom_query, mode="fetchall")
+            formatted_output = "\n".join(row[0] for row in result)
+            print(formatted_output)
