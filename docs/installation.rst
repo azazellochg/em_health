@@ -92,7 +92,9 @@ d. Press **Save**.
 
 .. image:: /_static/HM_export.png
 
-2. [Recommended] Transfer file.xml.gz to Linux and compress it using GZIP (`gzip file.xml`). This reduces the file size >10 times.
+.. note:: If you select a very large date range, the export may fail.
+
+2. Transfer file.xml to Linux and compress it using GZIP (`gzip file.xml`). This reduces the file size >10 times.
 3. Configure instruments in `instruments.json`. See `help <settings.html>`_ for details
 4. Import data (this may take a few minutes depending on the number of parameters and amount of data):
 
@@ -113,10 +115,10 @@ Automated Import Setup
 
 .. note:: We are exporting data sequentially. It appears that Health Monitor can lose data if several export commands are run in parallel.
 
-2. Open `export_hm_data.cmd` and change the output files (e.g. `-f 3299_data.xml`) to a full path pointing to a shared location, available from Linux PC. Make sure the file name terminates with \*_data.xml
+2. Open `export_hm_data.cmd` and change **OUTDIR** value to a full path pointing to a shared location, available from Linux PC. Make sure the file name terminates with \*_data.xml
 3. [Windows] Create a new task in Task Scheduler to trigger the generated script every hour indefinitely. The script will keep overwriting the output xml file. See `help page <task.html>`_ for details
 
-.. note:: The task will run only when a user is logged on. This is because the network drives are mounted on a per-user basis.
+.. note:: The task will run only when a user is logged on. This is because in Windows the network drives are mounted on a per-user basis.
 
 4. Start the watchdog service, which checks the directory every 5 minutes for modified files matching \*_data.xml or \*_data.xml.gz:
 
