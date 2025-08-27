@@ -55,7 +55,7 @@ Description
 ^^^^^^^^^^^
 
 Watch directory for XML file changes and trigger import. The watchdog can import several files in parallel.
-Optional `t` argument specifies the polling interval in seconds.
+Optional `t` argument specifies the polling interval in seconds, the default is 5 minutes.
 
 Syntax
 ^^^^^^

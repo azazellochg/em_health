@@ -34,6 +34,8 @@ Typical Setup
 Prerequisites
 ^^^^^^^^^^^^^
 
+.. important:: Currently we support Titan Krios and Glacios instruments only.
+
 Requirements for ``EMHeath`` package:
 
 - `docker <https://docs.docker.com/compose/install/>`_
@@ -55,7 +57,7 @@ Installation
        cd em_health
        pip install -e .
 
-2. (Optional) Edit the configuration variables in `docker/.env`. Detailed information can be found `here <advanced_setup.html>`_.
+2. (Optional) Edit the configuration variables in `docker/.env`. Detailed information can be found `here <advanced_setup.html#security-configuration>`_.
 3. Launch containers:
 
    .. code-block::
@@ -80,7 +82,7 @@ d. Press **Save**.
 .. note:: If you select a very large date range, the export may fail.
 
 2. Transfer file.xml to Linux and compress it using GZIP (`gzip file.xml`). This reduces the file size >10 times.
-3. Configure instruments in `instruments.json`. See `help <advanced_setup.html>`_ for details
+3. Configure instruments in `instruments.json`. See `help <advanced_setup.html#instruments-configuration>`_ for details
 4. Import data (this may take a few minutes depending on the number of parameters and amount of data):
 
    .. code-block::
@@ -101,7 +103,7 @@ Automated Import Setup
 .. note:: We are exporting data sequentially. It appears that Health Monitor can lose data if several export commands are run in parallel.
 
 2. Open `export_hm_data.cmd` and change **OUTDIR** value to a full path pointing to a shared location, available from Linux PC. Make sure the file name terminates with \*_data.xml
-3. [Windows] Create a new task in Task Scheduler to trigger the generated script every hour indefinitely. The script will keep overwriting the output xml file. See `advanced setup <advanced_setup.html>`_ for details
+3. [Windows] Create a new task in Task Scheduler to trigger the generated script every hour indefinitely. The script will keep overwriting the output xml file. See `advanced setup <advanced_setup.html#creating-a-windows-task>`_ for details
 
 .. note:: The task will run only when a user is logged on. This is because in Windows the network drives are mounted on a per-user basis.
 

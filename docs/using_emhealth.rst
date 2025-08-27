@@ -1,2 +1,97 @@
 Using EMHealth
 ==============
+
+Dashboards
+----------
+
+Once you login into Grafana at http://localhost:3000, you may want to adjust the default preferences.
+Navigate to `Administration > General > Default preferences` where you can set the interface theme, week start etc.
+We recommend to set Home Dashboard to **TEM/Fleet overview**.
+
+At the moment, all dashboards are grouped into TEM, SEM and DB performance folders. Most likely, you are going to use
+only TEM dasboards which we will describe below.
+
+TEM dashboards
+~~~~~~~~~~~~~~
+
+Overviews
+^^^^^^^^^
+
+Fleet overview
+``````````````
+
+This is the main dashboard that can display multiple instruments at once. The key metrics are beam time (vacuum state), utilization, last cryo cycle, specimen and data throughput
+
+.. image:: /_static/dash-overview.png
+
+Productivity
+````````````
+
+Shows per-instrument counters for autoloader cartridges/cassettes, acquired images and EPU/Tomo sessions
+
+.. image:: /_static/dash-prod.png
+
+Alerts
+``````
+
+Provides instruments summary and recent alerts for each microscope module
+
+Modules
+^^^^^^^
+
+Autoloader
+``````````
+
+Pressure, axes motion, temperatures and LN levels are monitored
+
+.. image:: /_static/dash-al.png
+
+Column
+``````
+
+Buffer cycle, cryo cycle frequency and duration, lenses temperature, IGP vacuum, optics board errors are displayed
+
+.. image:: /_static/dash-column.png
+
+Detectors
+`````````
+
+Projection vacuum, overal status and sensor temperature for microscope detectors are provided
+
+.. image:: /_static/dash-detectors.png
+
+Motion
+``````
+
+Tracks motion errors for stage axes and all apertures
+
+.. image:: /_static/dash-motion.png
+
+PC Health
+`````````
+
+Microscope PC statistics
+
+.. image:: /_static/dash-pc.png
+
+Source
+``````
+
+Various parameters for FEG and HT are being monitored
+
+.. image:: /_static/dash-source.png
+
+Dev
+^^^
+
+Data browser
+````````````
+
+Is mostly useful for visualizing raw data from the database
+
+.. image:: /_static/dash-browser.png
+
+Alerts
+------
+
+tbd
