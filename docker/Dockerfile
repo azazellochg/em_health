@@ -2,7 +2,7 @@
 FROM postgres:17-trixie AS builder
 
 ENV PG=17 \
-    TS_VERSION=2.21.3 \
+    TS_VERSIONS="2.21.3" \
     TLK_VERSION=1.21.0 \
     TDS_VERSION=v2.0.4 \
     CARGO_HOME=/build/cargo \
@@ -42,15 +42,19 @@ RUN mkdir -p $PGRX_HOME \
   && cargo pgrx init --pg${PG} pg_config
 
 # ---------- Build TimescaleDB ----------
-RUN git clone --branch $TS_VERSION https://github.com/timescale/timescaledb /build/timescaledb \
-    && cd /build/timescaledb \
+RUN for ver in $TS_VERSIONS; do \
+    echo "=== Building TimescaleDB $ver ===" && \
+    git clone --branch $TS_VERSION https://github.com/timescale/timescaledb /build/timescaledb-$ver \
+    && cd /build/timescaledb-$ver \
     && ./bootstrap -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                    -DREGRESS_CHECKS=OFF -DTAP_CHECKS=OFF \
                    -DGENERATE_DOWNGRADE_SCRIPT=ON \
                    -DWARNINGS_AS_ERRORS=OFF \
                    -DPROJECT_INSTALL_METHOD="docker" \
     && cd build && make install \
-    && sed -r -i "s/[#]*\s*(shared_preload_libraries)\s*=\s*'(.*)'/\1 = 'timescaledb,\2'/;s/,'/'/" \
+    done
+
+RUN sed -r -i "s/[#]*\s*(shared_preload_libraries)\s*=\s*'(.*)'/\1 = 'timescaledb,\2'/;s/,'/'/" \
          /usr/share/postgresql/$PG/postgresql.conf.sample
 
 # ---------- Build Timescale Toolkit ----------

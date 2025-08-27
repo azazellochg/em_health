@@ -439,7 +439,7 @@ def main(dbname, action, instrument=None, date=None):
         logger.info("Deleting ALL data from database %s", dbname)
 
         from em_health.utils.maintenance import erase_db
-        erase_db(dbname)
+        erase_db(dbname, do_init=True)
 
     elif action == "clean-inst":
         # verify args

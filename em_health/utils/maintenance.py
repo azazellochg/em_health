@@ -95,15 +95,20 @@ def list_backups():
     return files
 
 
-def erase_db(dbname):
-    """ Erase the existing DB and make a new empty one. """
+def erase_db(dbname, do_init=False):
+    """ Erase the existing DB and optionally make a new empty one. """
     run_command(
         f'docker exec {PG_CONTAINER} bash -c "'
         f'psql -d postgres -c \\"DROP DATABASE IF EXISTS {dbname};\\" && '
-        f'psql -d postgres -c \\"CREATE DATABASE {dbname};\\" && '
-        f'psql -v ON_ERROR_STOP=1 -d {dbname} -f /docker-entrypoint-initdb.d/init-tables.sql'
+        f'psql -d postgres -c \\"CREATE DATABASE {dbname};\\"'
         f'"'
     )
+    if do_init:
+        run_command(
+            f'docker exec {PG_CONTAINER} bash -c "'
+            f'psql -v ON_ERROR_STOP=1 -d {dbname} -f /docker-entrypoint-initdb.d/init-tables.sql'
+            f'"'
+        )
 
 
 def restore(dbname, backup_file: Path):
@@ -123,12 +128,14 @@ def restore(dbname, backup_file: Path):
 
     else:
         logger.info("Restoring TimescaleDB '%s' from %s", dbname, backup_file)
-        erase_db(dbname)
+        erase_db(dbname, do_init=False)
         run_command(
             f'docker exec {PG_CONTAINER} bash -c "'
             f'psql -d {dbname} -c \\"SELECT timescaledb_pre_restore();\\" && '
             f'pg_restore -Fc -d {dbname} /{backup_file} && '
             f'psql -d {dbname} -c \\"SELECT timescaledb_post_restore();\\"'
+            'ALTER EXTENSION timescaledb UPDATE;'
+            'ANALYZE;'
             f'"'
         )
 
