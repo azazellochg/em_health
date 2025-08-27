@@ -438,15 +438,8 @@ def main(dbname, action, instrument=None, date=None):
             return
         logger.info("Deleting ALL data from database %s", dbname)
 
-        from em_health.utils.maintenance import run_command
-        cmd = (
-            f'docker exec timescaledb bash -c "'
-            f'psql -d postgres -c \\"DROP DATABASE IF EXISTS {dbname};\\" && '
-            f'psql -d postgres -c \\"CREATE DATABASE {dbname};\\" && '
-            f'psql -v ON_ERROR_STOP=1 -d {dbname} -f /docker-entrypoint-initdb.d/init-tables.sql'
-            f'"'
-        )
-        run_command(cmd)
+        from em_health.utils.maintenance import erase_db
+        erase_db(dbname)
 
     elif action == "clean-inst":
         # verify args
