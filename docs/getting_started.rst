@@ -1,5 +1,5 @@
-Installation
-------------
+Getting Started
+===============
 
 FEI/Thermo Fisher Scientific (TFS) electron microscopes store instrument data using `Data Services` software
 on the microscope PC (MPC). This data includes event logging (Health Monitor), system configuration, alarms (error codes) etc.
@@ -15,7 +15,7 @@ The ``EMHealth`` package provides functionality to:
 - Parse and import XML data into a `TimescaleDB <https://docs.tigerdata.com/#TimescaleDB>`_ database
 - Visualize and analyze data using `Grafana <https://grafana.com/grafana/>`_
 
-Typical setup
+Typical Setup
 ^^^^^^^^^^^^^
 
 1. Windows PC (microscope or support) with:
@@ -40,7 +40,7 @@ Requirements for ``EMHeath`` package:
 - `psql <https://www.timescale.com/blog/how-to-install-psql-on-mac-ubuntu-debian-windows>`_
 
 The rest is managed by conda environment below. It's recommended to
-manage docker as non-root user, see details `here <https://docs.docker.com/engine/install/linux-postinstall/>`_
+manage docker as non-root user, see `details <https://docs.docker.com/engine/install/linux-postinstall/>`_
 
 Installation
 ^^^^^^^^^^^^
@@ -55,27 +55,12 @@ Installation
        cd em_health
        pip install -e .
 
-2. Edit `docker/.env` and launch containers:
+2. (Optional) Edit the configuration variables in `docker/.env`. Detailed information can be found `here <advanced_setup.html>`_.
+3. Launch containers:
 
    .. code-block::
 
        docker compose -f docker/compose.yaml up -d
-
-Security Configuration
-^^^^^^^^^^^^^^^^^^^^^^
-
-See `docker/.env` for default values.
-
-- DB accounts:
-
-  - POSTGRES_USER (default: *postgres*) - superuser, password: POSTGRES_PASSWORD
-  - *grafana* - read-only user, password: POSTGRES_GRAFANA_PASSWORD
-  - [optional] *pganalyze* - database metrics user, password: POSTGRES_PGANALYZE_PASSWORD
-  - [optional] MSSQL_USER and MSSQL_PASSWORD are used to connect to the MSSQL database on the MPC
-
-- Grafana accounts:
-
-  - *admin* - administrator account, password: GRAFANA_ADMIN_PASSWORD
 
 Data Import
 ^^^^^^^^^^^
@@ -95,7 +80,7 @@ d. Press **Save**.
 .. note:: If you select a very large date range, the export may fail.
 
 2. Transfer file.xml to Linux and compress it using GZIP (`gzip file.xml`). This reduces the file size >10 times.
-3. Configure instruments in `instruments.json`. See `help <settings.html>`_ for details
+3. Configure instruments in `instruments.json`. See `help <advanced_setup.html>`_ for details
 4. Import data (this may take a few minutes depending on the number of parameters and amount of data):
 
    .. code-block::
@@ -116,7 +101,7 @@ Automated Import Setup
 .. note:: We are exporting data sequentially. It appears that Health Monitor can lose data if several export commands are run in parallel.
 
 2. Open `export_hm_data.cmd` and change **OUTDIR** value to a full path pointing to a shared location, available from Linux PC. Make sure the file name terminates with \*_data.xml
-3. [Windows] Create a new task in Task Scheduler to trigger the generated script every hour indefinitely. The script will keep overwriting the output xml file. See `help page <task.html>`_ for details
+3. [Windows] Create a new task in Task Scheduler to trigger the generated script every hour indefinitely. The script will keep overwriting the output xml file. See `advanced setup <advanced_setup.html>`_ for details
 
 .. note:: The task will run only when a user is logged on. This is because in Windows the network drives are mounted on a per-user basis.
 
@@ -139,16 +124,3 @@ Post-Import Steps
 
    - Login with *admin* account
    - Navigate to "TEM" folder for instrument dashboards
-
-UEC
-^^^
-
-Universal Error Codes (UECs) or Alarms from an instrument are stored in a database separate from Health Monitor events and
-can be typically displayed with UEC Viewer on the MPC. You could also install *FEI UEC Notifications Exporter* and save UECs to XML,
-but this is not supported by ``EMHealth``. If you have the credentials to access the MSSQL server on MPC,
-you can import UECs from MSSQL into ``EMHealth`` database. To make it work, MSSQL_USER and MSSQL_PASSWORD have to be defined,
-as well as the *server* field for each instrument in the `instruments.json`.
-
-    .. code-block::
-
-    emhealth db import-uec

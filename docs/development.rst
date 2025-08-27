@@ -1,5 +1,7 @@
 Development
------------
+===========
+
+The source code is available at https://github.com/azazellochg/em_health
 
 Enable performance metrics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -44,3 +46,8 @@ All **EMHealth** application actions are saved in `emhealth.log`. PostgreSQL log
     cat *.csv
 
 Grafana logs are accessible via `docker logs grafana`
+
+Changing Dashboards
+^^^^^^^^^^^^^^^^^^^
+
+tbd..

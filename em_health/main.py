@@ -102,19 +102,19 @@ def main():
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # --- Import command ---
-    import_parser = subparsers.add_parser("import", help="Import health monitor data from XML")
+    import_parser = subparsers.add_parser("import", help="Import health monitor data from XML file")
     import_parser.add_argument("-i", dest="input", required=True,
                                help="Path to XML file (.xml or .xml.gz)")
     import_parser.add_argument("-s", dest="settings", required=True,
                                help="Path to instruments.json with metadata")
     import_parser.add_argument("--no-copy", dest="nocopy", action="store_true",
-                               help="Do not use fast COPY method (useful for small imports with duplicates)")
+                               help="Do not use fast COPY method (useful for small imports that may contain duplicates)")
 
     # --- Create Task command ---
     task_parser = subparsers.add_parser("create-task",
                                         help="Create a Windows batch file to export Health Monitor data")
     task_parser.add_argument("-e", dest="exe", type=str, default=HM_EXE,
-                             help=f"Custom path to Health Monitor executable (default: '{HM_EXE}')")
+                             help=f"Custom path to the Health Monitor executable (default: '{HM_EXE}')")
     task_parser.add_argument("-s", dest="settings", required=True,
                              help="Path to instruments.json with metadata")
 
@@ -124,12 +124,12 @@ def main():
     watch_parser.add_argument("-i", dest="input", required=True,
                               help="Target directory with XML data files")
     watch_parser.add_argument("-s", dest="settings", required=True,
-                              help="Path to instruments.json")
+                              help="Path to instruments.json with metadata")
     watch_parser.add_argument("-t", dest="interval", type=int, default=300,
                               help="Polling time interval in seconds (default: 300)")
 
     subparsers.add_parser("update", help="Update EMHealth to the latest version")
-    subparsers.add_parser("test", help="Run unit tests")
+    subparsers.add_parser("test", help="Run unit tests to check parser and import functions")
 
     # --- Database maintenance commands ---
     db_parser = subparsers.add_parser("db", help="Database operations")
