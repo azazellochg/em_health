@@ -176,4 +176,34 @@ Syntax
 Developer Commands
 ------------------
 
-tbd
+Create performance stats
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Description
+^^^^^^^^^^^
+
+This will enable perdiodic database statistics collection. The output is used in dashboards under *DB performance* folder.
+
+
+Syntax
+^^^^^^
+
+.. code-block::
+
+    emhealth db create-perf-stats [-f]
+
+Execute queries
+~~~~~~~~~~~~~~~
+
+Description
+^^^^^^^^^^^
+
+If you have a long query and/or too lazy to use the `psql` client, you can edit **db_analyze.py** and then use the commands below.
+
+Syntax
+^^^^^^
+
+.. code-block::
+
+    emhealth db run-query
+    emhealth db explain-query

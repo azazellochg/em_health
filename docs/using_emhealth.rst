@@ -81,8 +81,8 @@ Various parameters for FEG and HT are being monitored
 
 .. image:: /_static/dash-source.png
 
-Dev
-^^^
+For developers
+^^^^^^^^^^^^^^
 
 Data browser
 ````````````
@@ -95,3 +95,16 @@ Alerts
 ------
 
 tbd
+
+Import Alarms
+-------------
+
+Universal Error Codes (UECs) or Alarms from an instrument are stored in a database separate from Health Monitor events and
+can be typically displayed with UEC Viewer on the MPC. You could also install *FEI UEC Notifications Exporter* and save UECs to XML,
+but this is not supported by ``EMHealth``. If you have the credentials to access the MSSQL server on MPC,
+you can import UECs from MSSQL into ``EMHealth`` database. To make it work, MSSQL_USER and MSSQL_PASSWORD have to be defined,
+as well as the *server* field for each instrument in the `instruments.json`.
+
+.. code-block::
+
+    emhealth db import-uec

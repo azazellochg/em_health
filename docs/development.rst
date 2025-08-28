@@ -3,6 +3,22 @@ Development
 
 The source code is available at https://github.com/azazellochg/em_health
 
+Changing Dashboards
+^^^^^^^^^^^^^^^^^^^
+
+By default, the provisioned dashboards are read-only. If you set **EMHEALTH_DEBUG=true** in the `docker/.env`, you can modify and save changes via the Grafana UI.
+However, if you then update the provisioned dashboards (e.g. via `pip install -U em_health`), the changes made via UI will be lost. See details
+`here <https://grafana.com/docs/grafana/latest/administration/provisioning/#make-changes-to-a-provisioned-dashboard>`_. The workaround is the following:
+
+1. Make changes to a dashboard via Grafana UI.
+2. Save and export dashboard to JSON (DO NOT enable `Export the dashboard to use in another instance`).
+3. Overwrite existing dashboard file (they are in `docker/grafana/provisioning/dashboards/`) with the saved json file.
+
+Any file changes in the provisioning folder are immediately picked up by Grafana. There's no need to restart it.
+
+.. important:: Renaming provisioned dashboards or folders is strongly discouraged. If you really need to do it, modify the provisioned files directly. Also, nested folders are not yet supported by provisioning.
+
+
 Enable performance metrics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -24,20 +40,33 @@ Statistics retention time is 1 month.
 SQL commands
 ^^^^^^^^^^^^
 
-Below are some frequently used commands for **psql** command-line db client:
+Below are some frequently used commands for **psql** database client:
 
 * connect: `psql -U postgres -h localhost -d tem`
-* change db to sem: `\c sem`
-* list tables: `\dt`
-* list mat. views: `\dm`
-* list table structure: `\d data;`
+* change db to sem: `\\c sem`
+* list tables: `\\dt`
+* list materialized views: `\dm`
+* list table structure: `\\d data;`
 * list table content: `SELECT * FROM parameters;`
-* disconnect: `\q`
+* disconnect: `\\q`
+
+For more examples refer to the command line `cheetsheet <https://gist.github.com/Kartones/dd3ff5ec5ea238d4c546>`_
+
+Using Grafana API
+^^^^^^^^^^^^^^^^^
+
+Grafana provides HTTP API that can be used once you create a `service admin account <http://localhost:3000/org/serviceaccounts/create>`_
+with an API token and save it to **GRAFANA_API_TOKEN** in the `docker/.env`. A simple Python client inside ``EMHealth`` can then access the API.
+At the moment the client can only change the default organization preferences by running:
+
+.. code-block::
+
+    python em_health/grafana_client.py
 
 Logs
 ^^^^
 
-All **EMHealth** application actions are saved in `emhealth.log`. PostgreSQL logs can be accessed by:
+All ``EMHealth`` application actions are saved in `emhealth.log`. PostgreSQL logs are in csv format and can be accessed through:
 
 .. code-block::
 
@@ -45,9 +74,55 @@ All **EMHealth** application actions are saved in `emhealth.log`. PostgreSQL log
     cd /var/lib/postgresql/data/log
     cat *.csv
 
-Grafana logs are accessible via `docker logs grafana`
+Grafana logs are accessible via:
 
-Changing Dashboards
-^^^^^^^^^^^^^^^^^^^
+.. code-block::
 
-tbd..
+    docker logs grafana
+
+Database structure
+^^^^^^^^^^^^^^^^^^
+
+We have two databases: *tem* and *sem*, both have the same structure at the moment. Each database has several schemas:
+
+* public - default schema for storing HM events data
+
+    * schema_info - table to store the current schema version
+    * instruments - glabal metadata for each microscope
+    * enum_types - enumeration names for each instrument
+    * enum_values - enumeration values for each enum
+    * parameters - parameters metadata
+    * enum_values_history - old/replaced enumeration values
+    * parameters_history - old/replaced parameters
+    * data - main events data table for all instruments
+
+* uec - schema for storing UECs / Alarms. UEC codes are unified across different instruments
+
+    * device_type
+    * device_instance
+    * error_code
+    * subsystem
+    * error_definitions
+    * errors - main UEC data table for all instruments
+
+* pganalyze - schema to store database statistics for developers
+
+    * database_stats
+    * table_stats
+    * index_stats
+    * vacuum_stats
+    * stat_statements
+    * stat_explains
+
+* fdw_ms_IID - foreign server schema for MSSQL with UECs
+
+    * error_definitions
+    * error_notifications
+
+* fdw_pg_IID - foreign server schema for PostgreSQL with HM data
+
+    * event_property
+    * event_property_type
+    * event_type
+    * parameter_type
+    * instrument_event_config
