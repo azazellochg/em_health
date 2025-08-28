@@ -194,15 +194,7 @@ DECLARE
 BEGIN
     -- Construct a full path to a log file
     logfile := current_setting('data_directory') || '/' ||
-               current_setting('log_directory') || '/' ||
-               'postgresql-' || to_char(current_timestamp, 'YYYY-MM-DD') || '.csv';
-
-    -- Check if a log file exists
-    PERFORM pg_stat_file(logfile, true);
-    IF NOT FOUND THEN
-        RAISE NOTICE 'Log file not found: %', logfile;
-        RETURN;
-    END IF;
+               (select pg_current_logfile('csvlog'));
 
     -- Create temp log table
     CREATE TEMP TABLE tmp_log (
