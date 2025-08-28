@@ -100,10 +100,8 @@ Automated Import Setup
 
        emhealth create-task -s em_health/instruments.json
 
-.. note:: We are exporting data sequentially. It appears that Health Monitor can lose data if several export commands are run in parallel.
-
 2. Open `export_hm_data.cmd` and change **OUTDIR** value to a full path pointing to a shared location, available from Linux PC. Make sure the file name terminates with \*_data.xml
-3. [Windows] Create a new task in Task Scheduler to trigger the generated script every hour indefinitely. The script will keep overwriting the output xml file. See `advanced setup <advanced_setup.html#creating-a-windows-task>`_ for details
+3. [Windows] Create a new task in Task Scheduler to trigger the generated script every 30 min indefinitely. The script will keep overwriting the output xml file. See `advanced setup <advanced_setup.html#creating-a-windows-task>`_ for details
 
 .. note:: The task will run only when a user is logged on. This is because in Windows the network drives are mounted on a per-user basis.
 

@@ -57,7 +57,7 @@ To create a new task in Windows Task Scheduler:
 
 .. image:: /_static/task-01.png
 
-4. On the *Triggers* tab add a new trigger to repeat the task every hour indefinitely
+4. On the *Triggers* tab add a new trigger to repeat the task every 30 min indefinitely
 
 .. image:: /_static/task-02.png
 
