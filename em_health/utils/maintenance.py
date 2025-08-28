@@ -58,7 +58,10 @@ def update():
         f"docker compose -f {DOCKER_COMPOSE_FILE} down",
         f"docker compose -f {DOCKER_COMPOSE_FILE} pull",
         f"docker compose -f {DOCKER_COMPOSE_FILE} up -d",
-        "docker image prune -f"
+        "docker image prune -f",
+
+        f'docker exec {PG_CONTAINER} bash -c "ALTER EXTENSION timescaledb UPDATE;'
+        'ALTER EXTENSION timescaledb_toolkit UPDATE;"'
     ]
 
     for cmd in commands:
@@ -135,6 +138,7 @@ def restore(dbname, backup_file: Path):
             f'pg_restore -Fc -d {dbname} /{backup_file} && '
             f'psql -d {dbname} -c \\"SELECT timescaledb_post_restore();\\"'
             'ALTER EXTENSION timescaledb UPDATE;'
+            'ALTER EXTENSION timescaledb_toolkit UPDATE;'
             'ANALYZE;'
             f'"'
         )
