@@ -62,7 +62,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 9,
+  "id": 5,
   "links": [
     {
       "asDropdown": true,
@@ -430,7 +430,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
                 "color": "yellow",
@@ -496,7 +497,7 @@
         "textMode": "value_and_name",
         "wideLayout": false
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "repeat": "instrument",
       "repeatDirection": "h",
       "targets": [
@@ -508,7 +509,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT param_name, param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name IN ('AutoloaderCryoCycleDuration', 'ColumnCryoCycleDuration')\n),\nzero_start AS (\n  SELECT\n    p.param_name,\n    d.time AS cryo_start_time\n  FROM param_ids p\n  JOIN LATERAL (\n    SELECT time\n    FROM (\n      SELECT\n        time,\n        value_num,\n        LAG(value_num) OVER (ORDER BY time) AS prev_value\n      FROM data\n      WHERE instrument_id = $instrument\n        AND param_id = p.param_id\n    ) sub\n    WHERE value_num = 0 AND prev_value IS DISTINCT FROM 0\n    ORDER BY time DESC\n    LIMIT 1\n  ) d ON true\n)\n\nSELECT\n  param_name,\n  CURRENT_DATE - cryo_start_time::date AS days_since_cryocycle_start,\n  cryo_start_time\nFROM zero_start",
+          "rawSql": "WITH param_ids AS (\n  SELECT param_name, param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND param_name IN ('AutoloaderCryoCycleDuration', 'ColumnCryoCycleDuration')\n)\nSELECT\n  p.param_name,\n  CURRENT_DATE - d.time::date AS days_since_cryocycle_start,\n  d.time AS cryo_start_time\nFROM param_ids p\nJOIN LATERAL (\n  SELECT time\n  FROM data\n  WHERE instrument_id = $instrument\n    AND param_id = p.param_id\n    AND value_num <> 0\n  ORDER BY time DESC\n  LIMIT 1\n) d ON true",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1123,12 +1124,12 @@
     ]
   },
   "time": {
-    "from": "now-30d",
-    "to": "now"
+    "from": "2025-08-17T00:27:19.484Z",
+    "to": "2025-08-28T12:46:53.618Z"
   },
   "timepicker": {},
   "timezone": "Europe/London",
   "title": "Fleet overview",
   "uid": "4350492f-ef51-4e3f-a22b-14c55eed6a97",
-  "version": 1
+  "version": 4
 }
