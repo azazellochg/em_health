@@ -12,7 +12,7 @@ ENV PG=17 \
 
 # --------- Metadata ----------
 LABEL org.opencontainers.image.title="Custom PostgreSQL image with TimescaleDB, Toolkit & TDS-FDW" \
-      org.opencontainers.image.description="Postgres ${PG} + TimescaleDB ${TS_VERSION} + Toolkit ${TLK_VERSION} + TDS-FDW ${TDS_VERSION}" \
+      org.opencontainers.image.description='Postgres ${PG} + TimescaleDB ${TS_VERSIONS} + Toolkit ${TLK_VERSION} + TDS-FDW ${TDS_VERSION}' \
       org.opencontainers.image.version="0.1" \
       org.opencontainers.image.authors="Grigory Sharov <gsharov@mrc-lmb.cam.ac.uk>" \
       org.opencontainers.image.licenses="GPL-3.0-or-later" \
@@ -44,14 +44,15 @@ RUN mkdir -p $PGRX_HOME \
 # ---------- Build TimescaleDB ----------
 RUN for ver in $TS_VERSIONS; do \
     echo "=== Building TimescaleDB $ver ===" && \
-    git clone --branch $TS_VERSION https://github.com/timescale/timescaledb /build/timescaledb-$ver \
+    mkdir /build/timescaledb-$ver && \
+    git clone --branch $ver https://github.com/timescale/timescaledb /build/timescaledb-$ver \
     && cd /build/timescaledb-$ver \
     && ./bootstrap -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                    -DREGRESS_CHECKS=OFF -DTAP_CHECKS=OFF \
                    -DGENERATE_DOWNGRADE_SCRIPT=ON \
                    -DWARNINGS_AS_ERRORS=OFF \
                    -DPROJECT_INSTALL_METHOD="docker" \
-    && cd build && make install \
+    && cd build && make install; \
     done
 
 RUN sed -r -i "s/[#]*\s*(shared_preload_libraries)\s*=\s*'(.*)'/\1 = 'timescaledb,\2'/;s/,'/'/" \
