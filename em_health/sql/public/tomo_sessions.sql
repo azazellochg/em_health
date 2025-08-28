@@ -34,6 +34,7 @@ WITH state_param AS (
          FROM data d
                   JOIN running_enum r
                        ON d.instrument_id = r.instrument_id AND d.param_id = r.param_id
+         ORDER BY d.instrument_id, d.time
      ),
 
      -- 4. Detect state transitions
