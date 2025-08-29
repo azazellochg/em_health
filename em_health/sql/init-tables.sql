@@ -89,6 +89,7 @@ CREATE TABLE IF NOT EXISTS public.parameters (
 COMMENT ON TABLE public.parameters IS 'HM parameters metadata. param_id is unique per instrument. Multiple parameters can refer to the same enum type';
 
 CREATE INDEX ON public.parameters (instrument_id, param_id);
+CREATE INDEX ON public.parameters (enum_id, instrument_id, param_id, param_name, subsystem);
 
 -- Creating public.parameters_history
 CREATE TABLE IF NOT EXISTS public.parameters_history (
