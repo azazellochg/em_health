@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 12,
+  "id": 11,
   "links": [
     {
       "asDropdown": true,
@@ -1174,12 +1174,12 @@
     ]
   },
   "time": {
-    "from": "now-30d",
-    "to": "now"
+    "from": "2025-08-12T21:27:30.712Z",
+    "to": "2025-08-30T19:34:02.428Z"
   },
   "timepicker": {},
   "timezone": "Europe/London",
   "title": "Productivity",
   "uid": "6b926c0e-9894-4124-9c6e-75cf6d9d898a",
-  "version": 2
+  "version": 1
 }

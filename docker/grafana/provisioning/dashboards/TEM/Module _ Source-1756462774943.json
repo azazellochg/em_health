@@ -72,7 +72,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 8,
+  "id": 10,
   "links": [
     {
       "asDropdown": true,
@@ -537,7 +537,7 @@
           }
         }
       ],
-      "title": "S/X-FEG start counters",
+      "title": "SFEG/XFEG start counters",
       "type": "stat"
     },
     {
@@ -2297,8 +2297,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Glacios [Glacios] (9952833)",
-          "value": "5"
+          "text": "Krios 4 [Titan Krios G4] (4248)",
+          "value": "4"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -2316,8 +2316,8 @@
     ]
   },
   "time": {
-    "from": "now-7d",
-    "to": "now"
+    "from": "2025-08-12T21:27:30.712Z",
+    "to": "2025-08-30T19:34:02.428Z"
   },
   "timepicker": {
     "refresh_intervals": []
@@ -2325,5 +2325,5 @@
   "timezone": "Europe/London",
   "title": "Module | Source",
   "uid": "4395e67b-0345-47fd-94a8-684004567800",
-  "version": 7
+  "version": 2
 }

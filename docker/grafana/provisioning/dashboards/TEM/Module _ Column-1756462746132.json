@@ -110,7 +110,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 10,
+  "id": 20,
   "links": [
     {
       "asDropdown": true,
@@ -282,7 +282,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'TempCtrl'\n    AND param_name = 'Lcldwr'\n),\n\nbucketed AS (\n  SELECT\n    time_bucket('30 seconds', v.time) AS bucket,\n    AVG(v.value_num) AS avg_value\n  FROM data v\n  JOIN matching_param p ON v.param_id = p.param_id\n  WHERE v.instrument_id = $instrument\n    AND $__timeFilter(v.time)\n  GROUP BY bucket\n),\n\nlagged AS (\n  SELECT\n    bucket,\n    avg_value,\n    LAG(avg_value, 1) OVER (ORDER BY bucket) AS val_1,\n    LAG(avg_value, 2) OVER (ORDER BY bucket) AS val_2,\n    LAG(avg_value, 3) OVER (ORDER BY bucket) AS val_3\n  FROM bucketed\n),\n\nlabeled AS (\n  SELECT *,\n    CASE\n      WHEN val_3 < val_2 AND val_2 < val_1 AND val_1 < avg_value THEN true\n      ELSE false\n    END AS is_peak\n  FROM lagged\n),\n\nwith_peak_groups AS (\n  SELECT *,\n    CASE\n      WHEN is_peak AND NOT LAG(is_peak, 1, false) OVER (ORDER BY bucket) THEN 1\n      ELSE 0\n    END AS new_peak_start\n  FROM labeled\n),\n\npeak_groups AS (\n  SELECT *,\n    SUM(new_peak_start) OVER (ORDER BY bucket) AS peak_group_id\n  FROM with_peak_groups\n),\n\nranked_peaks AS (\n  SELECT\n    bucket AS time,\n    avg_value,\n    peak_group_id,\n    RANK() OVER (PARTITION BY peak_group_id ORDER BY avg_value DESC) AS val_rank\n  FROM peak_groups\n  WHERE is_peak\n),\n\ncollapsed_peaks AS (\n  SELECT\n    time\n  FROM ranked_peaks\n  WHERE val_rank = 1 AND avg_value > 95\n),\n\nwith_deltas AS (\n  SELECT\n    time,\n    LAG(time) OVER (ORDER BY time) AS prev_time\n  FROM collapsed_peaks\n),\n\ndeltas AS (\n  SELECT\n    EXTRACT(EPOCH FROM (time - prev_time)) AS sec_between\n  FROM with_deltas\n  WHERE prev_time IS NOT NULL\n)\n\nSELECT AVG(sec_between) AS avg_sec_between_refills\nFROM deltas;\n",
+          "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'TempCtrl'\n    AND param_name = 'Lcldwr'\n),\n\nbucketed AS (\n  SELECT\n    time_bucket('30 seconds', v.time) AS bucket,\n    AVG(v.value_num) AS avg_value\n  FROM data v\n  JOIN matching_param p ON v.param_id = p.param_id\n  WHERE v.instrument_id = $instrument\n    AND $__timeFilter(v.time)\n  GROUP BY bucket\n),\n\nlagged AS (\n  SELECT\n    bucket,\n    avg_value,\n    LAG(avg_value, 1) OVER (ORDER BY bucket) AS val_1,\n    LAG(avg_value, 2) OVER (ORDER BY bucket) AS val_2,\n    LAG(avg_value, 3) OVER (ORDER BY bucket) AS val_3\n  FROM bucketed\n),\n\nlabeled AS (\n  SELECT *,\n    CASE\n      -- Rule 1: threshold crossing (for sparse data / sudden jump)\n      WHEN avg_value > 90 AND (val_1 < 90 OR val_1 IS NULL) THEN true\n\n      -- Rule 2: local maximum compared to neighbors (for dense data)\n      WHEN avg_value >= COALESCE(val_1, -1e9)\n       AND avg_value >= COALESCE(val_2, -1e9)\n       AND avg_value >= COALESCE(val_3, -1e9)\n       AND avg_value > 90\n      THEN true\n\n      ELSE false\n    END AS is_peak\n  FROM lagged\n),\n\nwith_peak_groups AS (\n  SELECT *,\n    CASE\n      WHEN is_peak AND NOT LAG(is_peak, 1, false) OVER (ORDER BY bucket) THEN 1\n      ELSE 0\n    END AS new_peak_start\n  FROM labeled\n),\n\npeak_groups AS (\n  SELECT *,\n    SUM(new_peak_start) OVER (ORDER BY bucket) AS peak_group_id\n  FROM with_peak_groups\n),\n\nranked_peaks AS (\n  SELECT\n    bucket AS time,\n    avg_value,\n    peak_group_id,\n    RANK() OVER (PARTITION BY peak_group_id ORDER BY avg_value DESC) AS val_rank\n  FROM peak_groups\n  WHERE is_peak\n),\n\ncollapsed_peaks AS (\n  SELECT\n    time\n  FROM ranked_peaks\n  WHERE val_rank = 1\n),\n\nwith_deltas AS (\n  SELECT\n    time,\n    LAG(time) OVER (ORDER BY time) AS prev_time\n  FROM collapsed_peaks\n),\n\ndeltas AS (\n  SELECT\n    EXTRACT(EPOCH FROM (time - prev_time)) AS sec_between\n  FROM with_deltas\n  WHERE prev_time IS NOT NULL\n)\n\nSELECT AVG(sec_between) AS avg_sec_between_refills\nFROM deltas;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1141,7 +1141,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH counter_param AS (\n  SELECT param_id, param_name\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'IGPcl'\n    AND param_name IN ('IGPclOnTime', 'IGPclLeadTime')\n),\n\nlast_values AS (\n  SELECT DISTINCT ON (d.param_id)\n    d.param_id,\n    d.value_num,\n    d.time\n  FROM data d\n  JOIN counter_param p ON p.param_id = d.param_id\n  WHERE d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n  ORDER BY d.param_id, d.time DESC\n)\n\nSELECT\n  p.param_name,\n  l.value_num,\n  l.time\nFROM last_values l\nJOIN counter_param p ON p.param_id = l.param_id\n",
+          "rawSql": "WITH counter_param AS (\n  SELECT param_id, param_name\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'IGPcl'\n    AND param_name IN ('IGPclOnTime', 'IGPclLeadTime', 'IGPclTotalLifetime', 'IGPclOperationalLifetime')\n),\n\nlast_values AS (\n  SELECT DISTINCT ON (d.param_id)\n    d.param_id,\n    d.value_num,\n    d.time\n  FROM data d\n  JOIN counter_param p ON p.param_id = d.param_id\n  WHERE d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n  ORDER BY d.param_id, d.time DESC\n)\n\nSELECT\n  p.param_name,\n  l.value_num,\n  l.time\nFROM last_values l\nJOIN counter_param p ON p.param_id = l.param_id\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1474,7 +1474,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH counter_param AS (\n  SELECT param_id, param_name\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'IGPco'\n    AND param_name IN ('IGPcoOnTime', 'IGPcoLeadTime')\n),\n\nlast_values AS (\n  SELECT DISTINCT ON (d.param_id)\n    d.param_id,\n    d.value_num,\n    d.time\n  FROM data d\n  JOIN counter_param p ON p.param_id = d.param_id\n  WHERE d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n  ORDER BY d.param_id, d.time DESC\n)\n\nSELECT\n  p.param_name,\n  l.value_num,\n  l.time\nFROM last_values l\nJOIN counter_param p ON p.param_id = l.param_id\n",
+          "rawSql": "WITH counter_param AS (\n  SELECT param_id, param_name\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'IGPco'\n    AND param_name IN ('IGPcoOnTime', 'IGPcoLeadTime', 'IGPcoTotalLifetime', 'IGPcoOperationalLifetime')\n),\n\nlast_values AS (\n  SELECT DISTINCT ON (d.param_id)\n    d.param_id,\n    d.value_num,\n    d.time\n  FROM data d\n  JOIN counter_param p ON p.param_id = d.param_id\n  WHERE d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n  ORDER BY d.param_id, d.time DESC\n)\n\nSELECT\n  p.param_name,\n  l.value_num,\n  l.time\nFROM last_values l\nJOIN counter_param p ON p.param_id = l.param_id\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1913,8 +1913,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Glacios [Glacios] (9952833)",
-          "value": "5"
+          "text": "Krios 4 [Titan Krios G4] (4248)",
+          "value": "4"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -1932,8 +1932,8 @@
     ]
   },
   "time": {
-    "from": "now-7d",
-    "to": "now"
+    "from": "2025-08-12T21:27:30.712Z",
+    "to": "2025-08-30T19:34:02.428Z"
   },
   "timepicker": {
     "refresh_intervals": []
@@ -1941,5 +1941,5 @@
   "timezone": "Europe/London",
   "title": "Module | Column",
   "uid": "4395e67b-0345-47fd-94a8-684533567800",
-  "version": 8
+  "version": 4
 }
