@@ -51,22 +51,31 @@ def run_command(command: str, capture_output=False, check=True):
 
 
 def update():
-    """Update Docker containers and migrate db."""
-    chdir_docker_dir()
+    """Update everything and migrate db."""
+    # make a backup first
+    pg_backup, grafana_backup = backup("tem")
 
+    # update containers
+    chdir_docker_dir()
     commands = [
         f"docker compose -f {DOCKER_COMPOSE_FILE} down",
         f"docker compose -f {DOCKER_COMPOSE_FILE} pull",
         f"docker compose -f {DOCKER_COMPOSE_FILE} up -d",
-        "docker image prune -f",
-
-        f'docker exec {PG_CONTAINER} bash -c "ALTER EXTENSION timescaledb UPDATE;'
-        'ALTER EXTENSION timescaledb_toolkit UPDATE;"'
+        "docker image prune -f"
     ]
 
     for cmd in commands:
         run_command(cmd)
 
+    # restore dbs
+    restore("tem", pg_backup)
+    restore("tem", grafana_backup)
+
+    # update extensions
+    run_command(f'docker exec {PG_CONTAINER} bash -c "ALTER EXTENSION timescaledb UPDATE;'
+        'ALTER EXTENSION timescaledb_toolkit UPDATE;"')
+
+    # migrate schemas
     from em_health.db_manager import main as func
     func("tem", "migrate")
     func("sem", "migrate")
@@ -89,6 +98,8 @@ def backup(dbname="tem"):
     run_command(f"docker stop {GRAFANA_CONTAINER}")
     run_command(f"docker cp {GRAFANA_CONTAINER}:/var/lib/grafana/grafana.db {grafana_backup}")
     run_command(f"docker start {GRAFANA_CONTAINER}")
+
+    return pg_backup, grafana_backup
 
 
 def list_backups():
@@ -137,8 +148,6 @@ def restore(dbname, backup_file: Path):
             f'psql -d {dbname} -c \\"SELECT timescaledb_pre_restore();\\" && '
             f'pg_restore -Fc -d {dbname} /{backup_file} && '
             f'psql -d {dbname} -c \\"SELECT timescaledb_post_restore();\\"'
-            'ALTER EXTENSION timescaledb UPDATE;'
-            'ALTER EXTENSION timescaledb_toolkit UPDATE;'
             'ANALYZE;'
             f'"'
         )
@@ -150,15 +159,10 @@ def main(dbname, action):
     """Run update/backup/restore interactively."""
     if action == "update":
         logger.info("We assume you have already run 'pip install em_health'")
-        confirm = input("Do you want to backup before updating? (Y/N): ").strip().lower()
-        if confirm.startswith("y"):
-            backup(dbname)
-        else:
-            logger.info("Backup skipped")
         update()
 
     elif action == "backup":
-        backup(dbname)
+        _, _ = backup(dbname)
 
     elif action == "restore":
         confirm = input("Restoring will DELETE existing database.\n"

@@ -136,7 +136,7 @@ Syntax
 
 .. code-block::
 
-    emhealth backup
+    emhealth db backup
 
 ----
 
@@ -153,7 +153,7 @@ Syntax
 
 .. code-block::
 
-    emhealth restore
+    emhealth db restore
 
 ----
 

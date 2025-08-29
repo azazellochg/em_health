@@ -37,6 +37,7 @@ Documentation
    getting_started
    advanced_setup
    using_emhealth
+   maintenance
    cli
    development
    changelog
