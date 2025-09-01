@@ -12,28 +12,31 @@ WITH state_param AS (
 ),
 
      -- 2. Filter enums by both enum_id and instrument_id
-     running_enum AS (
+     state_enum AS (
          SELECT
              p.instrument_id,
              p.param_id,
-             e.value AS running_value
+             MAX(e.value) FILTER (WHERE e.member_name IN ('Running', 'Acquiring')) AS running_value,
+             MAX(e.value) FILTER (WHERE e.member_name = 'Paused')  AS paused_value
          FROM state_param p
                   JOIN enum_values e ON e.enum_id = p.enum_id
-         WHERE e.member_name IN ('Acquiring', 'Running')
+         WHERE e.member_name IN ('Running', 'Acquiring', 'Paused')
+         GROUP BY p.instrument_id, p.param_id
      ),
 
-     -- 3. Tag raw data with is_running flag
+     -- 3. Tag raw data with is_running flag, remove paused states
      state_data AS (
          SELECT
              d.instrument_id,
              d.time,
              d.value_num AS acquisition_state,
              CASE
-                 WHEN d.value_num = r.running_value THEN 1 ELSE 0
+                 WHEN d.value_num = se.running_value THEN 1 ELSE 0
                  END AS is_running
          FROM data d
-                  JOIN running_enum r
-                       ON d.instrument_id = r.instrument_id AND d.param_id = r.param_id
+                  JOIN state_enum se
+                       ON d.instrument_id = se.instrument_id AND d.param_id = se.param_id
+         WHERE d.value_num != se.paused_value
          ORDER BY d.instrument_id, d.time
      ),
 
@@ -79,4 +82,4 @@ SELECT
 FROM paired_segments p
          LEFT JOIN state_data sd
                    ON p.instrument_id = sd.instrument_id AND p.end_time = sd.time
-WHERE p.end_time - p.start_time >= interval '1 second'
+WHERE p.end_time - p.start_time >= interval '10 second'
