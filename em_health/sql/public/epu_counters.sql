@@ -30,7 +30,7 @@ JOIN LATERAL (
         (MAX(CASE WHEN d.param_id = ic.image_counter_param_id THEN d.value_num END)
          - MIN(CASE WHEN d.param_id = ic.image_counter_param_id THEN d.value_num END)
         ) AS total_image_counter,
-        MAX(CASE WHEN d.param_id = sc.skip_counter_param_id THEN d.value_num END) AS skip_image_counter
+        COALESCE(MAX(CASE WHEN d.param_id = sc.skip_counter_param_id THEN d.value_num END), 0) AS skip_image_counter
     FROM data d
     WHERE d.instrument_id = seg.instrument_id
       AND d.param_id IN (ic.image_counter_param_id, sc.skip_counter_param_id)

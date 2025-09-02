@@ -1,6 +1,20 @@
 /* Create a materialized view of Tomo running states.
 This is the reference view for duration and speed views.
 Outputs start and end time for every Tomo session.
+
+NOTES:
+- The old 5.x tomo:
+   - does not have Terminated state
+   - has an extra Stopping state (useless, lasts a couple of seconds and usually changes to Completed)
+   - Acquiring = Running
+   - Idle = Ready
+- Paused state is useless and is no longer logged by new Tomo 5
+- Idle/Ready lasts a couple of seconds and usually changes to Acquiring/Running
+- Session IDs are assigned at session creation but not reset at the stop.
+   Also, a single session can be stopped/completed/terminated multiple times
+   during its time course. Thus, we only track the "state" when data collection is running.
+- We ignore all Paused, Stopping, Idle/Ready states. We are only interested in
+   Running/Acquiring -> Completed/Stopped/Terminated transitions.
 */
 CREATE MATERIALIZED VIEW IF NOT EXISTS tomo_sessions AS
     -- 1. Get param_id and enum_id for state
@@ -17,14 +31,16 @@ WITH state_param AS (
              p.instrument_id,
              p.param_id,
              MAX(e.value) FILTER (WHERE e.member_name IN ('Running', 'Acquiring')) AS running_value,
-             MAX(e.value) FILTER (WHERE e.member_name = 'Paused')  AS paused_value
+             MAX(e.value) FILTER (WHERE e.member_name = 'Paused') AS paused_value,
+             COALESCE(MAX(e.value) FILTER (WHERE e.member_name = 'Stopping'), -1) AS stopping_value,
+             MAX(e.value) FILTER (WHERE e.member_name IN ('Idle', 'Ready')) AS idle_value
          FROM state_param p
                   JOIN enum_values e ON e.enum_id = p.enum_id
-         WHERE e.member_name IN ('Running', 'Acquiring', 'Paused')
+         WHERE e.member_name IN ('Running', 'Acquiring', 'Paused', 'Stopping', 'Idle', 'Ready')
          GROUP BY p.instrument_id, p.param_id
      ),
 
-     -- 3. Tag raw data with is_running flag, remove paused states
+     -- 3. Tag raw data with is_running flag, remove invalid states
      state_data AS (
          SELECT
              d.instrument_id,
@@ -36,7 +52,7 @@ WITH state_param AS (
          FROM data d
                   JOIN state_enum se
                        ON d.instrument_id = se.instrument_id AND d.param_id = se.param_id
-         WHERE d.value_num != se.paused_value
+         WHERE d.value_num NOT IN (se.idle_value, se.paused_value, se.stopping_value)
          ORDER BY d.instrument_id, d.time
      ),
 
@@ -82,4 +98,4 @@ SELECT
 FROM paired_segments p
          LEFT JOIN state_data sd
                    ON p.instrument_id = sd.instrument_id AND p.end_time = sd.time
-WHERE p.end_time - p.start_time >= interval '10 second'
+WHERE p.end_time - p.start_time >= interval '1 minute'

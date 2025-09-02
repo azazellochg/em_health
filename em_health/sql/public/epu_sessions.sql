@@ -1,6 +1,14 @@
 /* Create a materialized view of EPU running states.
 This is the reference view for duration and speed views.
 Outputs start and end time for every EPU session.
+
+NOTES:
+- Session IDs are assigned at session creation but not reset at the stop.
+   Also, a single session can be stopped/completed/terminated multiple times
+   during its time course. Thus, we only track the "state" when data collection is running.
+- We ignore all Paused and Idle states, being only interested in Running -> Completed/Stopped/Terminated
+   transitions. The end goal is to measure acquisition speed and number of images, as well as
+   how many runs have failed.
 */
 CREATE MATERIALIZED VIEW IF NOT EXISTS epu_sessions AS
     -- 1. Get param_id and enum_id for state
@@ -17,14 +25,15 @@ WITH state_param AS (
              p.instrument_id,
              p.param_id,
              MAX(e.value) FILTER (WHERE e.member_name = 'Running') AS running_value,
-             MAX(e.value) FILTER (WHERE e.member_name = 'Paused')  AS paused_value
+             MAX(e.value) FILTER (WHERE e.member_name = 'Paused') AS paused_value,
+             MAX(e.value) FILTER (WHERE e.member_name = 'Idle') AS idle_value
          FROM state_param p
                   JOIN enum_values e ON e.enum_id = p.enum_id
-         WHERE e.member_name IN ('Running', 'Paused')
+         WHERE e.member_name IN ('Running', 'Paused', 'Idle')
          GROUP BY p.instrument_id, p.param_id
      ),
 
-     -- 3. Tag raw data with is_running flag, remove paused states
+     -- 3. Tag raw data with is_running flag, remove invalid states
      state_data AS (
          SELECT
              d.instrument_id,
@@ -36,7 +45,7 @@ WITH state_param AS (
          FROM data d
                   JOIN state_enum se
                        ON d.instrument_id = se.instrument_id AND d.param_id = se.param_id
-         WHERE d.value_num != se.paused_value
+         WHERE d.value_num NOT IN (se.idle_value, se.paused_value)
          ORDER BY d.instrument_id, d.time
      ),
 
@@ -82,4 +91,4 @@ SELECT
 FROM paired_segments p
          LEFT JOIN state_data sd
                    ON p.instrument_id = sd.instrument_id AND p.end_time = sd.time
-WHERE p.end_time - p.start_time >= interval '10 second'
+WHERE p.end_time - p.start_time >= interval '1 minute'
