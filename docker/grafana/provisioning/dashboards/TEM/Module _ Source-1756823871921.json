@@ -72,7 +72,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 10,
+  "id": 24,
   "links": [
     {
       "asDropdown": true,
@@ -80,7 +80,8 @@
       "includeVars": false,
       "keepTime": true,
       "tags": [
-        "overview"
+        "overview",
+        "tem"
       ],
       "targetBlank": false,
       "title": "Overviews",
@@ -94,10 +95,26 @@
       "includeVars": true,
       "keepTime": true,
       "tags": [
-        "module"
+        "module",
+        "tem"
       ],
       "targetBlank": false,
       "title": "Modules",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    },
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [
+        "dev",
+        "tem"
+      ],
+      "targetBlank": true,
+      "title": "",
       "tooltip": "",
       "type": "dashboards",
       "url": ""
@@ -934,7 +951,7 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": false
+          "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
@@ -952,7 +969,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'IGPa'\n    AND param_name = 'IGPaPressure'\n)\nSELECT\n  d.time AS time,\n  d.value_num AS \"Pressure\"\nFROM\n  data d\n  JOIN param_ids p ON p.param_id = d.param_id\nWHERE\n  d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nORDER BY\n  time",
+          "rawSql": "  WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'IGPa'\n    AND param_name = 'IGPaPressure'\n),\n\ndaily_avg AS (\n  SELECT\n    time_bucket('1 day', d.time) AS day,\n    p.param_name,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    AND d.value_num > 0\n  GROUP BY day, p.param_name\n)\n\nSELECT\n  day AS time,\n  param_name,\n  avg_value AS \"24-hour average\",\n  AVG(avg_value) OVER (\n    PARTITION BY param_name\n    ORDER BY day\n    ROWS BETWEEN 27 PRECEDING AND CURRENT ROW\n  ) AS \"4-week average\"\nFROM daily_avg\nORDER BY day, param_name;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -974,6 +991,15 @@
         }
       ],
       "title": "IGPa pressure",
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "(.*)IGPaPressure",
+            "renamePattern": "$1"
+          }
+        }
+      ],
       "type": "timeseries"
     },
     {
@@ -1657,7 +1683,7 @@
               "editorMode": "code",
               "format": "time_series",
               "rawQuery": true,
-              "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'BeamCurrent'\n    AND param_name IN ('BeamCurrent', 'BeamCurrentStable')\n)\n\nSELECT\n  d.time AS time,\n  p.param_name,\n  d.value_num\nFROM data d\nJOIN param_ids p ON p.param_id = d.param_id\nWHERE\n  d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\n  AND d.value_num > 0\n  AND d.value_num < 40e-9\nORDER BY time\n",
+              "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'BeamCurrent'\n    AND param_name IN ('BeamCurrentStable') --, 'BeamCurrentStable')\n)\n\nSELECT\n  d.time AS time,\n  p.param_name,\n  d.value_num\nFROM data d\nJOIN param_ids p ON p.param_id = d.param_id\nWHERE\n  d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\n  AND d.value_num > 0\n  AND d.value_num < 40e-9\nORDER BY time\n",
               "refId": "A",
               "sql": {
                 "columns": [
@@ -1941,6 +1967,7 @@
             }
           },
           "mappings": [],
+          "max": 5,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1949,8 +1976,12 @@
                 "value": 0
               },
               {
-                "color": "#EAB839",
+                "color": "red",
                 "value": 3
+              },
+              {
+                "color": "orange",
+                "value": 4
               }
             ]
           },
@@ -2276,7 +2307,8 @@
   "preload": false,
   "schemaVersion": 41,
   "tags": [
-    "module"
+    "module",
+    "tem"
   ],
   "templating": {
     "list": [
@@ -2297,8 +2329,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Krios 4 [Titan Krios G4] (4248)",
-          "value": "4"
+          "text": "Glacios [Glacios] (9952833)",
+          "value": "5"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -2316,8 +2348,8 @@
     ]
   },
   "time": {
-    "from": "2025-08-12T21:27:30.712Z",
-    "to": "2025-08-30T19:34:02.428Z"
+    "from": "now-30d",
+    "to": "now"
   },
   "timepicker": {
     "refresh_intervals": []
@@ -2325,5 +2357,5 @@
   "timezone": "Europe/London",
   "title": "Module | Source",
   "uid": "4395e67b-0345-47fd-94a8-684004567800",
-  "version": 2
+  "version": 7
 }

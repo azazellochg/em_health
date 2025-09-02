@@ -69,7 +69,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 18,
+  "id": 25,
   "links": [
     {
       "asDropdown": true,
@@ -77,7 +77,8 @@
       "includeVars": false,
       "keepTime": true,
       "tags": [
-        "overview"
+        "overview",
+        "tem"
       ],
       "targetBlank": false,
       "title": "Overviews",
@@ -91,10 +92,26 @@
       "includeVars": true,
       "keepTime": true,
       "tags": [
-        "module"
+        "module",
+        "tem"
       ],
       "targetBlank": false,
       "title": "Modules",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    },
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [
+        "dev",
+        "tem"
+      ],
+      "targetBlank": true,
+      "title": "",
       "tooltip": "",
       "type": "dashboards",
       "url": ""
@@ -1833,7 +1850,8 @@
   "preload": false,
   "schemaVersion": 41,
   "tags": [
-    "module"
+    "module",
+    "tem"
   ],
   "templating": {
     "list": [
@@ -1911,8 +1929,8 @@
     ]
   },
   "time": {
-    "from": "2025-08-12T21:27:30.712Z",
-    "to": "2025-08-30T19:34:02.428Z"
+    "from": "now-30d",
+    "to": "now"
   },
   "timepicker": {
     "refresh_intervals": []

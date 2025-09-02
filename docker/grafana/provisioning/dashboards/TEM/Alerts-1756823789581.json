@@ -69,7 +69,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 17,
+  "id": 13,
   "links": [
     {
       "asDropdown": true,
@@ -77,7 +77,8 @@
       "includeVars": false,
       "keepTime": true,
       "tags": [
-        "overview"
+        "overview",
+        "tem"
       ],
       "targetBlank": false,
       "title": "Overviews",
@@ -91,16 +92,117 @@
       "includeVars": false,
       "keepTime": true,
       "tags": [
-        "module"
+        "module",
+        "tem"
       ],
       "targetBlank": false,
       "title": "System modules",
       "tooltip": "",
       "type": "dashboards",
       "url": ""
+    },
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [
+        "dev",
+        "tem"
+      ],
+      "targetBlank": true,
+      "title": "",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
     }
   ],
   "panels": [
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceTEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 26,
+      "maxPerRow": 6,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH family_param AS (\n    SELECT param_id, enum_id\n    FROM parameters\n    WHERE instrument_id = $instrument\n      AND param_name = 'ProductFamily'\n),\n\nlatest_product_family AS (\n    SELECT e.member_name AS product_family\n    FROM family_param p\n    JOIN data d\n      ON d.param_id = p.param_id\n     AND d.instrument_id = $instrument\n     AND d.value_num > 0\n     AND d.time > now() - interval '10 days'\n    JOIN enum_values e\n      ON e.enum_id = p.enum_id\n     AND e.value = d.value_num\n    ORDER BY d.time DESC\n    LIMIT 1\n),\n\ninstrument_times AS (\n    SELECT\n        (SELECT time FROM data d WHERE d.instrument_id = $instrument ORDER BY time ASC LIMIT 1) AS oldest_data,\n        (SELECT time FROM data d WHERE d.instrument_id = $instrument ORDER BY time DESC LIMIT 1) AS latest_data\n)\n\nSELECT \n    i.name AS \"Name\",\n    i.serial AS \"Serial\",\n    i.model AS \"Model\",\n    lpf.product_family AS \"Product family\",\n    i.server AS \"Server IP\",\n    i.ds_version AS \"Data services\",\n    it.oldest_data AS \"Oldest data\",\n    it.latest_data AS \"Latest data\"\nFROM instruments i\nCROSS JOIN latest_product_family lpf\nCROSS JOIN instrument_times it\nWHERE i.id = $instrument;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "",
+      "type": "table"
+    },
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
@@ -135,7 +237,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 0
+        "y": 4
       },
       "id": 27,
       "options": {
@@ -183,92 +285,7 @@
           }
         }
       ],
-      "title": "$instrument status",
-      "type": "table"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
-      },
-      "description": "Product family and timestamps are fetched from real data, the rest is setup by your config",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "align": "center",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "inspect": false
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 10
-      },
-      "id": 26,
-      "maxPerRow": 6,
-      "options": {
-        "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
-        "showHeader": true
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "WITH family_param AS (\n  SELECT instrument_id, param_id, enum_id\n  FROM parameters\n  WHERE param_name = 'ProductFamily'\n),\n\nproduct_family AS (\n  SELECT p.instrument_id, latest.member_name AS product_family\n  FROM family_param p\n  JOIN LATERAL (\n    SELECT e.member_name\n    FROM data d\n    JOIN enum_values e\n      ON e.enum_id = p.enum_id\n     AND e.value = d.value_num\n    WHERE d.instrument_id = p.instrument_id\n      AND d.param_id = p.param_id\n      AND d.value_num > 0\n      AND d.time > now() - interval '10 days'\n    ORDER BY d.time DESC\n    LIMIT 1\n  ) latest ON true\n),\n\ninstrument_time AS (\n  SELECT i.id AS instrument_id,\n         latest.time AS latest_data,\n         oldest.time AS oldest_data\n  FROM instruments i\n  JOIN LATERAL (\n    SELECT time\n    FROM data d\n    WHERE d.instrument_id = i.id\n    ORDER BY time DESC\n    LIMIT 1\n  ) latest ON true\n  JOIN LATERAL (\n    SELECT time\n    FROM data d\n    WHERE d.instrument_id = i.id\n    ORDER BY time ASC\n    LIMIT 1\n  ) oldest ON true\n)\n\n\nSELECT \n  i.name AS \"Name\",\n  i.serial AS \"Serial\",\n  i.model AS \"Model\",\n  f.product_family AS \"Product family\",\n  i.server AS \"Server IP\",\n  i.ds_version AS \"Data services\",\n  t.oldest_data AS \"Oldest data\",\n  t.latest_data AS \"Latest data\"\nFROM instruments i\nJOIN product_family f ON f.instrument_id = i.id\nJOIN instrument_time t ON t.instrument_id = i.id\nORDER BY i.name",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "Instruments summary",
+      "title": "Module status",
       "type": "table"
     },
     {
@@ -280,7 +297,7 @@
         "h": 8,
         "w": 9,
         "x": 0,
-        "y": 18
+        "y": 14
       },
       "id": 1,
       "options": {
@@ -310,7 +327,8 @@
   "preload": false,
   "schemaVersion": 41,
   "tags": [
-    "overview"
+    "overview",
+    "tem"
   ],
   "templating": {
     "list": [
@@ -531,5 +549,5 @@
   "timezone": "Europe/London",
   "title": "Alerts",
   "uid": "4395e67b-0330-47fd-94a8-6840b3f44893",
-  "version": 2
+  "version": 8
 }
