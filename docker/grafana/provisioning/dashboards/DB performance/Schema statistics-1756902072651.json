@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 13,
+  "id": 12,
   "links": [
     {
       "asDropdown": false,
@@ -45,7 +45,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "continuous-GrYlRd"
           },
           "links": [
             {
@@ -76,31 +76,12 @@
       "id": 1,
       "maxPerRow": 4,
       "options": {
-        "displayMode": "basic",
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "maxVizHeight": 300,
-        "minVizHeight": 16,
-        "minVizWidth": 56,
-        "namePlacement": "auto",
-        "orientation": "vertical",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "/^size_bytes$/",
-          "values": true
-        },
-        "showUnfilled": false,
-        "sizing": "auto",
-        "text": {},
-        "valueMode": "text"
+        "labelFields": [],
+        "sizeField": "size_bytes",
+        "textField": "name",
+        "tiling": "treemapSquarify"
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "2.1.1",
       "targets": [
         {
           "datasource": {
@@ -132,7 +113,7 @@
         }
       ],
       "title": "Select table to analyze",
-      "type": "bargauge"
+      "type": "marcusolsson-treemap-panel"
     },
     {
       "collapsed": false,
@@ -1596,8 +1577,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "parameters",
-          "value": "parameters"
+          "text": "data",
+          "value": "data"
         },
         "hide": 2,
         "name": "table",
@@ -1664,5 +1645,5 @@
   "timezone": "Europe/London",
   "title": "Schema statistics",
   "uid": "46837677-7190-44c2-b9bb-db869089ba49",
-  "version": 7
+  "version": 3
 }
