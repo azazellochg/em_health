@@ -85,18 +85,18 @@ CREATE TABLE pganalyze.stat_statements (
                                            blk_read_time           DOUBLE PRECISION NOT NULL,
                                            blk_write_time          DOUBLE PRECISION NOT NULL,
                                            PRIMARY KEY (collected_at, queryid)
-);
+) WITH (
+                                             tsdb.hypertable,
+                                             tsdb.chunk_interval = INTERVAL :TBL_STATEMENTS_INTERVAL,
+                                             tsdb.segmentby = 'queryid',
+                                             tsdb.orderby = 'collected_at ASC',
+                                             tsdb.create_default_indexes = false
+                                             );
+
 CREATE INDEX IF NOT EXISTS stat_statements_queryid_time ON pganalyze.stat_statements (queryid, collected_at ASC);
 
-SELECT create_hypertable('pganalyze.stat_statements', by_range('collected_at', INTERVAL :TBL_STATEMENTS_INTERVAL));
-
-ALTER TABLE pganalyze.stat_statements SET (
-    timescaledb.compress,
-    timescaledb.compress_segmentby = 'queryid',
-    timescaledb.compress_orderby = 'collected_at ASC');
-
-SELECT add_compression_policy('pganalyze.stat_statements', INTERVAL :TBL_STATEMENTS_COMPRESSION);
-SELECT add_retention_policy('pganalyze.stat_statements', INTERVAL :TBL_STATS_RETENTION);
+CALL add_columnstore_policy('pganalyze.stat_statements', after => INTERVAL TBL_STATEMENTS_COMPRESSION);
+CALL add_retention_policy('pganalyze.stat_statements', INTERVAL :TBL_STATS_RETENTION);
 
 CREATE TABLE pganalyze.stat_explains (
                                          time           TIMESTAMPTZ NOT NULL,

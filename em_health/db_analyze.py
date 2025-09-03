@@ -124,7 +124,7 @@ class DatabaseAnalyzer(DatabaseManager):
         self.drop_mview(mview, is_cagg=True)
         self.create_mview(mview)
         self.force_refresh_cagg(mview)
-        self.schedule_cagg_refresh(mview, start_offset="1 month",
+        self.schedule_cagg_refresh(mview, start_offset="1 hour",
                                    end_offset="3 minutes", interval="1 minute")
 
 
