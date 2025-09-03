@@ -2,7 +2,7 @@
 FROM postgres:17-trixie AS builder
 
 ENV PG=17 \
-    TS_VERSIONS="2.21.3" \
+    TS_VERSIONS="2.21.3 2.22.0" \
     TLK_VERSION=1.21.0 \
     TDS_VERSION=v2.0.4 \
     CARGO_HOME=/build/cargo \
