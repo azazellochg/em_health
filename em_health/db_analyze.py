@@ -73,9 +73,8 @@ class DatabaseAnalyzer(DatabaseManager):
         """ Create tables to store metrics data. """
         self.execute_file(self.get_path("create_metric_tables.sql", folder="pganalyze"),
                           {
-                              "TBL_STATEMENTS_INTERVAL": os.getenv("TBL_STATEMENTS_INTERVAL", "6 hours"),
-                              "TBL_STATEMENTS_COMPRESSION": os.getenv("TBL_STATEMENTS_COMPRESSION", "7 days"),
-                              "TBL_STATS_RETENTION": os.getenv("TBL_STATS_RETENTION", "3 months")
+                              "TBL_STATS_COMPRESSION": os.getenv("TBL_STATS_COMPRESSION", "1 day"),
+                              "TBL_STATS_RETENTION": os.getenv("TBL_STATS_RETENTION", "1 month")
                           })
         logger.info("Created pganalyze tables")
 
@@ -84,7 +83,7 @@ class DatabaseAnalyzer(DatabaseManager):
         self.execute_file(self.get_path("create_metric_funcs.sql", folder="pganalyze"),
                           {
                               "POSTGRES_PGANALYZE_PASSWORD": os.getenv("POSTGRES_PGANALYZE_PASSWORD"),
-                              "TBL_STATS_RETENTION": os.getenv("TBL_STATS_RETENTION", "3 months")
+                              "TBL_STATS_RETENTION": os.getenv("TBL_STATS_RETENTION", "1 month")
                           })
         logger.info("Created pganalyze procedures")
 
