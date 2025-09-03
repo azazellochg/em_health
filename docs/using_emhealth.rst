@@ -34,7 +34,7 @@ Shows per-instrument counters for autoloader cartridges/cassettes, acquired imag
 Alerts
 ``````
 
-Provides instruments summary and recent alerts for each microscope module
+Provides instrument summary and recent alerts for each microscope module
 
 Modules
 ^^^^^^^

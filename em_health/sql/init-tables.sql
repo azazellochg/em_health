@@ -125,28 +125,19 @@ CREATE TABLE IF NOT EXISTS public.data (
                                            value_num DOUBLE PRECISION,
                                            value_text TEXT,
                                            UNIQUE (time, instrument_id, param_id)
-);
+) WITH (
+                                             tsdb.hypertable,
+                                             tsdb.chunk_interval = '1 day',
+                                             tsdb.partition_column='instrument_id',
+                                             tsdb.segmentby = 'instrument_id, param_id',
+                                             tsdb.orderby = 'time ASC',
+                                             tsdb.create_default_indexes = false
+                                             );
 COMMENT ON TABLE public.data IS 'Main time series table with HM events';
 
 CREATE INDEX ON public.data (instrument_id, param_id, time ASC);
 
-SELECT create_hypertable(
-               'public.data',
-               time_column_name := 'time',
-               partitioning_column := 'instrument_id',
-               number_partitions := 6,
-               chunk_time_interval := INTERVAL '1 day',
-               if_not_exists := TRUE
-       );
-
-ALTER TABLE public.data
-    SET (
-        timescaledb.compress,
-        timescaledb.compress_orderby = 'time DESC',
-        timescaledb.compress_segmentby = 'instrument_id, param_id'
-        );
-
-SELECT add_compression_policy('public.data', INTERVAL '3 days');
+CALL add_columnstore_policy('public.data', after => INTERVAL '1 days');
 
 GRANT USAGE ON SCHEMA public TO grafana;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO grafana;
