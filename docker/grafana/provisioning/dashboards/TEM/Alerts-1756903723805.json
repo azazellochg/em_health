@@ -24,7 +24,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 35,
+  "id": 43,
   "links": [
     {
       "asDropdown": true,
@@ -134,7 +134,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH family_param AS (\n    SELECT param_id, enum_id\n    FROM parameters\n    WHERE instrument_id = $instrument\n      AND param_name = 'ProductFamily'\n),\n\nlatest_product_family AS (\n    SELECT e.member_name AS product_family\n    FROM family_param p\n    JOIN data d\n      ON d.param_id = p.param_id\n     AND d.instrument_id = $instrument\n     AND d.value_num > 0\n     AND d.time > now() - interval '10 days'\n    JOIN enum_values e\n      ON e.enum_id = p.enum_id\n     AND e.value = d.value_num\n    ORDER BY d.time DESC\n    LIMIT 1\n),\n\ninstrument_times AS (\n    SELECT\n        (SELECT time FROM data d WHERE d.instrument_id = $instrument ORDER BY time ASC LIMIT 1) AS oldest_data,\n        (SELECT time FROM data d WHERE d.instrument_id = $instrument ORDER BY time DESC LIMIT 1) AS latest_data\n)\n\nSELECT \n    i.name AS \"Name\",\n    i.serial AS \"Serial\",\n    i.model AS \"Model\",\n    lpf.product_family AS \"Product family\",\n    i.server AS \"Server IP\",\n    i.ds_version AS \"Data services\",\n    it.oldest_data AS \"Oldest data\",\n    it.latest_data AS \"Latest data\"\nFROM instruments i\nCROSS JOIN latest_product_family lpf\nCROSS JOIN instrument_times it\nWHERE i.id = $instrument;\n",
+          "rawSql": "WITH family_param AS (\n    SELECT param_id, enum_id\n    FROM parameters\n    WHERE instrument_id = $instrument\n      AND param_name = 'ProductFamily'\n),\n\nserial_param AS (\n    SELECT param_id\n    FROM parameters\n    WHERE instrument_id = $instrument\n      AND param_name = 'SerialNumber'\n),\n\nlatest_product_family AS (\n    SELECT e.member_name AS product_family\n    FROM family_param p\n    JOIN data d\n      ON d.param_id = p.param_id\n     AND d.instrument_id = $instrument\n     AND d.value_num > 0\n     AND d.time > now() - interval '10 days'\n    JOIN enum_values e\n      ON e.enum_id = p.enum_id\n     AND e.value = d.value_num\n    ORDER BY d.time DESC\n    LIMIT 1\n),\n\nlatest_serial AS (\n    SELECT d.value_num AS serial\n    FROM data d\n    JOIN serial_param sp\n    ON sp.param_id = d.param_id\n    WHERE d.instrument_id = $instrument\n     AND d.value_num > 0\n     AND d.time > now() - interval '10 days'\n    ORDER BY d.time DESC\n    LIMIT 1\n),\n\ninstrument_times AS (\n    SELECT\n        (SELECT time FROM data d WHERE d.instrument_id = $instrument ORDER BY time ASC LIMIT 1) AS oldest_data,\n        (SELECT time FROM data d WHERE d.instrument_id = $instrument ORDER BY time DESC LIMIT 1) AS latest_data\n)\n\nSELECT \n    i.name AS \"Name\",\n    ls.serial AS \"Serial\",\n    i.serial AS \"D-number\",\n    i.model AS \"Model\",\n    lpf.product_family AS \"Product family\",\n    i.server AS \"Server IP\",\n    i.ds_version AS \"Data services\",\n    it.oldest_data AS \"Oldest data\",\n    it.latest_data AS \"Latest data\"\nFROM instruments i\nCROSS JOIN latest_product_family lpf\nCROSS JOIN latest_serial ls\nCROSS JOIN instrument_times it\nWHERE i.id = $instrument;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -602,8 +602,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Krios 1 [Titan Krios G2] (3299)",
-          "value": "1"
+          "text": "Krios 2 [Titan Krios G2] (3413)",
+          "value": "2"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -622,8 +622,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "399",
-          "value": "399"
+          "text": "1",
+          "value": "1"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -641,8 +641,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "237",
-          "value": "237"
+          "text": "132",
+          "value": "132"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -660,8 +660,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "247",
-          "value": "247"
+          "text": "142",
+          "value": "142"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -679,8 +679,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "262",
-          "value": "262"
+          "text": "158",
+          "value": "158"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -698,8 +698,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "156",
-          "value": "156"
+          "text": "124",
+          "value": "124"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -717,8 +717,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "0",
-          "value": "0"
+          "text": "730",
+          "value": "730"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -736,8 +736,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "186",
-          "value": "186"
+          "text": "278",
+          "value": "278"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -755,8 +755,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "187",
-          "value": "187"
+          "text": "279",
+          "value": "279"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -783,5 +783,5 @@
   "timezone": "Europe/London",
   "title": "Alerts",
   "uid": "4395e67b-0330-47fd-94a8-6840b3f44893",
-  "version": 44
+  "version": 2
 }

@@ -1,6 +1,6 @@
 apiVersion: 1
 
-# see https://github.com/grafana/provisioning-alerting-examples/
+# See https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/
 
 muteTimes:
     - orgId: 1
@@ -24,28 +24,84 @@ muteTimes:
 
 contactPoints:
     - orgId: 1
-      name: grafana-email
+      name: email-contact-point
       receivers:
-        - uid: first_uid
-          type: email
-          disableResolveMessage: true
-          settings:
-            addresses: $GRAFANA_EMAIL_TO
-            singleEmail: false
-            message: my optional message to include
-            subject: |
-              {{ template "default.title" . }}
+      - uid: email_uid
+        type: email
+        disableResolveMessage: false
+        settings:
+          addresses: $GRAFANA_EMAIL_TO
+          singleEmail: false
+          subject: |
+            {{ template "custom_email.subject" . }}
+          message: |
+            {{ template "custom_email.message" . }}
+
+deleteContactPoints:
+    - orgId: 1
+      uid: ""
+
+policies:
+    - orgId: 1
+      receiver: email-contact-point
+      group_by:
+        - grafana_folder
+        - alertname
+      routes:
+        - receiver: email-contact-point
+          # Critical alerts are fired immediately
+          object_matchers:
+            - - severity
+              - =
+              - critical
+          group_wait: 1s
+          group_interval: 1s
+          repeat_interval: 1h
+        - receiver: email-contact-point
+          # Warnings and muted on weekends
+          object_matchers:
+            - - severity
+              - =
+              - warning
+          mute_time_intervals:
+            - weekends
+        - object_matchers: # Cautions are muted forever, no emails
+            - - severity
+              - =
+              - caution
+          mute_time_intervals:
+            - weekdays_daytime
+            - weekends
+            - weekdays_nighttime
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+
 
 templates:
-    - orgId: 1
-      name: custom_email.message
-      template: |
-        {{ define "custom_email.message" }}
-          Lorem ipsum - Custom alert!
-        {{ end }}
     - orgId: 1
       name: custom_email.subject
       template: |
         {{ define "custom_email.subject" }}
-        {{ len .Alerts.Firing }} firing alert(s), {{ len .Alerts.Resolved }} resolved alert(s)
+        {{ $alerts := .Alerts.Firing }}{{ $status := "ALERT" }}{{ if eq (len $alerts) 0 }}{{ $alerts = .Alerts.Resolved }}{{ $status = "RESOLVED" }}{{ end }}
+        [{{ $status }}: {{ len $alerts }}] {{ $first := "" }}{{ $multiple := false }}{{ range $alerts }}{{ if eq $first "" }}{{ $first = .Labels.instrument }}{{ else if ne $first .Labels.instrument }}{{ $multiple = true }}{{ end }}{{ end }}{{ if $multiple }}Multiple instruments{{ else if ne $first "" }}{{ $first }}{{ end }} - {{ if gt (len $alerts) 0 }}{{ (index $alerts 0).Annotations.summary }}{{ end }}
+        {{ end }}
+
+    - orgId: 1
+      name: custom_email.message
+      template: |
+        {{ range . }}
+        ALERT DETAILS
+        -------------
+        Date/Time: {{ .StartsAt }}
+        Instrument:  {{ .Labels.grafana_folder }} / {{ .Labels.instrument }}
+        Module: {{ .Labels.module }}
+        {{ if eq .Labels.severity "critical" }}Severity: 🔴 CRITICAL{{ else if eq .Labels.severity "warning" }}Severity: 🟠 WARNING{{ else if eq .Labels.severity "caution" }}Severity: 🟡 CAUTION{{ else }}Severity: ⚪ UNKNOWN{{ end }}
+      
+        Summary: {{ .Annotations.summary }}
+        Description: {{ .Annotations.description }}
+        
+        {{ if gt (len .GeneratorURL) 0 }}[View Alert]({{ .GeneratorURL }}){{ end }}
+        {{ if gt (len .SilenceURL) 0 }}[Silence]({{ .SilenceURL }}){{ end }}
+        =============
         {{ end }}
