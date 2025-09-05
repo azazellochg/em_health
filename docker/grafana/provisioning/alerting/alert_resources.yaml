@@ -117,7 +117,7 @@ templates:
             {{ $statusIcon = "⚪ UNKNOWN" }}
           {{- end -}}
           ALERT DETAILS
-          -----------------
+          ----------------
           Date/Time: {{ .StartsAt }}
           Status: {{ .Status }}
           Instrument:  {{ .Labels.grafana_folder }} / {{ .Labels.instrument }}
@@ -127,9 +127,9 @@ templates:
           Summary: {{ .Annotations.summary }}
           Description: {{ .Annotations.description }}
 
-          View Alert: ({{ .GeneratorURL }})
+          View Alert: {{ .GeneratorURL }}
           {{ if gt (len .DashboardURL) 0 }}View Dashboard: ({{ .DashboardURL }}){{ end }}
-          Silence: ({{ .SilenceURL }})
-          =========================================
+          Silence: {{ .SilenceURL }}
+          ============================================================
           {{ end }}
         {{ end }}

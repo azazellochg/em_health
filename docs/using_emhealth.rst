@@ -36,6 +36,8 @@ Alerts
 
 Provides instrument summary and recent alerts for each microscope module
 
+.. image:: /_static/dash-alerts.png
+
 Modules
 ^^^^^^^
 
