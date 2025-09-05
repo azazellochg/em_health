@@ -28,10 +28,10 @@ contactPoints:
       receivers:
       - uid: email_uid
         type: email
-        disableResolveMessage: false
+        disableResolveMessage: true
         settings:
           addresses: $GRAFANA_EMAIL_TO
-          singleEmail: false
+          singleEmail: true
           subject: |
             {{ template "custom_email.subject" . }}
           message: |
@@ -56,7 +56,7 @@ policies:
               - critical
           group_wait: 1s
           group_interval: 1s
-          repeat_interval: 1h
+          repeat_interval: 5m
         - receiver: email-contact-point
           # Warnings and muted on weekends
           object_matchers:
@@ -83,25 +83,53 @@ templates:
       name: custom_email.subject
       template: |
         {{ define "custom_email.subject" }}
-        {{ $alerts := .Alerts.Firing }}{{ $status := "ALERT" }}{{ if eq (len $alerts) 0 }}{{ $alerts = .Alerts.Resolved }}{{ $status = "RESOLVED" }}{{ end }}
-        [{{ $status }}: {{ len $alerts }}] {{ $first := "" }}{{ $multiple := false }}{{ range $alerts }}{{ if eq $first "" }}{{ $first = .Labels.instrument }}{{ else if ne $first .Labels.instrument }}{{ $multiple = true }}{{ end }}{{ end }}{{ if $multiple }}Multiple instruments{{ else if ne $first "" }}{{ $first }}{{ end }} - {{ if gt (len $alerts) 0 }}{{ (index $alerts 0).Annotations.summary }}{{ end }}
+          {{- $multiple := gt (len .Alerts) 1 -}}
+          {{- $instr := "" -}}
+          {{- if $multiple -}}
+            {{- $instr = "Multiple instruments" -}}
+          {{- else -}}
+            {{- $instr = (index .Alerts 0).Labels.instrument -}}
+          {{- end -}}
+        
+          {{- $status := "ALERT" -}}
+          {{- if eq .Status "resolved" -}}
+            {{- $status = "RESOLVED" -}}
+          {{- end -}}
+        
+          {{- trimSpace (printf "[%s] %s - %s" $status $instr (index .Alerts 0).Annotations.summary) -}}
         {{ end }}
 
     - orgId: 1
       name: custom_email.message
       template: |
-        {{ range . }}
-        ALERT DETAILS
-        -------------
-        Date/Time: {{ .StartsAt }}
-        Instrument:  {{ .Labels.grafana_folder }} / {{ .Labels.instrument }}
-        Module: {{ .Labels.module }}
-        {{ if eq .Labels.severity "critical" }}Severity: 🔴 CRITICAL{{ else if eq .Labels.severity "warning" }}Severity: 🟠 WARNING{{ else if eq .Labels.severity "caution" }}Severity: 🟡 CAUTION{{ else }}Severity: ⚪ UNKNOWN{{ end }}
-      
-        Summary: {{ .Annotations.summary }}
-        Description: {{ .Annotations.description }}
-        
-        {{ if gt (len .GeneratorURL) 0 }}[View Alert]({{ .GeneratorURL }}){{ end }}
-        {{ if gt (len .SilenceURL) 0 }}[Silence]({{ .SilenceURL }}){{ end }}
-        =============
+        {{ define "custom_email.message" }}
+          Alerts: {{ len .Alerts.Firing }} firing, {{ len .Alerts.Resolved }} resolved
+
+          {{ range .Alerts }}
+          {{- $statusIcon := "" -}}
+          {{- if eq .Labels.severity "critical" -}}
+            {{ $statusIcon = "🔴 CRITICAL" }}
+          {{- else if eq .Labels.severity "warning" -}}
+            {{ $statusIcon = "🟠 WARNING" }}
+          {{- else if eq .Labels.severity "caution" -}}
+            {{ $statusIcon = "🟡 CAUTION" }}
+          {{- else -}}
+            {{ $statusIcon = "⚪ UNKNOWN" }}
+          {{- end -}}
+          ALERT DETAILS
+          -----------------
+          Date/Time: {{ .StartsAt }}
+          Status: {{ .Status }}
+          Instrument:  {{ .Labels.grafana_folder }} / {{ .Labels.instrument }}
+          Module: {{ .Labels.module }}
+          Severity: {{ $statusIcon }}
+
+          Summary: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+
+          View Alert: ({{ .GeneratorURL }})
+          {{ if gt (len .DashboardURL) 0 }}View Dashboard: ({{ .DashboardURL }}){{ end }}
+          Silence: ({{ .SilenceURL }})
+          =========================================
+          {{ end }}
         {{ end }}
