@@ -1,8 +1,7 @@
 # ---------- Builder stage ----------
 FROM postgres:17-trixie AS builder
 
-ENV PG=17 \
-    TS_VERSIONS="2.21.3 2.22.0" \
+ENV TS_VERSIONS="2.21.3 2.22.0" \
     TLK_VERSION=1.21.0 \
     TDS_VERSION=v2.0.4 \
     CARGO_HOME=/build/cargo \
@@ -12,7 +11,7 @@ ENV PG=17 \
 
 # --------- Metadata ----------
 LABEL org.opencontainers.image.title="Custom PostgreSQL image with TimescaleDB, Toolkit & TDS-FDW" \
-      org.opencontainers.image.description='Postgres ${PG} + TimescaleDB ${TS_VERSIONS} + Toolkit ${TLK_VERSION} + TDS-FDW ${TDS_VERSION}' \
+      org.opencontainers.image.description='Postgres ${PG_MAJOR} + TimescaleDB ${TS_VERSIONS} + Toolkit ${TLK_VERSION} + TDS-FDW ${TDS_VERSION}' \
       org.opencontainers.image.version="0.1" \
       org.opencontainers.image.authors="Grigory Sharov <gsharov@mrc-lmb.cam.ac.uk>" \
       org.opencontainers.image.licenses="GPL-3.0-or-later" \
@@ -23,7 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libsybdb5 \
     freetds-dev \
     freetds-common \
-    postgresql-server-dev-$PG \
+    postgresql-server-dev-${PG_MAJOR} \
     gcc \
     cmake \
     make \
@@ -39,7 +38,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN mkdir -p $PGRX_HOME \
   && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path \
   && cargo install --version '=0.12.9' --force cargo-pgrx \
-  && cargo pgrx init --pg${PG} pg_config
+  && cargo pgrx init --pg${PG_MAJOR} pg_config
 
 # ---------- Build TimescaleDB ----------
 RUN for ver in $TS_VERSIONS; do \
@@ -56,7 +55,7 @@ RUN for ver in $TS_VERSIONS; do \
     done
 
 RUN sed -r -i "s/[#]*\s*(shared_preload_libraries)\s*=\s*'(.*)'/\1 = 'timescaledb,\2'/;s/,'/'/" \
-         /usr/share/postgresql/$PG/postgresql.conf.sample
+         /usr/share/postgresql/${PG_MAJOR}/postgresql.conf.sample
 
 # ---------- Build Timescale Toolkit ----------
 RUN git clone --branch $TLK_VERSION https://github.com/timescale/timescaledb-toolkit.git /build/timescaledb-toolkit \
@@ -81,11 +80,9 @@ RUN rm -rf /build \
 # ---------- Runtime stage ----------
 FROM postgres:17-trixie AS release
 
-ENV PG=17
-
 # Copy built extensions & freetds runtime only
-COPY --from=builder /usr/lib/postgresql/$PG /usr/lib/postgresql/$PG
-COPY --from=builder /usr/share/postgresql/$PG/extension/ /usr/share/postgresql/$PG/extension/
+COPY --from=builder /usr/lib/postgresql/${PG_MAJOR} /usr/lib/postgresql/${PG_MAJOR}
+COPY --from=builder /usr/share/postgresql/${PG_MAJOR}/extension/ /usr/share/postgresql/${PG_MAJOR}/extension/
 COPY --from=builder /etc/freetds/ /etc/freetds/
 
 # freetds runtime deps and timescaledb tools
