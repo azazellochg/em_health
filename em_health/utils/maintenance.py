@@ -43,6 +43,22 @@ def chdir_docker_dir():
     os.chdir(package_root)
 
 
+def get_tsdb_version(dbname) -> str:
+    result = run_command(
+        f"docker exec {PG_CONTAINER} psql -d {dbname} -t -c \"SELECT extversion FROM pg_extension WHERE extname='timescaledb';\"",
+        capture_output=True
+    )
+    return result.stdout.strip()
+
+
+def get_tsdb_version_from_backup(fn: Path) -> str | None:
+    try:
+        return fn.name.split("_")[2]
+    except IndexError:
+        logger.warning("Could not determine Timescale version from backup")
+        return None
+
+
 def run_command(command: str, capture_output=False, check=True):
     """Run a shell command with logging."""
     logger.info("Running command: %s", command)
@@ -54,12 +70,13 @@ def update():
     """Update everything and migrate db."""
     # make a backup first
     pg_backup, grafana_backup = backup("tem")
+    ts_version = get_tsdb_version_from_backup(pg_backup)
 
     # update containers
     chdir_docker_dir()
     commands = [
         f"docker compose -f {DOCKER_COMPOSE_FILE} down",
-        f"docker compose -f {DOCKER_COMPOSE_FILE} pull",
+        #f"docker compose -f {DOCKER_COMPOSE_FILE} pull",
         f"docker compose -f {DOCKER_COMPOSE_FILE} up -d",
         "docker image prune -f"
     ]
@@ -72,13 +89,11 @@ def update():
     restore("tem", grafana_backup)
 
     # update extensions
-    run_command(f'docker exec {PG_CONTAINER} bash -c "ALTER EXTENSION timescaledb UPDATE;'
-        'ALTER EXTENSION timescaledb_toolkit UPDATE;"')
+    run_command(f'docker exec {PG_CONTAINER} psql -d tem -c "ALTER EXTENSION timescaledb UPDATE; ALTER EXTENSION timescaledb_toolkit UPDATE;"')
 
     # migrate schemas
     from em_health.db_manager import main as func
     func("tem", "migrate")
-    func("sem", "migrate")
 
     logger.info("Finished updating")
 
@@ -87,8 +102,9 @@ def backup(dbname="tem"):
     """Backup TimescaleDB and Grafana."""
     chdir_docker_dir()
     timestamp = datetime.now().strftime("%d%m%Y_%H%M%S")
+    ts_version = get_tsdb_version(dbname)
 
-    pg_backup = Path(BACKUP_PATH) / f"pg_{dbname}_{timestamp}.dump"
+    pg_backup = Path(BACKUP_PATH) / f"pg_{dbname}_{ts_version}_{timestamp}.dump"
     grafana_backup = Path(BACKUP_PATH) / f"grafana_{timestamp}.db"
 
     logger.info("Backing up TimescaleDB '%s' to %s", dbname, pg_backup.resolve())
@@ -109,32 +125,39 @@ def list_backups():
     return files
 
 
-def erase_db(dbname, do_init=False):
+def erase_db(dbname, ts_version=None, do_init=False):
     """ Erase the existing DB and optionally make a new empty one. """
-    run_command(
-        f'docker exec {PG_CONTAINER} bash -c "'
-        f'psql -d postgres -c \\"DROP DATABASE IF EXISTS {dbname};\\" && '
-        f'psql -d postgres -c \\"CREATE DATABASE {dbname};\\"'
-        f'"'
-    )
+    if ts_version is not None:
+        ver = f" VERSION '{ts_version}'"
+    else:
+        ver = ""
+
+    run_command(f"""
+docker exec {PG_CONTAINER} bash -c "\
+psql -d postgres -c \\"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{dbname}';\\" && \
+psql -d postgres -c \\"DROP DATABASE IF EXISTS {dbname};\\" && \
+psql -d postgres -c \\"CREATE DATABASE {dbname};\\" && \
+psql -d tem -c \\"CREATE EXTENSION IF NOT EXISTS timescaledb{ver} CASCADE; CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit CASCADE;\\""
+""")
+
     if do_init:
-        run_command(
-            f'docker exec {PG_CONTAINER} bash -c "'
-            f'psql -v ON_ERROR_STOP=1 -d {dbname} -f /docker-entrypoint-initdb.d/init-tables.sql'
-            f'"'
-        )
+        run_command(f'docker exec {PG_CONTAINER} bash -c "psql -v ON_ERROR_STOP=1 -d {dbname} -f /docker-entrypoint-initdb.d/init-tables.sql"')
 
 
 def restore(dbname, backup_file: Path):
     """Restore TimescaleDB or Grafana from backup file."""
     chdir_docker_dir()
-    print(os.getcwd())
+
     if backup_file.suffix == ".db":
         logger.info("Restoring Grafana DB from %s", backup_file)
         commands = [
             f"docker stop {GRAFANA_CONTAINER}",
-            f"docker cp {backup_file} {GRAFANA_CONTAINER}:/var/lib/grafana/grafana.db",
-            f"docker exec {GRAFANA_CONTAINER} chown grafana:root /var/lib/grafana/grafana.db",
+
+            f"docker run --rm -v emhealth_grafana-storage:/var/lib/grafana "
+            f"-v ./backups:/backups busybox sh -c '"
+            f"cp {backup_file} /var/lib/grafana/grafana.db && "
+            "chown 472:root /var/lib/grafana/grafana.db'",
+
             f"docker start {GRAFANA_CONTAINER}"
         ]
         for cmd in commands:
@@ -142,15 +165,14 @@ def restore(dbname, backup_file: Path):
 
     else:
         logger.info("Restoring TimescaleDB '%s' from %s", dbname, backup_file)
-        erase_db(dbname, do_init=False)
-        run_command(
-            f'docker exec {PG_CONTAINER} bash -c "'
-            f'psql -d {dbname} -c \\"SELECT timescaledb_pre_restore();\\" && '
-            f'pg_restore -Fc -d {dbname} /{backup_file} && '
-            f'psql -d {dbname} -c \\"SELECT timescaledb_post_restore();\\"'
-            'ANALYZE;'
-            f'"'
-        )
+        ts_version = get_tsdb_version_from_backup(backup_file)
+        erase_db(dbname, ts_version, do_init=False)
+        run_command(f"""
+docker exec {PG_CONTAINER} bash -c "\
+psql -d {dbname} -c \\"SELECT timescaledb_pre_restore();\\" && \
+pg_restore -Fc -d {dbname} /{backup_file} && \
+psql -d {dbname} -c \\"SELECT timescaledb_post_restore(); ANALYZE;\\""
+""")
 
     logger.info("Restore completed")
 
