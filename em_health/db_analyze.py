@@ -73,7 +73,6 @@ class DatabaseAnalyzer(DatabaseManager):
         """ Create tables to store metrics data. """
         self.execute_file(self.get_path("create_metric_tables.sql", folder="pganalyze"),
                           {
-                              "TBL_STATS_COMPRESSION": os.getenv("TBL_STATS_COMPRESSION", "1 day"),
                               "TBL_STATS_RETENTION": os.getenv("TBL_STATS_RETENTION", "1 month")
                           })
         logger.info("Created pganalyze tables")

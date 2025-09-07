@@ -176,10 +176,11 @@ class PgClient(BaseDBClient):
 
         if mode == "fetchone":
             return self.cur.fetchone()
-        if mode == "fetchmany":
+        elif mode == "fetchmany":
             return self.cur.fetchmany()
-        if mode == "fetchall":
+        elif mode == "fetchall":
             return self.cur.fetchall()
-        if mode == "commit":
+        elif mode == "commit":
             self.conn.commit()
-        # else None implicitly returned
+        else:
+            return None

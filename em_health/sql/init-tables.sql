@@ -127,7 +127,7 @@ CREATE TABLE IF NOT EXISTS public.data (
                                            UNIQUE (time, instrument_id, param_id)
 ) WITH (
                                              tsdb.hypertable,
-                                             tsdb.chunk_interval=86400,
+                                             tsdb.chunk_interval=259200, -- 3 days
                                              tsdb.partition_column='instrument_id',
                                              tsdb.segmentby='instrument_id, param_id',
                                              tsdb.orderby='time ASC',
@@ -135,9 +135,10 @@ CREATE TABLE IF NOT EXISTS public.data (
                                              );
 COMMENT ON TABLE public.data IS 'Main time series table with HM events';
 
+SELECT enable_chunk_skipping('public.data', 'instrument_id');
+SELECT enable_chunk_skipping('public.data', 'param_id');
 CREATE INDEX ON public.data (instrument_id, param_id, time ASC);
-
-CALL add_columnstore_policy('public.data', after => 86400);
+CALL add_columnstore_policy('public.data', after => 604800); -- 7 days
 
 GRANT USAGE ON SCHEMA public TO grafana;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO grafana;

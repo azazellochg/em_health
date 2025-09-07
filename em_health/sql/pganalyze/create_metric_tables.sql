@@ -87,7 +87,7 @@ CREATE TABLE pganalyze.stat_statements (
                                            PRIMARY KEY (collected_at, queryid)
 ) WITH (
                                              tsdb.hypertable,
-                                             tsdb.chunk_interval=86400,
+                                             tsdb.chunk_interval=172800, -- 2 days
                                              tsdb.partition_column='collected_at',
                                              tsdb.segmentby='queryid',
                                              tsdb.orderby='collected_at ASC',
@@ -96,7 +96,6 @@ CREATE TABLE pganalyze.stat_statements (
 
 CREATE INDEX IF NOT EXISTS stat_statements_queryid_time ON pganalyze.stat_statements (queryid, collected_at ASC);
 
-CALL add_columnstore_policy('pganalyze.stat_statements', after => INTERVAL :TBL_STATS_COMPRESSION);
 SELECT add_retention_policy('pganalyze.stat_statements', drop_after => INTERVAL :TBL_STATS_RETENTION);
 
 CREATE TABLE pganalyze.stat_explains (
