@@ -34,8 +34,6 @@ contactPoints:
           singleEmail: true
           subject: |
             {{ template "custom_email.subject" . }}
-          message: |
-            {{ template "custom_email.message" . }}
 
 deleteContactPoints:
     - orgId: 1
@@ -56,7 +54,7 @@ policies:
               - critical
           group_wait: 1s
           group_interval: 1s
-          repeat_interval: 5m
+          repeat_interval: 1h
         - receiver: email-contact-point
           # Warnings and muted on weekends
           object_matchers:
@@ -97,39 +95,4 @@ templates:
           {{- end -}}
         
           {{- trimSpace (printf "[%s] %s - %s" $status $instr (index .Alerts 0).Annotations.summary) -}}
-        {{ end }}
-
-    - orgId: 1
-      name: custom_email.message
-      template: |
-        {{ define "custom_email.message" }}
-          Alerts: {{ len .Alerts.Firing }} firing, {{ len .Alerts.Resolved }} resolved
-
-          {{ range .Alerts }}
-          {{- $statusIcon := "" -}}
-          {{- if eq .Labels.severity "critical" -}}
-            {{ $statusIcon = "🔴 CRITICAL" }}
-          {{- else if eq .Labels.severity "warning" -}}
-            {{ $statusIcon = "🟠 WARNING" }}
-          {{- else if eq .Labels.severity "caution" -}}
-            {{ $statusIcon = "🟡 CAUTION" }}
-          {{- else -}}
-            {{ $statusIcon = "⚪ UNKNOWN" }}
-          {{- end -}}
-          ALERT DETAILS
-          ----------------
-          Date/Time: {{ .StartsAt }}
-          Status: {{ .Status }}
-          Instrument:  {{ .Labels.grafana_folder }} / {{ .Labels.instrument }}
-          Module: {{ .Labels.module }}
-          Severity: {{ $statusIcon }}
-
-          Summary: {{ .Annotations.summary }}
-          Description: {{ .Annotations.description }}
-
-          View Alert: {{ .GeneratorURL }}
-          {{ if gt (len .DashboardURL) 0 }}View Dashboard: ({{ .DashboardURL }}){{ end }}
-          Silence: {{ .SilenceURL }}
-          ============================================================
-          {{ end }}
         {{ end }}

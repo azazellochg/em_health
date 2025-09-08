@@ -3,11 +3,11 @@ groups:
     - orgId: 1
       name: Module offline
       folder: TEM
-      interval: 5m
+      interval: 15m
       rules:
-        - uid: bewyqwb2l2neof
+        - uid: fexg3mzbhgs8wa
           title: Energy filter off
-          condition: C
+          condition: equals zero
           data:
             - refId: A
               relativeTimeRange:
@@ -20,24 +20,24 @@ groups:
                 intervalMs: 1.8e+06
                 maxDataPoints: 43200
                 rawQuery: true
-                rawSql: |
+                rawSql: |-
                     WITH target_param AS (
-                      SELECT p.param_id, i.name, i.id
-                      FROM parameters p
-                      JOIN instruments i ON i.id = p.instrument_id
-                      WHERE subsystem = 'EnergyFilterBrick'
-                        AND param_name = 'EnergyFilterIsAvailable'
-                    )
-                    SELECT
-                        d.time AS "time",
-                        t.name AS "instrument",
-                        'EnergyFilter' AS "module",
-                        d.value_num AS "value"
-                    FROM data d
-                    JOIN target_param t
-                      ON d.param_id = t.param_id
-                      AND d.instrument_id = t.id
-                    ORDER BY d.time ASC
+                                          SELECT p.param_id, i.name, i.id
+                                          FROM parameters p
+                                          JOIN instruments i ON i.id = p.instrument_id
+                                          WHERE subsystem = 'EnergyFilterBrick'
+                                            AND param_name = 'EnergyFilterIsAvailable'
+                                        )
+                                        SELECT
+                                            d.time AS "time",
+                                            t.name AS "instrument",
+                                            'EnergyFilter' AS "module",
+                                            d.value_num AS "value"
+                                        FROM data d
+                                        JOIN target_param t
+                                          ON d.param_id = t.param_id
+                                          AND d.instrument_id = t.id
+                                        ORDER BY d.time ASC
                 refId: A
                 sql:
                     columns:
@@ -48,37 +48,34 @@ groups:
                             type: string
                           type: groupBy
                     limit: 50
-            - refId: reducer
-              queryType: expression
+            - refId: last value
               datasourceUid: __expr__
               model:
                 conditions:
                     - evaluator:
-                        params:
-                            - 0
-                            - 0
+                        params: []
                         type: gt
                       operator:
                         type: and
                       query:
-                        params: []
+                        params:
+                            - B
                       reducer:
                         params: []
-                        type: avg
+                        type: last
                       type: query
                 datasource:
-                    name: Expression
                     type: __expr__
                     uid: __expr__
                 expression: A
                 intervalMs: 1000
                 maxDataPoints: 43200
                 reducer: last
-                refId: reducer
+                refId: last value
                 settings:
                     mode: dropNN
                 type: reduce
-            - refId: C
+            - refId: equals zero
               datasourceUid: __expr__
               model:
                 conditions:
@@ -98,10 +95,10 @@ groups:
                 datasource:
                     type: __expr__
                     uid: __expr__
-                expression: reducer
+                expression: last value
                 intervalMs: 1000
                 maxDataPoints: 43200
-                refId: C
+                refId: equals zero
                 type: threshold
           noDataState: OK
           execErrState: Error
