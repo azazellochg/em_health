@@ -17,9 +17,8 @@ Description
 ^^^^^^^^^^^
 
 Import health monitor data from XML file. Compressed files (\*.xml.gz) are also supported.
-Optional `no-copy` argument is useful for small regular imports (e.g. automatic import every hour), since the
-xml may contain duplicated data points due to time overlap. If you are importing a large dataset, do not use this
-option as it will slow down the import significantly.
+Optional `no-copy` argument is useful for small regular imports (e.g. automatic import every hour). If you are importing a large dataset, do not use this
+option as it will slow down the process significantly.
 
 Syntax
 ^^^^^^

@@ -108,7 +108,7 @@ def main():
     import_parser.add_argument("-s", dest="settings", required=True,
                                help="Path to instruments.json with metadata")
     import_parser.add_argument("--no-copy", dest="nocopy", action="store_true",
-                               help="Do not use fast COPY method (useful for small imports that may contain duplicates)")
+                               help="Do not use fast COPY method (useful for small imports)")
 
     # --- Create Task command ---
     task_parser = subparsers.add_parser("create-task",

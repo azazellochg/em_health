@@ -195,11 +195,9 @@ class DatabaseManager(PgClient):
          - TimescaleDB data table has chunking with compression, chunks will be sorted by time
 
         :param rows: Iterable of tuples
-        :param nocopy: If True, revert to executemany with duplicate handling
+        :param nocopy: If True, revert to executemany
         """
         if nocopy:
-            logger.info("No-copy mode. Duplicate entries are ignored.",
-                        extra={"prefix": self.instrument_name})
             query = """
                 INSERT INTO public.data (time, instrument_id, param_id, value_num, value_text)
                 VALUES (%s, %s, %s, %s, %s)
@@ -209,6 +207,7 @@ class DatabaseManager(PgClient):
             self.conn.commit()
 
         else:
+            # staging table can have duplicate rows, they will be omitted later
             query = """
                 COPY public.data_staging (time, instrument_id, param_id, value_num, value_text)
                 FROM STDIN WITH (FORMAT text)
@@ -243,6 +242,7 @@ class DatabaseManager(PgClient):
                 for chunk in stream_chunks(rows, chunk_size):
                     copy.write(chunk)
 
+            # order by time before inserting to minimize Timescale switches between chunks
             query = """
                         INSERT INTO public.data(time, instrument_id, param_id, value_num, value_text)
                         SELECT time, instrument_id, param_id, value_num, value_text
