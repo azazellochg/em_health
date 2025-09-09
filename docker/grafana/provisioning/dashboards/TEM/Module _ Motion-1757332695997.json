@@ -24,7 +24,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 26,
+  "id": 8,
   "links": [
     {
       "asDropdown": true,
@@ -368,7 +368,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
-      "description": "Max values for all motion types are monitored",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -588,7 +588,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'X', 'X.MaxControllerOut'),\n    ('Compustage', 'X', 'X.SettlingDuration'),\n    ('Compustage', 'X', 'X.MaxPositionError'),\n    ('Compustage', 'X', 'X.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.MaxControllerOut', 'Max Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Motion Error'),\n    ('X.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nmax_values AS (\n  SELECT\n    param_name,\n    MAX(value_num) AS raw_max\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, mv.param_name) AS parameter,\n  CASE\n    WHEN mv.param_name ~* 'Position' THEN mv.raw_max * 1000  -- convert to mm\n    ELSE mv.raw_max\n  END AS max_value\nFROM max_values mv\nLEFT JOIN label_map lm ON mv.param_name = lm.param_name\nORDER BY parameter;\n",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'X', 'X.MaxControllerOut'),\n    ('Compustage', 'X', 'X.SettlingDuration'),\n    ('Compustage', 'X', 'X.MaxPositionError'),\n    ('Compustage', 'X', 'X.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.MaxControllerOut', 'Max Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Motion Error'),\n    ('X.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -623,7 +623,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
-      "description": "Max values for all motion types are monitored",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -843,7 +843,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'A', 'A.MaxControllerOut'),\n    ('Compustage', 'A', 'A.SettlingDuration'),\n    ('Compustage', 'A', 'A.MaxPositionError'),\n    ('Compustage', 'A', 'A.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('A.MaxControllerOut', 'Max Controller Output'),\n    ('A.SettlingDuration', 'Settling Duration'),\n    ('A.MaxPositionError', 'Motion Error'),\n    ('A.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nmax_values AS (\n  SELECT\n    param_name,\n    MAX(value_num) AS raw_max\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, mv.param_name) AS parameter,\n  CASE\n    WHEN mv.param_name ~* 'Position' THEN mv.raw_max * 1000  -- convert to mm\n    ELSE mv.raw_max\n  END AS max_value\nFROM max_values mv\nLEFT JOIN label_map lm ON mv.param_name = lm.param_name\nORDER BY parameter;\n",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'A', 'A.MaxControllerOut'),\n    ('Compustage', 'A', 'A.SettlingDuration'),\n    ('Compustage', 'A', 'A.MaxPositionError'),\n    ('Compustage', 'A', 'A.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('A.MaxControllerOut', 'Max Controller Output'),\n    ('A.SettlingDuration', 'Settling Duration'),\n    ('A.MaxPositionError', 'Motion Error'),\n    ('A.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -878,7 +878,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
-      "description": "Max values for all motion types are monitored",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1098,7 +1098,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'Y', 'Y.MaxControllerOut'),\n    ('Compustage', 'Y', 'Y.SettlingDuration'),\n    ('Compustage', 'Y', 'Y.MaxPositionError'),\n    ('Compustage', 'Y', 'Y.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.MaxControllerOut', 'Max Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('Y.MaxPositionError', 'Motion Error'),\n    ('Y.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nmax_values AS (\n  SELECT\n    param_name,\n    MAX(value_num) AS raw_max\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, mv.param_name) AS parameter,\n  CASE\n    WHEN mv.param_name ~* 'Position' THEN mv.raw_max * 1000  -- convert to mm\n    ELSE mv.raw_max\n  END AS max_value\nFROM max_values mv\nLEFT JOIN label_map lm ON mv.param_name = lm.param_name\nORDER BY parameter;\n",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'Y', 'Y.MaxControllerOut'),\n    ('Compustage', 'Y', 'Y.SettlingDuration'),\n    ('Compustage', 'Y', 'Y.MaxPositionError'),\n    ('Compustage', 'Y', 'Y.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.MaxControllerOut', 'Max Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('Y.MaxPositionError', 'Motion Error'),\n    ('Y.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1133,7 +1133,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
-      "description": "Max values for all motion types are monitored",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1353,7 +1353,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'B', 'B.MaxControllerOut'),\n    ('Compustage', 'B', 'B.SettlingTime'),\n    ('Compustage', 'B', 'B.MaxPositionError'),\n    ('Compustage', 'B', 'B.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('B.MaxControllerOut', 'Max Controller Output'),\n    ('B.SettlingTime', 'Settling Duration'),\n    ('B.MaxPositionError', 'Motion Error'),\n    ('B.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nmax_values AS (\n  SELECT\n    param_name,\n    MAX(value_num) AS raw_max\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, mv.param_name) AS parameter,\n  CASE\n    WHEN mv.param_name ~* 'Position' THEN mv.raw_max * 1000  -- convert to mm\n    ELSE mv.raw_max\n  END AS max_value\nFROM max_values mv\nLEFT JOIN label_map lm ON mv.param_name = lm.param_name\nORDER BY parameter;\n",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'B', 'B.MaxControllerOut'),\n    ('Compustage', 'B', 'B.SettlingTime'),\n    ('Compustage', 'B', 'B.MaxPositionError'),\n    ('Compustage', 'B', 'B.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('B.MaxControllerOut', 'Max Controller Output'),\n    ('B.SettlingTime', 'Settling Duration'),\n    ('B.MaxPositionError', 'Motion Error'),\n    ('B.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1388,7 +1388,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
-      "description": "Max values for all motion types are monitored",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1608,7 +1608,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'Z', 'Z.MaxControllerOut'),\n    ('Compustage', 'Z', 'Z.SettlingDuration'),\n    ('Compustage', 'Z', 'Z.MaxPositionError'),\n    ('Compustage', 'Z', 'Z.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Z.MaxControllerOut', 'Max Controller Output'),\n    ('Z.SettlingDuration', 'Settling Duration'),\n    ('Z.MaxPositionError', 'Motion Error'),\n    ('Z.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nmax_values AS (\n  SELECT\n    param_name,\n    MAX(value_num) AS raw_max\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, mv.param_name) AS parameter,\n  CASE\n    WHEN mv.param_name ~* 'Position' THEN mv.raw_max * 1000  -- convert to mm\n    ELSE mv.raw_max\n  END AS max_value\nFROM max_values mv\nLEFT JOIN label_map lm ON mv.param_name = lm.param_name\nORDER BY parameter;\n",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'Z', 'Z.MaxControllerOut'),\n    ('Compustage', 'Z', 'Z.SettlingDuration'),\n    ('Compustage', 'Z', 'Z.MaxPositionError'),\n    ('Compustage', 'Z', 'Z.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Z.MaxControllerOut', 'Max Controller Output'),\n    ('Z.SettlingDuration', 'Settling Duration'),\n    ('Z.MaxPositionError', 'Motion Error'),\n    ('Z.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1656,7 +1656,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
-      "description": "Max values for all motion types are monitored",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1876,7 +1876,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'C1.X', 'X.MaxControllerOut'),\n    ('Apertures', 'C1.X', 'X.SettlingDuration'),\n    ('Apertures', 'C1.X', 'X.MaxPositionError'),\n    ('Apertures', 'C1.X', 'X.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.MaxControllerOut', 'Max Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Motion Error'),\n    ('X.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nmax_values AS (\n  SELECT\n    param_name,\n    MAX(value_num) AS raw_max\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, mv.param_name) AS parameter,\n  CASE\n    WHEN mv.param_name ~* 'Position' THEN mv.raw_max * 1000  -- convert to mm\n    ELSE mv.raw_max\n  END AS max_value\nFROM max_values mv\nLEFT JOIN label_map lm ON mv.param_name = lm.param_name\nORDER BY parameter;\n",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'C1.X', 'X.MaxControllerOut'),\n    ('Apertures', 'C1.X', 'X.SettlingDuration'),\n    ('Apertures', 'C1.X', 'X.MaxPositionError'),\n    ('Apertures', 'C1.X', 'X.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.MaxControllerOut', 'Max Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Motion Error'),\n    ('X.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1911,7 +1911,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
-      "description": "Max values for all motion types are monitored",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2131,7 +2131,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'C1.Y', 'Y.MaxControllerOut'),\n    ('Apertures', 'C1.Y', 'Y.SettlingDuration'),\n    ('Apertures', 'C1.Y', 'Y.MaxPositionError'),\n    ('Apertures', 'C1.Y', 'Y.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.MaxControllerOut', 'Max Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('Y.MaxPositionError', 'Motion Error'),\n    ('Y.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nmax_values AS (\n  SELECT\n    param_name,\n    MAX(value_num) AS raw_max\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, mv.param_name) AS parameter,\n  CASE\n    WHEN mv.param_name ~* 'Position' THEN mv.raw_max * 1000  -- convert to mm\n    ELSE mv.raw_max\n  END AS max_value\nFROM max_values mv\nLEFT JOIN label_map lm ON mv.param_name = lm.param_name\nORDER BY parameter;\n",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'C1.Y', 'Y.MaxControllerOut'),\n    ('Apertures', 'C1.Y', 'Y.SettlingDuration'),\n    ('Apertures', 'C1.Y', 'Y.MaxPositionError'),\n    ('Apertures', 'C1.Y', 'Y.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.MaxControllerOut', 'Max Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('Y.MaxPositionError', 'Motion Error'),\n    ('Y.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -2166,7 +2166,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
-      "description": "Max values for all motion types are monitored",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2386,7 +2386,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'C2.X', 'X.MaxControllerOut'),\n    ('Apertures', 'C2.X', 'X.SettlingDuration'),\n    ('Apertures', 'C2.X', 'X.MaxPositionError'),\n    ('Apertures', 'C2.X', 'X.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.MaxControllerOut', 'Max Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Motion Error'),\n    ('X.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nmax_values AS (\n  SELECT\n    param_name,\n    MAX(value_num) AS raw_max\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, mv.param_name) AS parameter,\n  CASE\n    WHEN mv.param_name ~* 'Position' THEN mv.raw_max * 1000  -- convert to mm\n    ELSE mv.raw_max\n  END AS max_value\nFROM max_values mv\nLEFT JOIN label_map lm ON mv.param_name = lm.param_name\nORDER BY parameter;\n",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'C2.X', 'X.MaxControllerOut'),\n    ('Apertures', 'C2.X', 'X.SettlingDuration'),\n    ('Apertures', 'C2.X', 'X.MaxPositionError'),\n    ('Apertures', 'C2.X', 'X.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.MaxControllerOut', 'Max Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Motion Error'),\n    ('X.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -2421,7 +2421,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
-      "description": "Max values for all motion types are monitored",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2641,7 +2641,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'C2.Y', 'Y.MaxControllerOut'),\n    ('Apertures', 'C2.Y', 'Y.SettlingDuration'),\n    ('Apertures', 'C2.Y', 'Y.MaxPositionError'),\n    ('Apertures', 'C2.Y', 'Y.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.MaxControllerOut', 'Max Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('Y.MaxPositionError', 'Motion Error'),\n    ('Y.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nmax_values AS (\n  SELECT\n    param_name,\n    MAX(value_num) AS raw_max\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, mv.param_name) AS parameter,\n  CASE\n    WHEN mv.param_name ~* 'Position' THEN mv.raw_max * 1000  -- convert to mm\n    ELSE mv.raw_max\n  END AS max_value\nFROM max_values mv\nLEFT JOIN label_map lm ON mv.param_name = lm.param_name\nORDER BY parameter;\n",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'C2.Y', 'Y.MaxControllerOut'),\n    ('Apertures', 'C2.Y', 'Y.SettlingDuration'),\n    ('Apertures', 'C2.Y', 'Y.MaxPositionError'),\n    ('Apertures', 'C2.Y', 'Y.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.MaxControllerOut', 'Max Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('Y.MaxPositionError', 'Motion Error'),\n    ('Y.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -2676,7 +2676,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
-      "description": "Max values for all motion types are monitored",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2896,7 +2896,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'OBJ.X', 'X.MaxControllerOut'),\n    ('Apertures', 'OBJ.X', 'X.SettlingDuration'),\n    ('Apertures', 'OBJ.X', 'X.MaxPositionError'),\n    ('Apertures', 'OBJ.X', 'X.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.MaxControllerOut', 'Max Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Motion Error'),\n    ('X.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nmax_values AS (\n  SELECT\n    param_name,\n    MAX(value_num) AS raw_max\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, mv.param_name) AS parameter,\n  CASE\n    WHEN mv.param_name ~* 'Position' THEN mv.raw_max * 1000  -- convert to mm\n    ELSE mv.raw_max\n  END AS max_value\nFROM max_values mv\nLEFT JOIN label_map lm ON mv.param_name = lm.param_name\nORDER BY parameter;\n",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'OBJ.X', 'X.MaxControllerOut'),\n    ('Apertures', 'OBJ.X', 'X.SettlingDuration'),\n    ('Apertures', 'OBJ.X', 'X.MaxPositionError'),\n    ('Apertures', 'OBJ.X', 'X.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.MaxControllerOut', 'Max Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Motion Error'),\n    ('X.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -2931,7 +2931,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
-      "description": "Max values for all motion types are monitored",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -3151,7 +3151,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'OBJ.Y', 'Y.MaxControllerOut'),\n    ('Apertures', 'OBJ.Y', 'Y.SettlingDuration'),\n    ('Apertures', 'OBJ.Y', 'Y.MaxPositionError'),\n    ('Apertures', 'OBJ.Y', 'Y.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.MaxControllerOut', 'Max Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('Y.MaxPositionError', 'Motion Error'),\n    ('Y.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nmax_values AS (\n  SELECT\n    param_name,\n    MAX(value_num) AS raw_max\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, mv.param_name) AS parameter,\n  CASE\n    WHEN mv.param_name ~* 'Position' THEN mv.raw_max * 1000  -- convert to mm\n    ELSE mv.raw_max\n  END AS max_value\nFROM max_values mv\nLEFT JOIN label_map lm ON mv.param_name = lm.param_name\nORDER BY parameter;\n",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'OBJ.Y', 'Y.MaxControllerOut'),\n    ('Apertures', 'OBJ.Y', 'Y.SettlingDuration'),\n    ('Apertures', 'OBJ.Y', 'Y.MaxPositionError'),\n    ('Apertures', 'OBJ.Y', 'Y.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.MaxControllerOut', 'Max Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('Y.MaxPositionError', 'Motion Error'),\n    ('Y.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -3186,7 +3186,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
-      "description": "Max values for all motion types are monitored",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -3406,7 +3406,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'SA.X', 'X.MaxControllerOut'),\n    ('Apertures', 'SA.X', 'X.SettlingDuration'),\n    ('Apertures', 'SA.X', 'X.MaxPositionError'),\n    ('Apertures', 'SA.X', 'X.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.MaxControllerOut', 'Max Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Motion Error'),\n    ('X.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nmax_values AS (\n  SELECT\n    param_name,\n    MAX(value_num) AS raw_max\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, mv.param_name) AS parameter,\n  CASE\n    WHEN mv.param_name ~* 'Position' THEN mv.raw_max * 1000  -- convert to mm\n    ELSE mv.raw_max\n  END AS max_value\nFROM max_values mv\nLEFT JOIN label_map lm ON mv.param_name = lm.param_name\nORDER BY parameter;\n",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'SA.X', 'X.MaxControllerOut'),\n    ('Apertures', 'SA.X', 'X.SettlingDuration'),\n    ('Apertures', 'SA.X', 'X.MaxPositionError'),\n    ('Apertures', 'SA.X', 'X.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.MaxControllerOut', 'Max Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Motion Error'),\n    ('X.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -3441,7 +3441,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
-      "description": "Max values for all motion types are monitored",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -3661,7 +3661,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'SA.Y', 'Y.MaxControllerOut'),\n    ('Apertures', 'SA.Y', 'Y.SettlingDuration'),\n    ('Apertures', 'SA.Y', 'Y.MaxPositionError'),\n    ('Apertures', 'SA.Y', 'Y.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.MaxControllerOut', 'Max Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('Y.MaxPositionError', 'Motion Error'),\n    ('Y.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nmax_values AS (\n  SELECT\n    param_name,\n    MAX(value_num) AS raw_max\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, mv.param_name) AS parameter,\n  CASE\n    WHEN mv.param_name ~* 'Position' THEN mv.raw_max * 1000  -- convert to mm\n    ELSE mv.raw_max\n  END AS max_value\nFROM max_values mv\nLEFT JOIN label_map lm ON mv.param_name = lm.param_name\nORDER BY parameter;\n",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'SA.Y', 'Y.MaxControllerOut'),\n    ('Apertures', 'SA.Y', 'Y.SettlingDuration'),\n    ('Apertures', 'SA.Y', 'Y.MaxPositionError'),\n    ('Apertures', 'SA.Y', 'Y.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.MaxControllerOut', 'Max Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('Y.MaxPositionError', 'Motion Error'),\n    ('Y.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -3704,7 +3704,7 @@
         "allowCustomValue": false,
         "current": {
           "text": "tem",
-          "value": "P1F7BE6908B217B4A"
+          "value": "hm-tem"
         },
         "hide": 2,
         "name": "sourceTEM",
@@ -3717,8 +3717,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Glacios [Glacios] (9952833)",
-          "value": "5"
+          "text": "Krios 4 [Titan Krios G4] (4248)",
+          "value": "4"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -3732,6 +3732,40 @@
         "regex": "",
         "sort": 1,
         "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "avg",
+          "value": "avg"
+        },
+        "description": "Choose which values to show",
+        "label": "Axis values",
+        "name": "stat_type",
+        "options": [
+          {
+            "selected": true,
+            "text": "avg",
+            "value": "avg"
+          },
+          {
+            "selected": false,
+            "text": "min",
+            "value": "min"
+          },
+          {
+            "selected": false,
+            "text": "max",
+            "value": "max"
+          },
+          {
+            "selected": false,
+            "text": "stdev",
+            "value": "stdev"
+          }
+        ],
+        "query": "avg,min,max,stdev",
+        "type": "custom"
       }
     ]
   },
@@ -3745,5 +3779,5 @@
   "timezone": "Europe/London",
   "title": "Module | Motion",
   "uid": "4395e67b-0280-47fd-94a8-684004567800",
-  "version": 4
+  "version": 16
 }
