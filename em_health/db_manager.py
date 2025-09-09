@@ -210,7 +210,7 @@ class DatabaseManager(PgClient):
 
         else:
             query = """
-                COPY public.data (time, instrument_id, param_id, value_num, value_text)
+                COPY public.data_staging (time, instrument_id, param_id, value_num, value_text)
                 FROM STDIN WITH (FORMAT text)
             """
 
@@ -239,14 +239,20 @@ class DatabaseManager(PgClient):
 
             # avg row size is ~ 175 bytes, below will give about ~50k rows per chunk
             chunk_size = int(os.getenv("WRITE_DATA_CHUNK_SIZE", 8*1024*1024))  # 8 Mb
-            try:
-                with self.cur.copy(query) as copy:
-                    for chunk in stream_chunks(rows, chunk_size):
-                        copy.write(chunk)
-            except psycopg.errors.UniqueViolation as e:
-                logger.error("Duplicate entries found: %s", e,
-                             extra={"prefix": self.instrument_name})
-                raise
+            with self.cur.copy(query) as copy:
+                for chunk in stream_chunks(rows, chunk_size):
+                    copy.write(chunk)
+
+            query = """
+                        INSERT INTO public.data(time, instrument_id, param_id, value_num, value_text)
+                        SELECT time, instrument_id, param_id, value_num, value_text
+                        FROM data_staging
+                        ORDER BY time
+                        ON CONFLICT DO NOTHING;
+                        TRUNCATE TABLE data_staging;
+                    """
+            self.cur.execute(query)
+            self.conn.commit()
 
         logger.info("Updated public.data table (%d rows)", self.cur.rowcount,
                     extra={"prefix": self.instrument_name})

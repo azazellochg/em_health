@@ -118,6 +118,15 @@ COMMENT ON TABLE public.parameters_history IS 'Historical HM metadata for each p
 
 -- data table -------------------------------------------------------------------------------------
 -- Creating public.data
+CREATE TABLE IF NOT EXISTS public.data_staging (
+                                           time TIMESTAMPTZ NOT NULL,
+                                           instrument_id INTEGER,
+                                           param_id INTEGER NOT NULL,
+                                           value_num DOUBLE PRECISION,
+                                           value_text TEXT
+);
+COMMENT ON TABLE public.data_staging IS 'Staging table for bulk COPY inserts';
+
 CREATE TABLE IF NOT EXISTS public.data (
                                            time TIMESTAMPTZ NOT NULL,
                                            instrument_id INTEGER NOT NULL REFERENCES public.instruments(id) ON DELETE CASCADE,
@@ -127,9 +136,9 @@ CREATE TABLE IF NOT EXISTS public.data (
                                            UNIQUE (time, instrument_id, param_id)
 ) WITH (
                                              tsdb.hypertable,
-                                             tsdb.chunk_interval=259200, -- 3 days
-                                             tsdb.partition_column='instrument_id',
-                                             tsdb.segmentby='instrument_id, param_id',
+                                             tsdb.chunk_interval='3 days',
+                                             tsdb.partition_column='time',
+                                             tsdb.segmentby='instrument_id,param_id',
                                              tsdb.orderby='time ASC',
                                              tsdb.create_default_indexes=false
                                              );
@@ -138,7 +147,7 @@ COMMENT ON TABLE public.data IS 'Main time series table with HM events';
 SELECT enable_chunk_skipping('public.data', 'instrument_id');
 SELECT enable_chunk_skipping('public.data', 'param_id');
 CREATE INDEX ON public.data (instrument_id, param_id, time ASC);
-CALL add_columnstore_policy('public.data', after => 604800); -- 7 days
+CALL add_columnstore_policy('public.data', after => INTERVAL '7 days');
 
 GRANT USAGE ON SCHEMA public TO grafana;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO grafana;

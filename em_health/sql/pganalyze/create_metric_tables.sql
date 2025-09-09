@@ -87,7 +87,7 @@ CREATE TABLE pganalyze.stat_statements (
                                            PRIMARY KEY (collected_at, queryid)
 ) WITH (
                                              tsdb.hypertable,
-                                             tsdb.chunk_interval=172800, -- 2 days
+                                             tsdb.chunk_interval='2 days',
                                              tsdb.partition_column='collected_at',
                                              tsdb.segmentby='queryid',
                                              tsdb.orderby='collected_at ASC',

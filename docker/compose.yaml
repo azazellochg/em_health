@@ -19,6 +19,7 @@ services:
       - ./backups:/backups
     command: >
       postgres
+      -c timescaledb.enable_chunk_skipping=on
       -c shared_preload_libraries=timescaledb,pg_stat_statements,auto_explain
       -c pg_stat_statements.max=10000
       -c pg_stat_statements.track=all
