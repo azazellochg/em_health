@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 19,
+  "id": 6,
   "links": [
     {
       "asDropdown": false,
@@ -51,13 +51,12 @@
     },
     {
       "datasource": {
-        "type": "grafana-postgresql-datasource",
         "uid": "${source}"
       },
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "fixed"
+            "mode": "thresholds"
           },
           "mappings": [],
           "thresholds": {
@@ -68,8 +67,7 @@
                 "value": 0
               }
             ]
-          },
-          "unit": "s"
+          }
         },
         "overrides": []
       },
@@ -79,33 +77,29 @@
         "x": 0,
         "y": 1
       },
-      "id": 29,
+      "id": 41,
       "options": {
-        "colorMode": "none",
+        "colorMode": "value",
         "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
+        "justifyMode": "center",
+        "orientation": "horizontal",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [],
-          "fields": "/^Uptime$/",
+          "fields": "/.*/",
           "values": true
         },
         "showPercentChange": false,
-        "textMode": "auto",
+        "textMode": "name",
         "wideLayout": true
       },
       "pluginVersion": "12.1.0",
       "targets": [
         {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${source}"
-          },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT extract(epoch from current_timestamp - pg_postmaster_start_time()) as \"Uptime\"",
+          "rawSql": "SELECT 1 AS \"Running\"",
           "refId": "A",
           "sql": {
             "columns": [
@@ -126,7 +120,7 @@
           }
         }
       ],
-      "title": "Uptime",
+      "title": "Status",
       "type": "stat"
     },
     {
@@ -153,8 +147,8 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 3,
-        "w": 10,
+        "h": 6,
+        "w": 7,
         "x": 2,
         "y": 1
       },
@@ -162,19 +156,19 @@
       "options": {
         "colorMode": "none",
         "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "auto",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [],
-          "fields": "/^server_version$/",
+          "fields": "/^version$/",
           "values": true
         },
         "showPercentChange": false,
         "text": {
           "valueSize": 28
         },
-        "textMode": "value",
+        "textMode": "value_and_name",
         "wideLayout": true
       },
       "pluginVersion": "12.1.0",
@@ -187,7 +181,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SHOW server_version;",
+          "rawSql": "SELECT\n    'PostgreSQL' AS component,\n    current_setting('server_version') AS version\n\nUNION ALL\n\nSELECT\n    initcap(extname) AS component,\n    extversion AS version\nFROM pg_extension\nWHERE extname LIKE 'timescale%'\nORDER BY component;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -208,8 +202,206 @@
           }
         }
       ],
-      "title": "Version",
+      "title": "",
       "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "light-blue",
+            "mode": "fixed"
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "#EAB839",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 3,
+        "x": 9,
+        "y": 1
+      },
+      "id": 39,
+      "interval": "10m",
+      "options": {
+        "colorMode": "none",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  time,\n  load1 / cpu_count * 100 AS \"CPU (total $cpu_count)\",\n  (mem_total - mem_avail) / mem_total::double precision * 100 AS \"RAM\"\n  FROM pganalyze.sys_stats\n  WHERE $__timeFilter(time)\nORDER BY time;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 60,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 3,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "decbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 7,
+        "x": 12,
+        "y": 1
+      },
+      "id": 40,
+      "options": {
+        "barRadius": 0.25,
+        "barWidth": 0.5,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "horizontal",
+        "showValue": "always",
+        "stacking": "normal",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "xField": "Storage used",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 100
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH user_hypertables AS (\n    SELECT hypertable_schema,\n           hypertable_name\n    FROM timescaledb_information.hypertables\n    WHERE hypertable_schema NOT LIKE '_timescale%'\n),\nall_chunks AS (\n    SELECT\n        c.hypertable_schema,\n        c.hypertable_name,\n        ch.chunk_name,\n        ch.is_compressed\n    FROM user_hypertables c\n    JOIN timescaledb_information.chunks ch\n      ON ch.hypertable_name = c.hypertable_name\n     AND ch.hypertable_schema = c.hypertable_schema\n),\nchunk_sizes AS (\n    SELECT\n        ac.is_compressed,\n        cds.total_bytes\n    FROM all_chunks ac\n    JOIN LATERAL chunks_detailed_size(ac.hypertable_schema || '.' || ac.hypertable_name) cds\n       ON cds.chunk_name = ac.chunk_name\n)\nSELECT\n    SUM(CASE WHEN is_compressed = false THEN total_bytes ELSE 0 END) AS \"Rowstore\",\n    SUM(CASE WHEN is_compressed = true THEN total_bytes ELSE 0 END) AS \"Columnstore\",\n    SUM(total_bytes) AS \"Storage used\"\nFROM chunk_sizes;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Storage",
+      "type": "barchart"
     },
     {
       "datasource": {
@@ -236,9 +428,9 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 3,
+        "h": 6,
         "w": 2,
-        "x": 12,
+        "x": 19,
         "y": 1
       },
       "id": 31,
@@ -345,9 +537,9 @@
         ]
       },
       "gridPos": {
-        "h": 3,
+        "h": 6,
         "w": 3,
-        "x": 14,
+        "x": 21,
         "y": 1
       },
       "id": 25,
@@ -355,7 +547,7 @@
         "colorMode": "none",
         "graphMode": "area",
         "justifyMode": "center",
-        "orientation": "vertical",
+        "orientation": "horizontal",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
@@ -403,14 +595,94 @@
       "type": "stat"
     },
     {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 2,
+        "x": 0,
+        "y": 4
+      },
+      "id": 29,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "/^Uptime$/",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT extract(epoch from current_timestamp - pg_postmaster_start_time()) as \"Uptime\"",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Uptime",
+      "type": "stat"
+    },
+    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 4
+        "y": 7
       },
-      "id": 33,
+      "id": 42,
       "panels": [],
       "title": "Database KPIs",
       "type": "row"
@@ -477,7 +749,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 5
+        "y": 8
       },
       "id": 38,
       "options": {
@@ -558,7 +830,7 @@
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 13
+        "y": 16
       },
       "id": 21,
       "interval": "10m",
@@ -677,7 +949,7 @@
         "h": 12,
         "w": 10,
         "x": 4,
-        "y": 13
+        "y": 16
       },
       "id": 22,
       "interval": "10m",
@@ -796,7 +1068,7 @@
         "h": 12,
         "w": 10,
         "x": 14,
-        "y": 13
+        "y": 16
       },
       "id": 24,
       "interval": "10m",
@@ -882,7 +1154,7 @@
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 17
+        "y": 20
       },
       "id": 23,
       "interval": "10m",
@@ -968,7 +1240,7 @@
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 21
+        "y": 24
       },
       "id": 34,
       "interval": "10m",
@@ -1053,7 +1325,7 @@
         "h": 3,
         "w": 4,
         "x": 0,
-        "y": 25
+        "y": 28
       },
       "id": 36,
       "options": {
@@ -1170,7 +1442,7 @@
         "h": 6,
         "w": 20,
         "x": 4,
-        "y": 25
+        "y": 28
       },
       "id": 35,
       "interval": "10m",
@@ -1255,7 +1527,7 @@
         "h": 3,
         "w": 4,
         "x": 0,
-        "y": 28
+        "y": 31
       },
       "id": 27,
       "options": {
@@ -1321,7 +1593,7 @@
         "allowCustomValue": false,
         "current": {
           "text": "tem",
-          "value": "P1F7BE6908B217B4A"
+          "value": "hm-tem"
         },
         "label": "Database",
         "name": "source",
@@ -1330,6 +1602,25 @@
         "refresh": 1,
         "regex": "",
         "type": "datasource"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "12",
+          "value": "12"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${source}"
+        },
+        "definition": "SELECT\n  cpu_count\nFROM pganalyze.sys_stats\nORDER BY time DESC LIMIT 1",
+        "hide": 2,
+        "name": "cpu_count",
+        "options": [],
+        "query": "SELECT\n  cpu_count\nFROM pganalyze.sys_stats\nORDER BY time DESC LIMIT 1",
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
       }
     ]
   },
@@ -1350,5 +1641,5 @@
   "timezone": "Europe/London",
   "title": "Overview",
   "uid": "ee46beab-c046-45a5-b547-23990e2ec0f3",
-  "version": 1
+  "version": 18
 }

@@ -291,6 +291,44 @@ BEGIN
 END;
 $$;
 
+-- parse sysinfo
+DROP FUNCTION IF EXISTS pganalyze.parse_sysinfo;
+CREATE FUNCTION pganalyze.parse_sysinfo(job_id int, config jsonb)
+    RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+AS $$
+BEGIN
+    INSERT INTO pganalyze.sys_stats (load1, load5, load15, cpu_count, mem_total, mem_free, mem_avail)
+    WITH loadavg AS (
+        SELECT regexp_split_to_array(pg_read_file('/proc/loadavg', 0, 100), ' ') AS parts
+    ),
+         cpu AS (
+             SELECT count(*) AS cpu_count
+             FROM unnest(string_to_array(pg_read_file('/proc/stat', 0, 2000), E'\n')) AS line
+             WHERE line ~ '^cpu[0-9]+'
+         ),
+         mem AS (
+             SELECT
+                 max(CASE WHEN line LIKE 'MemTotal:%' THEN trim(regexp_replace(split_part(line, ':', 2), '[^0-9]', '', 'g'))::bigint END) AS mem_total,
+                 max(CASE WHEN line LIKE 'MemFree:%' THEN trim(regexp_replace(split_part(line, ':', 2), '[^0-9]', '', 'g'))::bigint END) AS mem_free,
+                 max(CASE WHEN line LIKE 'MemAvailable:%' THEN trim(regexp_replace(split_part(line, ':', 2), '[^0-9]', '', 'g'))::bigint END) AS mem_avail
+             FROM (
+                      -- only read first 200 bytes of meminfo, which always covers first 3 lines
+                      SELECT unnest(string_to_array(pg_read_file('/proc/meminfo', 0, 200), E'\n')) AS line
+                  ) t
+         )
+    SELECT
+        parts[1]::double precision AS load1,
+        parts[2]::double precision AS load5,
+        parts[3]::double precision AS load15,
+        cpu_count,
+        mem.mem_total,
+        mem.mem_free,
+        mem.mem_avail
+    FROM loadavg, cpu, mem;
+END;
+$$;
+
 -- Purge old data
 DROP FUNCTION IF EXISTS pganalyze.purge_stats;
 CREATE FUNCTION pganalyze.purge_stats(job_id int, config jsonb)
@@ -311,6 +349,9 @@ BEGIN
     WHERE started_at < NOW() - INTERVAL :TBL_STATS_RETENTION;
 
     DELETE FROM pganalyze.stat_explains
+    WHERE time < NOW() - INTERVAL :TBL_STATS_RETENTION;
+
+    DELETE FROM pganalyze.sys_stats
     WHERE time < NOW() - INTERVAL :TBL_STATS_RETENTION;
 END;
 $$;

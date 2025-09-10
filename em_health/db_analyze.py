@@ -58,7 +58,6 @@ POSSIBILITY OF SUCH DAMAGE.
 """
 
 import os
-from psycopg.rows import dict_row
 
 from em_health.db_manager import DatabaseManager
 from em_health.utils.logs import logger
@@ -107,6 +106,7 @@ class DatabaseAnalyzer(DatabaseManager):
         jobs = [
             f"SELECT add_job('pganalyze.parse_logs', schedule_interval=>'{logs_interval}'::interval);",
             f"SELECT add_job('pganalyze.get_stat_statements', schedule_interval=>'{statements_interval}'::interval);",
+            f"SELECT add_job('pganalyze.parse_sysinfo', schedule_interval=>'{statements_interval}'::interval);",
             f"SELECT add_job('pganalyze.get_db_stats', schedule_interval=>'{dbstats_interval}'::interval);",
             f"SELECT add_job('pganalyze.get_table_stats', schedule_interval=>'{tblstats_interval}'::interval);",
             f"SELECT add_job('pganalyze.get_index_stats', schedule_interval=>'{idxstats_interval}'::interval);",

@@ -108,3 +108,14 @@ CREATE TABLE pganalyze.stat_explains (
                                          plan           JSON        NOT NULL,
                                          PRIMARY KEY (time, queryid)
 );
+
+CREATE TABLE pganalyze.sys_stats (
+                                     time       TIMESTAMPTZ NOT NULL DEFAULT now(),
+                                     load1      DOUBLE PRECISION NOT NULL,
+                                     load5      DOUBLE PRECISION NOT NULL,
+                                     load15     DOUBLE PRECISION NOT NULL,
+                                     cpu_count  INT         NOT NULL,
+                                     mem_total  BIGINT      NOT NULL,
+                                     mem_free   BIGINT      NOT NULL,
+                                     mem_avail  BIGINT      NOT NULL
+);

@@ -45,6 +45,9 @@ policies:
       group_by:
         - grafana_folder
         - alertname
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
       routes:
         - receiver: email-contact-point
           # Critical alerts are fired immediately
@@ -71,10 +74,6 @@ policies:
             - weekdays_daytime
             - weekends
             - weekdays_nighttime
-      group_wait: 30s
-      group_interval: 5m
-      repeat_interval: 4h
-
 
 templates:
     - orgId: 1
