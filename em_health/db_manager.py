@@ -276,7 +276,7 @@ class DatabaseManager(PgClient):
     def schedule_mview_refresh(self, name: str) -> None:
         """ Schedule a materialized view refresh. """
         proc = f"refresh_{name}"
-        period = os.getenv("CAGG_REFRESH_INTERVAL", "12 h")
+        period = os.getenv("CAGG_REFRESH_INTERVAL", "12 hours")
 
         self.run_query("""
             CREATE OR REPLACE PROCEDURE {proc}(

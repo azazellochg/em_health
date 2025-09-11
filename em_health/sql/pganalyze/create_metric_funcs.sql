@@ -45,15 +45,33 @@ BEGIN
     SELECT
         now() AS collected_at,
         s.relid,
-        pg_table_size(s.relid),
-        pg_indexes_size(s.relid),
-        pg_total_relation_size(s.relid) - pg_table_size(s.relid) - pg_indexes_size(s.relid),
+        CASE
+            WHEN ht.hypertable_name IS NOT NULL
+                THEN (hds).table_bytes
+            ELSE pg_table_size(s.relid)
+            END AS table_bytes,
+        CASE
+            WHEN ht.hypertable_name IS NOT NULL
+                THEN (hds).index_bytes
+            ELSE pg_indexes_size(s.relid)
+            END AS index_bytes,
+        CASE
+            WHEN ht.hypertable_name IS NOT NULL
+                THEN (hds).toast_bytes
+            ELSE pg_total_relation_size(s.relid) - pg_table_size(s.relid) - pg_indexes_size(s.relid)
+            END AS toast_external_bytes,
         age(c.relfrozenxid) AS frozen_xid_age,
         COALESCE(st.n_dead_tup, 0) AS num_dead_rows,
         COALESCE(st.n_live_tup, 0) AS num_live_rows
     FROM pg_catalog.pg_statio_user_tables s
              JOIN pg_catalog.pg_class c ON c.oid = s.relid
              LEFT JOIN pg_catalog.pg_stat_user_tables st ON st.relid = s.relid
+             LEFT JOIN timescaledb_information.hypertables ht
+                       ON ht.hypertable_schema = s.schemaname
+                           AND ht.hypertable_name = s.relname
+             LEFT JOIN LATERAL
+        hypertable_detailed_size(ht.hypertable_schema || '.' || ht.hypertable_name) AS hds
+                       ON ht.hypertable_name IS NOT NULL
     WHERE s.schemaname NOT LIKE '\_timescaledb%';
 END;
 $$;

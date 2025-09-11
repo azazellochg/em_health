@@ -33,7 +33,8 @@ Performance statistics is inspired by `Pganalyze <https://pganalyze.com/>`_ and 
 * index statistics (updated every 10 min)
 * auto-VACUUM statistics (updated every 1 min)
 * query statistics (updated every 1 min)
-* auto-EXPLAIN plans (for queries longer than 1s)
+* CPU and RAM host statistics (updated every 1 min)
+* auto-EXPLAIN plans (for queries longer than 500ms)
 
 Statistics retention time is 1 month.
 
@@ -95,6 +96,7 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
     * enum_values_history - old/replaced enumeration values
     * parameters_history - old/replaced parameters
     * data - main events data table for all instruments
+    * data_staging - staging table for bulk data inserts with COPY
 
 * uec - schema for storing UECs / Alarms. UEC codes are unified across different instruments
 
@@ -104,15 +106,6 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
     * subsystem
     * error_definitions
     * errors - main UEC data table for all instruments
-
-* pganalyze - schema to store database statistics for developers
-
-    * database_stats
-    * table_stats
-    * index_stats
-    * vacuum_stats
-    * stat_statements
-    * stat_explains
 
 * fdw_ms_IID - foreign server schema for MSSQL with UECs
 
@@ -126,3 +119,13 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
     * event_type
     * parameter_type
     * instrument_event_config
+
+* pganalyze - schema to store database statistics for developers
+
+    * database_stats
+    * table_stats
+    * index_stats
+    * vacuum_stats
+    * stat_statements
+    * sys_stats
+    * stat_explains

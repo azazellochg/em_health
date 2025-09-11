@@ -11,7 +11,10 @@ SELECT
     counter_agg(collected_at, calls) AS calls,
     counter_agg(collected_at, total_time) AS total_time,
     counter_agg(collected_at, blk_read_time) AS blk_read_time,
-    counter_agg(collected_at, blk_write_time) AS blk_write_time
+    counter_agg(collected_at, blk_write_time) AS blk_write_time,
+    counter_agg(collected_at, shared_blks_hit) AS shared_blks_hit,
+    counter_agg(collected_at, shared_blks_read) AS shared_blks_read,
+    counter_agg(collected_at, rows) AS rows
 FROM pganalyze.stat_statements
 GROUP BY bucket, queryid, query
 WITH NO DATA

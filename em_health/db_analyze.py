@@ -72,6 +72,7 @@ class DatabaseAnalyzer(DatabaseManager):
         """ Create tables to store metrics data. """
         self.execute_file(self.get_path("create_metric_tables.sql", folder="pganalyze"),
                           {
+                              "TBL_STATS_CHUNK_SIZE": os.getenv("TBL_STATS_CHUNK_SIZE", "2 days"),
                               "TBL_STATS_RETENTION": os.getenv("TBL_STATS_RETENTION", "1 month")
                           })
         logger.info("Created pganalyze tables")
@@ -122,8 +123,10 @@ class DatabaseAnalyzer(DatabaseManager):
         self.drop_mview(mview, is_cagg=True)
         self.create_mview(mview)
         self.force_refresh_cagg(mview)
-        self.schedule_cagg_refresh(mview, start_offset="10 minutes",
-                                   end_offset="0 minutes", interval="5 minutes")
+        self.schedule_cagg_refresh(mview,
+                                   start_offset="10 minutes",
+                                   end_offset="0 minutes",
+                                   interval="5 minutes")
 
 
 def main(dbname, action, force=False):

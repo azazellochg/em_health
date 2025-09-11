@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 6,
+  "id": 15,
   "links": [
     {
       "asDropdown": false,
@@ -37,102 +37,23 @@
   ],
   "panels": [
     {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
-      "id": 30,
-      "panels": [],
-      "title": "Server",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "uid": "${source}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 2,
-        "x": 0,
-        "y": 1
-      },
-      "id": 41,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [],
-          "fields": "/.*/",
-          "values": true
-        },
-        "showPercentChange": false,
-        "textMode": "name",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT 1 AS \"Running\"",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "Status",
-      "type": "stat"
-    },
-    {
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "${source}"
       },
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "fixed"
+            "mode": "continuous-blues"
           },
+          "decimals": 1,
+          "links": [
+            {
+              "title": "Show details",
+              "url": "/d/${__dashboard.uid}/${__dashboard}?var-table=${__data.fields.name}"
+            }
+          ],
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -142,34 +63,40 @@
                 "value": 0
               }
             ]
-          }
+          },
+          "unit": "decbytes"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 6,
-        "w": 7,
-        "x": 2,
-        "y": 1
+        "w": 24,
+        "x": 0,
+        "y": 0
       },
-      "id": 28,
+      "id": 1,
+      "maxPerRow": 4,
       "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
-        "percentChangeColorMode": "standard",
+        "displayMode": "gradient",
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "auto",
         "reduceOptions": {
           "calcs": [],
-          "fields": "/^version$/",
+          "fields": "/^size_bytes$/",
           "values": true
         },
-        "showPercentChange": false,
-        "text": {
-          "valueSize": 28
-        },
-        "textMode": "value_and_name",
-        "wideLayout": true
+        "showUnfilled": false,
+        "sizing": "auto",
+        "valueMode": "text"
       },
       "pluginVersion": "12.1.0",
       "targets": [
@@ -181,7 +108,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n    'PostgreSQL' AS component,\n    current_setting('server_version') AS version\n\nUNION ALL\n\nSELECT\n    initcap(extname) AS component,\n    extversion AS version\nFROM pg_extension\nWHERE extname LIKE 'timescale%'\nORDER BY component;",
+          "rawSql": "SELECT\n    t.tablename AS name,\n    CASE \n        WHEN ht.hypertable_name IS NOT NULL THEN hypertable_size(ht.hypertable_schema || '.' || ht.hypertable_name)\n        ELSE pg_total_relation_size(t.schemaname || '.' || t.tablename)\n    END AS size_bytes\nFROM pg_tables t\nLEFT JOIN timescaledb_information.hypertables ht\n    ON ht.hypertable_schema = t.schemaname\n   AND ht.hypertable_name = t.tablename\nWHERE t.schemaname = '$schema'\nORDER BY size_bytes DESC;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -202,8 +129,21 @@
           }
         }
       ],
-      "title": "",
-      "type": "stat"
+      "title": "Select table to analyze",
+      "type": "bargauge"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "id": 8,
+      "panels": [],
+      "title": "Table size and columns for $table",
+      "type": "row"
     },
     {
       "datasource": {
@@ -213,10 +153,9 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "fixedColor": "light-blue",
+            "fixedColor": "text",
             "mode": "fixed"
           },
-          "fieldMinMax": false,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -224,40 +163,48 @@
               {
                 "color": "green",
                 "value": 0
-              },
-              {
-                "color": "#EAB839",
-                "value": 80
               }
             ]
           },
-          "unit": "percent"
+          "unit": "decbytes"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Approx row count"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "sishort"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 6,
+        "h": 8,
         "w": 3,
-        "x": 9,
-        "y": 1
+        "x": 0,
+        "y": 7
       },
-      "id": 39,
-      "interval": "10m",
+      "id": 4,
       "options": {
-        "colorMode": "none",
+        "colorMode": "value",
         "graphMode": "area",
         "justifyMode": "center",
         "orientation": "horizontal",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
-            "last"
+            "lastNotNull"
           ],
           "fields": "",
-          "values": false
+          "values": true
         },
         "showPercentChange": false,
-        "textMode": "value_and_name",
+        "textMode": "auto",
         "wideLayout": true
       },
       "pluginVersion": "12.1.0",
@@ -268,9 +215,9 @@
             "uid": "${source}"
           },
           "editorMode": "code",
-          "format": "time_series",
+          "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  time,\n  load1 / cpu_count * 100 AS \"CPU (total $cpu_count)\",\n  (mem_total - mem_avail) / mem_total::double precision * 100 AS \"RAM\"\n  FROM pganalyze.sys_stats\n  WHERE $__timeFilter(time)\nORDER BY time;\n",
+          "rawSql": "SELECT\n    ts.table_bytes + ts.toast_bytes AS \"Data + TOAST size\",\n    ts.index_bytes AS \"Size of indexes\",\n    ts.table_bytes + ts.index_bytes + ts.toast_bytes AS \"Total size\",\n    approximate_row_count(format('%I.%I', '$schema', '$table')::regclass) AS \"Approx row count\"\nFROM pganalyze.table_stats ts\nWHERE ts.relid = format('%I.%I', '$schema', '$table')::regclass::oid\nORDER BY ts.collected_at DESC\nLIMIT 1;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -308,16 +255,17 @@
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
+            "axisGridShow": false,
             "axisLabel": "",
-            "axisPlacement": "auto",
-            "fillOpacity": 60,
+            "axisPlacement": "left",
+            "fillOpacity": 50,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
-            "lineWidth": 3,
+            "lineWidth": 1,
             "scaleDistribution": {
               "type": "linear"
             },
@@ -340,15 +288,16 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 6,
-        "w": 7,
-        "x": 12,
-        "y": 1
+        "h": 8,
+        "w": 21,
+        "x": 3,
+        "y": 7
       },
-      "id": 40,
+      "id": 5,
+      "interval": "10m",
       "options": {
-        "barRadius": 0.25,
-        "barWidth": 0.5,
+        "barRadius": 0,
+        "barWidth": 1,
         "fullHighlight": false,
         "groupWidth": 0.7,
         "legend": {
@@ -357,15 +306,15 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "orientation": "horizontal",
-        "showValue": "always",
+        "orientation": "vertical",
+        "showValue": "never",
         "stacking": "normal",
         "tooltip": {
           "hideZeros": false,
           "mode": "multi",
-          "sort": "desc"
+          "sort": "none"
         },
-        "xField": "Storage used",
+        "xField": "Time",
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 100
       },
@@ -377,9 +326,9 @@
             "uid": "${source}"
           },
           "editorMode": "code",
-          "format": "table",
+          "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH user_hypertables AS (\n    SELECT hypertable_schema,\n           hypertable_name\n    FROM timescaledb_information.hypertables\n    WHERE hypertable_schema NOT LIKE '_timescale%'\n),\nall_chunks AS (\n    SELECT\n        c.hypertable_schema,\n        c.hypertable_name,\n        ch.chunk_name,\n        ch.is_compressed\n    FROM user_hypertables c\n    JOIN timescaledb_information.chunks ch\n      ON ch.hypertable_name = c.hypertable_name\n     AND ch.hypertable_schema = c.hypertable_schema\n),\nchunk_sizes AS (\n    SELECT\n        ac.is_compressed,\n        cds.total_bytes\n    FROM all_chunks ac\n    JOIN LATERAL chunks_detailed_size(ac.hypertable_schema || '.' || ac.hypertable_name) cds\n       ON cds.chunk_name = ac.chunk_name\n)\nSELECT\n    SUM(CASE WHEN is_compressed = false THEN total_bytes ELSE 0 END) AS \"Rowstore\",\n    SUM(CASE WHEN is_compressed = true THEN total_bytes ELSE 0 END) AS \"Columnstore\",\n    SUM(total_bytes) AS \"Storage used\"\nFROM chunk_sizes;\n",
+          "rawSql": "SELECT\n  collected_at AS time,\n  table_bytes AS \"Data size\",\n  index_bytes AS \"Index size\",\n  toast_bytes AS \"TOAST size\"\nFROM pganalyze.table_stats\nWHERE relid = format('%I.%I', '$schema', '$table')::regclass::oid\n  AND $__timeFilter(collected_at) \n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -400,7 +349,7 @@
           }
         }
       ],
-      "title": "Storage",
+      "title": "Size growth",
       "type": "barchart"
     },
     {
@@ -411,6 +360,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
+            "fixedColor": "text",
             "mode": "fixed"
           },
           "mappings": [],
@@ -422,34 +372,31 @@
                 "value": 0
               }
             ]
-          },
-          "unit": "decbytes"
+          }
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 6,
-        "w": 2,
-        "x": 19,
-        "y": 1
+        "h": 10,
+        "w": 3,
+        "x": 0,
+        "y": 15
       },
-      "id": 31,
+      "id": 17,
       "options": {
         "colorMode": "none",
-        "graphMode": "area",
-        "justifyMode": "auto",
+        "graphMode": "none",
+        "justifyMode": "center",
         "orientation": "horizontal",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "/^db_size$/",
+          "calcs": [],
+          "fields": "/.*/",
           "values": false
         },
-        "showPercentChange": true,
-        "textMode": "auto",
-        "wideLayout": true
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": false
       },
       "pluginVersion": "12.1.0",
       "targets": [
@@ -461,7 +408,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  collected_at AS time,\n  db_size\nFROM pganalyze.database_stats\nWHERE $__timeFilter(collected_at) \nORDER BY collected_at\n",
+          "rawSql": "SELECT\n    ht.num_chunks AS \"Chunks\",\n    d.time_interval AS \"Chunk time interval\",\n    ht.compression_enabled AS \"Compression\"\nFROM timescaledb_information.dimensions d\nJOIN timescaledb_information.hypertables ht ON ht.hypertable_schema = d.hypertable_schema AND ht.hypertable_name = d.hypertable_name\nWHERE ht.hypertable_schema = '$schema'\n    AND ht.hypertable_name = '$table'\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -482,7 +429,7 @@
           }
         }
       ],
-      "title": "DB size",
+      "title": "Hypertable options",
       "type": "stat"
     },
     {
@@ -493,11 +440,15 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "fixedColor": "#1f78c1",
-            "mode": "fixed"
+            "mode": "thresholds"
           },
-          "decimals": 0,
-          "fieldMinMax": false,
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -513,7 +464,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "temp_bytes"
+              "options": "Size"
             },
             "properties": [
               {
@@ -525,120 +476,36 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "temp_files"
+              "options": "Index size"
             },
             "properties": [
               {
                 "id": "unit",
-                "value": "files"
+                "value": "decbytes"
               }
             ]
           }
         ]
       },
       "gridPos": {
-        "h": 6,
-        "w": 3,
-        "x": 21,
-        "y": 1
+        "h": 10,
+        "w": 21,
+        "x": 3,
+        "y": 15
       },
-      "id": 25,
+      "id": 2,
       "options": {
-        "colorMode": "none",
-        "graphMode": "area",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "last"
-          ],
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": true,
           "fields": "",
-          "values": false
+          "reducer": [
+            "sum"
+          ],
+          "show": false
         },
-        "showPercentChange": true,
-        "textMode": "value",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${source}"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  collected_at AS time,\n  temp_files - LAG(temp_files) OVER (ORDER BY collected_at) AS temp_files,\n  temp_bytes - LAG(temp_bytes) OVER (ORDER BY collected_at) AS temp_bytes\nFROM pganalyze.database_stats\nWHERE $__timeFilter(collected_at) \nORDER BY collected_at\n",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "Temp files",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${source}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "fixed"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 2,
-        "x": 0,
-        "y": 4
-      },
-      "id": 29,
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [],
-          "fields": "/^Uptime$/",
-          "values": true
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
+        "showHeader": true
       },
       "pluginVersion": "12.1.0",
       "targets": [
@@ -650,7 +517,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT extract(epoch from current_timestamp - pg_postmaster_start_time()) as \"Uptime\"",
+          "rawSql": "SELECT\n    c.chunk_name AS \"Name\",\n    (cds).total_bytes AS \"Size\",\n    (cds).index_bytes AS \"Index size\",\n    c.is_compressed AS \"Compressed\",\n    c.range_start::text AS \"Start time\",\n    c.range_end::text   AS \"End time\"\nFROM timescaledb_information.chunks c\nJOIN LATERAL chunks_detailed_size('$schema' || '.' || '$table') AS cds ON cds.chunk_name = c.chunk_name\nWHERE c.hypertable_schema = '$schema'\n    AND c.hypertable_name = '$table'\nORDER BY range_end DESC;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -671,8 +538,118 @@
           }
         }
       ],
-      "title": "Uptime",
-      "type": "stat"
+      "title": "Hypertable chunks",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "description": "Num. distinct (*) means a fraction-based extimate",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Null %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Num. distinct"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "sishort"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 25
+      },
+      "id": 3,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": true,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n    a.attname AS \"Name\",\n    pg_catalog.format_type(a.atttypid, a.atttypmod) AS \"Type\",\n    COALESCE(ROUND((s.null_frac * 100)::numeric, 2), 0) AS \"Null %\",\n    COALESCE(s.avg_width, 0) AS \"Avg. size (bytes)\",\n    CASE\n        WHEN s.n_distinct IS NULL THEN 'n/a'\n        WHEN s.n_distinct < 0 THEN\n            (ROUND(((-s.n_distinct) * c.reltuples)::numeric)::TEXT || '*')\n        ELSE\n            s.n_distinct::TEXT\n    END AS \"Num. distinct\",\n    CASE\n        WHEN EXISTS (\n            SELECT 1\n            FROM pg_index i\n            WHERE\n                i.indrelid = a.attrelid\n                AND a.attnum = ANY(i.indkey)\n        ) THEN 'yes'\n        ELSE 'no'\n    END AS \"Indexed?\"\nFROM\n    pg_attribute a\n    JOIN pg_class c ON a.attrelid = c.oid\n    JOIN pg_namespace n ON c.relnamespace = n.oid\n    LEFT JOIN pg_stats s ON\n        s.schemaname = n.nspname\n        AND s.tablename = c.relname\n        AND s.attname = a.attname\nWHERE\n    n.nspname = '$schema'\n    AND c.relname = '$table'\n    AND a.attnum > 0\n    AND NOT a.attisdropped\nORDER BY\n    a.attnum;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Columns",
+      "type": "table"
     },
     {
       "collapsed": false,
@@ -680,11 +657,11 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 7
+        "y": 34
       },
-      "id": 42,
+      "id": 7,
       "panels": [],
-      "title": "Database KPIs",
+      "title": "Indexes for $table",
       "type": "row"
     },
     {
@@ -692,22 +669,143 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${source}"
       },
-      "description": "Average execution time per call",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed"
+          },
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Size"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "decbytes"
+              },
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ID"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Show index details",
+                    "url": "/d/${__dashboard.uid}/${__dashboard}?var-index=${__data.fields.ID}&${table:queryparam}"
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 9,
+        "x": 0,
+        "y": 35
+      },
+      "id": 6,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": true,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT DISTINCT ON (i.indexrelid)\n    i.indexrelid AS \"ID\",\n    c.relname AS \"Name\",\n    i.size_bytes AS \"Size\"\nFROM pganalyze.index_stats i\nJOIN pg_class c ON c.oid = i.indexrelid\nWHERE i.relid = format('%I.%I', '$schema', '$table')::regclass::oid\nORDER BY i.indexrelid, i.collected_at DESC;\n\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
           },
           "custom": {
-            "axisBorderShow": true,
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
-            "axisPlacement": "left",
+            "axisPlacement": "auto",
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 0,
+            "fillOpacity": 60,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
@@ -717,7 +815,7 @@
             "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
-            "pointSize": 5,
+            "pointSize": 1,
             "scaleDistribution": {
               "type": "linear"
             },
@@ -741,17 +839,242 @@
               }
             ]
           },
-          "unit": "ms"
+          "unit": "decbytes"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 8
+        "w": 5,
+        "x": 9,
+        "y": 35
       },
-      "id": 38,
+      "id": 9,
+      "interval": "10m",
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  collected_at AS time,\n  size_bytes\nFROM pganalyze.index_stats\nWHERE indexrelid = $index\nAND $__timeFilter(collected_at) \n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Index size $index",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 5,
+        "x": 14,
+        "y": 35
+      },
+      "id": 10,
+      "interval": "10m",
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  collected_at AS time,\n  scan - LAG(scan) OVER (PARTITION BY relid ORDER BY collected_at) AS scans_per_interval\nFROM pganalyze.index_stats\nWHERE indexrelid = $index\nAND $__timeFilter(collected_at) ",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Index scans $index",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 60,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 5,
+        "x": 19,
+        "y": 35
+      },
+      "id": 11,
+      "interval": "10m",
       "options": {
         "legend": {
           "calcs": [],
@@ -773,9 +1096,9 @@
             "uid": "${source}"
           },
           "editorMode": "code",
-          "format": "table",
+          "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH deltas AS (\n  SELECT\n    bucket,\n    queryid,\n    calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY bucket) AS delta_calls,\n    total_time - LAG(total_time) OVER (PARTITION BY queryid ORDER BY bucket) AS delta_total_time,\n    blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY bucket) AS delta_blk_read_time,\n    blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY bucket) AS delta_blk_write_time\n  FROM pganalyze.stat_statements_cagg\n  WHERE $__timeFilter(bucket)\n),\nexpanded AS (\n  SELECT\n    bucket,\n    delta_calls,\n    (delta_total_time / NULLIF(delta_calls, 0)::double precision) AS per_call_latency,\n    (delta_blk_read_time + delta_blk_write_time) / NULLIF(delta_calls, 0)::double precision AS per_call_io_time\n  FROM deltas\n  WHERE delta_calls > 0 AND delta_total_time >= 0\n),\naggregated AS (\n  SELECT\n    bucket,\n    percentile_agg(per_call_latency) AS latency_percentiles,\n    avg(per_call_io_time) AS avg_io\n  FROM expanded\n  GROUP BY bucket\n)\nSELECT\n  bucket,\n  approx_percentile(0.5, latency_percentiles) AS \"Median time\",\n  approx_percentile(0.95, latency_percentiles) AS \"P95 time\",\n  avg_io AS \"Avg I/O time\"\nFROM aggregated\nORDER BY bucket;\n",
+          "rawSql": "SELECT\n  collected_at AS time,\n  CASE \n    WHEN (blks_hit + blks_read) > 0 THEN ROUND(100.0 * blks_hit / (blks_hit + blks_read), 2)\n    ELSE 0\n  END AS \"% From Buffer Cache\",\n  CASE \n    WHEN (blks_hit + blks_read) > 0 THEN ROUND(100.0 * blks_read / (blks_hit + blks_read), 2)\n    ELSE 0\n  END AS \"% From Disk\"\nFROM pganalyze.index_stats\nWHERE indexrelid = $index\nAND $__timeFilter(collected_at) \n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -796,8 +1119,21 @@
           }
         }
       ],
-      "title": "Query runtime",
+      "title": "Index hits & reads $index",
       "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 43
+      },
+      "id": 12,
+      "panels": [],
+      "title": "Vacuum of $table",
+      "type": "row"
     },
     {
       "datasource": {
@@ -807,11 +1143,15 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "fixedColor": "#1f78c1",
             "mode": "fixed"
           },
-          "decimals": 2,
-          "fieldMinMax": false,
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -821,35 +1161,41 @@
                 "value": 0
               }
             ]
-          },
-          "unit": "tps"
+          }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "effective_value"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 160
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 4,
-        "w": 4,
+        "h": 10,
+        "w": 8,
         "x": 0,
-        "y": 16
+        "y": 44
       },
-      "id": 21,
-      "interval": "10m",
+      "id": 13,
       "options": {
-        "colorMode": "none",
-        "graphMode": "area",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "last"
-          ],
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
           "fields": "",
-          "values": false
+          "reducer": [
+            "sum"
+          ],
+          "show": false
         },
-        "showPercentChange": true,
-        "textMode": "value",
-        "wideLayout": true
+        "showHeader": false
       },
       "pluginVersion": "12.1.0",
       "targets": [
@@ -859,9 +1205,9 @@
             "uid": "${source}"
           },
           "editorMode": "code",
-          "format": "time_series",
+          "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  bucket AS time,\n  ROUND((\n    (delta_tup_inserted + delta_tup_updated + delta_tup_deleted + delta_tup_fetched + delta_tup_returned)\n    / EXTRACT(EPOCH FROM time_diff)\n  ), 2) AS tuples_per_sec\nFROM (\n  SELECT\n    time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n    collected_at,\n    collected_at - LAG(collected_at) OVER (ORDER BY collected_at) AS time_diff,\n    tup_inserted - LAG(tup_inserted) OVER (ORDER BY collected_at) AS delta_tup_inserted,\n    tup_updated - LAG(tup_updated) OVER (ORDER BY collected_at) AS delta_tup_updated,\n    tup_deleted - LAG(tup_deleted) OVER (ORDER BY collected_at) AS delta_tup_deleted,\n    tup_fetched - LAG(tup_fetched) OVER (ORDER BY collected_at) AS delta_tup_fetched,\n    tup_returned - LAG(tup_returned) OVER (ORDER BY collected_at) AS delta_tup_returned\n  FROM pganalyze.database_stats\n  WHERE $__timeFilter(collected_at)\n) diffs\nWHERE time_diff IS NOT NULL\nORDER BY bucket;\n",
+          "rawSql": "WITH per_table_options AS (\n  SELECT\n    opt.option_name,\n    opt.option_value\n  FROM pg_class c\n  JOIN pg_namespace n ON n.oid = c.relnamespace\n  CROSS JOIN LATERAL pg_options_to_table(c.reloptions) AS opt\n  WHERE c.oid = format('%I.%I', '$schema', '$table')::regclass::oid\n),\nsettings AS (\n  SELECT\n    name,\n    setting\n  FROM pg_settings\n  WHERE name IN (\n    'autovacuum_vacuum_cost_delay',\n    'autovacuum_vacuum_threshold',\n    'autovacuum_freeze_max_age',\n    'autovacuum_vacuum_insert_threshold',\n    'autovacuum_vacuum_cost_limit',\n    'autovacuum_vacuum_scale_factor',\n    'autovacuum_multixact_freeze_max_age',\n    'autovacuum_vacuum_insert_scale_factor'\n  )\n)\nSELECT\n  s.name,\n  COALESCE(p.option_value, s.setting) AS effective_value\nFROM settings s\nLEFT JOIN per_table_options p ON p.option_name = s.name\nORDER BY s.name",
           "refId": "A",
           "sql": {
             "columns": [
@@ -882,8 +1228,8 @@
           }
         }
       ],
-      "title": "Total tuples rate",
-      "type": "stat"
+      "title": "Per table settings",
+      "type": "table"
     },
     {
       "datasource": {
@@ -893,7 +1239,175 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "fixedColor": "#1f78c1",
+            "mode": "fixed"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Details"
+            },
+            "properties": [
+              {
+                "id": "custom.inspect",
+                "value": true
+              },
+              {
+                "id": "custom.align",
+                "value": "auto"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Duration"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Effectiveness"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tuples removed"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Anti-wraparound?"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 150
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Finished at"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 16,
+        "x": 8,
+        "y": 44
+      },
+      "id": 16,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": true,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  finished_at AS \"Finished at\",\n  finished_at-started_at AS \"Duration\",\n  tuples_removed AS \"Tuples removed\",\n  tuples_removed / (tuples_removed + tuples_remain) * 100.0 AS \"Effectiveness\",\n  wraparound AS \"Anti-wraparound?\",\n  details AS \"Details\"\nFROM pganalyze.vacuum_stats\nWHERE relid = format('%I.%I', '$schema', '$table')::regclass::oid\n  AND $__timeFilter(started_at)\nORDER BY finished_at DESC\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Table vacuums",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
             "mode": "palette-classic"
           },
           "custom": {
@@ -905,7 +1419,7 @@
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 0,
+            "fillOpacity": 60,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
@@ -929,8 +1443,6 @@
               "mode": "off"
             }
           },
-          "decimals": 0,
-          "fieldMinMax": false,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -940,408 +1452,52 @@
                 "value": 0
               }
             ]
-          },
-          "unit": "tps"
+          }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "threshold"
+            },
+            "properties": [
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 12,
-        "w": 10,
-        "x": 4,
-        "y": 16
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 54
       },
-      "id": 22,
-      "interval": "10m",
+      "id": 14,
       "options": {
         "legend": {
-          "calcs": [
-            "min",
-            "max",
-            "mean"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${source}"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "WITH diffs AS (\n  SELECT\n    time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n    collected_at,\n    collected_at - LAG(collected_at) OVER (ORDER BY collected_at) AS time_diff,\n    tup_inserted - LAG(tup_inserted) OVER (ORDER BY collected_at) AS delta_tup_inserted,\n    tup_updated - LAG(tup_updated) OVER (ORDER BY collected_at) AS delta_tup_updated,\n    tup_deleted - LAG(tup_deleted) OVER (ORDER BY collected_at) AS delta_tup_deleted,\n    tup_fetched - LAG(tup_fetched) OVER (ORDER BY collected_at) AS delta_tup_fetched,\n    tup_returned - LAG(tup_returned) OVER (ORDER BY collected_at) AS delta_tup_returned\n  FROM pganalyze.database_stats\n  WHERE $__timeFilter(collected_at)\n)\n-- Now insert the previous UNION ALL block here\nSELECT\n  bucket AS time,\n  'inserted' AS metric,\n  (delta_tup_inserted / EXTRACT(EPOCH FROM time_diff)) AS value\nFROM diffs\nWHERE time_diff IS NOT NULL\n\nUNION ALL\n\nSELECT\n  bucket,\n  'updated',\n  (delta_tup_updated / EXTRACT(EPOCH FROM time_diff))\nFROM diffs\nWHERE time_diff IS NOT NULL\n\nUNION ALL\n\nSELECT\n  bucket,\n  'deleted',\n  (delta_tup_deleted / EXTRACT(EPOCH FROM time_diff))\nFROM diffs\nWHERE time_diff IS NOT NULL\n\nUNION ALL\n\nSELECT\n  bucket,\n  'fetched',\n  (delta_tup_fetched / EXTRACT(EPOCH FROM time_diff))\nFROM diffs\nWHERE time_diff IS NOT NULL\n\nUNION ALL\n\nSELECT\n  bucket,\n  'returned',\n  (delta_tup_returned / EXTRACT(EPOCH FROM time_diff))\nFROM diffs\nWHERE time_diff IS NOT NULL\n\nORDER BY time, metric;\n",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "Tuples rate",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${source}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "#1f78c1",
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "decimals": 0,
-          "fieldMinMax": false,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "tps"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 12,
-        "w": 10,
-        "x": 14,
-        "y": 16
-      },
-      "id": 24,
-      "interval": "10m",
-      "options": {
-        "legend": {
-          "calcs": [
-            "min",
-            "max",
-            "mean"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${source}"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "WITH diffs AS (\n  SELECT\n    time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n    collected_at,\n    collected_at - LAG(collected_at) OVER (ORDER BY collected_at) AS time_diff,\n    xact_commit - LAG(xact_commit) OVER (ORDER BY collected_at) AS delta_xact_commit,\n    xact_rollback - LAG(xact_rollback) OVER (ORDER BY collected_at) AS delta_xact_rollback\n  FROM pganalyze.database_stats\n  WHERE $__timeFilter(collected_at)\n)\n\nSELECT\n  bucket AS time,\n  'commits' AS metric,\n  (delta_xact_commit / EXTRACT(EPOCH FROM time_diff)) AS value\nFROM diffs\nWHERE time_diff IS NOT NULL\n\nUNION ALL\n\nSELECT\n  bucket,\n  'rollbacks',\n  (delta_xact_rollback / EXTRACT(EPOCH FROM time_diff))\nFROM diffs\nWHERE time_diff IS NOT NULL\n\nORDER BY time, metric;\n",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "Transactions rate",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${source}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "#1f78c1",
-            "mode": "fixed"
-          },
-          "decimals": 2,
-          "fieldMinMax": false,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "tps"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 0,
-        "y": 20
-      },
-      "id": 23,
-      "interval": "10m",
-      "options": {
-        "colorMode": "none",
-        "graphMode": "area",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "last"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": true,
-        "textMode": "value",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${source}"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  bucket AS time,\n  ROUND((\n    (delta_xact_commit + delta_xact_rollback)\n    / EXTRACT(EPOCH FROM time_diff)\n  ), 2) AS xact_per_sec\nFROM (\n  SELECT\n    time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n    collected_at,\n    collected_at - LAG(collected_at) OVER (ORDER BY collected_at) AS time_diff,\n    xact_commit - LAG(xact_commit) OVER (ORDER BY collected_at) AS delta_xact_commit,\n    xact_rollback - LAG(xact_rollback) OVER (ORDER BY collected_at) AS delta_xact_rollback\n  FROM pganalyze.database_stats\n  WHERE $__timeFilter(collected_at)\n) diffs\nWHERE time_diff IS NOT NULL\nORDER BY bucket;\n",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "Total transactions rate",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${source}"
-      },
-      "description": "Time spent reading/writing file blocks",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "#1f78c1",
-            "mode": "fixed"
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "ms"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 0,
-        "y": 24
-      },
-      "id": 34,
-      "interval": "10m",
-      "options": {
-        "colorMode": "none",
-        "graphMode": "area",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "last"
-          ],
-          "fields": "/^blk_io_time_ms$/",
-          "values": false
-        },
-        "showPercentChange": true,
-        "textMode": "value",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${source}"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "WITH diffs AS (\n  SELECT\n    time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n    blk_read_time - LAG(blk_read_time) OVER (ORDER BY collected_at) AS delta_read,\n    blk_write_time - LAG(blk_write_time) OVER (ORDER BY collected_at) AS delta_write\n  FROM pganalyze.database_stats\n  WHERE $__timeFilter(collected_at)\n)\n\nSELECT\n  bucket AS time,\n  'blk_io_time_ms' AS metric,\n  delta_read + delta_write AS value\nFROM diffs\nWHERE delta_read IS NOT NULL AND delta_write IS NOT NULL\nORDER BY time;\n",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "I/O block operations",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${source}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "#1f78c1",
-            "mode": "fixed"
-          },
-          "decimals": 0,
-          "fieldMinMax": false,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 4,
-        "x": 0,
-        "y": 28
-      },
-      "id": 36,
-      "options": {
-        "colorMode": "none",
-        "graphMode": "area",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
           "calcs": [],
-          "fields": "/^total_locks$/",
-          "values": true
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
         },
-        "showPercentChange": false,
-        "textMode": "value",
-        "wideLayout": true
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "pluginVersion": "12.1.0",
       "targets": [
@@ -1351,9 +1507,9 @@
             "uid": "${source}"
           },
           "editorMode": "code",
-          "format": "table",
+          "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT COUNT(*) AS total_locks\nFROM pg_locks\nWHERE database = (SELECT oid FROM pg_database WHERE datname = current_database())",
+          "rawSql": "WITH settings AS (\n  SELECT\n    c.oid,\n    c.relname,\n    COALESCE(\n      MAX(CASE WHEN optname = 'autovacuum_vacuum_threshold' THEN optvalue::int END),\n      (SELECT setting::int FROM pg_settings WHERE name = 'autovacuum_vacuum_threshold')\n    ) AS vacuum_threshold,\n    COALESCE(\n      MAX(CASE WHEN optname = 'autovacuum_vacuum_scale_factor' THEN optvalue::float END),\n      (SELECT setting::float FROM pg_settings WHERE name = 'autovacuum_vacuum_scale_factor')\n    ) AS vacuum_scale_factor\n  FROM pg_class c\n  LEFT JOIN LATERAL pg_options_to_table(c.reloptions) AS opt(optname, optvalue) ON true\n  WHERE c.oid = format('%I.%I', '$schema', '$table')::regclass::oid\n  GROUP BY c.oid, c.relname\n)\nSELECT \n  ts.collected_at AS time,\n  ts.num_dead_rows AS dead_rows,\n  (s.vacuum_threshold + s.vacuum_scale_factor * c.reltuples)::int AS threshold\nFROM pganalyze.table_stats ts\nJOIN settings s ON ts.relid = s.oid\nJOIN pg_class c ON c.oid = ts.relid\nWHERE ts.relid = format('%I.%I', '$schema', '$table')::regclass::oid\n  AND $__timeFilter(ts.collected_at)",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1374,8 +1530,8 @@
           }
         }
       ],
-      "title": "Total locks",
-      "type": "stat"
+      "title": "Dead rows",
+      "type": "timeseries"
     },
     {
       "datasource": {
@@ -1385,8 +1541,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "fixedColor": "#1f78c1",
-            "mode": "fixed"
+            "mode": "palette-classic"
           },
           "custom": {
             "axisBorderShow": false,
@@ -1397,7 +1552,7 @@
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 0,
+            "fillOpacity": 60,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
@@ -1421,41 +1576,55 @@
               "mode": "off"
             }
           },
-          "decimals": 0,
-          "fieldMinMax": false,
           "mappings": [],
-          "max": 100,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "orange",
+                "color": "green",
                 "value": 0
               }
             ]
-          },
-          "unit": "percent"
+          }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "threshold"
+            },
+            "properties": [
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 6,
-        "w": 20,
-        "x": 4,
-        "y": 28
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 54
       },
-      "id": 35,
-      "interval": "10m",
+      "id": 15,
       "options": {
         "legend": {
-          "calcs": [
-            "min",
-            "max",
-            "mean"
-          ],
-          "displayMode": "table",
+          "calcs": [],
+          "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
           "hideZeros": false,
@@ -1473,8 +1642,8 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH diffs AS (\n  SELECT\n    time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n    blks_hit - LAG(blks_hit) OVER (ORDER BY collected_at) AS delta_hit,\n    blks_read - LAG(blks_read) OVER (ORDER BY collected_at) AS delta_read\n  FROM pganalyze.database_stats\n  WHERE $__timeFilter(collected_at)\n)\n\nSELECT\n  bucket AS time,\n  'cache_hit_ratio' AS metric,\n  CASE\n    WHEN (delta_read + delta_hit) > 0 THEN delta_hit::float / (delta_read + delta_hit) * 100.0\n    ELSE NULL\n  END AS value\nFROM diffs\nWHERE delta_hit IS NOT NULL AND delta_read IS NOT NULL\nORDER BY time;\n",
-          "refId": "A",
+          "rawSql": "WITH threshold AS (\n  SELECT\n    c.oid AS relid,\n    COALESCE(\n      (SELECT option_value::int\n       FROM pg_options_to_table(c.reloptions) opt\n       WHERE opt.option_name = 'autovacuum_freeze_max_age'),\n      (SELECT setting::int\n       FROM pg_settings\n       WHERE name = 'autovacuum_freeze_max_age')\n    ) AS freeze_max_age\n  FROM pg_class c\n  JOIN pg_namespace n ON n.oid = c.relnamespace\n  WHERE n.nspname NOT LIKE '\\_timescaledb%'\n    AND c.relkind IN ('r','p')\n)\nSELECT\n  ts.collected_at AS time,\n  ts.frozen_xid_age,\n  t.freeze_max_age AS threshold\nFROM pganalyze.table_stats ts\nJOIN threshold t ON t.relid = ts.relid\nWHERE ts.relid = format('%I.%I', '$schema', '$table')::regclass::oid\n  AND $__timeFilter(ts.collected_at)",
+          "refId": "time series",
           "sql": {
             "columns": [
               {
@@ -1494,92 +1663,8 @@
           }
         }
       ],
-      "title": "Cache hit ratio",
+      "title": "Oldest unfrozen XID age",
       "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${source}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "#1f78c1",
-            "mode": "fixed"
-          },
-          "decimals": 0,
-          "fieldMinMax": false,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 4,
-        "x": 0,
-        "y": 31
-      },
-      "id": 27,
-      "options": {
-        "colorMode": "none",
-        "graphMode": "area",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "last"
-          ],
-          "fields": "/^deadlocks$/",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "value",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${source}"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  collected_at AS time,\n  deadlocks\nFROM pganalyze.database_stats\nORDER BY collected_at\n",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "Dealocks",
-      "type": "stat"
     }
   ],
   "preload": false,
@@ -1606,21 +1691,54 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "12",
-          "value": "12"
+          "text": "data",
+          "value": "data"
         },
-        "datasource": {
-          "type": "grafana-postgresql-datasource",
-          "uid": "${source}"
-        },
-        "definition": "SELECT\n  cpu_count\nFROM pganalyze.sys_stats\nORDER BY time DESC LIMIT 1",
         "hide": 2,
-        "name": "cpu_count",
+        "name": "table",
         "options": [],
-        "query": "SELECT\n  cpu_count\nFROM pganalyze.sys_stats\nORDER BY time DESC LIMIT 1",
-        "refresh": 1,
-        "regex": "",
-        "type": "query"
+        "query": "",
+        "type": "custom"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "18841",
+          "value": "18841"
+        },
+        "hide": 2,
+        "name": "index",
+        "options": [],
+        "query": "",
+        "type": "custom"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "public",
+          "value": "public"
+        },
+        "includeAll": false,
+        "name": "schema",
+        "options": [
+          {
+            "selected": true,
+            "text": "public",
+            "value": "public"
+          },
+          {
+            "selected": false,
+            "text": "uec",
+            "value": "uec"
+          },
+          {
+            "selected": false,
+            "text": "pganalyze",
+            "value": "pganalyze"
+          }
+        ],
+        "query": "public,uec,pganalyze",
+        "type": "custom"
       }
     ]
   },
@@ -1630,16 +1748,16 @@
   },
   "timepicker": {
     "refresh_intervals": [
-      "10m",
+      "5m",
+      "15m",
       "30m",
       "1h",
       "2h",
-      "12h",
       "1d"
     ]
   },
   "timezone": "Europe/London",
-  "title": "Overview",
-  "uid": "ee46beab-c046-45a5-b547-23990e2ec0f3",
-  "version": 18
+  "title": "Schema statistics",
+  "uid": "46837677-7190-44c2-b9bb-db869089ba49",
+  "version": 22
 }
