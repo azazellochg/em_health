@@ -9,6 +9,8 @@ ENV TS_VERSIONS="2.21.3 2.22.0" \
     PGRX_HOME=/build/pgrx \
     PATH=/build/cargo/bin:$PATH
 
+ARG DEBIAN_FRONTEND=noninteractive
+
 # --------- Metadata ----------
 LABEL org.opencontainers.image.title="Custom PostgreSQL image with TimescaleDB, Toolkit & TDS-FDW" \
       org.opencontainers.image.description='Postgres ${PG_MAJOR} + TimescaleDB ${TS_VERSIONS} + Toolkit ${TLK_VERSION} + TDS-FDW ${TDS_VERSION}' \
@@ -37,7 +39,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ---------- Install Rust & cargo-pgrx ----------
 RUN mkdir -p $PGRX_HOME \
   && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path \
-  && cargo install --version '=0.12.9' --force cargo-pgrx \
+  && cargo install --profile release --version '=0.12.9' --force cargo-pgrx \
   && cargo pgrx init --pg${PG_MAJOR} pg_config
 
 # ---------- Build TimescaleDB ----------
@@ -61,7 +63,7 @@ RUN sed -r -i "s/[#]*\s*(shared_preload_libraries)\s*=\s*'(.*)'/\1 = 'timescaled
 RUN git clone --branch $TLK_VERSION https://github.com/timescale/timescaledb-toolkit.git /build/timescaledb-toolkit \
     && cd /build/timescaledb-toolkit/extension \
     && cargo pgrx install --release \
-    && cargo run --manifest-path ../tools/post-install/Cargo.toml -- pg_config
+    && cargo run --release --manifest-path ../tools/post-install/Cargo.toml -- pg_config
 
 # ---------- Build TDS-FDW ----------
 RUN git clone --branch $TDS_VERSION https://github.com/tds-fdw/tds_fdw.git /build/tds_fdw \
@@ -85,9 +87,11 @@ COPY --from=builder /usr/lib/postgresql/${PG_MAJOR} /usr/lib/postgresql/${PG_MAJ
 COPY --from=builder /usr/share/postgresql/${PG_MAJOR}/extension/ /usr/share/postgresql/${PG_MAJOR}/extension/
 COPY --from=builder /etc/freetds/ /etc/freetds/
 
+ARG DEBIAN_FRONTEND=noninteractive
+
 # freetds runtime deps and timescaledb tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libsybdb5 freetds-common curl ca-certificates \
+    libsybdb5 freetds-common curl ca-certificates posgresql-${PG_MAJOR}-pgtap \
     && curl -L -o /tmp/timescaledb-tools.deb "https://packagecloud.io/timescale/timescaledb/packages/debian/trixie/timescaledb-tools_0.18.1~debian13_amd64.deb/download.deb?distro_version_id=221" \
     && dpkg -i /tmp/timescaledb-tools.deb \
     && rm -f /tmp/timescaledb-tools.deb \
