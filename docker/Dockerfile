@@ -91,7 +91,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 # freetds runtime deps and timescaledb tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libsybdb5 freetds-common curl ca-certificates posgresql-${PG_MAJOR}-pgtap \
+    libsybdb5 freetds-common curl ca-certificates postgresql-${PG_MAJOR}-pgtap \
     && curl -L -o /tmp/timescaledb-tools.deb "https://packagecloud.io/timescale/timescaledb/packages/debian/trixie/timescaledb-tools_0.18.1~debian13_amd64.deb/download.deb?distro_version_id=221" \
     && dpkg -i /tmp/timescaledb-tools.deb \
     && rm -f /tmp/timescaledb-tools.deb \
