@@ -1,0 +1,1094 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 27,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "perf"
+      ],
+      "targetBlank": false,
+      "title": "Dashboards",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    }
+  ],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 3,
+      "panels": [],
+      "title": "Overview",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "description": "Per call statistics over time",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
+      "id": 1,
+      "interval": "5m",
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH deltas AS (\n    SELECT\n        collected_at,\n        queryid,\n        calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_calls,\n        total_plan_time - LAG(total_plan_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_plan_time,\n        total_exec_time - LAG(total_exec_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_exec_time,\n        blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_read_time,\n        blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_write_time\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(collected_at) \n),\nweighted_exec AS (\n    SELECT\n        collected_at,\n        queryid,\n        delta_calls,\n        (delta_plan_time + delta_exec_time) / NULLIF(delta_calls,0) AS weighted_exec_time,\n        (delta_blk_read_time + delta_blk_write_time) AS total_io_time\n    FROM deltas\n)\nSELECT\n    time_bucket(INTERVAL '$__interval', collected_at) AS time,\n    COALESCE(approx_percentile(0.5, percentile_agg(weighted_exec_time)), 0) AS \"Median time\",\n    COALESCE(approx_percentile(0.95, percentile_agg(weighted_exec_time)), 0) AS \"P95 time\",\n    COALESCE(SUM(total_io_time) / NULLIF(SUM(delta_calls),0), 0) AS \"Avg I/O time\"\nFROM weighted_exec\nGROUP BY time\nORDER BY time;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Query runtime",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Avg time"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "% of all I/O"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "% of all runtime"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Calls/min"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Query"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "left"
+              },
+              {
+                "id": "custom.inspect",
+                "value": true
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Show details",
+                    "url": "/d/${__dashboard.uid}/${__dashboard}?var-queryid=${__data.fields.queryid}&var-query=${__data.fields.Query}"
+                  }
+                ]
+              },
+              {
+                "id": "custom.filterable",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "queryid"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 15,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "id": 2,
+      "interval": "5m",
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": true,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Calls/min"
+          }
+        ]
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH deltas AS (\n    SELECT\n        queryid,\n        calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_calls,\n        total_plan_time - LAG(total_plan_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_plan_time,\n        total_exec_time - LAG(total_exec_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_exec_time,\n        blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_read_time,\n        blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_write_time\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(collected_at)\n),\nagg AS (\n    SELECT\n        queryid,\n        SUM(delta_calls) AS total_calls,\n        SUM(delta_plan_time + delta_exec_time) AS total_exec_time,\n        COALESCE(SUM(delta_blk_read_time + delta_blk_write_time), 0) AS total_io\n    FROM deltas\n    WHERE delta_calls > 0\n    GROUP BY queryid\n)\nSELECT\n    a.queryid::text,\n    q.query AS \"Query\",\n    (a.total_exec_time / NULLIF(a.total_calls,0)) AS \"Avg time\",\n    (a.total_calls / NULLIF((($__to - $__from) / 1000) / 60, 0)) AS \"Calls/min\",\n    (a.total_exec_time / NULLIF(SUM(a.total_exec_time) OVER (),0) * 100) AS \"% of all runtime\",\n    (a.total_io / NULLIF(SUM(a.total_io) OVER (),0) * 100) AS \"% of all I/O\"\nFROM agg a\nJOIN pganalyze.queries q ON q.queryid = a.queryid\nORDER BY \"Avg time\" DESC;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "id": 4,
+      "panels": [],
+      "title": "Query performance: #$queryid",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Total calls"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Data read from disk per call"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "decbytes"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 13,
+        "x": 0,
+        "y": 25
+      },
+      "id": 12,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH query_range AS (\n  SELECT\n    (MAX(calls) - MIN(calls)) AS calls_delta,\n    (MAX(total_exec_time) - MIN(total_exec_time)) AS total_time_delta,\n    MAX(total_exec_time) AS max_time,\n    (MAX(shared_blks_read) - MIN(shared_blks_read)) AS shared_blks_read_delta,\n    (MAX(local_blks_read) - MIN(local_blks_read)) AS local_blks_read_delta,\n    (MAX(temp_blks_read) - MIN(temp_blks_read)) AS temp_blks_read_delta\n  FROM pganalyze.stat_statements\n  WHERE $__timeFilter(collected_at)\n    AND queryid = $queryid\n)\nSELECT\n  (total_time_delta / NULLIF(calls_delta,0)) AS \"Avg time per call\",\n  (max_time / NULLIF(calls_delta,0)) AS \"Max time per call\",\n  ((shared_blks_read_delta + local_blks_read_delta + temp_blks_read_delta)\n     * current_setting('block_size')::int\n     / NULLIF(calls_delta,0)) AS \"Data read from disk per call\",\n  calls_delta AS \"Total calls\"\nFROM query_range;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "always",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Calls"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 28
+      },
+      "id": 5,
+      "interval": "10m",
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n    time_bucket(INTERVAL '$__interval', collected_at) AS time,\n    delta(counter_agg(collected_at, total_exec_time)) AS \"Total time\",\n    delta(counter_agg(collected_at, blk_read_time + blk_write_time)) AS \"Total I/O time\",\n    delta(counter_agg(collected_at, calls)) AS \"Calls\"\nFROM pganalyze.stat_statements\nWHERE $__timeFilter(collected_at) \n  AND queryid = $queryid  \nGROUP BY time\nORDER BY time",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Avg time & calls",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisSoftMax": 100,
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "always",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Bytes read from disk per call"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "decbytes"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 28
+      },
+      "id": 6,
+      "interval": "10m",
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH deltas AS (\nSELECT\n    time_bucket(INTERVAL '$__interval', collected_at) AS time,\n    delta(counter_agg(collected_at, shared_blks_hit)) AS delta_shared_blks_hit,\n    delta(counter_agg(collected_at, shared_blks_read)) AS delta_shared_blks_read,\n    delta(counter_agg(collected_at, calls)) AS delta_calls\nFROM pganalyze.stat_statements\nWHERE $__timeFilter(collected_at) \n  AND queryid = $queryid\nGROUP BY time\nORDER BY time\n),\nfiltered AS (\n     SELECT *\n     FROM deltas\n     WHERE delta_calls > 0\n)\n\nSELECT\n  time,\n  \n  -- Calculate % from buffer cache (cache hits)\n  CASE WHEN SUM(delta_shared_blks_hit + delta_shared_blks_read) > 0\n       THEN 100.0 * SUM(delta_shared_blks_hit)::float / SUM(delta_shared_blks_hit + delta_shared_blks_read)\n       ELSE NULL\n  END AS \"Percent from buffer cache\",\n\n  -- % from disk (reads)\n  CASE WHEN SUM(delta_shared_blks_hit + delta_shared_blks_read) > 0\n       THEN 100.0 * SUM(delta_shared_blks_read)::float / SUM(delta_shared_blks_hit + delta_shared_blks_read)\n       ELSE NULL\n  END AS \"Percent from disk\",\n\n  -- Bytes read from disk per call (blocks * 8KB)\n  CASE WHEN SUM(delta_calls) > 0\n       THEN (SUM(delta_shared_blks_read) * 8192)::float / SUM(delta_calls)\n       ELSE NULL\n  END AS \"Bytes read from disk per call\"\n\nFROM filtered\nGROUP BY time\nORDER BY time;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Cache hit ratio",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 34
+      },
+      "id": 9,
+      "panels": [],
+      "title": "SQL statement for #$queryid",
+      "type": "row"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 35
+      },
+      "id": 7,
+      "options": {
+        "code": {
+          "language": "sql",
+          "showLineNumbers": true,
+          "showMiniMap": false
+        },
+        "content": "${query:raw}",
+        "mode": "code"
+      },
+      "pluginVersion": "12.1.0",
+      "title": "",
+      "type": "text"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 46
+      },
+      "id": 10,
+      "panels": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "center",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "plan"
+                },
+                "properties": [
+                  {
+                    "id": "custom.hidden",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Executed at"
+                },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "title": "Show json plan",
+                        "url": "/d/${__dashboard.uid}/${__dashboard}?var-queryid=${__data.fields.queryid}&var-plan=${__data.fields.plan}"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Runtime"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "ms"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "I/O read time"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "ms"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "I/O read time %"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Read from disk"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "decbytes"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "queryid"
+                },
+                "properties": [
+                  {
+                    "id": "custom.hidden",
+                    "value": true
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 24,
+            "x": 0,
+            "y": 47
+          },
+          "id": 8,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true
+          },
+          "pluginVersion": "12.1.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-postgresql-datasource",
+                "uid": "${source}"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SELECT\n  time AS \"Executed at\",\n  total_cost AS \"Est. cost\",\n  duration AS \"Runtime\",\n  io_read_time AS \"I/O read time\",\n  io_read_time / duration * 100.0 AS \"I/O read time %\",\n  bytes_read AS \"Read from disk\",\n  queryid::text,\n  plan\nFROM\n  pganalyze.stat_explains\nWHERE\n  queryid = $queryid\nORDER BY\n  time DESC",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "EXPLAIN plans",
+          "type": "table"
+        },
+        {
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 15,
+            "w": 13,
+            "x": 0,
+            "y": 54
+          },
+          "id": 11,
+          "links": [
+            {
+              "targetBlank": true,
+              "title": "Analyze EXPLAIN in Depesz",
+              "url": "https://explain.depesz.com/"
+            },
+            {
+              "targetBlank": true,
+              "title": "Analyze EXPLAIN in Dalibo",
+              "url": "https://explain.dalibo.com/"
+            },
+            {
+              "targetBlank": true,
+              "title": "Index Advisor (pganalyze)",
+              "url": "https://pganalyze.com/index-advisor"
+            }
+          ],
+          "options": {
+            "code": {
+              "language": "json",
+              "showLineNumbers": false,
+              "showMiniMap": false
+            },
+            "content": "$plan",
+            "mode": "code"
+          },
+          "pluginVersion": "12.1.0",
+          "title": "Plan",
+          "type": "text"
+        }
+      ],
+      "title": "EXPLAINs: #$queryid [only if duration > 500ms]",
+      "type": "row"
+    }
+  ],
+  "preload": false,
+  "schemaVersion": 41,
+  "tags": [
+    "perf"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "tem",
+          "value": "hm-tem"
+        },
+        "label": "Database",
+        "name": "source",
+        "options": [],
+        "query": "grafana-postgresql-datasource",
+        "refresh": 1,
+        "regex": "",
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "text": "8952664956198652961",
+          "value": "8952664956198652961"
+        },
+        "hide": 2,
+        "name": "queryid",
+        "options": [
+          {
+            "selected": true,
+            "text": "8952664956198652961",
+            "value": "8952664956198652961"
+          }
+        ],
+        "query": "8952664956198652961",
+        "type": "textbox"
+      },
+      {
+        "current": {
+          "text": "SELECT quote_ident(column_name) AS \"column\", data_type AS \"type\"\n    FROM information_schema.columns\n    WHERE\n      CASE WHEN array_length(parse_ident($1),$2) = $3\n        THEN quote_ident(table_schema) = (parse_ident($4))[$5]\n          AND quote_ident(table_name) = (parse_ident($6))[$7]\n        ELSE quote_ident(table_name) = $8\n          AND \n          quote_ident(table_schema) IN (\n          SELECT\n            CASE WHEN trim(s[i]) = $9 THEN user ELSE trim(s[i]) END\n          FROM\n            generate_series(\n              array_lower(string_to_array(current_setting($10),$11),$12),\n              array_upper(string_to_array(current_setting($13),$14),$15)\n            ) as i,\n            string_to_array(current_setting($16),$17) s\n          )\n      END",
+          "value": "SELECT quote_ident(column_name) AS \"column\", data_type AS \"type\"\n    FROM information_schema.columns\n    WHERE\n      CASE WHEN array_length(parse_ident($1),$2) = $3\n        THEN quote_ident(table_schema) = (parse_ident($4))[$5]\n          AND quote_ident(table_name) = (parse_ident($6))[$7]\n        ELSE quote_ident(table_name) = $8\n          AND \n          quote_ident(table_schema) IN (\n          SELECT\n            CASE WHEN trim(s[i]) = $9 THEN user ELSE trim(s[i]) END\n          FROM\n            generate_series(\n              array_lower(string_to_array(current_setting($10),$11),$12),\n              array_upper(string_to_array(current_setting($13),$14),$15)\n            ) as i,\n            string_to_array(current_setting($16),$17) s\n          )\n      END"
+        },
+        "hide": 2,
+        "name": "query",
+        "options": [
+          {
+            "selected": true,
+            "text": "SELECT quote_ident(column_name) AS \"column\", data_type AS \"type\"\n    FROM information_schema.columns\n    WHERE\n      CASE WHEN array_length(parse_ident($1),$2) = $3\n        THEN quote_ident(table_schema) = (parse_ident($4))[$5]\n          AND quote_ident(table_name) = (parse_ident($6))[$7]\n        ELSE quote_ident(table_name) = $8\n          AND \n          quote_ident(table_schema) IN (\n          SELECT\n            CASE WHEN trim(s[i]) = $9 THEN user ELSE trim(s[i]) END\n          FROM\n            generate_series(\n              array_lower(string_to_array(current_setting($10),$11),$12),\n              array_upper(string_to_array(current_setting($13),$14),$15)\n            ) as i,\n            string_to_array(current_setting($16),$17) s\n          )\n      END",
+            "value": "SELECT quote_ident(column_name) AS \"column\", data_type AS \"type\"\n    FROM information_schema.columns\n    WHERE\n      CASE WHEN array_length(parse_ident($1),$2) = $3\n        THEN quote_ident(table_schema) = (parse_ident($4))[$5]\n          AND quote_ident(table_name) = (parse_ident($6))[$7]\n        ELSE quote_ident(table_name) = $8\n          AND \n          quote_ident(table_schema) IN (\n          SELECT\n            CASE WHEN trim(s[i]) = $9 THEN user ELSE trim(s[i]) END\n          FROM\n            generate_series(\n              array_lower(string_to_array(current_setting($10),$11),$12),\n              array_upper(string_to_array(current_setting($13),$14),$15)\n            ) as i,\n            string_to_array(current_setting($16),$17) s\n          )\n      END"
+          }
+        ],
+        "query": "SELECT quote_ident(column_name) AS \"column\", data_type AS \"type\"\n    FROM information_schema.columns\n    WHERE\n      CASE WHEN array_length(parse_ident($1),$2) = $3\n        THEN quote_ident(table_schema) = (parse_ident($4))[$5]\n          AND quote_ident(table_name) = (parse_ident($6))[$7]\n        ELSE quote_ident(table_name) = $8\n          AND \n          quote_ident(table_schema) IN (\n          SELECT\n            CASE WHEN trim(s[i]) = $9 THEN user ELSE trim(s[i]) END\n          FROM\n            generate_series(\n              array_lower(string_to_array(current_setting($10),$11),$12),\n              array_upper(string_to_array(current_setting($13),$14),$15)\n            ) as i,\n            string_to_array(current_setting($16),$17) s\n          )\n      END",
+        "type": "textbox"
+      },
+      {
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "hide": 2,
+        "name": "plan",
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "query": "",
+        "type": "textbox"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ]
+  },
+  "timezone": "Europe/London",
+  "title": "Queries",
+  "uid": "f5f755f6-d55b-4f89-bfd7-36281dc0eec7",
+  "version": 36
+}

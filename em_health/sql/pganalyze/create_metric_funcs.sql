@@ -144,17 +144,71 @@ CREATE FUNCTION pganalyze.get_stat_statements(job_id INT DEFAULT NULL, config JS
     RETURNS void
     LANGUAGE plpgsql
 AS $$
+DECLARE
+    snapshot_time TIMESTAMPTZ := now();
 BEGIN
-    INSERT INTO pganalyze.stat_statements (
-        collected_at,
+    WITH statements AS (
+        SELECT *
+        FROM public.pg_stat_statements s
+                 JOIN pg_database d ON d.oid = s.dbid
+        WHERE userid = 'grafana'::regrole::oid
+          AND queryid IS NOT NULL
+          AND d.datname = current_database()
+    ),
+
+         queries AS (
+             INSERT INTO
+                 pganalyze.queries (queryid, query)
+                 SELECT
+                     queryid, query
+                 FROM
+                     statements
+                 ON CONFLICT
+                     DO NOTHING
+                 RETURNING
+                     queryid
+         ),
+
+         snapshot AS (
+             INSERT INTO
+                 pganalyze.stat_snapshots
+                 SELECT
+                     snapshot_time AS collected_at,
+                     sum(calls) AS calls,
+                     sum(total_plan_time) AS total_plan_time,
+                     sum(total_exec_time) AS total_exec_time,
+                     sum(rows) AS rows,
+                     sum(shared_blks_hit) AS shared_blks_hit,
+                     sum(shared_blks_read) AS shared_blks_read,
+                     sum(shared_blks_dirtied) AS shared_blks_dirtied,
+                     sum(shared_blks_written) AS shared_blks_written,
+                     sum(local_blks_hit) AS local_blks_hit,
+                     sum(local_blks_read) AS local_blks_read,
+                     sum(local_blks_dirtied) AS local_blks_dirtied,
+                     sum(local_blks_written) AS local_blks_written,
+                     sum(temp_blks_read) AS temp_blks_read,
+                     sum(temp_blks_written) AS temp_blks_written,
+                     sum(shared_blk_read_time) AS blk_read_time,
+                     sum(shared_blk_write_time) AS blk_write_time,
+                     sum(wal_records) AS wal_records,
+                     sum(wal_fpi) AS wal_fpi,
+                     sum(wal_bytes) AS wal_bytes,
+                     pg_wal_lsn_diff(pg_current_wal_lsn(), '0/0') AS wal_position,
+                     pg_postmaster_start_time() AS stats_reset
+                 FROM
+                     statements
+         )
+
+    INSERT INTO
+        pganalyze.stat_statements
+    SELECT
+        snapshot_time,
         queryid,
-        query,
+        plans,
         calls,
-        total_time,
-        min_time,
-        max_time,
-        mean_time,
-        stddev_time,
+        total_plan_time,
+        total_exec_time,
+        mean_exec_time,
         rows,
         shared_blks_hit,
         shared_blks_read,
@@ -166,38 +220,14 @@ BEGIN
         local_blks_written,
         temp_blks_read,
         temp_blks_written,
-        blk_read_time,
-        blk_write_time
-    )
-    SELECT
-        now(),
-        s.queryid,
-        s.query,
-        s.calls,
-        s.total_exec_time,
-        s.min_exec_time,
-        s.max_exec_time,
-        s.mean_exec_time,
-        s.stddev_exec_time,
-        s.rows,
-        s.shared_blks_hit,
-        s.shared_blks_read,
-        s.shared_blks_dirtied,
-        s.shared_blks_written,
-        s.local_blks_hit,
-        s.local_blks_read,
-        s.local_blks_dirtied,
-        s.local_blks_written,
-        s.temp_blks_read,
-        s.temp_blks_written,
-        s.shared_blk_read_time,
-        s.shared_blk_write_time
-    FROM public.pg_stat_statements s
-    JOIN pg_database d ON d.oid = s.dbid
-    WHERE userid = 'grafana'::regrole::oid
-      AND queryid IS NOT NULL
-      AND d.datname = current_database()
-    ON CONFLICT DO NOTHING;
+        shared_blk_read_time,
+        shared_blk_write_time,
+        wal_records,
+        wal_fpi,
+        wal_bytes
+    FROM
+        statements;
+
 END;
 $$;
 

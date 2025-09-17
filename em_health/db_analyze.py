@@ -72,8 +72,9 @@ class DatabaseAnalyzer(DatabaseManager):
         """ Create tables to store metrics data. """
         self.execute_file(self.get_path("create_metric_tables.sql", folder="pganalyze"),
                           {
-                              "TBL_STATS_CHUNK_SIZE": os.getenv("TBL_STATS_CHUNK_SIZE", "2 days"),
-                              "TBL_STATS_RETENTION": os.getenv("TBL_STATS_RETENTION", "1 month")
+                              "TBL_SNAPSHOTS_CHUNK_SIZE": os.getenv("TBL_SNAPSHOTS_CHUNK_SIZE", "4 weeks"),
+                              "TBL_STATEMENTS_CHUNK_SIZE": os.getenv("TBL_STATEMENTS_CHUNK_SIZE", "1 week"),
+                              "TBL_STATS_RETENTION": os.getenv("TBL_STATS_RETENTION", "6 months")
                           })
         logger.info("Created pganalyze tables")
 
@@ -140,7 +141,7 @@ def main(dbname, action, force=False):
                 db.cleanup_jobs()
 
             db.create_metric_collectors()
-            db.create_stats_cagg()
+            #db.create_stats_cagg()
 
         pwd = os.getenv("POSTGRES_PGANALYZE_PASSWORD")
         with DatabaseAnalyzer(dbname, username="pganalyze", password=pwd) as db:

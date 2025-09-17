@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 6,
+  "id": 3,
   "links": [
     {
       "asDropdown": false,
@@ -604,7 +604,7 @@
         "allowCustomValue": false,
         "current": {
           "text": "tem",
-          "value": "P1F7BE6908B217B4A"
+          "value": "hm-tem"
         },
         "label": "Database",
         "name": "source",
@@ -634,8 +634,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "CREATE OR REPLACE FUNCTION pganalyze.get_db_stats(job_id integer DEFAULT NULL::integer, config jsonb DEFAULT NULL::jsonb)\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    INSERT INTO pganalyze.database_stats (\n        collected_at,\n        xact_commit, xact_rollback, blks_read, blks_hit,\n        tup_inserted, tup_updated, tup_deleted, tup_fetched, tup_returned,\n        temp_files, temp_bytes, deadlocks, blk_read_time, blk_write_time,\n        frozen_xid_age, frozen_mxid_age, db_size\n    )\n    SELECT\n        now() AS collected_at,\n        s.xact_commit, s.xact_rollback, s.blks_read, s.blks_hit,\n        s.tup_inserted, s.tup_updated, s.tup_deleted, s.tup_fetched, s.tup_returned,\n        s.temp_files, s.temp_bytes, s.deadlocks, s.blk_read_time, s.blk_write_time,\n        age(d.datfrozenxid) AS frozen_xid_age, mxid_age(d.datminmxid) AS frozen_mxid_age,\n        pg_database_size(current_database()) AS db_size\n    FROM pg_catalog.pg_stat_database s\n             JOIN pg_catalog.pg_database d ON s.datname = d.datname\n    WHERE s.datname = current_database();\nEND;\n$function$\n",
-          "value": "CREATE OR REPLACE FUNCTION pganalyze.get_db_stats(job_id integer DEFAULT NULL::integer, config jsonb DEFAULT NULL::jsonb)\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    INSERT INTO pganalyze.database_stats (\n        collected_at,\n        xact_commit, xact_rollback, blks_read, blks_hit,\n        tup_inserted, tup_updated, tup_deleted, tup_fetched, tup_returned,\n        temp_files, temp_bytes, deadlocks, blk_read_time, blk_write_time,\n        frozen_xid_age, frozen_mxid_age, db_size\n    )\n    SELECT\n        now() AS collected_at,\n        s.xact_commit, s.xact_rollback, s.blks_read, s.blks_hit,\n        s.tup_inserted, s.tup_updated, s.tup_deleted, s.tup_fetched, s.tup_returned,\n        s.temp_files, s.temp_bytes, s.deadlocks, s.blk_read_time, s.blk_write_time,\n        age(d.datfrozenxid) AS frozen_xid_age, mxid_age(d.datminmxid) AS frozen_mxid_age,\n        pg_database_size(current_database()) AS db_size\n    FROM pg_catalog.pg_stat_database s\n             JOIN pg_catalog.pg_database d ON s.datname = d.datname\n    WHERE s.datname = current_database();\nEND;\n$function$\n"
+          "text": "",
+          "value": ""
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",

@@ -14,7 +14,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 # --------- Metadata ----------
 LABEL org.opencontainers.image.title="Custom PostgreSQL image with TimescaleDB, Toolkit & TDS-FDW" \
       org.opencontainers.image.description='Postgres ${PG_MAJOR} + TimescaleDB ${TS_VERSIONS} + Toolkit ${TLK_VERSION} + TDS-FDW ${TDS_VERSION}' \
-      org.opencontainers.image.version="0.1" \
+      org.opencontainers.image.version="0.1a1" \
       org.opencontainers.image.authors="Grigory Sharov <gsharov@mrc-lmb.cam.ac.uk>" \
       org.opencontainers.image.licenses="GPL-3.0-or-later" \
       org.opencontainers.image.source="https://github.com/azazellochg/em_health"

@@ -36,7 +36,7 @@ Performance statistics is inspired by `Pganalyze <https://pganalyze.com/>`_ and 
 * CPU and RAM host statistics (updated every 1 min)
 * auto-EXPLAIN plans (for queries longer than 500ms)
 
-Statistics retention time is 1 month.
+Statistics retention time is 6 months.
 
 SQL commands
 ^^^^^^^^^^^^
@@ -127,5 +127,7 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
     * index_stats
     * vacuum_stats
     * stat_statements
+    * stat_snapshots
+    * queries
     * sys_stats
     * stat_explains
