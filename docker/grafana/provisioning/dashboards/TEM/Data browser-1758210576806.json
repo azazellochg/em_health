@@ -59,7 +59,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 36,
+  "id": 18,
   "links": [],
   "panels": [
     {
@@ -284,7 +284,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 16,
         "w": 24,
         "x": 0,
         "y": 6
@@ -300,11 +300,10 @@
         "tooltip": {
           "hideZeros": false,
           "mode": "multi",
-          "sort": "none"
+          "sort": "asc"
         }
       },
       "pluginVersion": "12.1.0",
-      "repeat": "param",
       "repeatDirection": "v",
       "targets": [
         {
@@ -315,7 +314,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n    d.time,\n    d.value_num AS \"value\",\n    (SELECT display_name AS \"__name__\" FROM parameters WHERE instrument_id = $instrument AND param_id = $param)\nFROM data d\nWHERE d.instrument_id = $instrument\n  AND d.param_id = $param\n  AND $__timeFilter(d.time)\nORDER BY d.time;\n",
+          "rawSql": "WITH params AS (\n  SELECT\n    param_id,\n    display_name\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_id IN ($param)\n)\nSELECT\n  d.time,\n  d.value_num AS \"value\",\n  p.display_name AS \"__name__\"\nFROM\n  data d\n  JOIN params p USING (param_id)\nWHERE\n  d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nORDER BY\n  d.time;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -354,7 +353,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 14
+        "y": 22
       },
       "id": 8,
       "panels": [],
@@ -396,7 +395,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 15
+        "y": 23
       },
       "id": 7,
       "options": {
@@ -463,7 +462,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 25
+        "y": 43
       },
       "id": 5,
       "panels": [],
@@ -506,7 +505,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 26
+        "y": 44
       },
       "id": 1,
       "options": {
@@ -579,7 +578,7 @@
         "allowCustomValue": false,
         "current": {
           "text": "Glacios [Glacios] (9952833)",
-          "value": "5"
+          "value": "10"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -598,12 +597,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": [
-            "AcquisitionServer"
-          ],
-          "value": [
-            "AcquisitionServer"
-          ]
+          "text": "AcquisitionServer",
+          "value": "AcquisitionServer"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -611,7 +606,7 @@
         },
         "definition": "SELECT subsystem\nFROM parameters\nWHERE instrument_id = $instrument\n",
         "description": "",
-        "multi": true,
+        "includeAll": false,
         "name": "subsystem",
         "options": [],
         "query": "SELECT subsystem\nFROM parameters\nWHERE instrument_id = $instrument\n",
@@ -623,23 +618,18 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": [
-            "FalconECCamera"
-          ],
-          "value": [
-            "FalconECCamera"
-          ]
+          "text": "FalconECCamera",
+          "value": "FalconECCamera"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
           "uid": "${sourceTEM}"
         },
-        "definition": "SELECT component\nFROM parameters\nWHERE instrument_id = $instrument\nAND ($subsystem IS NULL OR subsystem IN ($subsystem))\n\n",
+        "definition": "SELECT component\nFROM parameters\nWHERE instrument_id = $instrument\nAND subsystem = '$subsystem'\n",
         "description": "",
-        "multi": true,
         "name": "component",
         "options": [],
-        "query": "SELECT component\nFROM parameters\nWHERE instrument_id = $instrument\nAND ($subsystem IS NULL OR subsystem IN ($subsystem))\n\n",
+        "query": "SELECT component\nFROM parameters\nWHERE instrument_id = $instrument\nAND subsystem = '$subsystem'\n",
         "refresh": 1,
         "regex": "",
         "sort": 1,
@@ -649,23 +639,25 @@
         "allowCustomValue": false,
         "current": {
           "text": [
-            "Availability"
+            "Availability",
+            "CCU_1V5_Voltage"
           ],
           "value": [
-            "25"
+            "25",
+            "13"
           ]
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
           "uid": "${sourceTEM}"
         },
-        "definition": "SELECT param_id AS __value,\nparam_name AS __text\nFROM parameters\nWHERE instrument_id = $instrument \nAND subsystem IN ($subsystem)\nAND component IN ($component)\n",
+        "definition": "SELECT param_id AS __value,\nparam_name AS __text\nFROM parameters\nWHERE instrument_id = $instrument \nAND subsystem = '$subsystem'\nAND component IN (${component:sqlstring})\n",
         "description": "",
         "includeAll": true,
         "multi": true,
         "name": "param",
         "options": [],
-        "query": "SELECT param_id AS __value,\nparam_name AS __text\nFROM parameters\nWHERE instrument_id = $instrument \nAND subsystem IN ($subsystem)\nAND component IN ($component)\n",
+        "query": "SELECT param_id AS __value,\nparam_name AS __text\nFROM parameters\nWHERE instrument_id = $instrument \nAND subsystem = '$subsystem'\nAND component IN (${component:sqlstring})\n",
         "refresh": 1,
         "regex": "",
         "sort": 1,
@@ -675,7 +667,7 @@
         "allowCustomValue": false,
         "current": {
           "text": "tem",
-          "value": "P1F7BE6908B217B4A"
+          "value": "hm-tem"
         },
         "hide": 2,
         "name": "sourceTEM",
@@ -697,5 +689,5 @@
   "timezone": "Europe/London",
   "title": "Data browser",
   "uid": "bdc45e8d-6118-44ea-89f6-00c573b7016b",
-  "version": 1
+  "version": 7
 }
