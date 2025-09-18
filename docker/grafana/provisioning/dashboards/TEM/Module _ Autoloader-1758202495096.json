@@ -69,7 +69,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 15,
+  "id": 9,
   "links": [
     {
       "asDropdown": true,
@@ -229,7 +229,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'PPal'\n    AND subsystem = 'Krios Parameters'\n    AND component = 'Vacuum'\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', v.time) AS time,\n  avg(v.value_num) AS \"PPal pressure\"\nFROM\n  data v\nWHERE\n  $__timeFilter(v.time)\n  AND v.instrument_id = $instrument\n  AND v.param_id = (\n    SELECT\n      param_id\n    FROM\n      matching_param\n  )\nGROUP BY\n  time\nORDER BY\n  time",
+          "rawSql": "WITH matching_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'PPal'\n    AND subsystem = 'Krios Parameters'\n    AND component = 'Vacuum'\n)\nSELECT\n  time,\n  value AS \"PPal pressure\"\nFROM unnest((\n  SELECT lttb(\n    time,\n    value_num,\n    2 * (($__to - $__from) / $__interval_ms)::int\n  )\n  FROM data\n  WHERE instrument_id = $instrument\n    AND param_id = (SELECT param_id FROM matching_param)\n    AND $__timeFilter(time)\n))\nORDER BY 1;\n",
           "refId": "PPal pressure",
           "sql": {
             "columns": [
@@ -359,7 +359,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'VacuumLeakFactor'\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', v.time) AS time,\n  avg(v.value_num) AS \"Vacuum Leak Factor\"\nFROM\n  data v\nWHERE\n  $__timeFilter(v.time)\n  AND v.instrument_id = $instrument\n  AND v.param_id = (\n    SELECT\n      param_id\n    FROM\n      matching_param\n  )\nGROUP BY\n  time\nORDER BY\n  time",
+          "rawSql": "WITH matching_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'VacuumLeakFactor'\n)\nSELECT\n  time,\n  value AS \"PPal pressure\"\nFROM unnest((\n  SELECT lttb(\n    time,\n    value_num,\n    2 * (($__to - $__from) / $__interval_ms)::int\n  )\n  FROM data\n  WHERE instrument_id = $instrument\n    AND param_id = (SELECT param_id FROM matching_param)\n    AND $__timeFilter(time)\n))\nORDER BY 1;\n",
           "refId": "PPal pressure",
           "sql": {
             "columns": [
@@ -1837,7 +1837,7 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Krios 4 [Titan Krios G4] (4248)",
+          "text": "Krios 3 [Titan Krios G3i] (3593)",
           "value": "4"
         },
         "datasource": {
@@ -1899,5 +1899,5 @@
   "timezone": "Europe/London",
   "title": "Module | Autoloader",
   "uid": "4395e67b-0280-47fd-94a8-655603f10800",
-  "version": 6
+  "version": 4
 }

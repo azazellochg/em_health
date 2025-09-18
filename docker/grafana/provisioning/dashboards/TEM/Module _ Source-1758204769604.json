@@ -72,7 +72,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 24,
+  "id": 14,
   "links": [
     {
       "asDropdown": true,
@@ -379,34 +379,10 @@
                 "value": 0
               }
             ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Extractor voltage"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "volt"
-              }
-            ]
           },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "FEG emission"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "amp"
-              }
-            ]
-          }
-        ]
+          "unit": "amp"
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -420,7 +396,7 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
           "hideZeros": false,
@@ -438,7 +414,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND component IN ('Emission', 'Extractor')\n    AND param_name IN ('EmissionCurrent', 'ExtractorUserSettings')\n)\nSELECT\n  d.time,\n  d.value_num,\n  p.param_name\nFROM\n  data d\n  JOIN param_ids p ON p.param_id = d.param_id\nWHERE\n  d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nORDER BY d.time\n",
+          "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'Emission'\n    AND param_name = 'EmissionCurrent'\n)\n\nSELECT\n  time,\n  value\nFROM unnest((\n  SELECT lttb(\n    time,\n    value_num,\n    2 * (($__to - $__from) / $__interval_ms)::int\n  )\n  FROM data\n  WHERE instrument_id = $instrument\n    AND param_id = (SELECT param_id FROM matching_param)\n    AND $__timeFilter(time)\n))\nORDER BY 1;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -460,22 +436,6 @@
         }
       ],
       "title": "Emission current",
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {},
-            "includeByName": {},
-            "indexByName": {},
-            "renameByName": {
-              "value_num EmissionCurrent": "FEG emission",
-              "value_num ExtractorUserSettings": "Extractor voltage",
-              "value_num HTTankEmissionCurrent": "HT emission",
-              "value_num HTTankSettingVoltage": "Voltage"
-            }
-          }
-        }
-      ],
       "type": "timeseries"
     },
     {
@@ -1559,7 +1519,7 @@
               "editorMode": "code",
               "format": "time_series",
               "rawQuery": true,
-              "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'FegStates'\n    AND param_name IN ('LowTFlashBcmRatio', 'HighTFlashBcmRatio')\n)\n\nSELECT\n  d.time,\n  p.param_name,\n  d.value_num\nFROM data d\nJOIN param_ids p ON p.param_id = d.param_id\nWHERE\n  d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nORDER BY d.time\n",
+              "rawSql": "-- LowTFlashBcmRatio\nSELECT\n  time AS \"time\",\n  'LowTFlashBcmRatio' AS param_name,\n  value AS value_num\nFROM unnest((\n  SELECT lttb(\n    time,\n    value_num,\n    2 * (($__to - $__from) / $__interval_ms)::int\n  )\n  FROM data\n  WHERE instrument_id = $instrument\n    AND param_id = (\n      SELECT param_id \n      FROM parameters \n      WHERE instrument_id = $instrument\n        AND component = 'FegStates'\n        AND param_name = 'LowTFlashBcmRatio'\n    )\n    AND $__timeFilter(time)\n))\n\nUNION ALL\n\n-- HighTFlashBcmRatio\nSELECT\n  time AS \"time\",\n  'HighTFlashBcmRatio' AS param_name,\n  value AS value_num\nFROM unnest((\n  SELECT lttb(\n    time,\n    value_num,\n    2 * (($__to - $__from) / $__interval_ms)::int\n  )\n  FROM data\n  WHERE instrument_id = $instrument\n    AND param_id = (\n      SELECT param_id \n      FROM parameters \n      WHERE instrument_id = $instrument\n        AND component = 'FegStates'\n        AND param_name = 'HighTFlashBcmRatio'\n    )\n    AND $__timeFilter(time)\n))\nORDER BY time, param_name;\n",
               "refId": "A",
               "sql": {
                 "columns": [
@@ -1656,7 +1616,7 @@
           "gridPos": {
             "h": 8,
             "w": 13,
-            "x": 11,
+            "x": 0,
             "y": 39
           },
           "id": 18,
@@ -1683,7 +1643,7 @@
               "editorMode": "code",
               "format": "time_series",
               "rawQuery": true,
-              "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'BeamCurrent'\n    AND param_name IN ('BeamCurrentStable') --, 'BeamCurrentStable')\n)\n\nSELECT\n  d.time AS time,\n  p.param_name,\n  d.value_num\nFROM data d\nJOIN param_ids p ON p.param_id = d.param_id\nWHERE\n  d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\n  AND d.value_num > 0\n  AND d.value_num < 40e-9\nORDER BY time\n",
+              "rawSql": "WITH param_ids AS (\n  SELECT\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'BeamCurrent'\n    AND param_name = 'BeamCurrentStable'\n)\n\nSELECT\n  time,\n  value AS \"BeamCurrentStable\"\nFROM unnest((\n  SELECT lttb(\n    time,\n    value_num,\n    2 * (($__to - $__from) / $__interval_ms)::int\n  )\n  FROM data\n  WHERE instrument_id = $instrument\n    AND param_id = (\n      SELECT param_id \n      FROM param_ids\n    )\n    AND $__timeFilter(time)\n))\nORDER BY time\n",
               "refId": "A",
               "sql": {
                 "columns": [
@@ -1705,15 +1665,6 @@
             }
           ],
           "title": "Beam current",
-          "transformations": [
-            {
-              "id": "renameByRegex",
-              "options": {
-                "regex": "value_num (.*)",
-                "renamePattern": "$1"
-              }
-            }
-          ],
           "type": "timeseries"
         }
       ],
@@ -2316,7 +2267,7 @@
         "allowCustomValue": false,
         "current": {
           "text": "tem",
-          "value": "P1F7BE6908B217B4A"
+          "value": "hm-tem"
         },
         "hide": 2,
         "name": "sourceTEM",
@@ -2329,8 +2280,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Glacios [Glacios] (9952833)",
-          "value": "5"
+          "text": "Krios 4 [Titan Krios G4] (4248)",
+          "value": "6"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -2357,5 +2308,5 @@
   "timezone": "Europe/London",
   "title": "Module | Source",
   "uid": "4395e67b-0345-47fd-94a8-684004567800",
-  "version": 7
+  "version": 6
 }
