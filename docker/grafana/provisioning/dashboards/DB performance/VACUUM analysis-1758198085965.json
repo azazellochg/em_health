@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 26,
+  "id": 28,
   "links": [
     {
       "asDropdown": false,
@@ -173,7 +173,7 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 5,
+        "w": 4,
         "x": 7,
         "y": 1
       },
@@ -267,13 +267,25 @@
                 "value": "s"
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Count"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
           }
         ]
       },
       "gridPos": {
         "h": 12,
-        "w": 12,
-        "x": 12,
+        "w": 13,
+        "x": 11,
         "y": 1
       },
       "id": 11,
@@ -300,7 +312,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n    n.nspname || '.' || c.relname AS \"Table\",\n    COUNT(*) AS \"Vacuum count\",\n    SUM(v.tuples_removed) || ' (' || \n        ROUND(\n            SUM(v.tuples_removed) / NULLIF(SUM(v.tuples_removed + v.tuples_remain), 0) * 100.0, \n            2\n        ) || '%)' AS \"Tuples removed\",\n    SUM(v.index_scans) AS \"Index scans\",\n    SUM(v.pages_removed) AS \"Pages removed\",\n    MAX(v.finished_at - v.started_at) AS \"Max duration\",\n    MAX(v.finished_at) AS \"Last vacuum\"\nFROM pganalyze.vacuum_stats v\nJOIN pg_class c ON c.oid = v.relid\nJOIN pg_namespace n ON n.oid = c.relnamespace\nWHERE $__timeFilter(v.started_at)\nGROUP BY n.nspname, c.relname\nORDER BY \"Tuples removed\" DESC",
+          "rawSql": "SELECT\n    n.nspname || '.' || c.relname AS \"Table\",\n    COUNT(*) AS \"Count\",\n    SUM(v.tuples_removed) || ' (' || \n        ROUND(\n            SUM(v.tuples_removed) / NULLIF(SUM(v.tuples_removed + v.tuples_remain), 0) * 100.0, \n            2\n        ) || '%)' AS \"Tuples removed\",\n    SUM(v.index_scans) AS \"Index scans\",\n    SUM(v.pages_removed) AS \"Pages removed\",\n    MAX(v.finished_at - v.started_at) AS \"Max duration\",\n    MAX(v.finished_at) AS \"Last vacuum\"\nFROM pganalyze.vacuum_stats v\nJOIN pg_class c ON c.oid = v.relid\nJOIN pg_namespace n ON n.oid = c.relnamespace\nWHERE $__timeFilter(v.started_at)\nGROUP BY n.nspname, c.relname\nORDER BY \"Tuples removed\" DESC",
           "refId": "A",
           "sql": {
             "columns": [
@@ -352,7 +364,7 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 5,
+        "w": 4,
         "x": 7,
         "y": 4
       },
@@ -403,7 +415,7 @@
           }
         }
       ],
-      "title": "Anti-Wraparound Vacuum Frequency",
+      "title": "Anti-Wraparound Frequency",
       "type": "stat"
     },
     {
@@ -434,7 +446,7 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 5,
+        "w": 4,
         "x": 7,
         "y": 7
       },
@@ -516,7 +528,7 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 5,
+        "w": 4,
         "x": 7,
         "y": 10
       },
@@ -635,7 +647,7 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
+        "w": 3,
         "x": 0,
         "y": 14
       },
@@ -715,8 +727,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 4,
+        "w": 2,
+        "x": 3,
         "y": 14
       },
       "id": 5,
@@ -796,8 +808,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 8,
+        "w": 3,
+        "x": 5,
         "y": 14
       },
       "id": 12,
@@ -1020,7 +1032,7 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 5,
+        "w": 4,
         "x": 0,
         "y": 27
       },
@@ -1156,7 +1168,7 @@
       "gridPos": {
         "h": 6,
         "w": 10,
-        "x": 5,
+        "x": 4,
         "y": 27
       },
       "id": 14,
@@ -1289,8 +1301,8 @@
       },
       "gridPos": {
         "h": 6,
-        "w": 9,
-        "x": 15,
+        "w": 10,
+        "x": 14,
         "y": 27
       },
       "id": 15,
@@ -1374,7 +1386,7 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 5,
+        "w": 4,
         "x": 0,
         "y": 30
       },
@@ -1469,5 +1481,5 @@
   "timezone": "Europe/London",
   "title": "VACUUM analysis",
   "uid": "d0e487ca-67bd-4aa2-93fa-02b2afc1e2e3",
-  "version": 1
+  "version": 5
 }

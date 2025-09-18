@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 27,
+  "id": 32,
   "links": [
     {
       "asDropdown": false,
@@ -318,7 +318,7 @@
         "sortBy": [
           {
             "desc": true,
-            "displayName": "Calls/min"
+            "displayName": "Avg time"
           }
         ]
       },
@@ -1021,36 +1021,36 @@
       },
       {
         "current": {
-          "text": "8952664956198652961",
-          "value": "8952664956198652961"
+          "text": "-7835206256026329374",
+          "value": "-7835206256026329374"
         },
         "hide": 2,
         "name": "queryid",
         "options": [
           {
             "selected": true,
-            "text": "8952664956198652961",
-            "value": "8952664956198652961"
+            "text": "-7835206256026329374",
+            "value": "-7835206256026329374"
           }
         ],
-        "query": "8952664956198652961",
+        "query": "-7835206256026329374",
         "type": "textbox"
       },
       {
         "current": {
-          "text": "SELECT quote_ident(column_name) AS \"column\", data_type AS \"type\"\n    FROM information_schema.columns\n    WHERE\n      CASE WHEN array_length(parse_ident($1),$2) = $3\n        THEN quote_ident(table_schema) = (parse_ident($4))[$5]\n          AND quote_ident(table_name) = (parse_ident($6))[$7]\n        ELSE quote_ident(table_name) = $8\n          AND \n          quote_ident(table_schema) IN (\n          SELECT\n            CASE WHEN trim(s[i]) = $9 THEN user ELSE trim(s[i]) END\n          FROM\n            generate_series(\n              array_lower(string_to_array(current_setting($10),$11),$12),\n              array_upper(string_to_array(current_setting($13),$14),$15)\n            ) as i,\n            string_to_array(current_setting($16),$17) s\n          )\n      END",
-          "value": "SELECT quote_ident(column_name) AS \"column\", data_type AS \"type\"\n    FROM information_schema.columns\n    WHERE\n      CASE WHEN array_length(parse_ident($1),$2) = $3\n        THEN quote_ident(table_schema) = (parse_ident($4))[$5]\n          AND quote_ident(table_name) = (parse_ident($6))[$7]\n        ELSE quote_ident(table_name) = $8\n          AND \n          quote_ident(table_schema) IN (\n          SELECT\n            CASE WHEN trim(s[i]) = $9 THEN user ELSE trim(s[i]) END\n          FROM\n            generate_series(\n              array_lower(string_to_array(current_setting($10),$11),$12),\n              array_upper(string_to_array(current_setting($13),$14),$15)\n            ) as i,\n            string_to_array(current_setting($16),$17) s\n          )\n      END"
+          "text": "WITH deltas AS (\n    SELECT\n        collected_at,\n        queryid,\n        calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_calls,\n        total_plan_time - LAG(total_plan_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_plan_time,\n        total_exec_time - LAG(total_exec_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_exec_time,\n        blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_read_time,\n        blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_write_time\n    FROM pganalyze.stat_statements\n    WHERE collected_at BETWEEN $1 AND $2 \n),\nweighted_exec AS (\n    SELECT\n        collected_at,\n        queryid,\n        delta_calls,\n        (delta_plan_time   delta_exec_time) / NULLIF(delta_calls,$3) AS weighted_exec_time,\n        (delta_blk_read_time   delta_blk_write_time) AS total_io_time\n    FROM deltas\n)\nSELECT\n    time_bucket(INTERVAL $4, collected_at) AS time,\n    COALESCE(approx_percentile($5, percentile_agg(weighted_exec_time)), $6) AS \"Median time\",\n    COALESCE(approx_percentile($7, percentile_agg(weighted_exec_time)), $8) AS \"P95 time\",\n    COALESCE(SUM(total_io_time) / NULLIF(SUM(delta_calls),$9), $10) AS \"Avg I/O time\"\nFROM weighted_exec\nGROUP BY time\nORDER BY time",
+          "value": "WITH deltas AS (\n    SELECT\n        collected_at,\n        queryid,\n        calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_calls,\n        total_plan_time - LAG(total_plan_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_plan_time,\n        total_exec_time - LAG(total_exec_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_exec_time,\n        blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_read_time,\n        blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_write_time\n    FROM pganalyze.stat_statements\n    WHERE collected_at BETWEEN $1 AND $2 \n),\nweighted_exec AS (\n    SELECT\n        collected_at,\n        queryid,\n        delta_calls,\n        (delta_plan_time   delta_exec_time) / NULLIF(delta_calls,$3) AS weighted_exec_time,\n        (delta_blk_read_time   delta_blk_write_time) AS total_io_time\n    FROM deltas\n)\nSELECT\n    time_bucket(INTERVAL $4, collected_at) AS time,\n    COALESCE(approx_percentile($5, percentile_agg(weighted_exec_time)), $6) AS \"Median time\",\n    COALESCE(approx_percentile($7, percentile_agg(weighted_exec_time)), $8) AS \"P95 time\",\n    COALESCE(SUM(total_io_time) / NULLIF(SUM(delta_calls),$9), $10) AS \"Avg I/O time\"\nFROM weighted_exec\nGROUP BY time\nORDER BY time"
         },
         "hide": 2,
         "name": "query",
         "options": [
           {
             "selected": true,
-            "text": "SELECT quote_ident(column_name) AS \"column\", data_type AS \"type\"\n    FROM information_schema.columns\n    WHERE\n      CASE WHEN array_length(parse_ident($1),$2) = $3\n        THEN quote_ident(table_schema) = (parse_ident($4))[$5]\n          AND quote_ident(table_name) = (parse_ident($6))[$7]\n        ELSE quote_ident(table_name) = $8\n          AND \n          quote_ident(table_schema) IN (\n          SELECT\n            CASE WHEN trim(s[i]) = $9 THEN user ELSE trim(s[i]) END\n          FROM\n            generate_series(\n              array_lower(string_to_array(current_setting($10),$11),$12),\n              array_upper(string_to_array(current_setting($13),$14),$15)\n            ) as i,\n            string_to_array(current_setting($16),$17) s\n          )\n      END",
-            "value": "SELECT quote_ident(column_name) AS \"column\", data_type AS \"type\"\n    FROM information_schema.columns\n    WHERE\n      CASE WHEN array_length(parse_ident($1),$2) = $3\n        THEN quote_ident(table_schema) = (parse_ident($4))[$5]\n          AND quote_ident(table_name) = (parse_ident($6))[$7]\n        ELSE quote_ident(table_name) = $8\n          AND \n          quote_ident(table_schema) IN (\n          SELECT\n            CASE WHEN trim(s[i]) = $9 THEN user ELSE trim(s[i]) END\n          FROM\n            generate_series(\n              array_lower(string_to_array(current_setting($10),$11),$12),\n              array_upper(string_to_array(current_setting($13),$14),$15)\n            ) as i,\n            string_to_array(current_setting($16),$17) s\n          )\n      END"
+            "text": "WITH deltas AS (\n    SELECT\n        collected_at,\n        queryid,\n        calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_calls,\n        total_plan_time - LAG(total_plan_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_plan_time,\n        total_exec_time - LAG(total_exec_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_exec_time,\n        blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_read_time,\n        blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_write_time\n    FROM pganalyze.stat_statements\n    WHERE collected_at BETWEEN $1 AND $2 \n),\nweighted_exec AS (\n    SELECT\n        collected_at,\n        queryid,\n        delta_calls,\n        (delta_plan_time   delta_exec_time) / NULLIF(delta_calls,$3) AS weighted_exec_time,\n        (delta_blk_read_time   delta_blk_write_time) AS total_io_time\n    FROM deltas\n)\nSELECT\n    time_bucket(INTERVAL $4, collected_at) AS time,\n    COALESCE(approx_percentile($5, percentile_agg(weighted_exec_time)), $6) AS \"Median time\",\n    COALESCE(approx_percentile($7, percentile_agg(weighted_exec_time)), $8) AS \"P95 time\",\n    COALESCE(SUM(total_io_time) / NULLIF(SUM(delta_calls),$9), $10) AS \"Avg I/O time\"\nFROM weighted_exec\nGROUP BY time\nORDER BY time",
+            "value": "WITH deltas AS (\n    SELECT\n        collected_at,\n        queryid,\n        calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_calls,\n        total_plan_time - LAG(total_plan_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_plan_time,\n        total_exec_time - LAG(total_exec_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_exec_time,\n        blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_read_time,\n        blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_write_time\n    FROM pganalyze.stat_statements\n    WHERE collected_at BETWEEN $1 AND $2 \n),\nweighted_exec AS (\n    SELECT\n        collected_at,\n        queryid,\n        delta_calls,\n        (delta_plan_time   delta_exec_time) / NULLIF(delta_calls,$3) AS weighted_exec_time,\n        (delta_blk_read_time   delta_blk_write_time) AS total_io_time\n    FROM deltas\n)\nSELECT\n    time_bucket(INTERVAL $4, collected_at) AS time,\n    COALESCE(approx_percentile($5, percentile_agg(weighted_exec_time)), $6) AS \"Median time\",\n    COALESCE(approx_percentile($7, percentile_agg(weighted_exec_time)), $8) AS \"P95 time\",\n    COALESCE(SUM(total_io_time) / NULLIF(SUM(delta_calls),$9), $10) AS \"Avg I/O time\"\nFROM weighted_exec\nGROUP BY time\nORDER BY time"
           }
         ],
-        "query": "SELECT quote_ident(column_name) AS \"column\", data_type AS \"type\"\n    FROM information_schema.columns\n    WHERE\n      CASE WHEN array_length(parse_ident($1),$2) = $3\n        THEN quote_ident(table_schema) = (parse_ident($4))[$5]\n          AND quote_ident(table_name) = (parse_ident($6))[$7]\n        ELSE quote_ident(table_name) = $8\n          AND \n          quote_ident(table_schema) IN (\n          SELECT\n            CASE WHEN trim(s[i]) = $9 THEN user ELSE trim(s[i]) END\n          FROM\n            generate_series(\n              array_lower(string_to_array(current_setting($10),$11),$12),\n              array_upper(string_to_array(current_setting($13),$14),$15)\n            ) as i,\n            string_to_array(current_setting($16),$17) s\n          )\n      END",
+        "query": "WITH deltas AS (\n    SELECT\n        collected_at,\n        queryid,\n        calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_calls,\n        total_plan_time - LAG(total_plan_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_plan_time,\n        total_exec_time - LAG(total_exec_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_exec_time,\n        blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_read_time,\n        blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_write_time\n    FROM pganalyze.stat_statements\n    WHERE collected_at BETWEEN $1 AND $2 \n),\nweighted_exec AS (\n    SELECT\n        collected_at,\n        queryid,\n        delta_calls,\n        (delta_plan_time   delta_exec_time) / NULLIF(delta_calls,$3) AS weighted_exec_time,\n        (delta_blk_read_time   delta_blk_write_time) AS total_io_time\n    FROM deltas\n)\nSELECT\n    time_bucket(INTERVAL $4, collected_at) AS time,\n    COALESCE(approx_percentile($5, percentile_agg(weighted_exec_time)), $6) AS \"Median time\",\n    COALESCE(approx_percentile($7, percentile_agg(weighted_exec_time)), $8) AS \"P95 time\",\n    COALESCE(SUM(total_io_time) / NULLIF(SUM(delta_calls),$9), $10) AS \"Avg I/O time\"\nFROM weighted_exec\nGROUP BY time\nORDER BY time",
         "type": "textbox"
       },
       {
@@ -1090,5 +1090,5 @@
   "timezone": "Europe/London",
   "title": "Queries",
   "uid": "f5f755f6-d55b-4f89-bfd7-36281dc0eec7",
-  "version": 36
+  "version": 1
 }

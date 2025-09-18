@@ -1,0 +1,526 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 34,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "perf"
+      ],
+      "targetBlank": false,
+      "title": "Dashboards",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    }
+  ],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 11,
+      "panels": [],
+      "title": "Materialized views",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto",
+              "wrapText": false
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "decbytes"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "View"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Show details",
+                    "url": "/d/${__dashboard.uid}/?var-viewname=${__data.fields[\"View\"]}&view=dashboard"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Approx. row count"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
+      "id": 1,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": true,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "Target method"
+          }
+        ]
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  schemaname || '.' || matviewname AS \"View\",\n  pg_total_relation_size(format('%I.%I', schemaname, matviewname)::regclass) AS \"Object size\",\n  approximate_row_count(format('%I.%I', schemaname, matviewname)::regclass) AS \"Approx. row count\"\nFROM pg_matviews\nORDER BY schemaname, matviewname\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "id": 7,
+      "panels": [],
+      "title": "Continuous aggregates",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto",
+              "wrapText": false
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "View"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Show details",
+                    "url": "/d/${__dashboard.uid}/?var-viewname=${__data.fields[\"View\"]}&view=dashboard"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Object size"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "decbytes"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "id": 10,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": true,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "Target method"
+          }
+        ]
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  c.view_schema || '.' || c.view_name AS \"View\",\n  c.hypertable_schema || '.' || c.hypertable_name AS \"Parent object\",\n  c.compression_enabled AS \"Compression\",\n  hypertable_size(format('%I.%I', c.view_schema, c.view_name)) AS \"Object size\",\n  approximate_row_count(format('%I.%I', c.view_schema, c.view_name)::regclass) AS \"Approx. row count\",\n  (SELECT count(*) FROM show_chunks(format('%I.%I', c.view_schema, c.view_name))) AS \"Chunks\",\n  d.time_interval AS \"Chunk interval\"\nFROM timescaledb_information.continuous_aggregates c\nJOIN timescaledb_information.dimensions d ON d.hypertable_schema = c.materialization_hypertable_schema AND d.hypertable_name = c.materialization_hypertable_name\nORDER BY c.view_schema\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto",
+              "wrapText": false
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "id": 8,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": true,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  schedule_interval\nFROM\n  timescaledb_information.jobs\nWHERE\n  proc_name = format('refresh_%I', split_part('$viewname', '.', 2))",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH cagg_check AS (\n  SELECT\n    1 AS is_cagg\n  FROM\n    timescaledb_information.continuous_aggregates c\n  WHERE\n    c.view_schema || '.' || c.view_name = '$viewname'\n)\nSELECT\n  policy ->> 'policy_name' AS policy,\n  (policy ->> 'refresh_interval') :: interval AS schedule_interval,\n  policy ->> 'refresh_start_offset' AS start_offset,\n  policy ->> 'refresh_end_offset' AS end_offset\nFROM\n  timescaledb_experimental.show_policies('$viewname') AS policy\nWHERE\n  EXISTS (\n    SELECT\n      1\n    FROM\n      cagg_check\n  )",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Details for $viewname",
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 15,
+        "w": 24,
+        "x": 0,
+        "y": 20
+      },
+      "id": 9,
+      "options": {
+        "code": {
+          "language": "sql",
+          "showLineNumbers": true,
+          "showMiniMap": false
+        },
+        "content": "$definition",
+        "mode": "code"
+      },
+      "pluginVersion": "12.1.0",
+      "title": "Definition for $viewname",
+      "type": "text"
+    }
+  ],
+  "preload": false,
+  "schemaVersion": 41,
+  "tags": [
+    "perf"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "tem",
+          "value": "hm-tem"
+        },
+        "label": "Database",
+        "name": "source",
+        "options": [],
+        "query": "grafana-postgresql-datasource",
+        "refresh": 1,
+        "regex": "",
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "text": "public.tem_off",
+          "value": "public.tem_off"
+        },
+        "hide": 2,
+        "name": "viewname",
+        "options": [
+          {
+            "selected": true,
+            "text": "public.tem_off",
+            "value": "public.tem_off"
+          }
+        ],
+        "query": "public.tem_off",
+        "type": "textbox"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": " WITH server_param AS (\n         SELECT parameters.instrument_id,\n            parameters.param_id\n           FROM parameters\n          WHERE ((parameters.component = 'Server'::text) AND (parameters.param_name = 'Value'::text))\n        ), server_events AS (\n         SELECT d.instrument_id,\n            d.\"time\",\n            d.value_num,\n            lead(d.\"time\") OVER (PARTITION BY d.instrument_id ORDER BY d.\"time\") AS next_time\n           FROM (data d\n             JOIN server_param sp ON (((d.instrument_id = sp.instrument_id) AND (d.param_id = sp.param_id))))\n        )\n SELECT instrument_id,\n    \"time\" AS start_time,\n    next_time AS end_time\n   FROM server_events\n  WHERE ((value_num = (0)::double precision) AND (next_time IS NOT NULL));",
+          "value": " WITH server_param AS (\n         SELECT parameters.instrument_id,\n            parameters.param_id\n           FROM parameters\n          WHERE ((parameters.component = 'Server'::text) AND (parameters.param_name = 'Value'::text))\n        ), server_events AS (\n         SELECT d.instrument_id,\n            d.\"time\",\n            d.value_num,\n            lead(d.\"time\") OVER (PARTITION BY d.instrument_id ORDER BY d.\"time\") AS next_time\n           FROM (data d\n             JOIN server_param sp ON (((d.instrument_id = sp.instrument_id) AND (d.param_id = sp.param_id))))\n        )\n SELECT instrument_id,\n    \"time\" AS start_time,\n    next_time AS end_time\n   FROM server_events\n  WHERE ((value_num = (0)::double precision) AND (next_time IS NOT NULL));"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${source}"
+        },
+        "definition": "SELECT view_definition\nFROM timescaledb_information.continuous_aggregates\nWHERE format('%I.%I', view_schema, view_name) = '$viewname'\nUNION ALL\nSELECT definition\nFROM pg_matviews\nWHERE format('%I.%I', schemaname, matviewname) = '$viewname'",
+        "hide": 2,
+        "name": "definition",
+        "options": [],
+        "query": "SELECT view_definition\nFROM timescaledb_information.continuous_aggregates\nWHERE format('%I.%I', view_schema, view_name) = '$viewname'\nUNION ALL\nSELECT definition\nFROM pg_matviews\nWHERE format('%I.%I', schemaname, matviewname) = '$viewname'",
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timepicker": {
+    "hidden": true,
+    "refresh_intervals": []
+  },
+  "timezone": "Europe/London",
+  "title": "Views and aggregates",
+  "uid": "2ddfc99a-7e8a-556c-9f3f-b06c67af2509",
+  "version": 1
+}

@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 3,
+  "id": 35,
   "links": [
     {
       "asDropdown": false,
@@ -401,7 +401,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  j.job_id AS \"Job ID\",\n  regexp_replace(j.application_name, E'\\\\s*\\\\[\\\\d+\\\\]$', '') AS \"Type\",\n  j.proc_schema || '.' || j.proc_name AS \"Target method\",\n  CASE js.last_run_status\n    WHEN 'Success' THEN '✅'\n    WHEN 'Failed' THEN '❌'\n    ELSE '❓'\n  END AS \"Last run\",\n  js.job_status || ' (in ' || (js.next_start - now()) || ')' AS \"Status\"\nFROM timescaledb_information.jobs j\nJOIN timescaledb_information.job_stats js USING (job_id)\nORDER BY j.job_id\n",
+          "rawSql": "SELECT\n  j.job_id AS \"Job ID\",\n  regexp_replace(j.application_name, E'\\\\s*\\\\[\\\\d+\\\\]$', '') AS \"Type\",\n  j.proc_schema || '.' || j.proc_name AS \"Method\",\n  j.hypertable_schema || '.' || j.hypertable_name AS \"Target\",\n  CASE js.last_run_status\n    WHEN 'Success' THEN '✅'\n    WHEN 'Failed' THEN '❌'\n    ELSE '❓'\n  END AS \"Last run\",\n  js.job_status || ' (in ' || (js.next_start - now()) || ')' AS \"Status\"\nFROM timescaledb_information.jobs j\nJOIN timescaledb_information.job_stats js USING (job_id)\nORDER BY j.job_id\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -543,7 +543,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  j.job_id AS \"Job ID\",\n  j.proc_schema || '.' || j.proc_name AS \"Method\",\n  j.hypertable_schema || '.' || j.hypertable_name AS \"Target hypertable\",\n  ROUND(EXTRACT(EPOCH FROM js.last_run_duration) * 1000) || ' ms' AS \"Duration\",\n  j.schedule_interval AS \"Interval\",\n  j.config AS \"Config\",\n  CASE \n    WHEN js.last_run_status <> 'Success' THEN je.err_message\n    ELSE NULL\n  END AS \"Error message\"\nFROM timescaledb_information.jobs j\nLEFT JOIN timescaledb_information.job_stats js\n  ON j.job_id = js.job_id\nLEFT JOIN LATERAL (\n  SELECT err_message\n  FROM timescaledb_information.job_errors je\n  WHERE je.job_id = j.job_id\n  ORDER BY je.finish_time DESC\n  LIMIT 1\n) je ON true\nWHERE \n  COALESCE(NULLIF('$jobid', ''), NULL)::int IS NOT NULL\n  AND j.job_id = COALESCE(NULLIF('$jobid', ''), NULL)::int;\n",
+          "rawSql": "SELECT\n  j.job_id AS \"Job ID\",\n  j.proc_schema || '.' || j.proc_name AS \"Method\",\n  j.hypertable_schema || '.' || j.hypertable_name AS \"Target\",\n  ROUND(EXTRACT(EPOCH FROM js.last_run_duration) * 1000) || ' ms' AS \"Duration\",\n  j.schedule_interval AS \"Interval\",\n  j.config AS \"Config\",\n  CASE \n    WHEN js.last_run_status <> 'Success' THEN je.err_message\n    ELSE NULL\n  END AS \"Error message\"\nFROM timescaledb_information.jobs j\nLEFT JOIN timescaledb_information.job_stats js\n  ON j.job_id = js.job_id\nLEFT JOIN LATERAL (\n  SELECT err_message\n  FROM timescaledb_information.job_errors je\n  WHERE je.job_id = j.job_id\n  ORDER BY je.finish_time DESC\n  LIMIT 1\n) je ON true\nWHERE \n  COALESCE(NULLIF('$jobid', ''), NULL)::int IS NOT NULL\n  AND j.job_id = COALESCE(NULLIF('$jobid', ''), NULL)::int;\n",
           "refId": "A",
           "sql": {
             "columns": [
