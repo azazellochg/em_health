@@ -34,7 +34,9 @@ jobs:
           context: docker
           file: docker/Dockerfile
           push: true
-          tags: ${{ env.IMAGE_NAME }}:dev
+          tags: |
+            ${{ env.IMAGE_NAME }}:dev
+            ${{ env.IMAGE_NAME }}:latest
           platforms: linux/amd64
           cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:cache
           cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:cache,mode=max
