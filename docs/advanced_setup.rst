@@ -28,7 +28,7 @@ Instruments Configuration
 - **name**: custom field, used for display purposes. You can customize this.
 - **type**: database name. "tem" or "sem" only.
 - **template**: microscope platform. Allowed values are "krios", "talos" or "sem". Currently not in use.
-- **server**: Optional field. IP address of the microscope PC (#1 on the screenshot above). This is used to connect to MSSQL server on the MPC directly and import UEC.
+- **server**: Optional field. IP address of the microscope PC (#1 on the screenshot above). This is used to connect to MSSQL/PostgreSQL servers on the MPC directly.
 
 Security Configuration
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -40,7 +40,7 @@ See `docker/.env` for default values.
   - POSTGRES_USER (default: *postgres*) - superuser, password: POSTGRES_PASSWORD
   - *grafana* - read-only user, password: POSTGRES_GRAFANA_PASSWORD
   - [optional] *pganalyze* - database metrics user, password: POSTGRES_PGANALYZE_PASSWORD
-  - [optional] MSSQL_USER and MSSQL_PASSWORD are used to connect to the MSSQL database on the MPC
+  - [optional] MSSQL_USER and MSSQL_PASSWORD are used to connect to the MSSQL/PostgreSQL database on the MPC
 
 - Grafana accounts:
 

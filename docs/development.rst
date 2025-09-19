@@ -11,18 +11,27 @@ However, if you then update the provisioned dashboards (e.g. via `pip install -U
 `here <https://grafana.com/docs/grafana/latest/administration/provisioning/#make-changes-to-a-provisioned-dashboard>`_. The workaround is the following:
 
 1. Make changes to a dashboard via Grafana UI.
-2. Save and export dashboard to JSON (DO NOT enable `Export the dashboard to use in another instance`).
+2. Save and export dashboard to JSON (DO NOT check `Export the dashboard to use in another instance`).
 3. Overwrite existing dashboard file (they are in `docker/grafana/provisioning/dashboards/`) with the saved json file.
 
 Any file changes in the provisioning folder are immediately picked up by Grafana. There's no need to restart it.
 
-.. important:: Renaming provisioned dashboards or folders is strongly discouraged. If you really need to do it, modify the provisioned files directly. Also, nested folders are not yet supported by provisioning.
+There are a few other limitations:
+
+* You cannot create nested folders for dashboards. Only single level depth is supported.
+* You should not rename dashboards or folders via GUI as this will conflict with provisioned files. Do it directly on the files if really needed.
+* Some provisioned resources (alerts, contact points, datasources) cannot be modified from the GUI. You can create new ones though.
 
 
 Enable performance metrics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-After installation you can enable DB performance monitoring. Generally, this is only required for a developer setup: `emhealth db create-perf-stats -f`.
+After installation you can enable DB performance monitoring. Generally, this is only required for a developer setup:
+
+.. code-block::
+
+    emhealth db create-perf-stats -f
+
 This will create a separate *pganalyze* account for TimescaleDB and schedule statistics collection.
 The output is used in dashboards under *DB performance* folder.
 
@@ -107,12 +116,12 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
     * error_definitions
     * errors - main UEC data table for all instruments
 
-* fdw_ms_IID - foreign server schema for MSSQL with UECs
+* fdw_ms_IID - foreign server schema for MSSQL with UECs (for each IID)
 
     * error_definitions
     * error_notifications
 
-* fdw_pg_IID - foreign server schema for PostgreSQL with HM data
+* fdw_pg_IID - foreign server schema for PostgreSQL with HM data (for each IID)
 
     * event_property
     * event_property_type

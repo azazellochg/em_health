@@ -6,7 +6,7 @@ on the microscope PC (MPC). This data includes event logging (Health Monitor), s
 The `Data Services` backend uses Microsoft SQL Server (and PostgreSQL on new systems) with several databases.
 
 Various applications like Health Monitor, FEI Viewer, UEC viewer, and D2i Data Collector access this data. Since the
-`Data Services` API is proprietary and TFS does not provide remote SQL server access, data can only be accessed
+`Data Services` API is proprietary and TFS does not provide SQL server credentials, data can only be accessed
 through Health Monitor (HM). The HM client is installed on MPC and optionally on support PCs, allowing connection to
 `Data Services` to view and export data in XML or CSV formats.
 
@@ -23,12 +23,12 @@ Typical Setup
    - Health Monitor client
    - Scheduled task for continuous data export to a location shared with Linux PC
 
-.. tip:: A single support PC with Health Monitor can connect to different microscopes if they are all on the same network.
+.. tip:: A single Health Monitor client (e.g. on a support PC) can connect to different microscopes if they are all on the same network.
    
 2. Linux PC running ``EMHealth`` with:
 
    - Access to the shared directory with exported files
-   - Watchdog service monitoring for modified XML files
+   - Watchdog service monitoring modified XML files
    - Automatic data import pipeline
 
 Prerequisites
@@ -41,8 +41,8 @@ Requirements for ``EMHeath`` package:
 - `docker <https://docs.docker.com/compose/install/>`_
 - `psql <https://www.timescale.com/blog/how-to-install-psql-on-mac-ubuntu-debian-windows>`_
 
-The rest is managed by conda environment below. It's recommended to
-manage docker as non-root user, see `details <https://docs.docker.com/engine/install/linux-postinstall/>`_
+The rest is managed by Docker and Conda environment. It's recommended to
+manage Docker as a non-root user, see `details <https://docs.docker.com/engine/install/linux-postinstall/>`_
 
 Installation
 ^^^^^^^^^^^^
@@ -70,7 +70,7 @@ Data Import
 Historical Data Import
 ~~~~~~~~~~~~~~~~~~~~~~
 
-1. [Windows] Export XML data from Health Monitor (GUI or CLI). Be aware, an instrument can have several associated DataSources (for HM, APM, AutoCTF, AutoStar, ToolReadiness, Velox etc). You need to select one that has `Software->Server` parameter.
+1. [Windows] Export XML data from Health Monitor (via GUI or CLI). Be aware, an instrument can have several associated DataSources (for HM, APM, AutoCTF, AutoStar, ToolReadiness, Velox etc). You need to select one that has `Software->Server` parameter.
 
 a. Choose a date range, e.g. 1 month.
 b. Select ALL parameters.
@@ -79,7 +79,7 @@ d. Press **Save**.
 
 .. image:: /_static/HM_export.png
 
-.. note:: If you select a very large date range, the export may fail.
+.. note:: If you select a very large date range, the export may fail. Also, new systems like Krios G4 have thousands of parameters, you should split export to several shorter time ranges.
 
 2. Transfer file.xml to Linux and compress it using GZIP (`gzip file.xml`). This reduces the file size >10 times.
 3. Configure instruments in `instruments.json`. See `help <advanced_setup.html#instruments-configuration>`_ for details

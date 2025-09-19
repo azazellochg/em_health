@@ -8,8 +8,7 @@ Once you login into Grafana at http://localhost:3000, you may want to adjust the
 Navigate to `Administration > General > Default preferences` where you can set the interface theme, week start etc.
 We recommend to set Home Dashboard to **TEM/Fleet overview**.
 
-At the moment, all dashboards are grouped into TEM, SEM and DB performance folders. Most likely, you are going to use
-only TEM dasboards which we will describe below.
+At the moment, all dashboards are grouped into TEM, SEM and DB performance folders.
 
 TEM dashboards
 ~~~~~~~~~~~~~~
@@ -93,13 +92,10 @@ Is mostly useful for visualizing raw data from the database
 
 .. image:: /_static/dash-browser.png
 
-Alerts
-------
-
-tbd
-
 Import Alarms
 -------------
+
+.. note:: This functionality is still in development
 
 Universal Error Codes (UECs) or Alarms from an instrument are stored in a database separate from Health Monitor events and
 can be typically displayed with UEC Viewer on the MPC. You could also install *FEI UEC Notifications Exporter* and save UECs to XML,
