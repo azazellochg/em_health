@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 36,
+  "id": 40,
   "links": [
     {
       "asDropdown": false,
@@ -68,7 +68,7 @@
       },
       "gridPos": {
         "h": 6,
-        "w": 6,
+        "w": 5,
         "x": 0,
         "y": 0
       },
@@ -153,9 +153,9 @@
       },
       "gridPos": {
         "h": 6,
-        "w": 24,
-        "x": 0,
-        "y": 6
+        "w": 19,
+        "x": 5,
+        "y": 0
       },
       "id": 1,
       "maxPerRow": 4,
@@ -221,7 +221,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 12
+        "y": 6
       },
       "id": 8,
       "panels": [],
@@ -270,7 +270,7 @@
         "h": 8,
         "w": 3,
         "x": 0,
-        "y": 13
+        "y": 7
       },
       "id": 4,
       "options": {
@@ -374,7 +374,7 @@
         "h": 8,
         "w": 21,
         "x": 3,
-        "y": 13
+        "y": 7
       },
       "id": 5,
       "interval": "10m",
@@ -463,7 +463,7 @@
         "h": 10,
         "w": 3,
         "x": 0,
-        "y": 21
+        "y": 15
       },
       "id": 17,
       "options": {
@@ -574,7 +574,7 @@
         "h": 10,
         "w": 21,
         "x": 3,
-        "y": 21
+        "y": 15
       },
       "id": 2,
       "options": {
@@ -684,7 +684,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 31
+        "y": 25
       },
       "id": 3,
       "options": {
@@ -740,7 +740,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 40
+        "y": 34
       },
       "id": 7,
       "panels": [],
@@ -785,10 +785,23 @@
               {
                 "id": "unit",
                 "value": "decbytes"
-              },
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Name"
+            },
+            "properties": [
               {
-                "id": "custom.width",
-                "value": 100
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Show index details",
+                    "url": "/d/${__dashboard.uid}/${__dashboard}?var-index=${__data.fields.ID}&var-index_name=${__data.fields.Name}&${table:queryparam}"
+                  }
+                ]
               }
             ]
           },
@@ -799,27 +812,18 @@
             },
             "properties": [
               {
-                "id": "links",
-                "value": [
-                  {
-                    "title": "Show index details",
-                    "url": "/d/${__dashboard.uid}/${__dashboard}?var-index=${__data.fields.ID}&${table:queryparam}"
-                  }
-                ]
-              },
-              {
-                "id": "custom.width",
-                "value": 100
+                "id": "custom.hidden",
+                "value": true
               }
             ]
           }
         ]
       },
       "gridPos": {
-        "h": 8,
-        "w": 9,
+        "h": 6,
+        "w": 24,
         "x": 0,
-        "y": 41
+        "y": 35
       },
       "id": 6,
       "options": {
@@ -845,7 +849,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT DISTINCT ON (i.indexrelid)\n    i.indexrelid AS \"ID\",\n    c.relname AS \"Name\",\n    i.size_bytes AS \"Size\"\nFROM pganalyze.index_stats i\nJOIN pg_class c ON c.oid = i.indexrelid\nWHERE i.relid = format('%I.%I', '$schema', '$table')::regclass::oid\nORDER BY i.indexrelid, i.collected_at DESC;\n\n",
+          "rawSql": "WITH index_list AS (\n    SELECT DISTINCT ON (i.indexrelid)\n        i.indexrelid AS index_id,\n        c.relname    AS index_name,\n        i.size_bytes AS size_bytes\n    FROM pganalyze.index_stats i\n    JOIN pg_class c ON c.oid = i.indexrelid\n    WHERE i.relid = format('%I.%I', '$schema', '$table')::regclass::oid\n    ORDER BY i.indexrelid, i.collected_at DESC\n)\nSELECT\n    il.index_id   AS \"ID\",\n    il.index_name AS \"Name\",\n    am.amname || ' (' || string_agg(pg_get_indexdef(il.index_id, k + 1, true), ', ') || ')' AS \"Definition\",\n    CASE\n        WHEN ix.indisprimary THEN 'PRIMARY KEY'\n        WHEN ix.indisunique  THEN 'UNIQUE'\n        ELSE NULL\n    END AS \"Constraint\",\n    il.size_bytes AS \"Size\"\nFROM index_list il\nJOIN pg_index ix ON ix.indexrelid = il.index_id\nJOIN pg_am am    ON am.oid = (SELECT relam FROM pg_class WHERE oid = il.index_id)\nCROSS JOIN LATERAL generate_subscripts(ix.indkey, 1) AS k\nGROUP BY il.index_id, il.index_name, il.size_bytes, am.amname, ix.indisprimary, ix.indisunique\nORDER BY il.index_id;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -928,8 +932,8 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 5,
-        "x": 9,
+        "w": 8,
+        "x": 0,
         "y": 41
       },
       "id": 9,
@@ -978,7 +982,7 @@
           }
         }
       ],
-      "title": "Index size $index",
+      "title": "Index size: $index_name",
       "type": "timeseries"
     },
     {
@@ -1039,8 +1043,8 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 5,
-        "x": 14,
+        "w": 8,
+        "x": 8,
         "y": 41
       },
       "id": 10,
@@ -1089,7 +1093,7 @@
           }
         }
       ],
-      "title": "Index scans $index",
+      "title": "Index scans: $index_name",
       "type": "timeseries"
     },
     {
@@ -1152,8 +1156,8 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 5,
-        "x": 19,
+        "w": 8,
+        "x": 16,
         "y": 41
       },
       "id": 11,
@@ -1202,7 +1206,7 @@
           }
         }
       ],
-      "title": "Index hits & reads $index",
+      "title": "Index hits & reads: $index_name",
       "type": "timeseries"
     },
     {
@@ -1786,11 +1790,23 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "18841",
-          "value": "18841"
+          "text": "18829",
+          "value": "18829"
         },
         "hide": 2,
         "name": "index",
+        "options": [],
+        "query": "",
+        "type": "custom"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "data_time_instrument_id_param_id_key",
+          "value": "data_time_instrument_id_param_id_key"
+        },
+        "hide": 2,
+        "name": "index_name",
         "options": [],
         "query": "",
         "type": "custom"
@@ -1842,5 +1858,5 @@
   "timezone": "Europe/London",
   "title": "Schema statistics",
   "uid": "46837677-7190-44c2-b9bb-db869089ba49",
-  "version": 1
+  "version": 13
 }
