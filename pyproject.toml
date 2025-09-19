@@ -44,7 +44,8 @@ em_health = [
     "instruments.json",
     "sql/*/*.sql",
     "sql/*.sql",
-    "tests/*.xml"
+    "tests/*.xml",
+    "tests/pgtap/*.sql"
 ]
 
 [tool.setuptools]
