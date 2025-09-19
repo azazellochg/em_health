@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(34);
+SELECT plan(36);
 
 ---------------------------
 -- EXTENSION TESTS
@@ -52,6 +52,8 @@ SELECT has_table('pganalyze','database_stats','pganalyze.database_stats exists')
 SELECT has_table('pganalyze','table_stats','pganalyze.table_stats exists');
 SELECT has_table('pganalyze','index_stats','pganalyze.index_stats exists');
 SELECT has_table('pganalyze','vacuum_stats','pganalyze.vacuum_stats exists');
+SELECT has_table('pganalyze','queries','pganalyze.queries exists');
+SELECT has_table('pganalyze','stat_snapshots','pganalyze.stat_snapshots exists');
 SELECT has_table('pganalyze','stat_statements','pganalyze.stat_statements exists');
 SELECT has_table('pganalyze','stat_explains','pganalyze.stat_explains exists');
 SELECT has_table('pganalyze','sys_stats','pganalyze.sys_stats exists');

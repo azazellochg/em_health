@@ -20,13 +20,13 @@ SELECT has_trigger('public', 'parameters', 'parameters_log_after_update', 'param
 ---------------------------
 -- PGANALYZE FUNCTIONS
 ---------------------------
-SELECT has_function('pganalyze', 'get_db_stats', ARRAY['int', 'jsonb'], 'enum_values_upsert_before_insert exists');
-SELECT has_function('pganalyze', 'get_table_stats', ARRAY['int', 'jsonb'], 'parameters_upsert_before_insert exists');
-SELECT has_function('pganalyze', 'get_index_stats', ARRAY['int', 'jsonb'], 'enum_values_log_after_update exists');
-SELECT has_function('pganalyze', 'get_stat_statements', ARRAY['int', 'jsonb'], 'parameters_log_after_update exists');
-SELECT has_function('pganalyze', 'parse_logs', ARRAY['int', 'jsonb'], 'parameters_log_after_update exists');
-SELECT has_function('pganalyze', 'parse_sysinfo', ARRAY['int', 'jsonb'], 'parameters_log_after_update exists');
-SELECT has_function('pganalyze', 'purge_stats', ARRAY['int', 'jsonb'], 'parameters_log_after_update exists');
+SELECT has_function('pganalyze', 'get_db_stats', ARRAY['int', 'jsonb'], 'get_db_stats exists');
+SELECT has_function('pganalyze', 'get_table_stats', ARRAY['int', 'jsonb'], 'get_table_stats exists');
+SELECT has_function('pganalyze', 'get_index_stats', ARRAY['int', 'jsonb'], 'get_index_stats exists');
+SELECT has_function('pganalyze', 'get_stat_statements', ARRAY['int', 'jsonb'], 'get_stat_statements exists');
+SELECT has_function('pganalyze', 'parse_logs', ARRAY['int', 'jsonb'], 'parse_logs exists');
+SELECT has_function('pganalyze', 'parse_sysinfo', ARRAY['int', 'jsonb'], 'parse_sysinfo exists');
+SELECT has_function('pganalyze', 'purge_stats', ARRAY['int', 'jsonb'], 'purge_stats exists');
 
 ---------------------------
 -- FINISH
