@@ -23,7 +23,7 @@ It offers flexible options to import Health Monitor data - either manually or
 automatically - and provides tools to query, visualize, and set up alerts. With integrated
 interactive Grafana dashboards, it helps you easily analyze and understand your system metrics.
 
-.. image:: https://em_health.readthedocs.io/_static/dash-overview.png
+.. image:: https://em-health.readthedocs.io/en/latest/_images/dash-overview.png
 
 .. important:: The package is still in active development, not recommended for production use.
 
@@ -32,4 +32,4 @@ Documentation
 
 The source code is available at https://github.com/azazellochg/em_health
 
-The documentation can be found at https://em_health.readthedocs.io
+The documentation can be found at https://em-health.readthedocs.io

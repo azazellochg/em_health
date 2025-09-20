@@ -2,7 +2,7 @@
 name: master to pypi with comments and tag
 on:
   push:
-    branches: [ master1 ]  # FIXME when ready
+    branches: [ master ]
 jobs:
   deploy:
     runs-on: ubuntu-latest
