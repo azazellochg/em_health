@@ -29,7 +29,7 @@ dev = ["mypy", "memory-profiler"]
 
 [project.urls]
 Homepage = "https://github.com/azazellochg/em_health"
-Documentation = "https://em_health.readthedocs.io"
+Documentation = "https://em-health.readthedocs.io"
 Issues = "https://github.com/azazellochg/em_health/issues"
 
 [project.scripts]
