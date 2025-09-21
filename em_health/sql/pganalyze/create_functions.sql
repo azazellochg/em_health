@@ -151,7 +151,7 @@ BEGIN
         SELECT *
         FROM public.pg_stat_statements s
                  JOIN pg_database d ON d.oid = s.dbid
-        WHERE userid = 'grafana'::regrole::oid
+        WHERE userid IN ('grafana'::regrole::oid, 'emhealth'::regrole::oid)
           AND queryid IS NOT NULL
           AND d.datname = current_database()
     ),

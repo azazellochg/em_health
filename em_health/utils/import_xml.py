@@ -288,7 +288,10 @@ def main(xml_fn, json_fn, nocopy):
         xmlparser.parse_parameters()
         instr_dict = xmlparser.get_microscope_dict()
 
-        with DatabaseManager(xmlparser.db_name) as dbm:
+        pwd = os.getenv("POSTGRES_EMHEALTH_PASSWORD")
+        with DatabaseManager(xmlparser.db_name,
+                             username="emhealth",
+                             password=pwd) as dbm:
             instrument_id = dbm.add_instrument(instr_dict)
             enum_ids = dbm.add_enumerations(instrument_id, xmlparser.enum_values)
             dbm.add_parameters(instrument_id, xmlparser.params, enum_ids)

@@ -139,6 +139,10 @@ SELECT enable_chunk_skipping('public.data', 'param_id');
 CREATE INDEX ON public.data (instrument_id, param_id, time ASC);
 CALL add_columnstore_policy('public.data', after => INTERVAL :var_data_compression);
 
-GRANT USAGE ON SCHEMA public TO grafana;
+GRANT USAGE ON SCHEMA public TO grafana, emhealth;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO grafana;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO grafana;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO emhealth;
+GRANT TRUNCATE ON TABLE public.data_staging TO emhealth;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO emhealth;
