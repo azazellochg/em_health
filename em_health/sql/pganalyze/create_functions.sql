@@ -203,6 +203,7 @@ BEGIN
         pganalyze.stat_statements
     SELECT
         snapshot_time,
+        userid,
         queryid,
         plans,
         calls,

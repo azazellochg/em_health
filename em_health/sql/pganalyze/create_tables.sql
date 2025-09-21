@@ -102,6 +102,7 @@ CREATE TABLE IF NOT EXISTS pganalyze.queries (
 
 CREATE TABLE pganalyze.stat_statements (
                                            collected_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+                                           userid                  OID         NOT NULL,
                                            queryid                 BIGINT NOT NULL REFERENCES pganalyze.queries(queryid) ON DELETE CASCADE,
                                            plans                   BIGINT      NOT NULL,
                                            calls                   BIGINT      NOT NULL,
@@ -124,7 +125,7 @@ CREATE TABLE pganalyze.stat_statements (
                                            wal_records             BIGINT      NOT NULL,
                                            wal_fpi                 BIGINT      NOT NULL,
                                            wal_bytes               NUMERIC     NOT NULL,
-                                           PRIMARY KEY (collected_at, queryid)
+                                           PRIMARY KEY (collected_at, userid, queryid)
 ) WITH (
                                              tsdb.hypertable,
                                              tsdb.chunk_interval=:var_pgstats_chunk_size,

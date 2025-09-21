@@ -17,4 +17,4 @@ CREATE EXTENSION IF NOT EXISTS postgres_fdw;
 \i /sql/pganalyze/create_functions.sql
 
 -- set current schema version --
-INSERT INTO public.schema_info (version) VALUES (1);
+INSERT INTO public.schema_info (version) VALUES (2);
