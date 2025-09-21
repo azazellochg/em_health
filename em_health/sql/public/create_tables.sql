@@ -1,14 +1,3 @@
--- Creating extensions ----------------------------------------------------------------------------
-CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE ;
-CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit CASCADE;
-CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
-CREATE EXTENSION IF NOT EXISTS pgstattuple;
-CREATE EXTENSION IF NOT EXISTS pgtap;
-CREATE EXTENSION IF NOT EXISTS tds_fdw;
-CREATE EXTENSION IF NOT EXISTS postgres_fdw;
-
-
--- public schema ----------------------------------------------------------------------------------
 -- Creating public.schema_info
 CREATE TABLE IF NOT EXISTS public.schema_info (
                                                   version int PRIMARY KEY,
@@ -45,7 +34,7 @@ COMMENT ON TABLE public.enum_types IS 'HM IntEnum names. Each instrument has its
 CREATE INDEX ON public.enum_types (instrument_id, name);
 
 -- Creating public.enum_values
-CREATE TABLE public.enum_values (
+CREATE TABLE IF NOT EXISTS public.enum_values (
                                     enum_id INTEGER NOT NULL REFERENCES public.enum_types(id) ON DELETE CASCADE,
                                     member_name TEXT NOT NULL,
                                     value INTEGER NOT NULL,
@@ -56,7 +45,7 @@ COMMENT ON TABLE public.enum_values IS 'HM IntEnum values for each enumeration';
 CREATE INDEX ON public.enum_values (member_name, enum_id);
 
 -- Creating public.enum_values_history
-CREATE TABLE public.enum_values_history (
+CREATE TABLE IF NOT EXISTS public.enum_values_history (
                                             enum_id INTEGER NOT NULL REFERENCES public.enum_types(id) ON DELETE CASCADE,
                                             inserted TIMESTAMPTZ NOT NULL DEFAULT now(),
                                             member_name TEXT NOT NULL,
@@ -137,7 +126,7 @@ CREATE TABLE IF NOT EXISTS public.data (
                                            UNIQUE (time, instrument_id, param_id)
 ) WITH (
                                              tsdb.hypertable,
-                                             tsdb.chunk_interval='3 days',
+                                             tsdb.chunk_interval=:var_data_chunk_size,
                                              tsdb.partition_column='time',
                                              tsdb.segmentby='instrument_id,param_id',
                                              tsdb.orderby='time ASC',
@@ -148,197 +137,8 @@ COMMENT ON TABLE public.data IS 'Main time series table with HM events';
 SELECT enable_chunk_skipping('public.data', 'instrument_id');
 SELECT enable_chunk_skipping('public.data', 'param_id');
 CREATE INDEX ON public.data (instrument_id, param_id, time ASC);
-CALL add_columnstore_policy('public.data', after => INTERVAL '7 days');
+CALL add_columnstore_policy('public.data', after => INTERVAL :var_data_compression);
 
 GRANT USAGE ON SCHEMA public TO grafana;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO grafana;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO grafana;
-
-
--- uec tables -------------------------------------------------------------------------------------
-CREATE SCHEMA IF NOT EXISTS uec;
-
--- Creating uec.device_type
-CREATE TABLE IF NOT EXISTS uec.device_type (
-                                               DeviceTypeID INTEGER PRIMARY KEY,
-                                               IdentifyingName TEXT NOT NULL UNIQUE
-);
-
--- Creating uec.device_instance
-CREATE TABLE IF NOT EXISTS uec.device_instance (
-                                                   DeviceInstanceID INTEGER NOT NULL,
-                                                   DeviceTypeID INTEGER NOT NULL REFERENCES uec.device_type(DeviceTypeID),
-                                                   IdentifyingName TEXT NOT NULL,
-                                                   PRIMARY KEY (DeviceInstanceID, DeviceTypeID),
-                                                   UNIQUE (DeviceTypeID, IdentifyingName)
-);
-
--- Creating uec.error_code
-CREATE TABLE IF NOT EXISTS uec.error_code (
-                                              DeviceTypeID INTEGER NOT NULL REFERENCES uec.device_type(DeviceTypeID),
-                                              ErrorCodeID INTEGER NOT NULL,
-                                              IdentifyingName TEXT NOT NULL,
-                                              PRIMARY KEY (DeviceTypeID, ErrorCodeID)
-);
-
--- Creating uec.subsystem
-CREATE TABLE IF NOT EXISTS uec.subsystem (
-                                             SubsystemID INTEGER PRIMARY KEY,
-                                             IdentifyingName TEXT NOT NULL UNIQUE
-);
-
--- Creating uec.error_definitions
-CREATE TABLE IF NOT EXISTS uec.error_definitions (
-                                                     ErrorDefinitionID INTEGER PRIMARY KEY,
-                                                     SubsystemID INTEGER NOT NULL REFERENCES uec.subsystem(SubsystemID),
-                                                     DeviceTypeID INTEGER NOT NULL REFERENCES uec.device_type(DeviceTypeID),
-                                                     ErrorCodeID INTEGER NOT NULL,
-                                                     DeviceInstanceID INTEGER NOT NULL,
-                                                     UNIQUE (ErrorCodeID, SubsystemID, DeviceTypeID, DeviceInstanceID),
-                                                     CONSTRAINT fk_error_definitions_device_instance
-                                                         FOREIGN KEY (DeviceInstanceID, DeviceTypeID)
-                                                             REFERENCES uec.device_instance(DeviceInstanceID, DeviceTypeID),
-                                                     CONSTRAINT fk_error_definitions_error_code
-                                                         FOREIGN KEY (DeviceTypeID, ErrorCodeID)
-                                                             REFERENCES uec.error_code(DeviceTypeID, ErrorCodeID)
-);
-
--- Creating uec.errors
-CREATE TABLE IF NOT EXISTS uec.errors (
-                                          Time TIMESTAMPTZ NOT NULL,
-                                          InstrumentID INTEGER NOT NULL REFERENCES public.instruments(id) ON DELETE CASCADE,
-                                          ErrorID INTEGER NOT NULL REFERENCES uec.error_definitions(ErrorDefinitionID) ON DELETE CASCADE,
-                                          MessageText TEXT,
-                                          UNIQUE (Time, InstrumentID, ErrorID)
-);
-
-CREATE INDEX idx_errors_instrument_time ON uec.errors (InstrumentID, Time ASC);
-
-GRANT USAGE ON SCHEMA uec TO grafana;
-GRANT SELECT ON ALL TABLES IN SCHEMA uec TO grafana;
-ALTER DEFAULT PRIVILEGES IN SCHEMA uec GRANT SELECT ON TABLES TO grafana;
-
-
--- functions and triggers -------------------------------------------------------------------------
-
--- BEFORE INSERT triggers: upsert logic
-
--- Creating trigger enum_values_upsert_before_insert()
-CREATE OR REPLACE FUNCTION enum_values_upsert_before_insert()
-    RETURNS trigger AS $$
-BEGIN
-    IF EXISTS (
-        SELECT 1
-        FROM public.enum_values
-        WHERE enum_id = NEW.enum_id
-          AND member_name = NEW.member_name
-    ) THEN
-        UPDATE public.enum_values
-        SET value = NEW.value
-        WHERE enum_id = NEW.enum_id
-          AND member_name = NEW.member_name;
-        RETURN NULL; -- skip the insert
-    ELSE
-        RETURN NEW; -- proceed with insert
-    END IF;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER enum_values_upsert_before_insert
-BEFORE INSERT ON public.enum_values
-FOR EACH ROW
-EXECUTE FUNCTION enum_values_upsert_before_insert();
-
-
--- Creating trigger parameters_upsert_before_insert()
-CREATE OR REPLACE FUNCTION parameters_upsert_before_insert()
-RETURNS trigger AS $$
-BEGIN
-    -- If exists, update instead of insert
-    IF EXISTS (
-        SELECT 1
-        FROM public.parameters
-        WHERE instrument_id = NEW.instrument_id
-          AND param_id = NEW.param_id
-    ) THEN
-        UPDATE public.parameters
-        SET subsystem = NEW.subsystem,
-            component = NEW.component,
-            param_name = NEW.param_name,
-            display_name = NEW.display_name,
-            display_unit = NEW.display_unit,
-            storage_unit = NEW.storage_unit,
-            enum_id = NEW.enum_id,
-            value_type = NEW.value_type,
-            event_id = NEW.event_id,
-            event_name = NEW.event_name,
-            abs_min = NEW.abs_min,
-            abs_max = NEW.abs_max
-        WHERE instrument_id = NEW.instrument_id
-          AND param_id = NEW.param_id;
-        RETURN NULL; -- skip insert
-    ELSE
-        RETURN NEW; -- proceed with insert
-    END IF;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER parameters_upsert_before_insert
-BEFORE INSERT ON public.parameters
-FOR EACH ROW
-EXECUTE FUNCTION parameters_upsert_before_insert();
-
-
--- AFTER UPDATE triggers: log old values to history
-
--- Creating trigger enum_values_log_after_update()
-CREATE OR REPLACE FUNCTION enum_values_log_after_update()
-    RETURNS trigger AS $$
-BEGIN
-    IF ROW(OLD.*) IS DISTINCT FROM ROW(NEW.*) THEN
-        INSERT INTO public.enum_values_history (enum_id, member_name, value)
-        VALUES (OLD.enum_id,OLD.member_name, OLD.value);
-        RAISE NOTICE 'Updated enum_values for enum_id %', OLD.enum_id;
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER enum_values_log_after_update
-AFTER UPDATE ON public.enum_values
-FOR EACH ROW
-EXECUTE FUNCTION enum_values_log_after_update();
-
-
--- Creating trigger parameters_log_after_update()
-CREATE OR REPLACE FUNCTION parameters_log_after_update()
-RETURNS trigger AS $$
-BEGIN
-    IF ROW(OLD.*) IS DISTINCT FROM ROW(NEW.*) THEN
-        INSERT INTO public.parameters_history (
-            instrument_id, param_id, subsystem, component, param_name, display_name,
-            display_unit, storage_unit, enum_id, value_type, event_id, event_name,
-            abs_min, abs_max
-        )
-        VALUES (
-            OLD.instrument_id, OLD.param_id, OLD.subsystem, OLD.component, OLD.param_name, OLD.display_name,
-            OLD.display_unit, OLD.storage_unit, OLD.enum_id, OLD.value_type, OLD.event_id, OLD.event_name,
-            OLD.abs_min, OLD.abs_max
-        );
-
-        RAISE NOTICE 'Updated parameter % (instrument %)', NEW.param_id, NEW.instrument_id;
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER parameters_log_after_update
-AFTER UPDATE ON public.parameters
-FOR EACH ROW
-EXECUTE FUNCTION parameters_log_after_update();
-
-
--- set schema version
-INSERT INTO schema_info (version) VALUES (1);

@@ -26,7 +26,6 @@
 
 import os
 
-import psycopg.errors
 from datetime import datetime, timezone
 from typing import Iterable, Optional, Any
 

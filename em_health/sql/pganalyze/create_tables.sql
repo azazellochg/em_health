@@ -86,14 +86,14 @@ CREATE TABLE pganalyze.stat_snapshots (
                                            stats_reset             TIMESTAMPTZ NOT NULL
 ) WITH (
                                              tsdb.hypertable,
-                                             tsdb.chunk_interval=:TBL_SNAPSHOTS_CHUNK_SIZE,
+                                             tsdb.chunk_interval=:var_pgsnaps_chunk_size,
                                              tsdb.partition_column='collected_at',
                                              tsdb.orderby='collected_at ASC',
                                              tsdb.create_default_indexes=false
                                              );
 
-CALL add_columnstore_policy('pganalyze.stat_snapshots', after => INTERVAL '7 days');
-SELECT add_retention_policy('pganalyze.stat_snapshots', drop_after => INTERVAL :TBL_STATS_RETENTION);
+CALL add_columnstore_policy('pganalyze.stat_snapshots', after => INTERVAL :var_pgstats_compression);
+SELECT add_retention_policy('pganalyze.stat_snapshots', drop_after => INTERVAL :var_pgstats_retention);
 
 CREATE TABLE IF NOT EXISTS pganalyze.queries (
                                                  queryid BIGINT NOT NULL PRIMARY KEY,
@@ -127,7 +127,7 @@ CREATE TABLE pganalyze.stat_statements (
                                            PRIMARY KEY (collected_at, queryid)
 ) WITH (
                                              tsdb.hypertable,
-                                             tsdb.chunk_interval=:TBL_STATEMENTS_CHUNK_SIZE,
+                                             tsdb.chunk_interval=:var_pgstats_chunk_size,
                                              tsdb.partition_column='collected_at',
                                              tsdb.segmentby='queryid',
                                              tsdb.orderby='collected_at ASC',
@@ -136,8 +136,8 @@ CREATE TABLE pganalyze.stat_statements (
 
 CREATE INDEX IF NOT EXISTS stat_statements_queryid_time ON pganalyze.stat_statements (queryid, collected_at ASC);
 
-CALL add_columnstore_policy('pganalyze.stat_statements', after => INTERVAL '7 days');
-SELECT add_retention_policy('pganalyze.stat_statements', drop_after => INTERVAL :TBL_STATS_RETENTION);
+CALL add_columnstore_policy('pganalyze.stat_statements', after => INTERVAL :var_pgstats_compression);
+SELECT add_retention_policy('pganalyze.stat_statements', drop_after => INTERVAL :var_pgstats_retention);
 
 CREATE TABLE pganalyze.stat_explains (
                                          time           TIMESTAMPTZ NOT NULL,

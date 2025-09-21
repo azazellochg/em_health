@@ -182,5 +182,6 @@ class PgClient(BaseDBClient):
             return self.cur.fetchall()
         elif mode == "commit":
             self.conn.commit()
+            return None
         else:
             return None

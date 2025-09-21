@@ -11,7 +11,7 @@ copyright = '2023-2025, Grigory Sharov'
 author = 'Grigory Sharov'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1a1'
+release = '0.1a2'
 
 # -- General configuration ---------------------------------------------------
 # If your documentation needs a minimal Sphinx version, state it here.

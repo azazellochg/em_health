@@ -383,39 +383,36 @@ CREATE FUNCTION pganalyze.purge_stats(job_id int, config jsonb)
     RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
 AS $$
+DECLARE
+    drop_after interval;
 BEGIN
+    SELECT jsonb_object_field_text (config, 'drop_after')::interval
+    INTO STRICT drop_after;
+
+    IF drop_after IS NULL THEN
+        RAISE EXCEPTION 'Config must have drop_after';
+    END IF;
+
     DELETE FROM pganalyze.database_stats
-    WHERE collected_at < NOW() - INTERVAL :TBL_STATS_RETENTION;
+    WHERE collected_at < NOW() - drop_after;
 
     DELETE FROM pganalyze.table_stats
-    WHERE collected_at < NOW() - INTERVAL :TBL_STATS_RETENTION;
+    WHERE collected_at < NOW() - drop_after;
 
     DELETE FROM pganalyze.index_stats
-    WHERE collected_at < NOW() - INTERVAL :TBL_STATS_RETENTION;
+    WHERE collected_at < NOW() - drop_after;
 
     DELETE FROM pganalyze.vacuum_stats
-    WHERE started_at < NOW() - INTERVAL :TBL_STATS_RETENTION;
+    WHERE started_at < NOW() - drop_after;
 
     DELETE FROM pganalyze.stat_explains
-    WHERE time < NOW() - INTERVAL :TBL_STATS_RETENTION;
+    WHERE time < NOW() - drop_after;
 
     DELETE FROM pganalyze.sys_stats
-    WHERE time < NOW() - INTERVAL :TBL_STATS_RETENTION;
+    WHERE time < NOW() - drop_after;
 END;
 $$;
 
--- Create a separate pganalyze user
-DO $$
-    BEGIN
-        IF NOT EXISTS (
-            SELECT 1 FROM pg_roles WHERE rolname = 'pganalyze'
-        ) THEN
-            CREATE ROLE pganalyze WITH LOGIN PASSWORD :POSTGRES_PGANALYZE_PASSWORD CONNECTION LIMIT 5;
-        END IF;
-    END;
-$$;
-
-GRANT pg_monitor TO pganalyze;
 GRANT USAGE ON SCHEMA pganalyze TO pganalyze;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA pganalyze TO pganalyze;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA pganalyze TO pganalyze;

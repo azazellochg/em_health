@@ -26,14 +26,8 @@ There are a few other limitations:
 Enable performance metrics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-After installation you can enable DB performance monitoring. Generally, this is only required for a developer setup:
-
-.. code-block::
-
-    emhealth db create-perf-stats -f
-
-This will create a separate *pganalyze* account for TimescaleDB and schedule statistics collection.
-The output is used in dashboards under *DB performance* folder.
+After installation the DB performance monitoring is enabled by default.
+You can check the dashboards under *DB performance* folder.
 
 Performance statistics is inspired by `Pganalyze <https://pganalyze.com/>`_ and includes:
 
