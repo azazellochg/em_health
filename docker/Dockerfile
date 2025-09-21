@@ -3,8 +3,9 @@ FROM postgres:17-trixie AS builder
 
 ENV TS_VERSIONS="2.21.3 2.22.0" \
     TLK_VERSION=1.21.0 \
-    TDS_VERSION=v2.0.4 \
+    TDS_VERSION=v2.0.5 \
     CARGO_HOME=/build/cargo \
+    CARGO_TARGET_DIR=/build/target \
     RUSTUP_HOME=/build/rustup \
     PGRX_HOME=/build/pgrx \
     PATH=/build/cargo/bin:$PATH
@@ -14,7 +15,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 # --------- Metadata ----------
 LABEL org.opencontainers.image.title="Custom PostgreSQL image with TimescaleDB, Toolkit & TDS-FDW" \
       org.opencontainers.image.description='Postgres ${PG_MAJOR} + TimescaleDB ${TS_VERSIONS} + Toolkit ${TLK_VERSION} + TDS-FDW ${TDS_VERSION}' \
-      org.opencontainers.image.version="0.1a1" \
+      org.opencontainers.image.version="0.1a2" \
       org.opencontainers.image.authors="Grigory Sharov <gsharov@mrc-lmb.cam.ac.uk>" \
       org.opencontainers.image.licenses="GPL-3.0-or-later" \
       org.opencontainers.image.source="https://github.com/azazellochg/em_health"
@@ -48,11 +49,7 @@ RUN for ver in $TS_VERSIONS; do \
     mkdir /build/timescaledb-$ver && \
     git clone --branch $ver https://github.com/timescale/timescaledb /build/timescaledb-$ver \
     && cd /build/timescaledb-$ver \
-    && ./bootstrap -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-                   -DREGRESS_CHECKS=OFF -DTAP_CHECKS=OFF \
-                   -DGENERATE_DOWNGRADE_SCRIPT=ON \
-                   -DWARNINGS_AS_ERRORS=OFF \
-                   -DPROJECT_INSTALL_METHOD="docker" \
+    && ./bootstrap -DPROJECT_INSTALL_METHOD="docker" \
     && cd build && make install; \
     done
 
@@ -99,10 +96,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# https://github.com/docker-library/postgres/commit/bfc5d81c8f5647c690f452dc558e64fddb1802f6
+STOPSIGNAL SIGINT
+
 # Drop privileges
 USER postgres
 WORKDIR /var/lib/postgresql
 
 # Keep the original entrypoint
+EXPOSE 5432
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["postgres"]

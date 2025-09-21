@@ -169,6 +169,7 @@ def update() -> None:
     run_command(
         f'docker exec {PG_CONTAINER} psql -d tem -c "ALTER EXTENSION timescaledb UPDATE; '
         'ALTER EXTENSION timescaledb_toolkit UPDATE;"'
+        'ALTER EXTENSION tds_fdw UPDATE;"'
     )
 
     # Run migrations
