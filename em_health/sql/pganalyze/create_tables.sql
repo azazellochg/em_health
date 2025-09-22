@@ -135,8 +135,6 @@ CREATE TABLE pganalyze.stat_statements (
                                              tsdb.create_default_indexes=false
                                              );
 
-CREATE INDEX IF NOT EXISTS stat_statements_queryid_time ON pganalyze.stat_statements (queryid, collected_at ASC);
-
 CALL add_columnstore_policy('pganalyze.stat_statements', after => INTERVAL :var_pgstats_compression);
 SELECT add_retention_policy('pganalyze.stat_statements', drop_after => INTERVAL :var_pgstats_retention);
 

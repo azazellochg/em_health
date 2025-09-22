@@ -31,8 +31,6 @@ CREATE TABLE IF NOT EXISTS public.enum_types (
 );
 COMMENT ON TABLE public.enum_types IS 'HM IntEnum names. Each instrument has its own set of enum types';
 
-CREATE INDEX ON public.enum_types (instrument_id, name);
-
 -- Creating public.enum_values
 CREATE TABLE IF NOT EXISTS public.enum_values (
                                     enum_id INTEGER NOT NULL REFERENCES public.enum_types(id) ON DELETE CASCADE,
@@ -78,7 +76,6 @@ CREATE TABLE IF NOT EXISTS public.parameters (
 );
 COMMENT ON TABLE public.parameters IS 'HM parameters metadata. param_id is unique per instrument. Multiple parameters can refer to the same enum type';
 
-CREATE INDEX ON public.parameters (instrument_id, param_id);
 CREATE INDEX ON public.parameters (enum_id, instrument_id, param_id, param_name, subsystem);
 
 -- Creating public.parameters_history
@@ -136,7 +133,6 @@ COMMENT ON TABLE public.data IS 'Main time series table with HM events';
 
 SELECT enable_chunk_skipping('public.data', 'instrument_id');
 SELECT enable_chunk_skipping('public.data', 'param_id');
-CREATE INDEX ON public.data (instrument_id, param_id, time ASC);
 CALL add_columnstore_policy('public.data', after => INTERVAL :var_data_compression);
 
 GRANT USAGE ON SCHEMA public TO grafana, emhealth;

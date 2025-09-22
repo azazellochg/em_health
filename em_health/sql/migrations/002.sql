@@ -67,6 +67,13 @@ BEGIN
         EXECUTE 'GRANT SELECT, DELETE ON ALL TABLES IN SCHEMA uec TO emhealth';
         EXECUTE 'ALTER DEFAULT PRIVILEGES IN SCHEMA uec GRANT SELECT, DELETE ON TABLES TO emhealth';
 
+        -- 5. Drop unused indices
+        EXECUTE 'DROP INDEX IF EXISTS enum_types_instrument_id_name_idx';
+        EXECUTE 'DROP INDEX IF EXISTS parameters_instrument_id_param_id_idx';
+        EXECUTE 'DROP INDEX IF EXISTS pganalyze.stat_statements_queryid_time';
+        EXECUTE 'DROP INDEX IF EXISTS uec.idx_errors_instrument_time';
+        EXECUTE 'DROP INDEX IF EXISTS data_instrument_id_param_id_time_idx';
+
         -- 6. Update schema version
         UPDATE public.schema_info SET version = 2;
     END IF;

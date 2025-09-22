@@ -54,8 +54,6 @@ CREATE TABLE IF NOT EXISTS uec.errors (
                                           UNIQUE (Time, InstrumentID, ErrorID)
 );
 
-CREATE INDEX idx_errors_instrument_time ON uec.errors (InstrumentID, Time ASC);
-
 GRANT USAGE ON SCHEMA uec TO grafana, emhealth;
 GRANT SELECT ON ALL TABLES IN SCHEMA uec TO grafana;
 ALTER DEFAULT PRIVILEGES IN SCHEMA uec GRANT SELECT ON TABLES TO grafana;
