@@ -121,6 +121,7 @@ CREATE TABLE IF NOT EXISTS public.data (
                                            value_num DOUBLE PRECISION,
                                            value_text TEXT,
                                            UNIQUE (time, instrument_id, param_id)
+                                           -- To define an index as a UNIQUE or PRIMARY KEY index, the index must include the time column and the partitioning column
 ) WITH (
                                              tsdb.hypertable,
                                              tsdb.chunk_interval=:var_data_chunk_size,

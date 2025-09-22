@@ -126,6 +126,7 @@ CREATE TABLE pganalyze.stat_statements (
                                            wal_fpi                 BIGINT      NOT NULL,
                                            wal_bytes               BIGINT      NOT NULL DEFAULT 0,
                                            PRIMARY KEY (collected_at, userid, queryid)
+                                           -- To define an index as a UNIQUE or PRIMARY KEY index, the index must include the time column and the partitioning column
 ) WITH (
                                              tsdb.hypertable,
                                              tsdb.chunk_interval=:var_pgstats_chunk_size,
