@@ -112,7 +112,7 @@ rem --remove to overwrite old export files
 
         logger.info("Created file: %s\n"
                     "Create a task in the Task Scheduler on a Windows system with Health Monitor "
-                    "to run the above script every hour. See documentation for details.",
+                    "to run the above script periodically. See documentation for details.",
                     os.path.abspath(task_file))
 
 

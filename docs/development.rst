@@ -23,8 +23,8 @@ There are a few other limitations:
 * Some provisioned resources (alerts, contact points, datasources) cannot be modified from the GUI. You can create new ones though.
 
 
-Enable performance metrics
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+DB performance metrics
+^^^^^^^^^^^^^^^^^^^^^^
 
 After installation the DB performance monitoring is enabled by default.
 You can check the dashboards under *DB performance* folder.
@@ -123,7 +123,7 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
     * parameter_type
     * instrument_event_config
 
-* pganalyze - schema to store database statistics for developers
+* pganalyze - schema to store database statistics
 
     * database_stats
     * table_stats
