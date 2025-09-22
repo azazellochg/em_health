@@ -124,7 +124,7 @@ CREATE TABLE pganalyze.stat_statements (
                                            blk_write_time          DOUBLE PRECISION NOT NULL,
                                            wal_records             BIGINT      NOT NULL,
                                            wal_fpi                 BIGINT      NOT NULL,
-                                           wal_bytes               NUMERIC     NOT NULL,
+                                           wal_bytes               BIGINT      NOT NULL DEFAULT 0,
                                            PRIMARY KEY (collected_at, userid, queryid)
 ) WITH (
                                              tsdb.hypertable,
