@@ -56,7 +56,7 @@ def db_cmd(args):
         func(dbname, action, getattr(args, "force", False))
 
     elif action in ["create-stats", "clean-all",
-                    "clean-inst", "import-uec"]:
+                    "clean-inst", "import-uec", "migrate"]:
         from em_health.db_manager import main as func
         func(dbname, action,
              getattr(args, "instrument", None),
@@ -137,6 +137,7 @@ def main():
 
     db_subparsers.add_parser("create-stats", help="Create aggregated statistics")
     db_subparsers.add_parser("backup", help="Back up both TimescaleDB and Grafana databases")
+    db_subparsers.add_parser("migrate", help="Migrate TimescaleDB to the latest schema")
     db_subparsers.add_parser("restore", help="Restore DB from backup")
     db_subparsers.add_parser("clean-all", help="Erase ALL data in the database")
 
