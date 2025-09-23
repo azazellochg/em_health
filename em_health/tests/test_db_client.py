@@ -194,9 +194,7 @@ class TestEMHealth(unittest.TestCase):
 
     def test_pgtap(self):
         """ Run database tests with pgTAP. """
-        result = run_command("docker exec timescaledb pg_prove -d tem -U postgres /sql/tests/pgtap/*.sql}",
-                             capture_output=True)
-        print(result.stdout)
+        run_command('docker exec timescaledb bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/*.sql"')
 
 if __name__ == '__main__':
     unittest.main()

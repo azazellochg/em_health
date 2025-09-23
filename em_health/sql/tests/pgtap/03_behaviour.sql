@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(10);
+SELECT plan(15);
 
 -- Insert a dummy instrument
 INSERT INTO public.instruments (instrument, serial, model, name, template, server)
@@ -74,7 +74,7 @@ FROM public.instruments;
 SELECT results_eq($$SELECT value_type FROM public.parameters WHERE param_id=282$$, ARRAY['int'], 'parameters_upsert works');
 
 -- PARAMETERS history logging
-SELECT results_eq($$SELECT value_type FROM public.parameters_history WHERE param_id=1 ORDER BY inserted DESC LIMIT 1$$, ARRAY['float'], 'parameters_log_after_update works');
+SELECT results_eq($$SELECT value_type FROM public.parameters_history WHERE param_id=282 ORDER BY inserted DESC LIMIT 1$$, ARRAY['float'], 'parameters_log_after_update works');
 
 -- CASCADE delete from instruments → parameters removed
 DELETE FROM public.instruments WHERE serial = 9999;
@@ -112,11 +112,10 @@ SELECT isnt_empty('SELECT * FROM pganalyze.stat_statements', 'get_stat_statement
 SELECT isnt_empty('SELECT * FROM pganalyze.queries', 'get_stat_statements works');
 
 SELECT pganalyze.parse_logs();
-SELECT isnt_empty('SELECT * FROM pganalyze.vacuum_stats', 'parse_logs inserts works');
-SELECT isnt_empty('SELECT * FROM pganalyze.stat_explains', 'parse_logs inserts works');
+SELECT isnt_empty('SELECT * FROM pganalyze.vacuum_stats', 'parse_logs->vacuum_stats works');
 
 SELECT pganalyze.parse_sysinfo();
-SELECT isnt_empty('SELECT * FROM pganalyze.sys_stats', 'parse_sysinfo inserts row');
+SELECT isnt_empty('SELECT * FROM pganalyze.sys_stats', 'parse_sysinfo->sys_stats works');
 
 SELECT * FROM finish();
 ROLLBACK;

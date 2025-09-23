@@ -367,7 +367,7 @@ $$;
 
 -- parse sysinfo
 DROP FUNCTION IF EXISTS pganalyze.parse_sysinfo;
-CREATE FUNCTION pganalyze.parse_sysinfo(job_id int, config jsonb)
+CREATE FUNCTION pganalyze.parse_sysinfo(job_id INT DEFAULT NULL, config JSONB DEFAULT NULL)
     RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
 AS $$
@@ -405,7 +405,7 @@ $$;
 
 -- Purge old data
 DROP FUNCTION IF EXISTS pganalyze.purge_stats;
-CREATE FUNCTION pganalyze.purge_stats(job_id int, config jsonb)
+CREATE FUNCTION pganalyze.purge_stats(job_id INT DEFAULT NULL, config JSONB DEFAULT '{"drop_after":"6 months"}')
     RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
 AS $$
