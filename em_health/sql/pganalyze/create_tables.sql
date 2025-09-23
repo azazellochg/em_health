@@ -88,8 +88,7 @@ CREATE TABLE pganalyze.stat_snapshots (
                                              tsdb.hypertable,
                                              tsdb.chunk_interval=:var_pgsnaps_chunk_size,
                                              tsdb.partition_column='collected_at',
-                                             tsdb.orderby='collected_at ASC',
-                                             tsdb.create_default_indexes=false
+                                             tsdb.orderby='collected_at'
                                              );
 
 CALL add_columnstore_policy('pganalyze.stat_snapshots', after => INTERVAL :var_pgstats_compression);
@@ -125,15 +124,14 @@ CREATE TABLE pganalyze.stat_statements (
                                            wal_records             BIGINT      NOT NULL,
                                            wal_fpi                 BIGINT      NOT NULL,
                                            wal_bytes               BIGINT      NOT NULL DEFAULT 0,
-                                           PRIMARY KEY (collected_at, userid, queryid)
+                                           PRIMARY KEY (queryid, userid, collected_at)
                                            -- To define an index as a UNIQUE or PRIMARY KEY index, the index must include the time column and the partitioning column
 ) WITH (
                                              tsdb.hypertable,
                                              tsdb.chunk_interval=:var_pgstats_chunk_size,
                                              tsdb.partition_column='collected_at',
                                              tsdb.segmentby='queryid',
-                                             tsdb.orderby='collected_at ASC',
-                                             tsdb.create_default_indexes=false
+                                             tsdb.orderby='collected_at'
                                              );
 
 CALL add_columnstore_policy('pganalyze.stat_statements', after => INTERVAL :var_pgstats_compression);

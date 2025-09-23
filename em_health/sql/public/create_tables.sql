@@ -120,19 +120,18 @@ CREATE TABLE IF NOT EXISTS public.data (
                                            param_id INTEGER NOT NULL,
                                            value_num DOUBLE PRECISION,
                                            value_text TEXT,
-                                           UNIQUE (time, instrument_id, param_id)
+                                           UNIQUE (param_id, instrument_id, time)
                                            -- To define an index as a UNIQUE or PRIMARY KEY index, the index must include the time column and the partitioning column
 ) WITH (
                                              tsdb.hypertable,
                                              tsdb.chunk_interval=:var_data_chunk_size,
                                              tsdb.partition_column='time',
                                              tsdb.segmentby='instrument_id,param_id',
-                                             tsdb.orderby='time ASC',
+                                             tsdb.orderby='time',
                                              tsdb.create_default_indexes=false
                                              );
 COMMENT ON TABLE public.data IS 'Main time series table with HM events';
 
-SELECT enable_chunk_skipping('public.data', 'instrument_id');
 SELECT enable_chunk_skipping('public.data', 'param_id');
 CALL add_columnstore_policy('public.data', after => INTERVAL :var_data_compression);
 
