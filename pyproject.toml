@@ -43,8 +43,7 @@ include = ["em_health*"]
 em_health = [
     "instruments.json",
     "sql/**/*.sql",
-    "tests/*.xml",
-    "tests/pgtap/*.sql"
+    "tests/*.xml"
 ]
 
 [tool.setuptools]

@@ -29,6 +29,7 @@ import unittest
 from datetime import datetime as dt, timezone as tz
 
 from em_health.utils.import_xml import ImportXML
+from em_health.utils.maintenance import run_command
 from em_health.db_manager import DatabaseManager
 
 XML_FN = os.path.join(os.path.dirname(__file__), '0000_data.xml')
@@ -43,7 +44,7 @@ JSON_INFO = [{
 }]
 
 
-class TestXMLImport(unittest.TestCase):
+class TestEMHealth(unittest.TestCase):
 
     def run_test_query(self,
                        dbm: DatabaseManager,
@@ -150,7 +151,8 @@ class TestXMLImport(unittest.TestCase):
         enums["FegState_enum"]["Standby"] = 100
         params[351]["abs_min"] = 250.5
 
-    def test_hm(self):
+    def test_client(self):
+        """ Test XML parser and the db client."""
         parser = ImportXML(XML_FN, JSON_INFO)
         parser.parse_enumerations()
         self.check_enumerations(parser.enum_values)
@@ -190,6 +192,11 @@ class TestXMLImport(unittest.TestCase):
             # clean-up
             dbm.clean_instrument_data(instrument_serial=9999)
 
+    def test_pgtap(self):
+        """ Run database tests with pgTAP. """
+        result = run_command("docker exec timescaledb pg_prove -d tem -U postgres /sql/tests/pgtap/*.sql}",
+                             capture_output=True)
+        print(result.stdout)
 
 if __name__ == '__main__':
     unittest.main()
