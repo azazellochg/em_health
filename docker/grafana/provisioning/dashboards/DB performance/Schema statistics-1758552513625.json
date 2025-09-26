@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 40,
+  "id": 49,
   "links": [
     {
       "asDropdown": false,
@@ -47,7 +47,7 @@
             "mode": "thresholds"
           },
           "custom": {
-            "align": "auto",
+            "align": "left",
             "cellOptions": {
               "type": "auto"
             },
@@ -1778,8 +1778,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "data",
-          "value": "data"
+          "text": "stat_snapshots",
+          "value": "stat_snapshots"
         },
         "hide": 2,
         "name": "table",
@@ -1790,8 +1790,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "18829",
-          "value": "18829"
+          "text": "251533",
+          "value": "251533"
         },
         "hide": 2,
         "name": "index",
@@ -1802,8 +1802,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "data_time_instrument_id_param_id_key",
-          "value": "data_time_instrument_id_param_id_key"
+          "text": "stat_snapshots_pkey",
+          "value": "stat_snapshots_pkey"
         },
         "hide": 2,
         "name": "index_name",
@@ -1814,14 +1814,14 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "public",
-          "value": "public"
+          "text": "pganalyze",
+          "value": "pganalyze"
         },
         "includeAll": false,
         "name": "schema",
         "options": [
           {
-            "selected": true,
+            "selected": false,
             "text": "public",
             "value": "public"
           },
@@ -1831,7 +1831,7 @@
             "value": "uec"
           },
           {
-            "selected": false,
+            "selected": true,
             "text": "pganalyze",
             "value": "pganalyze"
           }
@@ -1858,5 +1858,5 @@
   "timezone": "Europe/London",
   "title": "Schema statistics",
   "uid": "46837677-7190-44c2-b9bb-db869089ba49",
-  "version": 13
+  "version": 2
 }

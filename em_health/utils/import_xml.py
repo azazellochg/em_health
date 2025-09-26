@@ -29,7 +29,7 @@ import sys
 import gzip
 from datetime import datetime, timezone
 import json
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET  # https://github.com/lxml/lxml/blob/master/doc/performance.txt#L293
 from typing import Iterable
 
 from em_health.db_manager import DatabaseManager
@@ -60,7 +60,7 @@ class ImportXML:
         else:
             self.file = open(self.path, 'rb')
         self.context = ET.iterparse(self.file, events=("end",))
-        # Be aware, you have to parse sections in their order, i.e. enumerations first!
+        # Be aware, you have to parse XML sections in their order, i.e. enumerations first!
 
     def get_microscope_dict(self) -> dict:
         """ Return microscope dictionary. """
@@ -184,6 +184,8 @@ class ImportXML:
                         value_elem = pval.find('ns:Value', namespaces=NS)
                         value_text_raw = value_elem.text
                         value_num, value_text = self.__convert_value(param_id, value_text_raw, value_type)
+                        if value_num is None and value_text is None:
+                            continue  # failed to convert value
 
                         point = (timestamp, instr_id, param_id, value_num, value_text)
                         yield point
@@ -221,6 +223,7 @@ class ImportXML:
             "%Y-%m-%dT%H:%M:%S.%f+0Z",
             "%Y-%m-%dT%H:%M:%S.%f+Z",
         ]
+        # We cannot cache the format since it is not unified across a single XML file
         for time_format in time_formats:
             try:
                 dt_local = datetime.strptime(ts_fixed, time_format)
@@ -249,7 +252,8 @@ class ImportXML:
             else:
                 raise ValueError
         except (ValueError, TypeError):
-            raise ValueError(f"Cannot convert '{value}' to {value_type} for param {param_id}")
+            logger.error(f"Cannot convert '{value}' to {value_type} for param {param_id}")
+            return None, None
 
 
 def main(xml_fn, json_fn, nocopy):
@@ -288,7 +292,10 @@ def main(xml_fn, json_fn, nocopy):
         xmlparser.parse_parameters()
         instr_dict = xmlparser.get_microscope_dict()
 
-        with DatabaseManager(xmlparser.db_name) as dbm:
+        pwd = os.getenv("POSTGRES_EMHEALTH_PASSWORD")
+        with DatabaseManager(xmlparser.db_name,
+                             username="emhealth",
+                             password=pwd) as dbm:
             instrument_id = dbm.add_instrument(instr_dict)
             enum_ids = dbm.add_enumerations(instrument_id, xmlparser.enum_values)
             dbm.add_parameters(instrument_id, xmlparser.params, enum_ids)

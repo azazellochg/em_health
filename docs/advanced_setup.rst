@@ -38,8 +38,9 @@ See `docker/.env` for default values.
 - DB accounts:
 
   - POSTGRES_USER (default: *postgres*) - superuser, password: POSTGRES_PASSWORD
+  - *emhealth* - r/w user, password: POSTGRES_EMHEALTH_PASSWORD
   - *grafana* - read-only user, password: POSTGRES_GRAFANA_PASSWORD
-  - [optional] *pganalyze* - database metrics user, password: POSTGRES_PGANALYZE_PASSWORD
+  - *pganalyze* - database metrics user, password: POSTGRES_PGANALYZE_PASSWORD
   - [optional] MSSQL_USER and MSSQL_PASSWORD are used to connect to the MSSQL/PostgreSQL database on the MPC
 
 - Grafana accounts:

@@ -17,7 +17,7 @@ Description
 ^^^^^^^^^^^
 
 Import health monitor data from XML file. Compressed files (\*.xml.gz) are also supported.
-Optional `no-copy` argument is useful for small regular imports (e.g. automatic import every hour). If you are importing a large dataset, do not use this
+Optional `no-copy` argument is useful for small regular imports (e.g. automatic import every 30 min). If you are importing a large dataset, do not use this
 option as it will slow down the process significantly.
 
 Syntax
@@ -122,6 +122,23 @@ Syntax
 
 ----
 
+Migrate database
+~~~~~~~~~~~~~~~~
+
+Description
+^^^^^^^^^^^
+
+Migrate TimescaleDB schema to the latest version (if required).
+
+Syntax
+^^^^^^
+
+.. code-block::
+
+    emhealth db migrate
+
+----
+
 Backup
 ~~~~~~
 
@@ -181,7 +198,8 @@ Create performance stats
 Description
 ^^^^^^^^^^^
 
-This will enable perdiodic database statistics collection. The output is used in dashboards under *DB performance* folder.
+The periodic database statistics collection is enabled by default. Below command can be used if you
+modify the pganalyze tables or functions and want to update the jobs. The output is used in dashboards under *DB performance* folder.
 
 
 Syntax

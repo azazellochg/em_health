@@ -151,7 +151,7 @@ BEGIN
         SELECT *
         FROM public.pg_stat_statements s
                  JOIN pg_database d ON d.oid = s.dbid
-        WHERE userid = 'grafana'::regrole::oid
+        WHERE userid IN ('grafana'::regrole::oid, 'emhealth'::regrole::oid)
           AND queryid IS NOT NULL
           AND d.datname = current_database()
     ),
@@ -200,9 +200,35 @@ BEGIN
          )
 
     INSERT INTO
-        pganalyze.stat_statements
+        pganalyze.stat_statements (collected_at,
+                                   userid,
+                                   queryid,
+                                   plans,
+                                   calls,
+                                   total_plan_time,
+                                   total_exec_time,
+                                   mean_exec_time,
+                                   rows,
+                                   shared_blks_hit,
+                                   shared_blks_read,
+                                   shared_blks_dirtied,
+                                   shared_blks_written,
+                                   local_blks_hit,
+                                   local_blks_read,
+                                   local_blks_dirtied,
+                                   local_blks_written,
+                                   temp_blks_read,
+                                   temp_blks_written,
+                                   blk_read_time,
+                                   blk_write_time,
+                                   wal_records,
+                                   wal_fpi,
+                                   wal_bytes
+
+    )
     SELECT
         snapshot_time,
+        userid,
         queryid,
         plans,
         calls,
@@ -341,7 +367,7 @@ $$;
 
 -- parse sysinfo
 DROP FUNCTION IF EXISTS pganalyze.parse_sysinfo;
-CREATE FUNCTION pganalyze.parse_sysinfo(job_id int, config jsonb)
+CREATE FUNCTION pganalyze.parse_sysinfo(job_id INT DEFAULT NULL, config JSONB DEFAULT NULL)
     RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
 AS $$
@@ -379,43 +405,40 @@ $$;
 
 -- Purge old data
 DROP FUNCTION IF EXISTS pganalyze.purge_stats;
-CREATE FUNCTION pganalyze.purge_stats(job_id int, config jsonb)
+CREATE FUNCTION pganalyze.purge_stats(job_id INT DEFAULT NULL, config JSONB DEFAULT '{"drop_after":"6 months"}')
     RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
 AS $$
+DECLARE
+    drop_after interval;
 BEGIN
+    SELECT jsonb_object_field_text (config, 'drop_after')::interval
+    INTO STRICT drop_after;
+
+    IF drop_after IS NULL THEN
+        RAISE EXCEPTION 'Config must have drop_after';
+    END IF;
+
     DELETE FROM pganalyze.database_stats
-    WHERE collected_at < NOW() - INTERVAL :TBL_STATS_RETENTION;
+    WHERE collected_at < NOW() - drop_after;
 
     DELETE FROM pganalyze.table_stats
-    WHERE collected_at < NOW() - INTERVAL :TBL_STATS_RETENTION;
+    WHERE collected_at < NOW() - drop_after;
 
     DELETE FROM pganalyze.index_stats
-    WHERE collected_at < NOW() - INTERVAL :TBL_STATS_RETENTION;
+    WHERE collected_at < NOW() - drop_after;
 
     DELETE FROM pganalyze.vacuum_stats
-    WHERE started_at < NOW() - INTERVAL :TBL_STATS_RETENTION;
+    WHERE started_at < NOW() - drop_after;
 
     DELETE FROM pganalyze.stat_explains
-    WHERE time < NOW() - INTERVAL :TBL_STATS_RETENTION;
+    WHERE time < NOW() - drop_after;
 
     DELETE FROM pganalyze.sys_stats
-    WHERE time < NOW() - INTERVAL :TBL_STATS_RETENTION;
+    WHERE time < NOW() - drop_after;
 END;
 $$;
 
--- Create a separate pganalyze user
-DO $$
-    BEGIN
-        IF NOT EXISTS (
-            SELECT 1 FROM pg_roles WHERE rolname = 'pganalyze'
-        ) THEN
-            CREATE ROLE pganalyze WITH LOGIN PASSWORD :POSTGRES_PGANALYZE_PASSWORD CONNECTION LIMIT 5;
-        END IF;
-    END;
-$$;
-
-GRANT pg_monitor TO pganalyze;
 GRANT USAGE ON SCHEMA pganalyze TO pganalyze;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA pganalyze TO pganalyze;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA pganalyze TO pganalyze;

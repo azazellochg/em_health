@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 38,
+  "id": 56,
   "links": [
     {
       "asDropdown": false,
@@ -292,6 +292,18 @@
                 "value": true
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "User"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 150
+              }
+            ]
           }
         ]
       },
@@ -318,7 +330,7 @@
         "sortBy": [
           {
             "desc": true,
-            "displayName": "Avg time"
+            "displayName": "% of all runtime"
           }
         ]
       },
@@ -332,7 +344,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH deltas AS (\n    SELECT\n        queryid,\n        calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_calls,\n        total_plan_time - LAG(total_plan_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_plan_time,\n        total_exec_time - LAG(total_exec_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_exec_time,\n        blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_read_time,\n        blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_write_time\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(collected_at)\n),\nagg AS (\n    SELECT\n        queryid,\n        SUM(delta_calls) AS total_calls,\n        SUM(delta_plan_time + delta_exec_time) AS total_exec_time,\n        COALESCE(SUM(delta_blk_read_time + delta_blk_write_time), 0) AS total_io\n    FROM deltas\n    WHERE delta_calls > 0\n    GROUP BY queryid\n)\nSELECT\n    a.queryid::text,\n    q.query AS \"Query\",\n    (a.total_exec_time / NULLIF(a.total_calls,0)) AS \"Avg time\",\n    (a.total_calls / NULLIF((($__to - $__from) / 1000) / 60, 0)) AS \"Calls/min\",\n    (a.total_exec_time / NULLIF(SUM(a.total_exec_time) OVER (),0) * 100) AS \"% of all runtime\",\n    (a.total_io / NULLIF(SUM(a.total_io) OVER (),0) * 100) AS \"% of all I/O\"\nFROM agg a\nJOIN pganalyze.queries q ON q.queryid = a.queryid\nORDER BY \"Avg time\" DESC;\n",
+          "rawSql": "WITH deltas AS (\n    SELECT\n        userid,\n        queryid,\n        calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_calls,\n        total_plan_time - LAG(total_plan_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_plan_time,\n        total_exec_time - LAG(total_exec_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_exec_time,\n        blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_read_time,\n        blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_write_time\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(collected_at)\n),\nagg AS (\n    SELECT\n        userid,\n        queryid,\n        SUM(delta_calls) AS total_calls,\n        SUM(delta_plan_time + delta_exec_time) AS total_exec_time,\n        COALESCE(SUM(delta_blk_read_time + delta_blk_write_time), 0) AS total_io\n    FROM deltas\n    WHERE delta_calls > 0\n    GROUP BY queryid, userid\n)\nSELECT\n    a.queryid::text,\n    q.query AS \"Query\",\n    (a.total_exec_time / NULLIF(a.total_calls,0)) AS \"Avg time\",\n    (a.total_calls / NULLIF((($__to - $__from) / 1000) / 60, 0)) AS \"Calls/min\",\n    (a.total_exec_time / NULLIF(SUM(a.total_exec_time) OVER (),0) * 100) AS \"% of all runtime\",\n    (a.total_io / NULLIF(SUM(a.total_io) OVER (),0) * 100) AS \"% of all I/O\",\n    r.rolname AS \"User\"\nFROM agg a\nJOIN pganalyze.queries q ON q.queryid = a.queryid\nJOIN pg_roles r ON r.oid = a.userid\nORDER BY \"Avg time\" DESC;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1021,36 +1033,36 @@
       },
       {
         "current": {
-          "text": "-7835206256026329374",
-          "value": "-7835206256026329374"
+          "text": "-1730381090015229010",
+          "value": "-1730381090015229010"
         },
         "hide": 2,
         "name": "queryid",
         "options": [
           {
             "selected": true,
-            "text": "-7835206256026329374",
-            "value": "-7835206256026329374"
+            "text": "-1730381090015229010",
+            "value": "-1730381090015229010"
           }
         ],
-        "query": "-7835206256026329374",
+        "query": "-1730381090015229010",
         "type": "textbox"
       },
       {
         "current": {
-          "text": "WITH deltas AS (\n    SELECT\n        collected_at,\n        queryid,\n        calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_calls,\n        total_plan_time - LAG(total_plan_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_plan_time,\n        total_exec_time - LAG(total_exec_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_exec_time,\n        blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_read_time,\n        blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_write_time\n    FROM pganalyze.stat_statements\n    WHERE collected_at BETWEEN $1 AND $2 \n),\nweighted_exec AS (\n    SELECT\n        collected_at,\n        queryid,\n        delta_calls,\n        (delta_plan_time   delta_exec_time) / NULLIF(delta_calls,$3) AS weighted_exec_time,\n        (delta_blk_read_time   delta_blk_write_time) AS total_io_time\n    FROM deltas\n)\nSELECT\n    time_bucket(INTERVAL $4, collected_at) AS time,\n    COALESCE(approx_percentile($5, percentile_agg(weighted_exec_time)), $6) AS \"Median time\",\n    COALESCE(approx_percentile($7, percentile_agg(weighted_exec_time)), $8) AS \"P95 time\",\n    COALESCE(SUM(total_io_time) / NULLIF(SUM(delta_calls),$9), $10) AS \"Avg I/O time\"\nFROM weighted_exec\nGROUP BY time\nORDER BY time",
-          "value": "WITH deltas AS (\n    SELECT\n        collected_at,\n        queryid,\n        calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_calls,\n        total_plan_time - LAG(total_plan_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_plan_time,\n        total_exec_time - LAG(total_exec_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_exec_time,\n        blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_read_time,\n        blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_write_time\n    FROM pganalyze.stat_statements\n    WHERE collected_at BETWEEN $1 AND $2 \n),\nweighted_exec AS (\n    SELECT\n        collected_at,\n        queryid,\n        delta_calls,\n        (delta_plan_time   delta_exec_time) / NULLIF(delta_calls,$3) AS weighted_exec_time,\n        (delta_blk_read_time   delta_blk_write_time) AS total_io_time\n    FROM deltas\n)\nSELECT\n    time_bucket(INTERVAL $4, collected_at) AS time,\n    COALESCE(approx_percentile($5, percentile_agg(weighted_exec_time)), $6) AS \"Median time\",\n    COALESCE(approx_percentile($7, percentile_agg(weighted_exec_time)), $8) AS \"P95 time\",\n    COALESCE(SUM(total_io_time) / NULLIF(SUM(delta_calls),$9), $10) AS \"Avg I/O time\"\nFROM weighted_exec\nGROUP BY time\nORDER BY time"
+          "text": "INSERT INTO public.data (time, instrument_id, param_id, value_num, value_text)\n                VALUES ($1, $2, $3, $4, $5)\n                ON CONFLICT DO NOTHING",
+          "value": "INSERT INTO public.data (time, instrument_id, param_id, value_num, value_text)\n                VALUES ($1, $2, $3, $4, $5)\n                ON CONFLICT DO NOTHING"
         },
         "hide": 2,
         "name": "query",
         "options": [
           {
             "selected": true,
-            "text": "WITH deltas AS (\n    SELECT\n        collected_at,\n        queryid,\n        calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_calls,\n        total_plan_time - LAG(total_plan_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_plan_time,\n        total_exec_time - LAG(total_exec_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_exec_time,\n        blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_read_time,\n        blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_write_time\n    FROM pganalyze.stat_statements\n    WHERE collected_at BETWEEN $1 AND $2 \n),\nweighted_exec AS (\n    SELECT\n        collected_at,\n        queryid,\n        delta_calls,\n        (delta_plan_time   delta_exec_time) / NULLIF(delta_calls,$3) AS weighted_exec_time,\n        (delta_blk_read_time   delta_blk_write_time) AS total_io_time\n    FROM deltas\n)\nSELECT\n    time_bucket(INTERVAL $4, collected_at) AS time,\n    COALESCE(approx_percentile($5, percentile_agg(weighted_exec_time)), $6) AS \"Median time\",\n    COALESCE(approx_percentile($7, percentile_agg(weighted_exec_time)), $8) AS \"P95 time\",\n    COALESCE(SUM(total_io_time) / NULLIF(SUM(delta_calls),$9), $10) AS \"Avg I/O time\"\nFROM weighted_exec\nGROUP BY time\nORDER BY time",
-            "value": "WITH deltas AS (\n    SELECT\n        collected_at,\n        queryid,\n        calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_calls,\n        total_plan_time - LAG(total_plan_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_plan_time,\n        total_exec_time - LAG(total_exec_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_exec_time,\n        blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_read_time,\n        blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_write_time\n    FROM pganalyze.stat_statements\n    WHERE collected_at BETWEEN $1 AND $2 \n),\nweighted_exec AS (\n    SELECT\n        collected_at,\n        queryid,\n        delta_calls,\n        (delta_plan_time   delta_exec_time) / NULLIF(delta_calls,$3) AS weighted_exec_time,\n        (delta_blk_read_time   delta_blk_write_time) AS total_io_time\n    FROM deltas\n)\nSELECT\n    time_bucket(INTERVAL $4, collected_at) AS time,\n    COALESCE(approx_percentile($5, percentile_agg(weighted_exec_time)), $6) AS \"Median time\",\n    COALESCE(approx_percentile($7, percentile_agg(weighted_exec_time)), $8) AS \"P95 time\",\n    COALESCE(SUM(total_io_time) / NULLIF(SUM(delta_calls),$9), $10) AS \"Avg I/O time\"\nFROM weighted_exec\nGROUP BY time\nORDER BY time"
+            "text": "INSERT INTO public.data (time, instrument_id, param_id, value_num, value_text)\n                VALUES ($1, $2, $3, $4, $5)\n                ON CONFLICT DO NOTHING",
+            "value": "INSERT INTO public.data (time, instrument_id, param_id, value_num, value_text)\n                VALUES ($1, $2, $3, $4, $5)\n                ON CONFLICT DO NOTHING"
           }
         ],
-        "query": "WITH deltas AS (\n    SELECT\n        collected_at,\n        queryid,\n        calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_calls,\n        total_plan_time - LAG(total_plan_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_plan_time,\n        total_exec_time - LAG(total_exec_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_exec_time,\n        blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_read_time,\n        blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_write_time\n    FROM pganalyze.stat_statements\n    WHERE collected_at BETWEEN $1 AND $2 \n),\nweighted_exec AS (\n    SELECT\n        collected_at,\n        queryid,\n        delta_calls,\n        (delta_plan_time   delta_exec_time) / NULLIF(delta_calls,$3) AS weighted_exec_time,\n        (delta_blk_read_time   delta_blk_write_time) AS total_io_time\n    FROM deltas\n)\nSELECT\n    time_bucket(INTERVAL $4, collected_at) AS time,\n    COALESCE(approx_percentile($5, percentile_agg(weighted_exec_time)), $6) AS \"Median time\",\n    COALESCE(approx_percentile($7, percentile_agg(weighted_exec_time)), $8) AS \"P95 time\",\n    COALESCE(SUM(total_io_time) / NULLIF(SUM(delta_calls),$9), $10) AS \"Avg I/O time\"\nFROM weighted_exec\nGROUP BY time\nORDER BY time",
+        "query": "INSERT INTO public.data (time, instrument_id, param_id, value_num, value_text)\n                VALUES ($1, $2, $3, $4, $5)\n                ON CONFLICT DO NOTHING",
         "type": "textbox"
       },
       {
@@ -1090,5 +1102,5 @@
   "timezone": "Europe/London",
   "title": "Queries",
   "uid": "f5f755f6-d55b-4f89-bfd7-36281dc0eec7",
-  "version": 1
+  "version": 2
 }

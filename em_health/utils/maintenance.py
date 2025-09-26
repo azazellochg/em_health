@@ -82,7 +82,7 @@ psql -d tem -c \\"CREATE EXTENSION IF NOT EXISTS timescaledb{version_clause} CAS
     if do_init:
         run_command(
             f'docker exec {PG_CONTAINER} bash -c "psql -v ON_ERROR_STOP=1 -d {dbname} '
-            '-f /docker-entrypoint-initdb.d/init-tables.sql"'
+            '-f /docker-entrypoint-initdb.d/init_db.sql"'
         )
 
 
@@ -169,6 +169,7 @@ def update() -> None:
     run_command(
         f'docker exec {PG_CONTAINER} psql -d tem -c "ALTER EXTENSION timescaledb UPDATE; '
         'ALTER EXTENSION timescaledb_toolkit UPDATE;"'
+        'ALTER EXTENSION tds_fdw UPDATE;"'
     )
 
     # Run migrations

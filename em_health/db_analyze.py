@@ -70,21 +70,18 @@ class DatabaseAnalyzer(DatabaseManager):
     """
     def create_metric_tables(self) -> None:
         """ Create tables to store metrics data. """
-        self.execute_file(self.get_path("create_metric_tables.sql", folder="pganalyze"),
+        self.execute_file(self.get_path("create_tables.sql", folder="pganalyze"),
                           {
-                              "TBL_SNAPSHOTS_CHUNK_SIZE": os.getenv("TBL_SNAPSHOTS_CHUNK_SIZE", "4 weeks"),
-                              "TBL_STATEMENTS_CHUNK_SIZE": os.getenv("TBL_STATEMENTS_CHUNK_SIZE", "1 week"),
-                              "TBL_STATS_RETENTION": os.getenv("TBL_STATS_RETENTION", "6 months")
+                              "var_pgsnaps_chunk_size": os.getenv("TBL_SNAPS_CHUNK_SIZE", "4 weeks"),
+                              "var_pgstats_chunk_size": os.getenv("TBL_STATS_CHUNK_SIZE", "1 week"),
+                              "var_pgstats_compression": os.getenv("TBL_STATS_COMPRESSION", "7 days"),
+                              "var_pgstats_retention": os.getenv("TBL_STATS_RETENTION", "6 months")
                           })
         logger.info("Created pganalyze tables")
 
     def create_metric_collectors(self) -> None:
         """ Create functions to collect statistics. """
-        self.execute_file(self.get_path("create_metric_funcs.sql", folder="pganalyze"),
-                          {
-                              "POSTGRES_PGANALYZE_PASSWORD": os.getenv("POSTGRES_PGANALYZE_PASSWORD"),
-                              "TBL_STATS_RETENTION": os.getenv("TBL_STATS_RETENTION", "1 month")
-                          })
+        self.execute_file(self.get_path("create_functions.sql", folder="pganalyze"))
         logger.info("Created pganalyze procedures")
 
     def cleanup_jobs(self) -> None:
@@ -99,23 +96,7 @@ class DatabaseAnalyzer(DatabaseManager):
 
     def schedule_metric_jobs(self) -> None:
         """ Schedule functions as TimescaleDB jobs. """
-        logs_interval = os.getenv("JOB_LOGS_INTERVAL", "1 minutes")
-        statements_interval = os.getenv("JOB_STATEMENTS_INTERVAL", "1 minutes")
-        dbstats_interval = os.getenv("JOB_DBSTATS_INTERVAL", "10 minutes")
-        tblstats_interval = os.getenv("JOB_TBLSTATS_INTERVAL", "10 minutes")
-        idxstats_interval = os.getenv("JOB_IDXSTATS_INTERVAL", "10 minutes")
-
-        jobs = [
-            f"SELECT add_job('pganalyze.parse_logs', schedule_interval=>'{logs_interval}'::interval);",
-            f"SELECT add_job('pganalyze.get_stat_statements', schedule_interval=>'{statements_interval}'::interval);",
-            f"SELECT add_job('pganalyze.parse_sysinfo', schedule_interval=>'{statements_interval}'::interval);",
-            f"SELECT add_job('pganalyze.get_db_stats', schedule_interval=>'{dbstats_interval}'::interval);",
-            f"SELECT add_job('pganalyze.get_table_stats', schedule_interval=>'{tblstats_interval}'::interval);",
-            f"SELECT add_job('pganalyze.get_index_stats', schedule_interval=>'{idxstats_interval}'::interval);",
-            "SELECT add_job('pganalyze.purge_stats', schedule_interval=>'1 day'::interval);"
-        ]
-        for j in jobs:
-            self.run_query(query=j)
+        self.execute_file(self.get_path("create_jobs.sql", folder="pganalyze"))
         logger.info("Scheduled pganalyze jobs")
 
     def create_stats_cagg(self):

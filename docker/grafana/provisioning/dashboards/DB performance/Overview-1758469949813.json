@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 39,
+  "id": 15,
   "links": [
     {
       "asDropdown": false,
@@ -147,7 +147,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 6,
+        "h": 7,
         "w": 7,
         "x": 2,
         "y": 1
@@ -169,7 +169,7 @@
           "valueSize": 28
         },
         "textMode": "value_and_name",
-        "wideLayout": true
+        "wideLayout": false
       },
       "pluginVersion": "12.1.0",
       "targets": [
@@ -236,7 +236,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 6,
+        "h": 7,
         "w": 3,
         "x": 9,
         "y": 1
@@ -340,8 +340,8 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 6,
-        "w": 7,
+        "h": 7,
+        "w": 6,
         "x": 12,
         "y": 1
       },
@@ -428,9 +428,9 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 6,
-        "w": 2,
-        "x": 19,
+        "h": 7,
+        "w": 3,
+        "x": 18,
         "y": 1
       },
       "id": 31,
@@ -537,7 +537,7 @@
         ]
       },
       "gridPos": {
-        "h": 6,
+        "h": 7,
         "w": 3,
         "x": 21,
         "y": 1
@@ -619,7 +619,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 3,
+        "h": 4,
         "w": 2,
         "x": 0,
         "y": 4
@@ -680,7 +680,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 7
+        "y": 8
       },
       "id": 42,
       "panels": [],
@@ -762,7 +762,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 9
       },
       "id": 38,
       "interval": "5m",
@@ -844,7 +844,7 @@
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 16
+        "y": 17
       },
       "id": 21,
       "interval": "20m",
@@ -963,7 +963,7 @@
         "h": 12,
         "w": 10,
         "x": 4,
-        "y": 16
+        "y": 17
       },
       "id": 22,
       "interval": "20m",
@@ -1082,7 +1082,7 @@
         "h": 12,
         "w": 10,
         "x": 14,
-        "y": 16
+        "y": 17
       },
       "id": 24,
       "interval": "20m",
@@ -1168,7 +1168,7 @@
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 20
+        "y": 21
       },
       "id": 23,
       "interval": "20m",
@@ -1254,7 +1254,7 @@
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 24
+        "y": 25
       },
       "id": 34,
       "interval": "20m",
@@ -1339,7 +1339,7 @@
         "h": 3,
         "w": 4,
         "x": 0,
-        "y": 28
+        "y": 29
       },
       "id": 36,
       "options": {
@@ -1455,7 +1455,7 @@
         "h": 6,
         "w": 20,
         "x": 4,
-        "y": 28
+        "y": 29
       },
       "id": 35,
       "interval": "20m",
@@ -1540,7 +1540,7 @@
         "h": 3,
         "w": 4,
         "x": 0,
-        "y": 31
+        "y": 32
       },
       "id": 27,
       "options": {
@@ -1619,8 +1619,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "12",
-          "value": "12"
+          "text": "16",
+          "value": "16"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -1638,7 +1638,7 @@
     ]
   },
   "time": {
-    "from": "now-7d",
+    "from": "now-3h",
     "to": "now"
   },
   "timepicker": {
@@ -1654,5 +1654,5 @@
   "timezone": "Europe/London",
   "title": "Overview",
   "uid": "ee46beab-c046-45a5-b547-23990e2ec0f3",
-  "version": 2
+  "version": 3
 }
