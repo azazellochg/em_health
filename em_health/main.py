@@ -72,11 +72,17 @@ def update_cmd(args):
     func(args.database, "update")
 
 
-def test_cmd(args=None):
-    import unittest
-    from em_health.tests.test_db_client import TestEMHealth
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestEMHealth)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+def test_cmd(args):
+    action = args.action
+
+    if action in ["gen-data", "bench-copy", "bench-write", "bench-query"]:
+        from em_health.tests.test_performance import TestPerformance
+        TestPerformance(action).run()
+    elif action is None:
+        import unittest
+        from em_health.tests.test_app import TestEMHealth
+        suite = unittest.TestLoader().loadTestsFromTestCase(TestEMHealth)
+        unittest.TextTestRunner(verbosity=2).run(suite)
 
 
 COMMAND_DISPATCH = {
@@ -129,7 +135,13 @@ def main():
                               help="Polling time interval in seconds (default: 300)")
 
     subparsers.add_parser("update", help="Update EMHealth to the latest version")
-    subparsers.add_parser("test", help="Run unit tests to check parser and import functions")
+
+    test_parser = subparsers.add_parser("test", help="Run unit tests to check XML parser and import functions")
+    test_subparsers = test_parser.add_subparsers(dest="action", required=False)
+    test_subparsers.add_parser("gen-data", help="Generate CSV with simulated data [DEV]")
+    test_subparsers.add_parser("bench-copy", help="Benchmarking COPY performance [DEV]")
+    test_subparsers.add_parser("bench-write", help="Benchmarking insert/write performance [DEV]")
+    test_subparsers.add_parser("bench-query", help="Benchmarking query execution performance [DEV]")
 
     # --- Database maintenance commands ---
     db_parser = subparsers.add_parser("db", help="Database operations")
