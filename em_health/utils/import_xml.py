@@ -39,7 +39,7 @@ from em_health.utils.logs import logger
 NS = {'ns': 'HealthMonitorExport http://schemas.fei.com/HealthMonitor/Export/2009/07'}
 
 
-class ImportXML:
+class ImportXMLOld:
     def __init__(self,
                  path: str,
                  json_info: list[dict]):
