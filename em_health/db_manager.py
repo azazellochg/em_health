@@ -25,7 +25,7 @@
 # **************************************************************************
 
 import os
-
+import time
 from datetime import datetime, timezone
 from typing import Iterable, Optional, Any
 
@@ -187,7 +187,8 @@ class DatabaseManager(PgClient):
     #@profile
     def write_data(self,
                    rows: Iterable[tuple],
-                   nocopy: bool = False) -> None:
+                   nocopy: bool = False,
+                   chunk_size: int = 8*1024*1024) -> None:
         """ Write raw values to the data table using COPY and a pre-serialized text buffer.
         We do not sort input data, since:
          - for each parameter XML file has a batch of datapoints already sorted by time
@@ -236,10 +237,13 @@ class DatabaseManager(PgClient):
                     yield ''.join(buffer)
 
             # avg row size is ~ 175 bytes, below will give about ~50k rows per chunk
-            chunk_size = int(os.getenv("WRITE_DATA_CHUNK_SIZE", 8*1024*1024))  # 8 Mb
+            max_size = int(os.getenv("WRITE_DATA_CHUNK_SIZE", chunk_size))  # 8 Mb
+            t0 = time.perf_counter()
             with self.cur.copy(query) as copy:
-                for chunk in stream_chunks(rows, chunk_size):
+                for chunk in stream_chunks(rows, max_size):
                     copy.write(chunk)
+            t1 = time.perf_counter()
+            logger.debug(f"COPY to public.data_staging done in: {t1-t0:.4f} s")
 
             # order by time before inserting to minimize Timescale switches between chunks
             query = """
@@ -252,6 +256,8 @@ class DatabaseManager(PgClient):
                     """
             self.cur.execute(query)
             self.conn.commit()
+            t2 = time.perf_counter()
+            logger.debug(f"INSERT into public.data done in: {t2-t1:.4f} s")
 
         logger.info("Updated public.data table (%d rows)", self.cur.rowcount,
                     extra={"prefix": self.instrument_name})
