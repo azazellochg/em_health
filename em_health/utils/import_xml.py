@@ -29,7 +29,7 @@ import sys
 import gzip
 from datetime import datetime, timezone
 import json
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET  # https://github.com/lxml/lxml/blob/master/doc/performance.txt#L293
 from typing import Iterable
 
 from em_health.db_manager import DatabaseManager
@@ -39,7 +39,7 @@ from em_health.utils.logs import logger
 NS = {'ns': 'HealthMonitorExport http://schemas.fei.com/HealthMonitor/Export/2009/07'}
 
 
-class ImportXMLOld:
+class ImportXML:
     def __init__(self,
                  path: str,
                  json_info: list[dict]):
@@ -60,7 +60,7 @@ class ImportXMLOld:
         else:
             self.file = open(self.path, 'rb')
         self.context = ET.iterparse(self.file, events=("end",))
-        # Be aware, you have to parse sections in their order, i.e. enumerations first!
+        # Be aware, you have to parse XML sections in their order, i.e. enumerations first!
 
     def get_microscope_dict(self) -> dict:
         """ Return microscope dictionary. """
@@ -184,6 +184,8 @@ class ImportXMLOld:
                         value_elem = pval.find('ns:Value', namespaces=NS)
                         value_text_raw = value_elem.text
                         value_num, value_text = self.__convert_value(param_id, value_text_raw, value_type)
+                        if value_num is None and value_text is None:
+                            continue  # failed to convert value
 
                         point = (timestamp, instr_id, param_id, value_num, value_text)
                         yield point
@@ -249,7 +251,8 @@ class ImportXMLOld:
             else:
                 raise ValueError
         except (ValueError, TypeError):
-            raise ValueError(f"Cannot convert '{value}' to {value_type} for param {param_id}")
+            logger.error(f"Cannot convert '{value}' to {value_type} for param {param_id}")
+            return None, None
 
 
 def main(xml_fn, json_fn, nocopy):
