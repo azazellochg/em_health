@@ -107,7 +107,7 @@ COMMENT ON TABLE public.parameters_history IS 'Historical HM metadata for each p
 -- Creating public.data
 CREATE TABLE IF NOT EXISTS public.data_staging (
                                            time TIMESTAMPTZ NOT NULL,
-                                           instrument_id INTEGER,
+                                           instrument_id INTEGER NOT NULL,
                                            param_id INTEGER NOT NULL,
                                            value_num DOUBLE PRECISION,
                                            value_text TEXT
