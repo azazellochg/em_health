@@ -223,6 +223,7 @@ class ImportXML:
             "%Y-%m-%dT%H:%M:%S.%f+0Z",
             "%Y-%m-%dT%H:%M:%S.%f+Z",
         ]
+        # We cannot cache the format since it is not unified across a single XML file
         for time_format in time_formats:
             try:
                 dt_local = datetime.strptime(ts_fixed, time_format)

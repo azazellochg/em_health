@@ -51,7 +51,7 @@ class TestPerformance:
         elif self.action == "bench-copy":
             self.test_copy(copy_chunk_size=8*1024*1024, trials=5)
         elif self.action == "bench-write":
-            self.test_import(copy_chunk_size=8*1024*1024, nocopy=False, trials=1,
+            self.test_import(copy_chunk_size=8*1024*1024, nocopy=False, trials=5,
                              table_chunk_size="3 days", table_compression="7 days")
         elif self.action == "bench-query":
             self.test_query()
@@ -186,8 +186,8 @@ class TestPerformance:
                     writer.writerows(rows)
 
         t = time.perf_counter() - t0
-        logger.debug(f"Finished generating data (~{target_rows:,} rows) into {filename}")
-        logger.debug(f"\tTime: {t:.4f} s")
+        logger.info(f"Finished generating data (~{target_rows:,} rows) into {filename}")
+        logger.info(f"\tTime: {t:.4f} s")
 
     def test_copy(
             self,
@@ -237,7 +237,7 @@ class TestPerformance:
         avg_time = statistics.mean(times)
         avg_tps = statistics.mean(tps)
 
-        logger.debug(
+        logger.info(
             f"Using COPY to ingest {rows_inserted:,} rows into data_staging table:\n"
             f"\tCOPY chunk size: {copy_chunk_size / 1024 / 1024} MB\n"
             f"\tRaw run times: {times}, rows/s: {tps}\n"
@@ -258,22 +258,22 @@ class TestPerformance:
         if not os.path.exists(filename):
             raise FileNotFoundError(filename)
 
-        self.create_test_db()
-        with DatabaseManager(db_name="benchmark", username="postgres", password="postgres") as dbm:
-            logger.debug("Creating public tables in the benchmark db")
-            dbm.execute_file(dbm.get_path("create_tables.sql", folder="public"),
-                             {
-                                 "var_data_chunk_size": table_chunk_size,
-                                 "var_data_compression": table_compression
-                             })
-
-        from em_health.utils.import_xml import ImportXML
-        json_fn = (Path(__file__).parents[1] / "instruments.json").resolve()
-        with open(json_fn, encoding="utf-8") as f:
-            json_info = json.load(f)
-
         times, tps = [], []
         for _ in range(trials):
+            self.create_test_db()
+            with DatabaseManager(db_name="benchmark", username="postgres", password="postgres") as dbm:
+                logger.info("Creating public tables in the benchmark db")
+                dbm.execute_file(dbm.get_path("create_tables.sql", folder="public"),
+                                 {
+                                     "var_data_chunk_size": table_chunk_size,
+                                     "var_data_compression": table_compression
+                                 })
+
+            from em_health.utils.import_xml import ImportXML
+            json_fn = (Path(__file__).parents[1] / "instruments.json").resolve()
+            with open(json_fn, encoding="utf-8") as f:
+                json_info = json.load(f)
+
             t0 = time.perf_counter()
 
             parser = ImportXML(filename, json_info)
@@ -297,7 +297,7 @@ class TestPerformance:
         avg_time = statistics.mean(times)
         avg_tps = statistics.mean(tps)
 
-        logger.debug(
+        logger.info(
             f"Using {"EXECUTEMANY" if nocopy else "COPY"} to ingest XML data:\n"
             f"\tCOPY chunk size: {copy_chunk_size / 1024 / 1024} MB\n"
             f"\tHypertable chunk size: {table_chunk_size}\n"
