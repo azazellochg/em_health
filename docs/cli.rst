@@ -17,7 +17,7 @@ Description
 ^^^^^^^^^^^
 
 Import health monitor data from XML file. Compressed files (\*.xml.gz) are also supported.
-Optional `no-copy` argument is useful for small regular imports (e.g. automatic import every 30 min). If you are importing a large dataset, do not use this
+Optional `skip-duplicates` argument is useful for small overlapping imports(e.g. automatic import of the last 1h of data every 30 min). If you are importing a large dataset, do not use this
 option as it will slow down the process significantly.
 
 Syntax
@@ -25,7 +25,7 @@ Syntax
 
 .. code-block::
 
-    emhealth import -i /path/to/file.xml.gz -s em_health/instruments.json [--no-copy]
+    emhealth import -i /path/to/file.xml.gz -s em_health/instruments.json [--skip-duplicates]
 
 ----
 

@@ -200,6 +200,7 @@ class ImportXML:
         if self.file:
             self.file.close()
             self.file = None
+            self.context = None
 
     @staticmethod
     def __match(elem, name) -> bool:
@@ -209,19 +210,19 @@ class ImportXML:
     @staticmethod
     def __parse_ts_to_utc(ts: str) -> datetime:
         """ Parse timestamp string into UTC.
-        Removes colon from the timezone, e.g.:
-        "2025-05-18T10:39:36.982+01:00" → "2025-05-18T10:39:36.982+0100"
         :param ts: input timestamp string
         """
+        ts = ts.replace("Z", "+00:00")
+        dt = datetime.fromisoformat(ts)
+        return dt.astimezone(timezone.utc)
+
         ts_fixed = ts[:-3] + ts[-2:]
         time_formats = [
             "%Y-%m-%dT%H:%M:%S.%fZ",
             "%Y-%m-%dT%H:%M:%SZ",
-            "%Y-%m-%dT%H:%M:%S.%fZZ",
             "%Y-%m-%dT%H:%M:%S.%f%z",
             "%Y-%m-%dT%H:%M:%S%z",
-            "%Y-%m-%dT%H:%M:%S.%f+0Z",
-            "%Y-%m-%dT%H:%M:%S.%f+Z",
+            "%Y-%m-%dT%H:%M:%S.%f+Z"
         ]
         # We cannot cache the format since it is not unified across a single XML file
         for time_format in time_formats:
@@ -248,7 +249,7 @@ class ImportXML:
             elif value_type == "int":  # works for int, IntEnum
                 return int(value), None
             elif value_type == "bool":
-                return int(bool(value)), None
+                return int(value.strip() == "true"), None
             else:
                 raise ValueError
         except (ValueError, TypeError):

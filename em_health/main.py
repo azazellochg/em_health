@@ -113,8 +113,8 @@ def main():
                                help="Path to XML file (.xml or .xml.gz)")
     import_parser.add_argument("-s", dest="settings", required=True,
                                help="Path to instruments.json with metadata")
-    import_parser.add_argument("--no-copy", dest="nocopy", action="store_true",
-                               help="Do not use fast COPY method (useful for small imports)")
+    import_parser.add_argument("--skip-duplicates", dest="nocopy", action="store_true",
+                               help="Ignore duplicated datapoints (useful for small overlapping imports)")
 
     # --- Create Task command ---
     task_parser = subparsers.add_parser("create-task",
