@@ -216,24 +216,6 @@ class ImportXML:
         dt = datetime.fromisoformat(ts)
         return dt.astimezone(timezone.utc)
 
-        ts_fixed = ts[:-3] + ts[-2:]
-        time_formats = [
-            "%Y-%m-%dT%H:%M:%S.%fZ",
-            "%Y-%m-%dT%H:%M:%SZ",
-            "%Y-%m-%dT%H:%M:%S.%f%z",
-            "%Y-%m-%dT%H:%M:%S%z",
-            "%Y-%m-%dT%H:%M:%S.%f+Z"
-        ]
-        # We cannot cache the format since it is not unified across a single XML file
-        for time_format in time_formats:
-            try:
-                dt_local = datetime.strptime(ts_fixed, time_format)
-                return dt_local.astimezone(timezone.utc)
-            except ValueError:
-                continue
-
-        raise ValueError(f"Unsupported time format: {ts}")
-
     @staticmethod
     def __convert_value(param_id: int,
                         value: str,

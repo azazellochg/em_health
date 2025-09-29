@@ -236,7 +236,7 @@ class DatabaseManager(PgClient):
                 if buffer:
                     yield ''.join(buffer)
 
-            # avg row size is ~ 175 bytes, below will give about ~50k rows per chunk
+            # avg row size is ~ 48 bytes, below will give about ~175k rows per chunk
             max_size = int(os.getenv("WRITE_DATA_CHUNK_SIZE", chunk_size))  # 8 Mb
             t0 = time.perf_counter()
             with self.cur.copy(query) as copy:
