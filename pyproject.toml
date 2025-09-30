@@ -25,7 +25,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["mypy", "memory-profiler", "numpy"]
+dev = ["mypy", "memory-profiler", "pandas"]
 
 [project.urls]
 Homepage = "https://github.com/azazellochg/em_health"

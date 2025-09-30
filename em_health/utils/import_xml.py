@@ -137,7 +137,7 @@ class ImportXML:
                                     "display_name": param.get("DisplayName"),
                                     "display_unit": param.get("DisplayUnit") or None,
                                     "storage_unit": param.get("StorageUnit") or None,
-                                    "value_type": known_types[param.get("Type")],
+                                    "value_type": known_types.get(param.get("Type"), "str"),
                                     "event_id": param.get("EventID"),
                                     "event_name": param.get("EventName"),
                                     "abs_min": param.get("AbsoluteMinimum") or None,
