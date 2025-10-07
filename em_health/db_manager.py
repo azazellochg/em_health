@@ -416,8 +416,14 @@ def main(dbname, action, instrument=None, date=None):
             "epu_sessions": False,
             "tomo_sessions": False,
 
-            "epu_acquisition_daily": False,
-            "tomo_acquisition_daily": False,
+            "epu_runs": False,
+            "tomo_runs": False,
+
+            "epu_state_daily": True,
+            "tomo_state_daily": True,
+
+            "epu_running_daily": False,
+            "tomo_running_daily": False,
 
             "epu_counters": False,
             "tomo_counters": False,

@@ -5,6 +5,7 @@ We need to sum all peaks before reset and the last peak value.
 
 The TS counter resets to 0 multiple times over the session course.
 We need to sum all peaks before reset.
+      Depends on tomo_sessions
 */
 CREATE MATERIALIZED VIEW IF NOT EXISTS tomo_counters AS
 WITH image_counter_param AS (
@@ -23,7 +24,6 @@ SELECT
     seg.instrument_id,
     seg.start_time,
     seg.end_time,
-    seg.end_state_value,
     img_agg.total_image_counter,
     ts_agg.total_ts_counter
 FROM tomo_sessions seg
