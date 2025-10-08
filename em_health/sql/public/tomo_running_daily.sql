@@ -1,5 +1,5 @@
 /* Create a materialized view of Tomo Running state duration per day
-   Depends on tomo_state_daily
+   Depends on tomo_state_daily view
  */
 CREATE MATERIALIZED VIEW tomo_running_daily AS
 WITH state_param AS (

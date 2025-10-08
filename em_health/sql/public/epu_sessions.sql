@@ -1,9 +1,7 @@
 /* Create a materialized view of EPU sessions.
-For each session, find sessionID, start and end time.
-NOTES:
-- Session IDs are assigned at session creation but not always reset to 0 at the stop.
-   Also, a single session can be stopped/completed/terminated multiple times
-   during its time course.
+   For each session, find sessionID, start and end time.
+   Session IDs are assigned at session creation but not always reset to 0 at the stop.
+   We assign the start time if the ID changes to any non-zero value.
 */
 CREATE MATERIALIZED VIEW IF NOT EXISTS epu_sessions AS
 WITH session_param AS (

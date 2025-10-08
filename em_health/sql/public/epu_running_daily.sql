@@ -1,5 +1,5 @@
 /* Create a materialized view of EPU Running state duration per day
-   Depends on epu_state_daily
+   Depends on epu_state_daily view.
  */
 CREATE MATERIALIZED VIEW epu_running_daily AS
 WITH state_param AS (

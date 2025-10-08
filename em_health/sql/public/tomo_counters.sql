@@ -1,11 +1,11 @@
 /* Create a materialized view of Tomo session counters:
-image counter and end state value. Sessions with 0 images are removed.
-Image counter for tomo resets to "1" multiple times over the session course.
-We need to sum all peaks before reset and the last peak value.
+   image counter and end state value. Sessions with 0 images are removed.
+   Image counter for tomo resets to "1" multiple times over the session course.
+   We need to sum all peaks before reset and the last peak value.
 
-The TS counter resets to 0 multiple times over the session course.
-We need to sum all peaks before reset.
-      Depends on tomo_sessions
+   The TS counter resets to 0 multiple times over the session course.
+   We need to sum all peaks before reset.
+      Depends on tomo_sessions view
 */
 CREATE MATERIALIZED VIEW IF NOT EXISTS tomo_counters AS
 WITH image_counter_param AS (
@@ -22,8 +22,7 @@ WITH image_counter_param AS (
 
 SELECT
     seg.instrument_id,
-    seg.start_time,
-    seg.end_time,
+    seg.session_id,
     img_agg.total_image_counter,
     ts_agg.total_ts_counter
 FROM tomo_sessions seg
@@ -81,4 +80,4 @@ FROM tomo_sessions seg
     ) ts_agg ON TRUE
 
 WHERE img_agg.total_image_counter > 0
-ORDER BY seg.instrument_id, seg.start_time
+ORDER BY seg.instrument_id, seg.session_id

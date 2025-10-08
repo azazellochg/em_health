@@ -1,4 +1,4 @@
--- Create a materialized view of autoloader counters
+-- Create a CAGG of autoloader counters
 CREATE MATERIALIZED VIEW load_counters_daily
             WITH (timescaledb.continuous)
 AS

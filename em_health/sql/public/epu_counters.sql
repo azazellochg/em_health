@@ -1,7 +1,7 @@
 /* Create a materialized view of EPU session counters:
-completed and skipped images. Sessions with 0 images are removed.
-Counter does not necessarily start from 0.
-   Depends on epu_sessions
+   completed and skipped images. Sessions with 0 images are removed.
+   Counter does not necessarily start from 0.
+   Depends on epu_sessions view
 */
 CREATE MATERIALIZED VIEW IF NOT EXISTS epu_counters AS
 WITH image_counter_param AS (
@@ -18,8 +18,7 @@ WITH image_counter_param AS (
 
 SELECT
     seg.instrument_id,
-    seg.start_time,
-    seg.end_time,
+    seg.session_id,
     agg.total_image_counter,
     agg.skip_image_counter
 FROM epu_sessions seg
@@ -38,4 +37,4 @@ FROM epu_sessions seg
       AND d.time < seg.end_time
     ) agg ON TRUE
 WHERE agg.total_image_counter > 0
-ORDER BY seg.instrument_id, seg.start_time
+ORDER BY seg.instrument_id, seg.session_id

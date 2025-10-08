@@ -1,4 +1,7 @@
--- Create a CAGG of EPU acquisition states
+/* Create a CAGG of EPU acquisition states
+   Here we ignore the session data and aggregate the acquisition state directly from raw data.
+   The end goal is to have states duration per day, not per session.
+ */
 CREATE MATERIALIZED VIEW epu_state_daily
 WITH (timescaledb.continuous) AS
 SELECT

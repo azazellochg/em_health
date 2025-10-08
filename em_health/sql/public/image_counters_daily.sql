@@ -1,6 +1,6 @@
-/* Create a materialized view of acquired images counter.
-Here we count AcquisitionJobs, BM-Falcon-NumberOfAcquisitionJobs
-and AcquisitionNumber (for Gatan cameras)
+/* Create a CAGG of acquired images counter.
+   Here we count AcquisitionJobs, BM-Falcon-NumberOfAcquisitionJobs
+   and AcquisitionNumber (for Gatan cameras)
 */
 CREATE MATERIALIZED VIEW image_counters_daily
             WITH (timescaledb.continuous)

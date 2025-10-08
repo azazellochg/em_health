@@ -1,6 +1,6 @@
 /* Create a materialized view of EPU acquisition runs:
-for each input session, find the total time spent in Running and Terminated states.
-   Depends on epu_sessions
+   for each input session, find the total time spent in Running and Terminated states.
+   Depends on epu_sessions view
 */
 CREATE MATERIALIZED VIEW IF NOT EXISTS epu_runs AS
 WITH state_param AS (
@@ -22,8 +22,8 @@ state_enum AS (
 )
 SELECT
     seg.instrument_id,
-    seg.start_time,
-    seg.end_time,
+    seg.session_id,
+    (seg.end_time-seg.start_time) AS total_duration,
     SUM(CASE WHEN v.state = se.running_value THEN v.duration ELSE INTERVAL '0 second' END) AS running_duration,
     BOOL_OR(v.state = se.terminated_value) AS has_terminated
 FROM epu_sessions seg
@@ -42,5 +42,5 @@ JOIN LATERAL (
         )
     )
 ) v ON TRUE
-GROUP BY seg.instrument_id, seg.start_time, seg.end_time
+GROUP BY seg.instrument_id, seg.session_id, seg.start_time, seg.end_time
 ORDER BY seg.instrument_id, seg.start_time;
