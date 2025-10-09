@@ -23,8 +23,8 @@ WITH image_counter_param AS (
 SELECT
     seg.instrument_id,
     seg.session_id,
-    img_agg.total_image_counter,
-    ts_agg.total_ts_counter
+    img_agg.total_image_counter::integer,
+    ts_agg.total_ts_counter::integer
 FROM tomo_sessions seg
          JOIN image_counter_param ic ON ic.instrument_id = seg.instrument_id
          LEFT JOIN ts_counter_param ts ON ts.instrument_id = seg.instrument_id

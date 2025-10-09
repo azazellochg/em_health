@@ -53,7 +53,7 @@ WITH session_param AS (
      )
 SELECT
     instrument_id,
-    session_id,
+    session_id::integer,
     start_time,
     end_time
 FROM session_boundaries

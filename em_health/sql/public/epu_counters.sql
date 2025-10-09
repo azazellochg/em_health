@@ -19,8 +19,8 @@ WITH image_counter_param AS (
 SELECT
     seg.instrument_id,
     seg.session_id,
-    agg.total_image_counter,
-    agg.skip_image_counter
+    agg.total_image_counter::integer,
+    agg.skip_image_counter::integer
 FROM epu_sessions seg
          JOIN image_counter_param ic ON ic.instrument_id = seg.instrument_id
          JOIN skip_counter_param sc ON sc.instrument_id = seg.instrument_id
