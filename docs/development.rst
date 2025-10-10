@@ -16,7 +16,7 @@ However, if you then update the provisioned dashboards (e.g. via `pip install -U
 
 Any file changes in the provisioning folder are immediately picked up by Grafana. There's no need to restart it.
 
-There are a few other limitations:
+There are a few limitations:
 
 * You cannot create nested folders for dashboards. Only single level depth is supported.
 * You should not rename dashboards or folders via GUI as this will conflict with provisioned files. Do it directly on the files if really needed.
@@ -70,7 +70,7 @@ At the moment the client can only change the default organization preferences by
 Logs
 ^^^^
 
-All ``EMHealth`` application actions are saved in `emhealth.log`. PostgreSQL logs are in csv format and can be accessed through:
+All ``EMHealth`` application actions are saved into `emhealth.log`. PostgreSQL logs are in CSV format and can be accessed through:
 
 .. code-block::
 
@@ -92,7 +92,7 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
 * public - default schema for storing HM events data
 
     * schema_info - table to store the current schema version
-    * instruments - glabal metadata for each microscope
+    * instruments - global metadata for each microscope
     * enum_types - enumeration names for each instrument
     * enum_values - enumeration values for each enum
     * parameters - parameters metadata
@@ -110,12 +110,12 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
     * error_definitions
     * errors - main UEC data table for all instruments
 
-* fdw_ms_IID - foreign server schema for MSSQL with UECs (for each IID)
+* fdw_ms_IID - foreign server schema for MSSQL with UECs (for each instrument ID)
 
     * error_definitions
     * error_notifications
 
-* fdw_pg_IID - foreign server schema for PostgreSQL with HM data (for each IID)
+* fdw_pg_IID - foreign server schema for PostgreSQL with HM data (for each instrument ID)
 
     * event_property
     * event_property_type

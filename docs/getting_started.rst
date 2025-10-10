@@ -36,7 +36,7 @@ Prerequisites
 
 .. important:: Currently we support Titan Krios and Glacios instruments only.
 
-Requirements for ``EMHeath`` package:
+Requirements for ``EMHealth`` package:
 
 - `docker <https://docs.docker.com/compose/install/>`_
 - `psql <https://www.timescale.com/blog/how-to-install-psql-on-mac-ubuntu-debian-windows>`_
