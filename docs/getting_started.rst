@@ -57,7 +57,7 @@ Installation
        cd em_health
        pip install -e .
 
-2. (Optional) Edit the configuration variables in `docker/.env` and `docker/secrets/*` files. Detailed information can be found `here <advanced_setup.html#security-configuration>`_.
+2. Edit the configuration variables in `docker/.env` and `docker/secrets/*` files. Detailed information can be found `here <advanced_setup.html#security-configuration>`_.
 3. Launch containers:
 
    .. code-block::

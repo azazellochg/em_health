@@ -17,7 +17,7 @@ services:
       - postgres_emhealth_password
       - postgres_pganalyze_password
     ports:
-      - "5432:5432"
+      - "5432:5432" # FIXME: do not expose for production
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ../em_health/sql:/sql:ro
