@@ -22,6 +22,7 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ../em_health/sql:/sql:ro
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+      - ./pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro
       - ./backups:/backups
     command: >
       postgres
@@ -47,6 +48,10 @@ services:
       -c auto_explain.log_triggers=on
       -c auto_explain.log_verbose=on
       -c auto_explain.log_nested_statements=on
+      -c archive_command='pgbackrest --stanza=main archive-push %p'
+      -c archive_mode=on
+      -c max_wal_senders=3
+      -c wal_level=replica
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 10s

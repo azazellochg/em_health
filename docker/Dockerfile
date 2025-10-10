@@ -84,9 +84,15 @@ COPY --from=builder /etc/freetds/ /etc/freetds/
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-# freetds runtime deps and timescaledb tools
+# freetds runtime deps, timescaledb tools, pgBackRest
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libsybdb5 freetds-common curl ca-certificates postgresql-${PG_MAJOR}-pgtap libtap-parser-sourcehandler-pgtap-perl \
+    libsybdb5 \
+    freetds-common \
+    curl \
+    ca-certificates \
+    postgresql-${PG_MAJOR}-pgtap \
+    pgbackrest \
+    libtap-parser-sourcehandler-pgtap-perl \
     && curl -L -o /tmp/timescaledb-tools.deb "https://packagecloud.io/timescale/timescaledb/packages/debian/trixie/timescaledb-tools_0.18.1~debian13_amd64.deb/download.deb?distro_version_id=221" \
     && dpkg -i /tmp/timescaledb-tools.deb \
     && rm -f /tmp/timescaledb-tools.deb \
