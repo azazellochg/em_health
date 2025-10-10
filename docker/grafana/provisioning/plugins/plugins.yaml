@@ -1,0 +1,7 @@
+apiVersion: 1
+
+apps:
+  - type: aceiot-svg-panel
+    org_id: 1
+    # <bool> disable the app. Default to false.
+    disabled: false

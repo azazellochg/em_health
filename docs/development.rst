@@ -60,7 +60,7 @@ Using Grafana API
 ^^^^^^^^^^^^^^^^^
 
 Grafana provides HTTP API that can be used once you create a `service admin account <http://localhost:3000/org/serviceaccounts/create>`_
-with an API token and save it to **GRAFANA_API_TOKEN** in the `docker/.env`. A simple Python client inside ``EMHealth`` can then access the API.
+with an API token and save it to `docker/secrets/grafana_api_token`. A simple Python client inside ``EMHealth`` can then access the API.
 At the moment the client can only change the default organization preferences by running:
 
 .. code-block::

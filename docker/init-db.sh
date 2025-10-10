@@ -1,5 +1,22 @@
 #!/bin/sh
-set -e
+set -eu
+
+# Helper to read a Docker secret from /run/secrets/<name>
+read_secret() {
+    name="$1"
+    path="/run/secrets/$name"
+    if [ -f "$path" ]; then
+        cat "$path"
+    else
+        echo "Error: Secret file $path not found" >&2
+        exit 1
+    fi
+}
+
+# Read secrets
+POSTGRES_GRAFANA_PASSWORD=$(read_secret postgres_grafana_password)
+POSTGRES_EMHEALTH_PASSWORD=$(read_secret postgres_emhealth_password)
+POSTGRES_PGANALYZE_PASSWORD=$(read_secret postgres_pganalyze_password)
 
 psql -v ON_ERROR_STOP=1 <<EOSQL
     CREATE DATABASE tem;

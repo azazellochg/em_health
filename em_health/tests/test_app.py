@@ -161,10 +161,9 @@ class TestEMHealth(unittest.TestCase):
 
         instr_dict = parser.get_microscope_dict()
 
-        pwd = os.getenv("POSTGRES_EMHEALTH_PASSWORD")
         with DatabaseManager(parser.db_name,
                              username="emhealth",
-                             password=pwd) as dbm:
+                             password="postgres_emhealth_password") as dbm:
             # first import
             instrument_id = dbm.add_instrument(instr_dict)
             enum_ids = dbm.add_enumerations(instrument_id, parser.enum_values)

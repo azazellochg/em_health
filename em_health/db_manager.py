@@ -30,7 +30,7 @@ from datetime import datetime, timezone
 from typing import Iterable, Optional, Any
 
 from em_health.db_client import PgClient
-from em_health.utils.logs import logger, profile
+from em_health.utils.tools import logger, profile, read_secret
 
 
 class DatabaseManager(PgClient):
@@ -196,6 +196,7 @@ class DatabaseManager(PgClient):
 
         :param rows: Iterable of tuples
         :param nocopy: If True, revert to executemany
+        :param chunk_size: Number of bytes to read at a time
         """
         if nocopy:
             query = """
@@ -382,8 +383,9 @@ class DatabaseManager(PgClient):
             raise ValueError("Schema version is higher than expected")
 
     def import_uec(self):
-        if any(os.getenv(var) in ["None", "", None] for var in ["MSSQL_USER", "MSSQL_PASSWORD"]):
-            logger.warning("MSSQL_USER and MSSQL_PASSWORD are not set.")
+        empty = ["None", "", None]
+        if (os.getenv("MSSQL_USER") in empty) or (read_secret("mssql_password") in empty):
+            logger.warning("Check if MSSQL_USER (.env) and docker/secrets/mssql_pwd are both set.")
             exit(0)
 
         servers = self.run_query("""

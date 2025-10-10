@@ -4,7 +4,7 @@ Advanced Setup
 Instruments Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-`instruments.json` file provides main configuration for the instruments.
+`instruments.json` file provides main configuration for the microscopes.
 
 .. code-block:: json
 
@@ -33,19 +33,19 @@ Instruments Configuration
 Security Configuration
 ^^^^^^^^^^^^^^^^^^^^^^
 
-See `docker/.env` for default values.
+See `docker/.env` and `docker/secrets/*` files for default values. Environment file only stores non-sensitive configuration variables.
 
-- DB accounts:
+- Database accounts:
 
-  - POSTGRES_USER (default: *postgres*) - superuser, password: POSTGRES_PASSWORD
-  - *emhealth* - r/w user, password: POSTGRES_EMHEALTH_PASSWORD
-  - *grafana* - read-only user, password: POSTGRES_GRAFANA_PASSWORD
-  - *pganalyze* - database metrics user, password: POSTGRES_PGANALYZE_PASSWORD
-  - [optional] MSSQL_USER and MSSQL_PASSWORD are used to connect to the MSSQL/PostgreSQL database on the MPC
+  - **postgres** - database superuser, password: see **postgres_pwd** file
+  - **emhealth** - r/w user, password: see **postgres_emhealth_pwd**
+  - **grafana** - read-only user, password: see **postgres_grafana_pwd**
+  - **pganalyze** - database metrics user, password: see **postgres_pganalyze_pwd**
+  - [Optional] MSSQL_USER is used to connect to the MSSQL/PostgreSQL databases on the MPC. Password: see **mssql_pwd**
 
 - Grafana accounts:
 
-  - *admin* - administrator account, password: GRAFANA_ADMIN_PASSWORD
+  - **admin**, password: see **grafana_admin_pwd**
 
 Creating a Windows Task
 ^^^^^^^^^^^^^^^^^^^^^^^

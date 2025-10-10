@@ -60,7 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 import os
 
 from em_health.db_manager import DatabaseManager
-from em_health.utils.logs import logger
+from em_health.utils.tools import logger
 
 
 class DatabaseAnalyzer(DatabaseManager):
@@ -99,6 +99,7 @@ class DatabaseAnalyzer(DatabaseManager):
         self.execute_file(self.get_path("create_jobs.sql", folder="pganalyze"))
         logger.info("Scheduled pganalyze jobs")
 
+    # FIXME: not used at the moment
     def create_stats_cagg(self):
         """ Create cagg for pganalyze.stat_statements."""
         mview = "pganalyze.stat_statements_cagg"
@@ -122,10 +123,8 @@ def main(dbname, action, force=False):
                 db.cleanup_jobs()
 
             db.create_metric_collectors()
-            #db.create_stats_cagg()
 
-        pwd = os.getenv("POSTGRES_PGANALYZE_PASSWORD")
-        with DatabaseAnalyzer(dbname, username="pganalyze", password=pwd) as db:
+        with DatabaseAnalyzer(dbname, username="pganalyze", password="postgres_pganalyze_password") as db:
             db.schedule_metric_jobs()
 
     elif action in ["run-query", "explain-query"]:

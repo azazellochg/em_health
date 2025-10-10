@@ -29,7 +29,7 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
-from em_health.utils.logs import logger
+from em_health.utils.tools import logger
 
 DOCKER_COMPOSE_FILE = "compose.yaml"
 PG_CONTAINER = "timescaledb"

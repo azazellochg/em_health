@@ -28,7 +28,7 @@ import os
 from typing import Literal
 
 from em_health.db_manager import DatabaseManager
-from em_health.utils.logs import logger
+from em_health.utils.tools import logger, read_secret
 
 
 class FDWManager:
@@ -73,7 +73,7 @@ class FDWManager:
         """, identifiers={"name": self.name}, strings={
             "server": self.server,
             "user": user,
-            "password": os.getenv("MSSQL_PASSWORD")
+            "password": read_secret("mssql_password")
         })
 
         logger.info("Setup foreign server MSSQL %s@%s:57659 database DS",
@@ -98,7 +98,7 @@ class FDWManager:
         """, identifiers={"name": self.name}, strings={
             "server": self.server,
             "user": user,
-            "password": os.getenv("MSSQL_PASSWORD")
+            "password": read_secret("mssql_password")
         })
 
         logger.info("Setup foreign server PostgreSQL %s@%s:60659 database ds",

@@ -33,7 +33,7 @@ import xml.etree.ElementTree as ET  # https://github.com/lxml/lxml/blob/master/d
 from typing import Iterable
 
 from em_health.db_manager import DatabaseManager
-from em_health.utils.logs import logger
+from em_health.utils.tools import logger
 
 
 NS = {'ns': 'HealthMonitorExport http://schemas.fei.com/HealthMonitor/Export/2009/07'}
@@ -275,10 +275,9 @@ def main(xml_fn, json_fn, nocopy):
         xmlparser.parse_parameters()
         instr_dict = xmlparser.get_microscope_dict()
 
-        pwd = os.getenv("POSTGRES_EMHEALTH_PASSWORD")
         with DatabaseManager(xmlparser.db_name,
                              username="emhealth",
-                             password=pwd) as dbm:
+                             password="postgres_emhealth_password") as dbm:
             instrument_id = dbm.add_instrument(instr_dict)
             enum_ids = dbm.add_enumerations(instrument_id, xmlparser.enum_values)
             dbm.add_parameters(instrument_id, xmlparser.params, enum_ids)

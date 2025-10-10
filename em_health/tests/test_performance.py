@@ -39,7 +39,7 @@ from datetime import datetime, timedelta
 
 from em_health.db_manager import DatabaseManager
 from em_health.utils.maintenance import run_command
-from em_health.utils.logs import logger
+from em_health.utils.tools import logger
 
 
 DB_NAME = "benchmark"
