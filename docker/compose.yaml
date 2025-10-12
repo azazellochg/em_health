@@ -4,7 +4,7 @@ services:
   timescaledb:
     image: ghcr.io/azazellochg/timescaledb:dev
     container_name: timescaledb
-    restart: always
+    restart: unless-stopped
     env_file:
       - .env
     environment:
@@ -61,6 +61,7 @@ services:
   renderer:
     image: grafana/grafana-image-renderer:v4.0.17
     container_name: renderer
+    restart: unless-stopped
     ports:
       - "8081"
     volumes:
@@ -69,7 +70,7 @@ services:
   grafana:
     image: grafana/grafana:12.1.0
     container_name: grafana
-    restart: always
+    restart: unless-stopped
     ports:
       - "3000:3000"
     depends_on:

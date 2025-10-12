@@ -1,13 +1,45 @@
 Backup, restore & update
 ========================
 
-Backup
-------
+We provide tools to perform both physical and logical database backups. For physical backups, we use **pgBackRest** installed inside
+the Docker container with TimescaleDB. Logical backups are done with standard PostgreSQL tools and generally used to migrate
+between major PostgreSQL versions.
+
+Backups are stores in `em_health/docker/backups`. The directory is owned by the *postgres* user (uid 999)
+
+Physical backup
+---------------
+
+The default stanza name is *main*. We leave physical backups for the user to handle. Login into the container to manage the backups:
+
+.. code-block::
+
+    docker exec -it timescaledb bash
+    pgbackrest --stanza=main info
+    pgbackrest --stanza=main backup
+    ...
+
+
+By default, we keep up to 3 full backups. See `/etc/pgbackrest/pgbackrest.conf` for details.
+
+To restore the latest physical backup:
+
+.. code-block::
+
+    docker stop timescaledb
+    docker volume rm pgdata
+    docker volume create pgdata
+    docker run --rm -v pgdata:/var/lib/postgresql/data \
+        -v ./docker/backups:/backups \
+        -v ./docker/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro \
+        --entrypoint pgbackrest timescaledb:latest --stanza=main restore
+
+
+Logical backup
+--------------
 
 By default, both TimescaleDB and Grafana databases are backed up. For Timescale, we perform a full logical backup with `pg_dump`
 which can be used to restore the database between different PostgreSQL versions. For Grafana, we simply backup its sqlite database file.
-
-The backups are saved into `docker/backups` folder.
 
 .. code-block::
 
@@ -15,8 +47,8 @@ The backups are saved into `docker/backups` folder.
 
 ----
 
-Restore
--------
+Restore a logical backup
+------------------------
 
 You can restore either TimescaleDB or Grafana database from a backup file.
 
