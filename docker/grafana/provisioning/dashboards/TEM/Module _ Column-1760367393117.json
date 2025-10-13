@@ -28,11 +28,11 @@
         "filter": {
           "exclude": false,
           "ids": [
-            20,
             11,
             27,
             38,
-            39
+            39,
+            37
           ]
         },
         "hide": false,
@@ -110,7 +110,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 22,
+  "id": 13,
   "links": [
     {
       "asDropdown": true,
@@ -450,6 +450,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
+      "description": "Count events when the firmware was in Off/Error/Unknown state",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -542,7 +543,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH target_params AS (\n  SELECT param_id, param_name, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem = 'HalTemOpticsBrick'\n    AND component = 'Firmware states'\n),\n\ntarget_enums AS (\n  SELECT e.enum_id, e.value\n  FROM enum_values e\n  JOIN target_params p ON p.enum_id = e.enum_id\n  WHERE e.member_name = 'Normal'\n  LIMIT 1\n)\n\nSELECT\n  p.param_name AS \"Board\",\n  COUNT(*) AS \"Errors\",\n  MAX(d.time) AS \"Last error\"\nFROM data d\nJOIN target_params p ON p.param_id = d.param_id\nJOIN target_enums e ON p.enum_id = e.enum_id\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\n  AND d.value_num != e.value\nGROUP BY p.param_name\nORDER BY MAX(d.time) DESC\n",
+          "rawSql": "SELECT\n  p.param_name AS \"Board\",\n  COUNT(*) AS \"Errors\",\n  MAX(d.time) AS \"Last error\"\nFROM data d\nJOIN parameters p ON p.param_id = d.param_id\nJOIN enum_values e ON e.enum_id = p.enum_id\nWHERE d.instrument_id = $instrument\n  AND p.instrument_id = $instrument\n  AND p.subsystem = 'HalTemOpticsBrick'\n  AND p.component = 'Firmware states'\n  AND $__timeFilter(d.time)\n  AND e.member_name IN ('Error', 'Unknown', 'Off')\n  AND d.value_num = e.value\nGROUP BY p.param_name\nORDER BY MAX(d.time) DESC;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -663,7 +664,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH target_params AS (\n  SELECT param_id, param_name, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem IN ('HalTemOpticsBrick', 'HalOpticsBrick')\n    AND (component = 'Operational states' OR (component = 'Optics' AND param_name = 'Optics_OperationalState'))\n),\n\ntarget_enums AS (\n  SELECT e.enum_id, e.value\n  FROM enum_values e\n  JOIN target_params p ON p.enum_id = e.enum_id\n  WHERE e.member_name = 'Up'\n  LIMIT 1\n)\n\nSELECT\n  p.param_name AS \"Board\",\n  COUNT(*) AS \"Offline events\",\n  MAX(d.time) AS \"Last event\"\nFROM data d\nJOIN target_params p ON p.param_id = d.param_id\nJOIN target_enums e ON p.enum_id = e.enum_id\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\n  AND d.value_num != e.value\nGROUP BY p.param_name\nORDER BY MAX(d.time) DESC\n",
+          "rawSql": "SELECT\n  p.param_name AS \"Board\",\n  COUNT(*) AS \"Offline events\",\n  MAX(d.time) AS \"Last event\"\nFROM data d\nJOIN parameters p\n  ON p.param_id = d.param_id\nJOIN enum_values e\n  ON e.enum_id = p.enum_id\nWHERE d.instrument_id = $instrument\n  AND p.instrument_id = $instrument\n  AND p.subsystem IN ('HalTemOpticsBrick', 'HalOpticsBrick')\n  AND (\n        p.component = 'Operational states'\n        OR (p.component = 'Optics' AND p.param_name = 'Optics_OperationalState')\n      )\n  AND e.member_name = 'Up'\n  AND $__timeFilter(d.time)\n  AND d.value_num != e.value\nGROUP BY p.param_name\nORDER BY MAX(d.time) DESC;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1918,7 +1919,7 @@
         "allowCustomValue": false,
         "current": {
           "text": "tem",
-          "value": "P1F7BE6908B217B4A"
+          "value": "hm-tem"
         },
         "hide": 2,
         "name": "sourceTEM",
@@ -1931,8 +1932,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Krios 4 [Titan Krios G4] (4248)",
-          "value": "4"
+          "text": "Glacios [Glacios] (9952833)",
+          "value": "10"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -1950,7 +1951,7 @@
     ]
   },
   "time": {
-    "from": "now-30d",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {
@@ -1959,5 +1960,5 @@
   "timezone": "Europe/London",
   "title": "Module | Column",
   "uid": "4395e67b-0345-47fd-94a8-684533567800",
-  "version": 4
+  "version": 6
 }
