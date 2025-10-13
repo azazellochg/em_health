@@ -2,6 +2,7 @@
    For each session, find sessionID, start and end time.
    Session IDs are assigned at session creation but not always reset to 0 at the stop.
    We assign the start time if the ID changes to any non-zero value.
+   It appears that the sessionIDs are not unique so we can have duplicated IDs
 */
 CREATE MATERIALIZED VIEW IF NOT EXISTS epu_sessions AS
 WITH session_param AS (

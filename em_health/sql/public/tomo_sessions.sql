@@ -4,6 +4,7 @@ NOTES:
 - Session IDs are assigned at session creation but not always reset to 0 at the stop.
    Also, a single session can be stopped/completed/terminated multiple times
    during its time course.
+- It appears that the sessionIDs are not unique so we can have duplicated IDs
 */
 CREATE MATERIALIZED VIEW IF NOT EXISTS tomo_sessions AS
 WITH session_param AS (

@@ -384,7 +384,7 @@ class DatabaseManager(PgClient):
 
     def import_uec(self):
         empty = ["None", "", None]
-        if (os.getenv("MSSQL_USER") in empty) or (read_secret("mssql_password") in empty):
+        if (os.getenv("MSSQL_USER") in empty) or (read_secret("mssql_pwd") in empty):
             logger.warning("Check if MSSQL_USER (.env) and docker/secrets/mssql_pwd are both set.")
             exit(0)
 

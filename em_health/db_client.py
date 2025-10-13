@@ -46,7 +46,7 @@ class BaseDBClient(ABC):
             self.password = read_secret(kwargs["password"])
         else:
             self.username = "postgres"
-            self.password = read_secret("postgres_password")
+            self.password = read_secret("postgres_pwd")
         self.port = default_port
         self.conn = None
         self.cur = None

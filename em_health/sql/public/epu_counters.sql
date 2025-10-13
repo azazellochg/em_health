@@ -19,6 +19,7 @@ WITH image_counter_param AS (
 SELECT
     seg.instrument_id,
     seg.session_id,
+    seg.start_time,
     agg.total_image_counter::integer,
     agg.skip_image_counter::integer
 FROM epu_sessions seg

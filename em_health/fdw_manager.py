@@ -73,7 +73,7 @@ class FDWManager:
         """, identifiers={"name": self.name}, strings={
             "server": self.server,
             "user": user,
-            "password": read_secret("mssql_password")
+            "password": read_secret("mssql_pwd")
         })
 
         logger.info("Setup foreign server MSSQL %s@%s:57659 database DS",
@@ -98,7 +98,7 @@ class FDWManager:
         """, identifiers={"name": self.name}, strings={
             "server": self.server,
             "user": user,
-            "password": read_secret("mssql_password")
+            "password": read_secret("mssql_pwd")
         })
 
         logger.info("Setup foreign server PostgreSQL %s@%s:60659 database ds",

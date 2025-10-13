@@ -30,6 +30,7 @@ WITH image_counter_param AS (
 SELECT
     seg.instrument_id,
     seg.session_id,
+    seg.start_time,
     img_agg.total_image_counter::integer,
     ts_agg.total_ts_counter::integer,
     sm_agg.total_sm_counter::integer
