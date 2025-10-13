@@ -163,7 +163,7 @@ class TestEMHealth(unittest.TestCase):
 
         with DatabaseManager(parser.db_name,
                              username="emhealth",
-                             password="postgres_emhealth_password") as dbm:
+                             password="postgres_emhealth_pwd") as dbm:
             # first import
             instrument_id = dbm.add_instrument(instr_dict)
             enum_ids = dbm.add_enumerations(instrument_id, parser.enum_values)

@@ -1,8 +1,8 @@
 Backup, restore & update
 ========================
 
-We provide tools to perform both physical and logical database backups. For physical backups, we use **pgBackRest** installed inside
-the Docker container with TimescaleDB. Logical backups are done with standard PostgreSQL tools and generally used to migrate
+We provide tools to perform both physical and logical database backups. For physical backups, we use `pgBackRest <https://pgbackrest.org/>`_ installed inside
+the Docker container with TimescaleDB. Logical backups are done with standard PostgreSQL tools and can be used to migrate
 between major PostgreSQL versions.
 
 Backups are stores in `em_health/docker/backups`. The directory is owned by the *postgres* user (uid 999)
@@ -10,7 +10,7 @@ Backups are stores in `em_health/docker/backups`. The directory is owned by the 
 Physical backup
 ---------------
 
-The default stanza name is *main*. We leave physical backups for the user to handle. Login into the container to manage the backups:
+The default pgBackRest stanza name is *main*. We leave physical backups for the user to handle. Login into the container to manage the backups:
 
 .. code-block::
 
@@ -39,7 +39,7 @@ Logical backup
 --------------
 
 By default, both TimescaleDB and Grafana databases are backed up. For Timescale, we perform a full logical backup with `pg_dump`
-which can be used to restore the database between different PostgreSQL versions. For Grafana, we simply backup its sqlite database file.
+which can be used to restore the database between different PostgreSQL versions. For Grafana, we simply backup its SQLite database file.
 
 .. code-block::
 
@@ -64,8 +64,8 @@ Due to Timescale extension, updating the database might get complicated, we reco
 1. Run `pip install -U em_health`. This will update the python package and current schema version
 2. Run `emhealth update`. The script will try to:
 
+    * migrate the restored db schema to the latest version
     * do the full backup
     * pull the latest container images which may contain newer PostgreSQL / Timescale /Grafana versions
     * restore PostgreSQL and Grafana db from the backup
     * upgrade Timescale extension
-    * migrate the restored db schema to the latest version

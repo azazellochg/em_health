@@ -277,7 +277,7 @@ def main(xml_fn, json_fn, nocopy):
 
         with DatabaseManager(xmlparser.db_name,
                              username="emhealth",
-                             password="postgres_emhealth_password") as dbm:
+                             password="postgres_emhealth_pwd") as dbm:
             instrument_id = dbm.add_instrument(instr_dict)
             enum_ids = dbm.add_enumerations(instrument_id, xmlparser.enum_values)
             dbm.add_parameters(instrument_id, xmlparser.params, enum_ids)

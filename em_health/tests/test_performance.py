@@ -44,7 +44,7 @@ from em_health.utils.tools import logger
 
 DB_NAME = "benchmark"
 DB_USER = "postgres"
-DB_PASS = "postgres"
+DB_PASS = "postgres_pwd"
 DEFAULT_FILENAME = "simulated_data.csv"
 
 

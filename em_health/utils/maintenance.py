@@ -150,7 +150,10 @@ psql -d {dbname} -c \\"SELECT timescaledb_post_restore(); ANALYZE;\\""
 
 
 def update() -> None:
-    """Update containers and migrate DB with backup/restore safety."""
+    """Migrate DB schema, backup, update containers restore safely."""
+    from em_health.db_manager import main as db_manager
+    db_manager("tem", "migrate")
+
     pg_backup, grafana_backup = backup("tem")
 
     chdir_docker_dir()
@@ -171,10 +174,6 @@ def update() -> None:
         'ALTER EXTENSION timescaledb_toolkit UPDATE;"'
         'ALTER EXTENSION tds_fdw UPDATE;"'
     )
-
-    # Run migrations
-    from em_health.db_manager import main as db_manager
-    db_manager("tem", "migrate")
 
     logger.info("Finished updating")
 
