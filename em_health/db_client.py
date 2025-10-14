@@ -31,7 +31,7 @@ from typing import Literal, Optional, Dict, Any
 import psycopg
 from psycopg import sql
 
-from em_health.utils.tools import logger, read_secret
+from em_health.utils.tools import logger
 
 
 class BaseDBClient(ABC):
@@ -43,10 +43,10 @@ class BaseDBClient(ABC):
         self.db_name = db_name
         if "username" in kwargs:
             self.username = kwargs["username"]
-            self.password = read_secret(kwargs["password"])
+            self.password = os.getenv(kwargs["password"])
         else:
             self.username = "postgres"
-            self.password = read_secret("postgres_pwd")
+            self.password = os.getenv("POSTGRES_PASSWORD")
         self.port = default_port
         self.conn = None
         self.cur = None

@@ -9,13 +9,6 @@ services:
       - .env
     environment:
       POSTGRES_INITDB_ARGS: --locale=C --encoding=UTF8
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
-    secrets:
-      - postgres_password
-      - postgres_grafana_password
-      - postgres_emhealth_password
-      - postgres_pganalyze_password
     ports:
       - "5432:5432" # FIXME: do not expose for production
     volumes:
@@ -77,55 +70,30 @@ services:
       timescaledb:
         condition: service_healthy
     environment:
-      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
-      GF_POSTGRES_PASSWORD__FILE: /run/secrets/postgres_grafana_password # for datasource provisioning
+      POSTGRES_GRAFANA_PASSWORD: ${POSTGRES_GRAFANA_PASSWORD}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD} # for datasource provisioning
       GF_PLUGINS_PREINSTALL: aceiot-svg-panel
       GF_SERVER_ENABLE_GZIP: true
       GF_SMTP_ENABLED: ${GRAFANA_SMTP_ENABLED} # https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#smtp
       GF_SMTP_HOST: ${GRAFANA_SMTP_HOST}
       GF_SMTP_USER: ${GRAFANA_SMTP_USER}
-      GF_SMTP_PASSWORD__FILE: /run/secrets/grafana_smtp_password
+      GF_SMTP_PASSWORD: ${GRAFANA_SMTP_PASSWORD}
       GF_SMTP_FROM_ADDRESS: ${GRAFANA_EMAIL_FROM}
       GF_SMTP_FROM_NAME: EMHealth
       GRAFANA_EMAIL_TO: ${GRAFANA_EMAIL_TO}
       GF_SMTP_SKIP_VERIFY: ${GRAFANA_SMTP_SKIP_VERIFY}
       GF_RENDERING_SERVER_URL: http://renderer:8081/render
       GF_RENDERING_CALLBACK_URL: http://grafana:3000/
-      GF_RENDERING_RENDERER_TOKEN__FILE: /run/secrets/grafana_renderer_token
+      GF_RENDERING_RENDERER_TOKEN: "-"
       GF_LOG_FILTERS: rendering:debug
       GF_UNIFIED_ALERTING_SCREENSHOTS_CAPTURE: true # https://grafana.com/docs/grafana/latest/alerting/configure-notifications/template-notifications/images-in-notifications/#configuration
       EMHEALTH_DEBUG: ${EMHEALTH_DEBUG}
-    secrets:
-      - postgres_grafana_password
-      - grafana_admin_password
-      - grafana_smtp_password
-      - grafana_renderer_token
     volumes:
       - grafana-storage:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
       - ./backups:/backups
     tmpfs:
       - /var/lib/grafana/plugins   # keeps plugins in container only
-
-secrets:
-  postgres_password:
-    file: ./secrets/postgres_pwd
-  postgres_grafana_password:
-    file: ./secrets/postgres_grafana_pwd
-  postgres_emhealth_password:
-    file: ./secrets/postgres_emhealth_pwd
-  postgres_pganalyze_password:
-    file: ./secrets/postgres_pganalyze_pwd
-  mssql_password:
-    file: ./secrets/mssql_pwd
-  grafana_admin_password:
-    file: ./secrets/grafana_admin_pwd
-  grafana_smtp_password:
-    file: ./secrets/grafana_smtp_pwd
-  grafana_renderer_token:
-    file: ./secrets/grafana_renderer_token
-  grafana_api_token:
-    file: ./secrets/grafana_api_token
 
 volumes:
   pgdata:

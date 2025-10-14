@@ -24,10 +24,11 @@
 # *
 # **************************************************************************
 
+import os
 import requests
 from requests import Response
 
-from em_health.utils.tools import logger, read_secret
+from em_health.utils.tools import logger
 
 GRAFANA_URL = "http://localhost:3000/api/"
 
@@ -37,7 +38,7 @@ class GrafanaClient:
 
     def __init__(self):
         self.base_url = GRAFANA_URL
-        api_token = read_secret("grafana_api_token")
+        api_token = os.getenv("GRAFANA_API_TOKEN")
         if api_token in ["None", "", None]:
             raise ValueError("GRAFANA_API_TOKEN env var is not set")
 

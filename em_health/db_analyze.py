@@ -124,7 +124,7 @@ def main(dbname, action, force=False):
 
             db.create_metric_collectors()
 
-        with DatabaseAnalyzer(dbname, username="pganalyze", password="postgres_pganalyze_pwd") as db:
+        with DatabaseAnalyzer(dbname, username="pganalyze", password="POSTGRES_PGANALYZE_PASSWORD") as db:
             db.schedule_metric_jobs()
 
     elif action in ["run-query", "explain-query"]:

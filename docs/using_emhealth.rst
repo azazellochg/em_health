@@ -94,7 +94,7 @@ This view displays:
 Detectors
 `````````
 
-Projection vacuum, overall status and sensor temperature for detectors and emergy filter are provided
+Projection vacuum, overall status and sensor temperature for detectors and energy filter are provided
 
 .. image:: /_static/dash-detectors.png
 
@@ -125,19 +125,19 @@ For developers
 Data browser
 ````````````
 
-Is mostly useful for visualizing raw data from the database
+Mostly used for visualizing raw data from the database
 
 .. image:: /_static/dash-browser.png
 
 Import Alarms
 -------------
 
-.. note:: This functionality is still in development
+.. note:: This functionality is currently under development
 
 Universal Error Codes (UECs) or Alarms from an instrument are stored in a database separate from Health Monitor events and
 can be typically displayed with UEC Viewer on the MPC. You could also install *FEI UEC Notifications Exporter* and save UECs to XML,
 but this is not supported by ``EMHealth``. If you have the credentials to access the MSSQL server on MPC,
-you can import UECs from MSSQL into ``EMHealth`` database. To make it work, MSSQL_USER (in the `docker/.env`) and `docker/secrets/mssql_pwd` have to be defined,
+you can import UECs from MSSQL into ``EMHealth`` database. To make it work, MSSQL_USER and MSSQL_PASSWORD (in the `docker/.env`) have to be defined,
 as well as the *server* field for each instrument in the `instruments.json`.
 
 .. code-block::

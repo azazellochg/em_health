@@ -38,13 +38,12 @@ import numpy as np
 from datetime import datetime, timedelta
 
 from em_health.db_manager import DatabaseManager
-from em_health.utils.maintenance import run_command
-from em_health.utils.tools import logger
+from em_health.utils.tools import logger, run_command
 
 
 DB_NAME = "benchmark"
 DB_USER = "postgres"
-DB_PASS = "postgres_pwd"
+DB_PASS = "postgres"
 DEFAULT_FILENAME = "simulated_data.csv"
 
 

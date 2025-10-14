@@ -110,8 +110,8 @@ Update EMHealth
 Description
 ^^^^^^^^^^^
 
-Make sure to run `pip install -U em_health` before running this command. The update script will pull the latest
-container images followed by database schema migration (if required).
+Make sure to run `pip install -U em_health` before running this command. The update script will migrate the database schema to the latest
+version and update container images.
 
 Syntax
 ^^^^^^
@@ -145,7 +145,7 @@ Backup
 Description
 ^^^^^^^^^^^
 
-Back up both TimescaleDB and Grafana databases. The backups are saved into `docker/backups` folder.
+Perform a logical backup of TimescaleDB and a physical backup of Grafana database. The backups are saved into `docker/backups` folder.
 
 Syntax
 ^^^^^^

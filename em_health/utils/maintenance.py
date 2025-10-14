@@ -25,11 +25,10 @@
 # **************************************************************************
 
 import os
-import subprocess
 from datetime import datetime
 from pathlib import Path
 
-from em_health.utils.tools import logger
+from em_health.utils.tools import logger, run_command
 
 DOCKER_COMPOSE_FILE = "compose.yaml"
 PG_CONTAINER = "timescaledb"
@@ -41,12 +40,6 @@ def chdir_docker_dir() -> None:
     """Change working directory to em_health/docker."""
     package_root = Path(__file__).resolve().parents[2] / "docker"
     os.chdir(package_root)
-
-
-def run_command(command: str, capture_output: bool = False, check: bool = True) -> subprocess.CompletedProcess:
-    """Run a shell command with logging."""
-    logger.info("Running command: %s", command)
-    return subprocess.run(command, shell=True, check=check, capture_output=capture_output, text=True)
 
 
 def get_tsdb_version(dbname: str) -> str:

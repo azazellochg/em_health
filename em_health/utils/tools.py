@@ -28,7 +28,7 @@ import logging
 import os
 import time
 from functools import wraps
-from pathlib import Path
+import subprocess
 
 try:
     from memory_profiler import memory_usage
@@ -104,8 +104,7 @@ def profile(fn):
     return inner
 
 
-def read_secret(name: str) -> str:
-    path = Path(__file__).resolve().parents[2] / "docker" / "secrets" / name
-    if path.exists():
-        return path.read_text().strip()
-    raise FileNotFoundError(f"Secret {name} not found")
+def run_command(command: str, capture_output: bool = False, check: bool = True) -> subprocess.CompletedProcess:
+    """Run a shell command with logging."""
+    logger.info("Running command: %s", command)
+    return subprocess.run(command, shell=True, check=check, capture_output=capture_output, text=True)

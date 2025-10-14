@@ -20,4 +20,3 @@ emhealth.log
 .directory
 *.cmd
 em_health/instruments.json
-docker/secrets/*

@@ -29,7 +29,7 @@ import unittest
 from datetime import datetime as dt, timezone as tz
 
 from em_health.utils.import_xml import ImportXML
-from em_health.utils.maintenance import run_command
+from em_health.utils.tools import run_command
 from em_health.db_manager import DatabaseManager
 
 XML_FN = os.path.join(os.path.dirname(__file__), '9999_data.xml')
@@ -163,7 +163,7 @@ class TestEMHealth(unittest.TestCase):
 
         with DatabaseManager(parser.db_name,
                              username="emhealth",
-                             password="postgres_emhealth_pwd") as dbm:
+                             password="POSTGRES_EMHEALTH_PASSWORD") as dbm:
             # first import
             instrument_id = dbm.add_instrument(instr_dict)
             enum_ids = dbm.add_enumerations(instrument_id, parser.enum_values)

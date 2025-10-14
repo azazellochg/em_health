@@ -5,7 +5,7 @@ We provide tools to perform both physical and logical database backups. For phys
 the Docker container with TimescaleDB. Logical backups are done with standard PostgreSQL tools and can be used to migrate
 between major PostgreSQL versions.
 
-Backups are stores in `em_health/docker/backups`. The directory is owned by the *postgres* user (uid 999)
+Backups are stored in `em_health/docker/backups`. The directory is owned by the *postgres* user (uid 999)
 
 Physical backup
 ---------------
@@ -64,8 +64,8 @@ Due to Timescale extension, updating the database might get complicated, we reco
 1. Run `pip install -U em_health`. This will update the python package and current schema version
 2. Run `emhealth update`. The script will try to:
 
-    * migrate the restored db schema to the latest version
+    * migrate the current db schema to the latest version
     * do the full backup
-    * pull the latest container images which may contain newer PostgreSQL / Timescale /Grafana versions
+    * pull the latest container images which may contain newer PostgreSQL / Timescale / Grafana versions
     * restore PostgreSQL and Grafana db from the backup
     * upgrade Timescale extension

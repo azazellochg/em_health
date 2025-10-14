@@ -33,20 +33,19 @@ Instruments Configuration
 Security Configuration
 ^^^^^^^^^^^^^^^^^^^^^^
 
-See `docker/.env` and `docker/secrets/*` files for default values. Environment file only stores non-sensitive configuration variables.
+See `docker/.env` for default values.
 
-- Database accounts:
+- DB accounts:
 
-  - **postgres** - database superuser, password: see **postgres_pwd** file
-  - **emhealth** - r/w user, password: see **postgres_emhealth_pwd**
-  - **grafana** - read-only user, password: see **postgres_grafana_pwd**
-  - **pganalyze** - database metrics user, password: see **postgres_pganalyze_pwd**
-  - [Optional] MSSQL_USER is used to connect to the MSSQL/PostgreSQL databases on the MPC. Password: see **mssql_pwd**
+  - POSTGRES_USER (default: *postgres*) - superuser, password: POSTGRES_PASSWORD
+  - *emhealth* - r/w user, password: POSTGRES_EMHEALTH_PASSWORD
+  - *grafana* - read-only user, password: POSTGRES_GRAFANA_PASSWORD
+  - *pganalyze* - database metrics user, password: POSTGRES_PGANALYZE_PASSWORD
+  - [optional] MSSQL_USER and MSSQL_PASSWORD are used to connect to the MSSQL/PostgreSQL database on the MPC
 
 - Grafana accounts:
 
-  - **admin**, password: see **grafana_admin_pwd**
-
+  - *admin* - administrator account, password: GRAFANA_ADMIN_PASSWORD
 Creating a Windows Task
 ^^^^^^^^^^^^^^^^^^^^^^^
 

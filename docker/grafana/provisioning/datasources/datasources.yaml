@@ -9,7 +9,7 @@ datasources:
     url: "timescaledb:5432"
     user: "grafana"
     secureJsonData:
-      password: "$GF_POSTGRES_PASSWORD"
+      password: "$POSTGRES_GRAFANA_PASSWORD"
     database: tem
     jsonData:
       sslmode: disable
@@ -24,7 +24,7 @@ datasources:
     url: "timescaledb:5432"
     user: "grafana"
     secureJsonData:
-      password: "$GF_POSTGRES_PASSWORD"
+      password: "$POSTGRES_GRAFANA_PASSWORD"
     database: sem
     jsonData:
       sslmode: disable
