@@ -72,7 +72,7 @@ FROM postgres:17-trixie AS release
 # --------- Metadata ----------
 LABEL org.opencontainers.image.title="Custom PostgreSQL image with TimescaleDB, Toolkit & TDS-FDW" \
       org.opencontainers.image.description='Postgres 17.6 + TimescaleDB 2.22.0 + Toolkit 1.21.0 + TDS-FDW 2.0.5' \
-      org.opencontainers.image.version="0.1a2" \
+      org.opencontainers.image.version="0.1a3" \
       org.opencontainers.image.authors="Grigory Sharov <gsharov@mrc-lmb.cam.ac.uk>" \
       org.opencontainers.image.licenses="GPL-3.0-or-later" \
       org.opencontainers.image.source="https://github.com/azazellochg/em_health"
