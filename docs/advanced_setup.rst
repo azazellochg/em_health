@@ -46,6 +46,7 @@ See `docker/.env` for default values.
 - Grafana accounts:
 
   - *admin* - administrator account, password: GRAFANA_ADMIN_PASSWORD
+
 Creating a Windows Task
 ^^^^^^^^^^^^^^^^^^^^^^^
 

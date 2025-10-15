@@ -148,3 +148,16 @@ Alerting
 --------
 
 This functionality is currently under development.
+
+Export data and reporting
+-------------------------
+
+You have several options available here:
+
+1. To export raw data from a panel to CSV/Excel format, select `Inspect > Data`. The new window allows you to configure export options and download CSV
+
+.. image:: /_static/export-csv.png
+
+2. To render PNG image of a panel, select `Share > Share link`. In the new window you can customize the image size, then Generate and Download image.
+
+.. image:: /_static/export-png.png
