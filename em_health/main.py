@@ -24,6 +24,7 @@
 # *
 # **************************************************************************
 
+import os
 import argparse
 from dotenv import load_dotenv
 from pathlib import Path
@@ -56,7 +57,7 @@ def db_cmd(args):
         func(dbname, action, getattr(args, "force", False))
 
     elif action in ["create-stats", "clean-all",
-                    "clean-inst", "import-uec"]:
+                    "clean-inst", "import-uec", "migrate"]:
         from em_health.db_manager import main as func
         func(dbname, action,
              getattr(args, "instrument", None),
@@ -66,16 +67,20 @@ def db_cmd(args):
         from em_health.utils.maintenance import main as func
         func(dbname, action)
 
+    elif action.startswith("test-"):
+        from em_health.tests.test_performance import TestPerformance
+        TestPerformance(action, args.batch).run()
+
 
 def update_cmd(args):
     from em_health.utils.maintenance import main as func
     func(args.database, "update")
 
 
-def test_cmd(args=None):
+def test_cmd(args):
     import unittest
-    from em_health.tests.test_hm import TestXMLImport
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestXMLImport)
+    from em_health.tests.test_app import TestEMHealth
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestEMHealth)
     unittest.TextTestRunner(verbosity=2).run(suite)
 
 
@@ -90,6 +95,12 @@ COMMAND_DISPATCH = {
 
 
 def main():
+    env_path = Path(__file__).resolve().parents[1] / "docker" / ".env"
+    if not env_path.exists():
+        raise FileNotFoundError(f"Environment file {env_path} not found")
+    load_dotenv(dotenv_path=env_path)
+    DEBUG = os.getenv("EMHEALTH_DEBUG", "false").lower() in ("true", "1", "yes")
+
     parser = argparse.ArgumentParser(
         prog="emhealth",
         description=f"EMHealth CLI (v{__version__})",
@@ -107,8 +118,8 @@ def main():
                                help="Path to XML file (.xml or .xml.gz)")
     import_parser.add_argument("-s", dest="settings", required=True,
                                help="Path to instruments.json with metadata")
-    import_parser.add_argument("--no-copy", dest="nocopy", action="store_true",
-                               help="Do not use fast COPY method (useful for small imports)")
+    import_parser.add_argument("--skip-duplicates", dest="nocopy", action="store_true",
+                               help="Ignore duplicated datapoints (useful for small overlapping imports)")
 
     # --- Create Task command ---
     task_parser = subparsers.add_parser("create-task",
@@ -129,7 +140,7 @@ def main():
                               help="Polling time interval in seconds (default: 300)")
 
     subparsers.add_parser("update", help="Update EMHealth to the latest version")
-    subparsers.add_parser("test", help="Run unit tests to check parser and import functions")
+    subparsers.add_parser("test", help="Run unit tests to check XML parser and import functions")
 
     # --- Database maintenance commands ---
     db_parser = subparsers.add_parser("db", help="Database operations")
@@ -137,6 +148,7 @@ def main():
 
     db_subparsers.add_parser("create-stats", help="Create aggregated statistics")
     db_subparsers.add_parser("backup", help="Back up both TimescaleDB and Grafana databases")
+    db_subparsers.add_parser("migrate", help="Migrate TimescaleDB to the latest schema")
     db_subparsers.add_parser("restore", help="Restore DB from backup")
     db_subparsers.add_parser("clean-all", help="Erase ALL data in the database")
 
@@ -150,12 +162,29 @@ def main():
     db_subparsers.add_parser("import-uec", help="Import UEC data from microscope servers")
 
     # --- Developer tools ---
-    perf = db_subparsers.add_parser("create-perf-stats", help="Setup DB performance measurements [DEV]")
-    perf.add_argument("-f", "--force", dest="force", action="store_true",
-                      help="Erase existing pganalyze data and recreate tables")
+    if DEBUG:
+        perf = db_subparsers.add_parser("create-perf-stats", help="Setup DB performance measurements [DEV]")
+        perf.add_argument("-f", "--force", dest="force", action="store_true",
+                          help="Erase existing pganalyze data and recreate tables")
 
-    db_subparsers.add_parser("run-query", help="Run a custom query [DEV]")
-    db_subparsers.add_parser("explain-query", help="EXPLAIN a custom query [DEV]")
+        db_subparsers.add_parser("run-query", help="Run a custom query [DEV]")
+        db_subparsers.add_parser("explain-query", help="EXPLAIN a custom query [DEV]")
+
+        # helper function to add "batch" argument
+        def add_count_arg(p):
+            p.add_argument(
+                "batch",
+                type=int,
+                help="Batch/chunk/rows size"
+            )
+            return p
+
+        add_count_arg(db_subparsers.add_parser("test-data", help="Generate CSV with simulated data [DEV]"))
+        add_count_arg(db_subparsers.add_parser("test-copy", help="Benchmark COPY performance [DEV]"))
+        add_count_arg(db_subparsers.add_parser("test-execmany", help="Benchmark EXECUTEMANY performance [DEV]"))
+        add_count_arg(db_subparsers.add_parser("test-unnest", help="Benchmark INSERT UNNEST performance [DEV]"))
+        add_count_arg(db_subparsers.add_parser("test-import", help="Benchmark XML import performance [DEV]"))
+        add_count_arg(db_subparsers.add_parser("test-query", help="Benchmark query execution performance [DEV]"))
 
     args = parser.parse_args()
 
@@ -163,10 +192,6 @@ def main():
         parser.error("Database name must be 'tem' or 'sem'")
 
     if args.command in COMMAND_DISPATCH:
-        env_path = Path(__file__).resolve().parents[1] / "docker" / ".env"
-        if not env_path.exists():
-            raise FileNotFoundError(f"Environment file {env_path} not found")
-        load_dotenv(dotenv_path=env_path)
         COMMAND_DISPATCH[args.command](args)
     else:
         parser.print_help()

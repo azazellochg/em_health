@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 34,
+  "id": 63,
   "links": [
     {
       "asDropdown": true,
@@ -352,32 +352,39 @@
                 ],
                 "operation": "aggregate"
               },
-              "Status": {
-                "aggregations": [],
-                "operation": "groupby"
+              "SessionID": {
+                "aggregations": []
               },
-              "session": {
+              "Terminated": {
                 "aggregations": [
                   "count"
                 ],
-                "operation": "aggregate"
-              },
-              "status": {
-                "aggregations": [],
                 "operation": "groupby"
               }
             }
           }
         },
         {
-          "id": "sortBy",
+          "id": "rowsToFields",
           "options": {
-            "fields": {},
-            "sort": [
+            "mappings": [
               {
-                "field": "Status"
+                "fieldName": "Terminated",
+                "handlerKey": "field.name"
               }
             ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "false": "Completed",
+              "true": "Terminated"
+            }
           }
         }
       ],
@@ -413,7 +420,7 @@
         "x": 9,
         "y": 0
       },
-      "id": 6,
+      "id": 10,
       "options": {
         "colorMode": "none",
         "graphMode": "none",
@@ -453,19 +460,12 @@
                 ],
                 "operation": "aggregate"
               },
-              "Status": {
-                "aggregations": [],
-                "operation": "groupby"
+              "SessionID": {
+                "aggregations": []
               },
-              "session": {
+              "Terminated": {
                 "aggregations": [
                   "count"
-                ],
-                "operation": "aggregate"
-              },
-              "status": {
-                "aggregations": [
-                  "sum"
                 ],
                 "operation": "groupby"
               }
@@ -473,14 +473,26 @@
           }
         },
         {
-          "id": "sortBy",
+          "id": "rowsToFields",
           "options": {
-            "fields": {},
-            "sort": [
+            "mappings": [
               {
-                "field": "Status"
+                "fieldName": "Terminated",
+                "handlerKey": "field.name"
               }
             ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "false": "Completed",
+              "true": "Terminated"
+            }
           }
         }
       ],
@@ -503,6 +515,7 @@
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "left",
+            "axisSoftMax": 100,
             "fillOpacity": 60,
             "gradientMode": "none",
             "hideFrom": {
@@ -573,7 +586,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH all_durations AS (\n  SELECT\n    time AS day,\n    'epu' AS source,\n    running_duration\n  FROM epu_acquisition_daily\n  WHERE $__timeFilter(time)\n    AND instrument_id = $instrument\n\n  UNION ALL\n\n  SELECT\n    time AS day,\n    'tomo' AS source,\n    running_duration\n  FROM tomo_acquisition_daily\n  WHERE $__timeFilter(time)\n    AND instrument_id = $instrument\n),\ndays AS (\n  SELECT generate_series(\n    $__timeFrom()::date,\n    $__timeTo()::date,\n    interval '1 day'\n  ) AS day\n)\n\nSELECT\n  d.day AS time,\n  100.0 * COALESCE(SUM(running_duration) FILTER (WHERE source = 'epu'), 0) / 86400.0 AS \"EPU\",\n  100.0 * COALESCE(SUM(running_duration) FILTER (WHERE source = 'tomo'), 0) / 86400.0 AS \"Tomo\"\nFROM days d\nLEFT JOIN all_durations ad ON ad.day = d.day\nGROUP BY d.day\nORDER BY d.day;\n",
+          "rawSql": "WITH all_durations AS (\n  SELECT\n    time::date AS day,\n    'epu' AS source,\n    EXTRACT(EPOCH FROM running_duration) AS running_seconds\n  FROM epu_running_daily\n  WHERE $__timeFilter(time)\n    AND instrument_id = $instrument\n\n  UNION ALL\n\n  SELECT\n    time::date AS day,\n    'tomo' AS source,\n    EXTRACT(EPOCH FROM running_duration) AS running_seconds\n  FROM tomo_running_daily\n  WHERE $__timeFilter(time)\n    AND instrument_id = $instrument\n),\n\ndays AS (\n  SELECT generate_series(\n    $__timeFrom()::date,\n    $__timeTo()::date,\n    interval '1 day'\n  ) AS day\n)\n\nSELECT\n  d.day AS time,\n  ROUND(100.0 * COALESCE(SUM(running_seconds) FILTER (WHERE source = 'epu'), 0) / 86400.0, 2) AS \"EPU\",\n  ROUND(100.0 * COALESCE(SUM(running_seconds) FILTER (WHERE source = 'tomo'), 0) / 86400.0, 2) AS \"Tomo\"\nFROM days d\nLEFT JOIN all_durations ad ON ad.day = d.day\nGROUP BY d.day\nORDER BY d.day;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -811,7 +824,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
-      "description": "Sessions with less than 5 images are ignored",
+      "description": "Running duration is the actual automated acquisition run",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -833,7 +846,8 @@
             },
             "lineWidth": 1,
             "scaleDistribution": {
-              "type": "linear"
+              "log": 2,
+              "type": "log"
             },
             "thresholdsStyle": {
               "mode": "off"
@@ -855,12 +869,16 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Session #"
+              "options": "SessionID"
             },
             "properties": [
               {
-                "id": "custom.axisLabel",
-                "value": "session #"
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
               }
             ]
           },
@@ -893,6 +911,50 @@
                   "tooltip": false,
                   "viz": true
                 }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Terminated"
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Running duration"
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Session #"
+            },
+            "properties": [
+              {
+                "id": "custom.axisLabel",
+                "value": "Session #"
               }
             ]
           }
@@ -938,7 +1000,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH state_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'AutomatedAcquisitionState'\n    AND subsystem = 'EPU'\n)\n\nSELECT\n  ss.start_time AS \"Start time\",\n  ss.end_time AS \"End time\",\n  ss.total_image_counter AS \"Total images\",\n  ss.skip_image_counter AS \"Skipped images\",\n  CASE \n    WHEN EXTRACT(EPOCH FROM (ss.end_time - ss.start_time)) > 0 THEN\n      ss.total_image_counter / (EXTRACT(EPOCH FROM (ss.end_time - ss.start_time)) / 3600.0)\n    ELSE NULL\n  END AS \"Images/hour\",\n  e.member_name AS \"Status\"\nFROM epu_counters ss\nJOIN state_param esp ON TRUE\nLEFT JOIN enum_values e\n  ON e.enum_id = esp.enum_id\n  AND e.value = ss.end_state_value\nWHERE ss.instrument_id = $instrument\n  AND $__timeFilter(ss.start_time)\nORDER BY ss.start_time;\n",
+          "rawSql": "SELECT\n  ec.session_id AS \"SessionID\",\n  es.start_time AS \"Start time\",\n  es.end_time AS \"End time\",\n  er.running_duration AS \"Running duration\",\n  ec.total_image_counter AS \"Total images\",\n  ec.skip_image_counter AS \"Skipped images\",\n  CASE \n    WHEN EXTRACT(EPOCH FROM er.running_duration) > 0 THEN\n      ec.total_image_counter / (EXTRACT(EPOCH FROM er.running_duration) / 3600)\n    ELSE NULL\n  END AS \"Images/hour\",\n  er.has_terminated AS \"Terminated\"\nFROM epu_counters ec\nJOIN epu_sessions es\n  ON es.session_id = ec.session_id\n  AND es.instrument_id = $instrument\n  AND es.start_time = ec.start_time\nJOIN epu_runs er\n  ON er.session_id = ec.session_id\n  AND er.instrument_id = $instrument\n  AND er.start_time = ec.start_time\nWHERE ec.instrument_id = $instrument\n  AND $__timeFilter(es.start_time)\nORDER BY es.start_time;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -962,24 +1024,6 @@
       "title": "EPU acquisition speed",
       "transformations": [
         {
-          "id": "filterByValue",
-          "options": {
-            "filters": [
-              {
-                "config": {
-                  "id": "lower",
-                  "options": {
-                    "value": "5"
-                  }
-                },
-                "fieldName": "Total images"
-              }
-            ],
-            "match": "all",
-            "type": "exclude"
-          }
-        },
-        {
           "id": "calculateField",
           "options": {
             "alias": "Session #",
@@ -997,7 +1041,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
-      "description": "Sessions with less than 5 images are ignored",
+      "description": "Running duration is the actual automated acquisition run",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1019,7 +1063,8 @@
             },
             "lineWidth": 1,
             "scaleDistribution": {
-              "type": "linear"
+              "log": 2,
+              "type": "log"
             },
             "thresholdsStyle": {
               "mode": "off"
@@ -1081,6 +1126,38 @@
                 }
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "SessionID"
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Search maps"
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              }
+            ]
           }
         ]
       },
@@ -1124,7 +1201,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH state_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name IN ('Tomo5TiltSeriesState', 'TiltSeries')\n    AND subsystem = 'Tomography'\n)\n\nSELECT\n  ss.start_time AS \"Start time\",\n  ss.end_time AS \"End time\",\n  ss.total_ts_counter AS \"Tilt series\",\n  ss.total_image_counter AS \"Total images\",\n  CASE \n    WHEN EXTRACT(EPOCH FROM (ss.end_time - ss.start_time)) > 0 THEN\n      ss.total_image_counter / (EXTRACT(EPOCH FROM (ss.end_time - ss.start_time)) / 3600.0)\n    ELSE NULL\n  END AS \"Images/hour\",\n  e.member_name AS \"Status\"\nFROM tomo_counters ss\nJOIN state_param esp ON TRUE\nLEFT JOIN enum_values e\n  ON e.enum_id = esp.enum_id\n  AND e.value = ss.end_state_value\nWHERE ss.instrument_id = $instrument\n  AND $__timeFilter(ss.start_time)\nORDER BY ss.start_time;\n",
+          "rawSql": "SELECT\n  ec.session_id AS \"SessionID\",\n  es.start_time AS \"Start time\",\n  es.end_time AS \"End time\",\n  er.running_duration AS \"Running duration\",\n  ec.total_image_counter AS \"Total images\",\n  ec.total_ts_counter AS \"Tilt series\",\n  ec.total_sm_counter AS \"Search maps\",\n  CASE \n    WHEN EXTRACT(EPOCH FROM er.running_duration) > 0 THEN\n      ec.total_image_counter / (EXTRACT(EPOCH FROM er.running_duration) / 3600)\n    ELSE NULL\n  END AS \"Images/hour\",\n  er.has_terminated AS \"Terminated\"\nFROM tomo_counters ec\nJOIN tomo_sessions es\n  ON es.session_id = ec.session_id\n  AND es.instrument_id = $instrument\n  AND es.start_time = ec.start_time\nJOIN tomo_runs er\n  ON er.session_id = ec.session_id\n  AND er.instrument_id = $instrument\n  AND er.start_time = ec.start_time\nWHERE ec.instrument_id = $instrument\n  AND $__timeFilter(es.start_time)\nORDER BY es.start_time;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1147,24 +1224,6 @@
       ],
       "title": "Tomo acquisition speed",
       "transformations": [
-        {
-          "id": "filterByValue",
-          "options": {
-            "filters": [
-              {
-                "config": {
-                  "id": "lower",
-                  "options": {
-                    "value": "5"
-                  }
-                },
-                "fieldName": "Total images"
-              }
-            ],
-            "match": "all",
-            "type": "exclude"
-          }
-        },
         {
           "id": "calculateField",
           "options": {
@@ -1191,7 +1250,7 @@
         "allowCustomValue": false,
         "current": {
           "text": "Krios 4 [Titan Krios G4] (4248)",
-          "value": "4"
+          "value": "6"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -1211,7 +1270,7 @@
         "allowCustomValue": false,
         "current": {
           "text": "tem",
-          "value": "P1F7BE6908B217B4A"
+          "value": "hm-tem"
         },
         "hide": 2,
         "name": "sourceTEM",
@@ -1231,5 +1290,5 @@
   "timezone": "Europe/London",
   "title": "Productivity",
   "uid": "6b926c0e-9894-4124-9c6e-75cf6d9d898a",
-  "version": 1
+  "version": 5
 }

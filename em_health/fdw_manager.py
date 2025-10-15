@@ -28,7 +28,7 @@ import os
 from typing import Literal
 
 from em_health.db_manager import DatabaseManager
-from em_health.utils.logs import logger
+from em_health.utils.tools import logger
 
 
 class FDWManager:

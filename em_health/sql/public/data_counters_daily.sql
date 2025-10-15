@@ -1,5 +1,5 @@
-/* Create a materialized view of acquired data counter
-(Tb per day). Only Falcon cameras have such a counter.
+/* Create a CAGG of acquired data counter
+   (Tb per day). Only Falcon cameras have such a counter.
 */
 CREATE MATERIALIZED VIEW data_counters_daily
 WITH (timescaledb.continuous)

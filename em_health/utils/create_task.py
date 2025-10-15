@@ -28,7 +28,7 @@ import os
 import sys
 import json
 
-from em_health.utils.logs import logger
+from em_health.utils.tools import logger
 
 HM_EXE = r"C:\Program Files (x86)\Thermo Scientific Health Monitor\HealthMonitorCmd.exe"
 TIME = "01:00"
@@ -112,7 +112,7 @@ rem --remove to overwrite old export files
 
         logger.info("Created file: %s\n"
                     "Create a task in the Task Scheduler on a Windows system with Health Monitor "
-                    "to run the above script every hour. See documentation for details.",
+                    "to run the above script periodically. See documentation for details.",
                     os.path.abspath(task_file))
 
 

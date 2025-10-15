@@ -69,7 +69,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 9,
+  "id": 44,
   "links": [
     {
       "asDropdown": true,
@@ -1295,7 +1295,39 @@
           "color": {
             "mode": "thresholds"
           },
-          "mappings": [],
+          "mappings": [
+            {
+              "options": {
+                "result": {
+                  "color": "green",
+                  "index": 0
+                },
+                "to": 129600
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 129600,
+                "result": {
+                  "color": "yellow",
+                  "index": 1
+                },
+                "to": 259200
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 259200,
+                "result": {
+                  "color": "orange",
+                  "index": 2
+                }
+              },
+              "type": "range"
+            }
+          ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1654,7 +1686,50 @@
           "color": {
             "mode": "thresholds"
           },
-          "mappings": [],
+          "mappings": [
+            {
+              "options": {
+                "from": 25200,
+                "result": {
+                  "color": "green",
+                  "index": 0
+                }
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 18000,
+                "result": {
+                  "color": "yellow",
+                  "index": 1
+                },
+                "to": 25200
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 14400,
+                "result": {
+                  "color": "orange",
+                  "index": 2
+                },
+                "to": 18000
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "result": {
+                  "color": "red",
+                  "index": 3
+                },
+                "to": 14400
+              },
+              "type": "range"
+            }
+          ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1837,8 +1912,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Krios 3 [Titan Krios G3i] (3593)",
-          "value": "4"
+          "text": "Glacios [Glacios] (9952833)",
+          "value": "10"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -1890,7 +1965,7 @@
     ]
   },
   "time": {
-    "from": "now-30d",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {
@@ -1899,5 +1974,5 @@
   "timezone": "Europe/London",
   "title": "Module | Autoloader",
   "uid": "4395e67b-0280-47fd-94a8-655603f10800",
-  "version": 4
+  "version": 3
 }

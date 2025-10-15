@@ -33,7 +33,8 @@ SELECT has_table('public', 'data_staging', 'public.data_staging exists');
 SELECT has_table('public', 'data', 'public.data exists');
 
 -- PUBLIC INDEXES
-SELECT has_index('public','enum_types','enum_types_instrument_id_name_idx','public.enum_types index');
+SELECT has_index('public','enum_values','enum_values_member_name_enum_id_idx','public.enum_values index exists');
+SELECT has_index('public', 'parameters', 'parameters_enum_id_instrument_id_param_id_param_name_subsys_idx', 'public.parameters index exists');
 
 ---------------------------
 -- UEC SCHEMA TABLES
@@ -57,9 +58,6 @@ SELECT has_table('pganalyze','stat_snapshots','pganalyze.stat_snapshots exists')
 SELECT has_table('pganalyze','stat_statements','pganalyze.stat_statements exists');
 SELECT has_table('pganalyze','stat_explains','pganalyze.stat_explains exists');
 SELECT has_table('pganalyze','sys_stats','pganalyze.sys_stats exists');
-
--- PGANALYZE INDEXES
-SELECT has_index('pganalyze','stat_statements','stat_statements_queryid_time','pganalyze.stat_statements queryid_time index');
 
 ---------------------------
 -- FINISH

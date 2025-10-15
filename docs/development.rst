@@ -16,24 +16,18 @@ However, if you then update the provisioned dashboards (e.g. via `pip install -U
 
 Any file changes in the provisioning folder are immediately picked up by Grafana. There's no need to restart it.
 
-There are a few other limitations:
+There are a few limitations:
 
 * You cannot create nested folders for dashboards. Only single level depth is supported.
 * You should not rename dashboards or folders via GUI as this will conflict with provisioned files. Do it directly on the files if really needed.
 * Some provisioned resources (alerts, contact points, datasources) cannot be modified from the GUI. You can create new ones though.
 
 
-Enable performance metrics
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+DB performance metrics
+^^^^^^^^^^^^^^^^^^^^^^
 
-After installation you can enable DB performance monitoring. Generally, this is only required for a developer setup:
-
-.. code-block::
-
-    emhealth db create-perf-stats -f
-
-This will create a separate *pganalyze* account for TimescaleDB and schedule statistics collection.
-The output is used in dashboards under *DB performance* folder.
+After installation the DB performance monitoring is enabled by default.
+You can check the dashboards under *DB performance* folder.
 
 Performance statistics is inspired by `Pganalyze <https://pganalyze.com/>`_ and includes:
 
@@ -76,7 +70,7 @@ At the moment the client can only change the default organization preferences by
 Logs
 ^^^^
 
-All ``EMHealth`` application actions are saved in `emhealth.log`. PostgreSQL logs are in csv format and can be accessed through:
+All ``EMHealth`` application actions are saved into `emhealth.log`. PostgreSQL logs are in CSV format and can be accessed through:
 
 .. code-block::
 
@@ -98,7 +92,7 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
 * public - default schema for storing HM events data
 
     * schema_info - table to store the current schema version
-    * instruments - glabal metadata for each microscope
+    * instruments - global metadata for each microscope
     * enum_types - enumeration names for each instrument
     * enum_values - enumeration values for each enum
     * parameters - parameters metadata
@@ -116,12 +110,12 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
     * error_definitions
     * errors - main UEC data table for all instruments
 
-* fdw_ms_IID - foreign server schema for MSSQL with UECs (for each IID)
+* fdw_ms_IID - foreign server schema for MSSQL with UECs (for each instrument ID)
 
     * error_definitions
     * error_notifications
 
-* fdw_pg_IID - foreign server schema for PostgreSQL with HM data (for each IID)
+* fdw_pg_IID - foreign server schema for PostgreSQL with HM data (for each instrument ID)
 
     * event_property
     * event_property_type
@@ -129,7 +123,7 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
     * parameter_type
     * instrument_event_config
 
-* pganalyze - schema to store database statistics for developers
+* pganalyze - schema to store database statistics
 
     * database_stats
     * table_stats
@@ -140,3 +134,98 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
     * queries
     * sys_stats
     * stat_explains
+
+Measuring ingestion performance
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+These benchmarks compare different ingestion strategies for loading timeseries-like CSV data into TimescaleDB.
+
+Workflow:
+
+1. **Generate test data** with the desired number of rows.
+2. **Run one or more ingestion tests** (COPY, EXECUTEMANY, UNNEST).
+3. **Compare performance metrics** such as rows/s, query planning, and execution times.
+
+Input dataset
+-------------
+
+The input is a simulated CSV file with *N* rows. Each row contains:
+
+- `time` (timestamp, millisecond precision)
+- `instrument_id` (integer)
+- `param_id` (integer)
+- `value_num` (float)
+- `value_text` (string, optional)
+
+Data generation parameters:
+
+- 30 days of data
+- 10 instruments
+- 500–1500 parameters per instrument
+
+To generate 1,000,000 rows:
+
+.. code-block::
+
+    emhealth db test-data 1000000
+
+Benchmarking COPY
+-----------------
+
+The **COPY** test uses psycopg3 text-format COPY with a configurable chunk size. Each chunk is a Python string containing concatenated rows. This test allows tuning both chunk size and Postgres server settings.
+
+Run with an 8 MB chunk size:
+
+.. code-block::
+
+    emhealth db test-copy 8388608
+
+Benchmarking EXECUTEMANY
+------------------------
+
+The **EXECUTEMANY** test uses `cursor.executemany()` in psycopg3. Internally this leverages libpq’s pipeline mode to run batched `INSERT .. VALUES` statements. We still commit transactions in batches.
+
+Each run inserts *batch_size × num_columns* values.
+
+Example with batch size 1000:
+
+.. code-block::
+
+    emhealth db test-execmany 1000
+
+Benchmarking UNNEST
+-------------------
+
+The **UNNEST** test uses `cursor.execute()` to run an `INSERT .. UNNEST` query. Instead of sending row-by-row inserts, this method sends arrays (one per column) and expands them into rows in PostgreSQL. This reduces query planning overhead compared to EXECUTEMANY.
+
+Example with batch size 1000:
+
+.. code-block::
+
+    emhealth db test-unnest 1000
+
+Example output
+--------------
+
+Each test is run 5 times. Results include raw wall times, throughput (rows/s), and query planning/execution stats from `pg_stat_statements`.
+
+Example output (truncated):
+
+.. code-block::
+
+    Using insert_copy to insert 997,905 rows into data_staging table:
+        Batch size: 8000000
+        Raw run times: [0.8793832040391862, 0.903236785903573, 0.8884079209528863, 0.8673364277929068, 0.8408198338001966], rows/s: [1134778.3257815468, 1104809.9629840956, 1123250.903627322, 1150539.7075726986, 1186823.8115766563]
+        Avg time over 5 runs: 0.8758 s
+        Avg performance: 1,140,040.5423 rows/s
+        Calls per run: 1
+        Plan time per call: 0.0000 ms
+        Exec time per call: 865.8786 ms
+
+Interpreting results
+--------------------
+
+- **COPY** is typically the fastest for bulk ingestion. Experiment with chunk sizes (e.g. 4 MB, 8 MB, 16 MB) to balance client/server memory usage.
+- **EXECUTEMANY** is slower but more flexible when UPSERTs are required.
+- **UNNEST** can outperform EXECUTEMANY for medium batch sizes, since fewer query plans are created.
+- Always run with different batch sizes (1,000, 5,000, 10,000) and average results across trials for reliable benchmarks.

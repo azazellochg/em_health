@@ -36,7 +36,7 @@ Prerequisites
 
 .. important:: Currently we support Titan Krios and Glacios instruments only.
 
-Requirements for ``EMHeath`` package:
+Requirements for ``EMHealth`` package:
 
 - `docker <https://docs.docker.com/compose/install/>`_
 - `psql <https://www.timescale.com/blog/how-to-install-psql-on-mac-ubuntu-debian-windows>`_
@@ -57,7 +57,7 @@ Installation
        cd em_health
        pip install -e .
 
-2. (Optional) Edit the configuration variables in `docker/.env`. Detailed information can be found `here <advanced_setup.html#security-configuration>`_.
+2. Edit the configuration variables in `docker/.env`. Detailed information can be found `here <advanced_setup.html#security-configuration>`_.
 3. Launch containers:
 
    .. code-block::

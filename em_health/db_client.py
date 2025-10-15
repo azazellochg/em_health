@@ -31,31 +31,28 @@ from typing import Literal, Optional, Dict, Any
 import psycopg
 from psycopg import sql
 
-from em_health.utils.logs import logger
+from em_health.utils.tools import logger
 
 
 class BaseDBClient(ABC):
     """Abstract base class for a database client."""
     def __init__(self,
                  db_name: str,
-                 user_env: str,
-                 pass_env: str,
-                 default_user: str,
                  default_port: int,
                  **kwargs):
         self.db_name = db_name
         if "username" in kwargs:
             self.username = kwargs["username"]
-            self.password = kwargs["password"]
+            self.password = os.getenv(kwargs["password"])
         else:
-            self.username = os.getenv(user_env, default_user)
-            self.password = os.getenv(pass_env)
+            self.username = "postgres"
+            self.password = os.getenv("POSTGRES_PASSWORD")
         self.port = default_port
         self.conn = None
         self.cur = None
 
         if not self.password:
-            raise ValueError(f"{pass_env} environment variable is not set")
+            raise ValueError(f"Password is not set")
 
     def __enter__(self):
         try:
@@ -100,8 +97,7 @@ class BaseDBClient(ABC):
 class PgClient(BaseDBClient):
     """ PostgreSQL DB client. """
     def __init__(self, db_name: str, **kwargs):
-        super().__init__(db_name, 'POSTGRES_USER', 'POSTGRES_PASSWORD',
-                         'postgres', 5432, **kwargs)
+        super().__init__(db_name, 5432, **kwargs)
         self.host = os.getenv('POSTGRES_HOST', 'localhost')
 
     def connect(self):
@@ -182,5 +178,6 @@ class PgClient(BaseDBClient):
             return self.cur.fetchall()
         elif mode == "commit":
             self.conn.commit()
+            return None
         else:
             return None

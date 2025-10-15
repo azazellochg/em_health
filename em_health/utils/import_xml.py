@@ -29,11 +29,11 @@ import sys
 import gzip
 from datetime import datetime, timezone
 import json
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET  # https://github.com/lxml/lxml/blob/master/doc/performance.txt#L293
 from typing import Iterable
 
 from em_health.db_manager import DatabaseManager
-from em_health.utils.logs import logger
+from em_health.utils.tools import logger
 
 
 NS = {'ns': 'HealthMonitorExport http://schemas.fei.com/HealthMonitor/Export/2009/07'}
@@ -60,7 +60,7 @@ class ImportXML:
         else:
             self.file = open(self.path, 'rb')
         self.context = ET.iterparse(self.file, events=("end",))
-        # Be aware, you have to parse sections in their order, i.e. enumerations first!
+        # Be aware, you have to parse XML sections in their order, i.e. enumerations first!
 
     def get_microscope_dict(self) -> dict:
         """ Return microscope dictionary. """
@@ -137,7 +137,7 @@ class ImportXML:
                                     "display_name": param.get("DisplayName"),
                                     "display_unit": param.get("DisplayUnit") or None,
                                     "storage_unit": param.get("StorageUnit") or None,
-                                    "value_type": known_types[param.get("Type")],
+                                    "value_type": known_types.get(param.get("Type"), "str"),
                                     "event_id": param.get("EventID"),
                                     "event_name": param.get("EventName"),
                                     "abs_min": param.get("AbsoluteMinimum") or None,
@@ -184,6 +184,8 @@ class ImportXML:
                         value_elem = pval.find('ns:Value', namespaces=NS)
                         value_text_raw = value_elem.text
                         value_num, value_text = self.__convert_value(param_id, value_text_raw, value_type)
+                        if value_num is None and value_text is None:
+                            continue  # failed to convert value
 
                         point = (timestamp, instr_id, param_id, value_num, value_text)
                         yield point
@@ -198,6 +200,7 @@ class ImportXML:
         if self.file:
             self.file.close()
             self.file = None
+            self.context = None
 
     @staticmethod
     def __match(elem, name) -> bool:
@@ -207,28 +210,11 @@ class ImportXML:
     @staticmethod
     def __parse_ts_to_utc(ts: str) -> datetime:
         """ Parse timestamp string into UTC.
-        Removes colon from the timezone, e.g.:
-        "2025-05-18T10:39:36.982+01:00" → "2025-05-18T10:39:36.982+0100"
         :param ts: input timestamp string
         """
-        ts_fixed = ts[:-3] + ts[-2:]
-        time_formats = [
-            "%Y-%m-%dT%H:%M:%S.%fZ",
-            "%Y-%m-%dT%H:%M:%SZ",
-            "%Y-%m-%dT%H:%M:%S.%fZZ",
-            "%Y-%m-%dT%H:%M:%S.%f%z",
-            "%Y-%m-%dT%H:%M:%S%z",
-            "%Y-%m-%dT%H:%M:%S.%f+0Z",
-            "%Y-%m-%dT%H:%M:%S.%f+Z",
-        ]
-        for time_format in time_formats:
-            try:
-                dt_local = datetime.strptime(ts_fixed, time_format)
-                return dt_local.astimezone(timezone.utc)
-            except ValueError:
-                continue
-
-        raise ValueError(f"Unsupported time format: {ts}")
+        ts = ts.replace("Z", "+00:00")
+        dt = datetime.fromisoformat(ts)
+        return dt.astimezone(timezone.utc)
 
     @staticmethod
     def __convert_value(param_id: int,
@@ -245,11 +231,12 @@ class ImportXML:
             elif value_type == "int":  # works for int, IntEnum
                 return int(value), None
             elif value_type == "bool":
-                return int(bool(value)), None
+                return int(value.strip() == "true"), None
             else:
                 raise ValueError
         except (ValueError, TypeError):
-            raise ValueError(f"Cannot convert '{value}' to {value_type} for param {param_id}")
+            logger.error(f"Cannot convert '{value}' to {value_type} for param {param_id}")
+            return None, None
 
 
 def main(xml_fn, json_fn, nocopy):
@@ -288,7 +275,9 @@ def main(xml_fn, json_fn, nocopy):
         xmlparser.parse_parameters()
         instr_dict = xmlparser.get_microscope_dict()
 
-        with DatabaseManager(xmlparser.db_name) as dbm:
+        with DatabaseManager(xmlparser.db_name,
+                             username="emhealth",
+                             password="POSTGRES_EMHEALTH_PASSWORD") as dbm:
             instrument_id = dbm.add_instrument(instr_dict)
             enum_ids = dbm.add_enumerations(instrument_id, xmlparser.enum_values)
             dbm.add_parameters(instrument_id, xmlparser.params, enum_ids)

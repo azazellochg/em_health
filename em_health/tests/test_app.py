@@ -29,9 +29,10 @@ import unittest
 from datetime import datetime as dt, timezone as tz
 
 from em_health.utils.import_xml import ImportXML
+from em_health.utils.tools import run_command
 from em_health.db_manager import DatabaseManager
 
-XML_FN = os.path.join(os.path.dirname(__file__), '0000_data.xml')
+XML_FN = os.path.join(os.path.dirname(__file__), '9999_data.xml')
 JSON_INFO = [{
     "instrument": "9999, Test Instrument",
     "serial": 9999,
@@ -43,7 +44,7 @@ JSON_INFO = [{
 }]
 
 
-class TestXMLImport(unittest.TestCase):
+class TestEMHealth(unittest.TestCase):
 
     def run_test_query(self,
                        dbm: DatabaseManager,
@@ -150,7 +151,8 @@ class TestXMLImport(unittest.TestCase):
         enums["FegState_enum"]["Standby"] = 100
         params[351]["abs_min"] = 250.5
 
-    def test_hm(self):
+    def test_client(self):
+        """ Test XML parser and the db client."""
         parser = ImportXML(XML_FN, JSON_INFO)
         parser.parse_enumerations()
         self.check_enumerations(parser.enum_values)
@@ -159,7 +161,9 @@ class TestXMLImport(unittest.TestCase):
 
         instr_dict = parser.get_microscope_dict()
 
-        with DatabaseManager(parser.db_name) as dbm:
+        with DatabaseManager(parser.db_name,
+                             username="emhealth",
+                             password="POSTGRES_EMHEALTH_PASSWORD") as dbm:
             # first import
             instrument_id = dbm.add_instrument(instr_dict)
             enum_ids = dbm.add_enumerations(instrument_id, parser.enum_values)
@@ -187,6 +191,9 @@ class TestXMLImport(unittest.TestCase):
             # clean-up
             dbm.clean_instrument_data(instrument_serial=9999)
 
+    def test_pgtap(self):
+        """ Run database tests with pgTAP. """
+        run_command('docker exec timescaledb bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/*.sql"')
 
 if __name__ == '__main__':
     unittest.main()

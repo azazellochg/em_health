@@ -16,7 +16,6 @@ __pycache__/
 docs/_build
 
 #### Other
-em_health/xml_data/
 emhealth.log
 .directory
 *.cmd

@@ -28,7 +28,7 @@ import os
 import requests
 from requests import Response
 
-from em_health.utils.logs import logger
+from em_health.utils.tools import logger
 
 GRAFANA_URL = "http://localhost:3000/api/"
 

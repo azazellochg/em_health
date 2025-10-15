@@ -25,11 +25,10 @@
 # **************************************************************************
 
 import os
-import subprocess
 from datetime import datetime
 from pathlib import Path
 
-from em_health.utils.logs import logger
+from em_health.utils.tools import logger, run_command
 
 DOCKER_COMPOSE_FILE = "compose.yaml"
 PG_CONTAINER = "timescaledb"
@@ -41,12 +40,6 @@ def chdir_docker_dir() -> None:
     """Change working directory to em_health/docker."""
     package_root = Path(__file__).resolve().parents[2] / "docker"
     os.chdir(package_root)
-
-
-def run_command(command: str, capture_output: bool = False, check: bool = True) -> subprocess.CompletedProcess:
-    """Run a shell command with logging."""
-    logger.info("Running command: %s", command)
-    return subprocess.run(command, shell=True, check=check, capture_output=capture_output, text=True)
 
 
 def get_tsdb_version(dbname: str) -> str:
@@ -82,7 +75,7 @@ psql -d tem -c \\"CREATE EXTENSION IF NOT EXISTS timescaledb{version_clause} CAS
     if do_init:
         run_command(
             f'docker exec {PG_CONTAINER} bash -c "psql -v ON_ERROR_STOP=1 -d {dbname} '
-            '-f /docker-entrypoint-initdb.d/init-tables.sql"'
+            '-f /docker-entrypoint-initdb.d/init_db.sql"'
         )
 
 
@@ -150,7 +143,10 @@ psql -d {dbname} -c \\"SELECT timescaledb_post_restore(); ANALYZE;\\""
 
 
 def update() -> None:
-    """Update containers and migrate DB with backup/restore safety."""
+    """Migrate DB schema, backup, update containers restore safely."""
+    from em_health.db_manager import main as db_manager
+    db_manager("tem", "migrate")
+
     pg_backup, grafana_backup = backup("tem")
 
     chdir_docker_dir()
@@ -169,11 +165,8 @@ def update() -> None:
     run_command(
         f'docker exec {PG_CONTAINER} psql -d tem -c "ALTER EXTENSION timescaledb UPDATE; '
         'ALTER EXTENSION timescaledb_toolkit UPDATE;"'
+        'ALTER EXTENSION tds_fdw UPDATE;"'
     )
-
-    # Run migrations
-    from em_health.db_manager import main as db_manager
-    db_manager("tem", "migrate")
 
     logger.info("Finished updating")
 

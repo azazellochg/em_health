@@ -28,6 +28,7 @@ import logging
 import os
 import time
 from functools import wraps
+import subprocess
 
 try:
     from memory_profiler import memory_usage
@@ -35,7 +36,7 @@ try:
 except ImportError:
     HAS_MEMORY_PROFILER = False
 
-DEBUG = bool(os.getenv("EMHEALTH_DEBUG", False))
+DEBUG = os.getenv("EMHEALTH_DEBUG", "false").lower() in ("true", "1", "yes")
 
 
 class PrefixFormatter(logging.Formatter):
@@ -101,3 +102,9 @@ def profile(fn):
         return retval[0]
 
     return inner
+
+
+def run_command(command: str, capture_output: bool = False, check: bool = True) -> subprocess.CompletedProcess:
+    """Run a shell command with logging."""
+    logger.info("Running command: %s", command)
+    return subprocess.run(command, shell=True, check=check, capture_output=capture_output, text=True)

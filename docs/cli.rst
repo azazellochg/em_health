@@ -17,7 +17,7 @@ Description
 ^^^^^^^^^^^
 
 Import health monitor data from XML file. Compressed files (\*.xml.gz) are also supported.
-Optional `no-copy` argument is useful for small regular imports (e.g. automatic import every hour). If you are importing a large dataset, do not use this
+Optional `skip-duplicates` argument is useful for small overlapping imports(e.g. automatic import of the last 1h of data every 30 min). If you are importing a large dataset, do not use this
 option as it will slow down the process significantly.
 
 Syntax
@@ -25,7 +25,7 @@ Syntax
 
 .. code-block::
 
-    emhealth import -i /path/to/file.xml.gz -s em_health/instruments.json [--no-copy]
+    emhealth import -i /path/to/file.xml.gz -s em_health/instruments.json [--skip-duplicates]
 
 ----
 
@@ -110,8 +110,8 @@ Update EMHealth
 Description
 ^^^^^^^^^^^
 
-Make sure to run `pip install -U em_health` before running this command. The update script will pull the latest
-container images followed by database schema migration (if required).
+Make sure to run `pip install -U em_health` before running this command. The update script will migrate the database schema to the latest
+version and update container images.
 
 Syntax
 ^^^^^^
@@ -122,13 +122,30 @@ Syntax
 
 ----
 
+Migrate database
+~~~~~~~~~~~~~~~~
+
+Description
+^^^^^^^^^^^
+
+Migrate TimescaleDB schema to the latest version (if required).
+
+Syntax
+^^^^^^
+
+.. code-block::
+
+    emhealth db migrate
+
+----
+
 Backup
 ~~~~~~
 
 Description
 ^^^^^^^^^^^
 
-Back up both TimescaleDB and Grafana databases. The backups are saved into `docker/backups` folder.
+Perform a logical backup of TimescaleDB and a physical backup of Grafana database. The backups are saved into `docker/backups` folder.
 
 Syntax
 ^^^^^^
@@ -181,7 +198,8 @@ Create performance stats
 Description
 ^^^^^^^^^^^
 
-This will enable perdiodic database statistics collection. The output is used in dashboards under *DB performance* folder.
+The periodic database statistics collection is enabled by default. Below command can be used if you
+modify the pganalyze tables or functions and want to update the jobs. The output is used in dashboards under *DB performance* folder.
 
 
 Syntax

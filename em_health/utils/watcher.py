@@ -33,7 +33,7 @@ from watchdog.observers.polling import PollingObserver
 from watchdog.events import PatternMatchingEventHandler
 
 from em_health.utils.import_xml import main as import_main
-from em_health.utils.logs import logger
+from em_health.utils.tools import logger
 
 
 class FileWatcher:

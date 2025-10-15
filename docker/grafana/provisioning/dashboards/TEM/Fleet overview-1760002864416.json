@@ -62,7 +62,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 39,
+  "id": 8,
   "links": [
     {
       "asDropdown": true,
@@ -337,7 +337,8 @@
             "mode": "percentage",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -368,7 +369,7 @@
         "showThresholdMarkers": true,
         "sizing": "auto"
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "repeat": "instrument",
       "repeatDirection": "h",
       "targets": [
@@ -380,7 +381,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "-- Total EPU time\nWITH epu_sum AS (\n  SELECT\n    SUM(running_duration) AS total_epu\n  FROM epu_acquisition_daily\n  WHERE instrument_id = $instrument\n    AND $__timeFilter(time)\n),\n\n-- Total Tomo time\ntomo_sum AS (\n  SELECT\n    SUM(running_duration) AS total_tomo\n  FROM tomo_acquisition_daily\n  WHERE instrument_id = $instrument\n    AND $__timeFilter(time)\n),\n\n-- Day count in range (inclusive)\ndate_range AS (\n  SELECT\n    (DATE_TRUNC('day', to_timestamp($__to / 1000.0)::timestamptz)::date -\n     DATE_TRUNC('day', to_timestamp($__from / 1000.0)::timestamptz)::date + 1\n    ) AS num_days\n)\n\n-- Final result\nSELECT\n  ROUND(COALESCE(e.total_epu, 0) / (d.num_days * 86400.0) * 100.0, 2) AS epu_utilization_percent,\n  ROUND(COALESCE(t.total_tomo, 0) / (d.num_days * 86400.0) * 100.0, 2) AS tomo_utilization_percent\nFROM epu_sum e, tomo_sum t, date_range d\n",
+          "rawSql": "-- Total EPU time\nWITH epu_sum AS (\n  SELECT\n    EXTRACT(EPOCH FROM SUM(running_duration)) AS total_epu_seconds\n  FROM epu_running_daily\n  WHERE instrument_id = $instrument\n    AND $__timeFilter(time)\n),\n\n-- Total Tomo time\ntomo_sum AS (\n  SELECT\n    EXTRACT(EPOCH FROM SUM(running_duration)) AS total_tomo_seconds\n  FROM tomo_running_daily\n  WHERE instrument_id = $instrument\n    AND $__timeFilter(time)\n)\n\n-- Final result\nSELECT\n  ROUND(COALESCE(e.total_epu_seconds, 0) / NULLIF(($__to - $__from) / 1000.0, 0) * 100.0, 2) AS epu_utilization_percent,\n  ROUND(COALESCE(t.total_tomo_seconds, 0) / NULLIF(($__to - $__from) / 1000.0, 0) * 100.0, 2) AS tomo_utilization_percent\nFROM epu_sum e\nCROSS JOIN tomo_sum t;\n",
           "refId": "uptime",
           "sql": {
             "columns": [
@@ -1129,7 +1130,7 @@
         "allowCustomValue": false,
         "current": {
           "text": "tem",
-          "value": "P1F7BE6908B217B4A"
+          "value": "hm-tem"
         },
         "hide": 2,
         "name": "sourceTEM",
@@ -1149,5 +1150,5 @@
   "timezone": "Europe/London",
   "title": "Fleet overview",
   "uid": "4350492f-ef51-4e3f-a22b-14c55eee6a97",
-  "version": 1
+  "version": 2
 }
