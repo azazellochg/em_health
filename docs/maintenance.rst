@@ -5,7 +5,7 @@ We provide tools to perform both physical and logical database backups. For phys
 the Docker container with TimescaleDB. Logical backups are done with standard PostgreSQL tools and can be used to migrate
 between major PostgreSQL versions.
 
-Backups are stored in `em_health/docker/backups`. The directory is owned by the *postgres* user (uid 999)
+Backups are stored in `BACKUP_DIR`. The directory is owned by the *postgres* user (uid 999)
 
 Physical backup
 ---------------
@@ -30,7 +30,7 @@ To restore the latest physical backup:
     docker volume rm pgdata
     docker volume create pgdata
     docker run --rm -v pgdata:/var/lib/postgresql/data \
-        -v ./docker/backups:/backups \
+        -v ${BACKUP_DIR}:/backups \
         -v ./docker/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro \
         --entrypoint pgbackrest timescaledb:latest --stanza=main restore
 

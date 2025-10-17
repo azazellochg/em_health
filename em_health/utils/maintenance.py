@@ -33,7 +33,7 @@ from em_health.utils.tools import logger, run_command
 DOCKER_COMPOSE_FILE = "compose.yaml"
 PG_CONTAINER = "timescaledb"
 GRAFANA_CONTAINER = "grafana"
-BACKUP_PATH = Path("backups")
+BACKUP_HOST_PATH = Path(os.getenv("BACKUP_DIR"))
 
 
 def chdir_docker_dir() -> None:
@@ -81,15 +81,15 @@ psql -d tem -c \\"CREATE EXTENSION IF NOT EXISTS timescaledb{version_clause} CAS
 
 def backup(dbname: str = "tem") -> tuple[Path, Path]:
     """Backup TimescaleDB and Grafana."""
-    chdir_docker_dir()
     timestamp = datetime.now().strftime("%d%m%Y_%H%M%S")
     ts_version = get_tsdb_version(dbname)
 
-    pg_backup = BACKUP_PATH / f"pg_{dbname}_{ts_version}_{timestamp}.dump"
-    grafana_backup = BACKUP_PATH / f"grafana_{timestamp}.db"
+    pg_backup = Path("/backups") / f"pg_{dbname}_{ts_version}_{timestamp}.dump"
+    pg_host_backup = BACKUP_HOST_PATH / f"pg_{dbname}_{ts_version}_{timestamp}.dump"
+    grafana_backup = BACKUP_HOST_PATH / f"grafana_{timestamp}.db"
 
     # TimescaleDB backup
-    logger.info("Backing up TimescaleDB '%s' to %s", dbname, pg_backup.resolve())
+    logger.info("Backing up TimescaleDB '%s' to %s", dbname, pg_host_backup.resolve())
     run_command(f"docker exec {PG_CONTAINER} pg_dump -Fc -d {dbname} -f /{pg_backup}")
 
     # Grafana backup
@@ -103,21 +103,18 @@ def backup(dbname: str = "tem") -> tuple[Path, Path]:
 
 def list_backups() -> list[Path]:
     """Return a list of backup files."""
-    chdir_docker_dir()
-    return [f for f in BACKUP_PATH.iterdir() if f.suffix in (".db", ".dump")]
+    return [f for f in BACKUP_HOST_PATH.iterdir() if f.suffix in (".db", ".dump")]
 
 
 def restore(dbname: str, backup_file: Path) -> None:
     """Restore TimescaleDB or Grafana from a backup file."""
-    chdir_docker_dir()
-
     if backup_file.suffix == ".db":
         # Grafana restore
         logger.info("Restoring Grafana DB from %s", backup_file)
         commands = [
             f"docker stop {GRAFANA_CONTAINER}",
             f"docker run --rm -v emhealth_grafana-storage:/var/lib/grafana "
-            f"-v ./backups:/backups busybox sh -c '"
+            f"-v {BACKUP_HOST_PATH}:/backups busybox sh -c '"
             f"cp {backup_file} /var/lib/grafana/grafana.db && "
             "chown 472:root /var/lib/grafana/grafana.db'",
             f"docker start {GRAFANA_CONTAINER}",
