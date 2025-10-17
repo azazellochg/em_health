@@ -33,7 +33,7 @@ from em_health.utils.tools import logger, run_command
 DOCKER_COMPOSE_FILE = "compose.yaml"
 PG_CONTAINER = "timescaledb"
 GRAFANA_CONTAINER = "grafana"
-BACKUP_PATH = Path("backups")
+BACKUP_PATH = Path(os.getenv("BACKUP_DIR"))
 
 
 def chdir_docker_dir() -> None:
@@ -117,7 +117,7 @@ def restore(dbname: str, backup_file: Path) -> None:
         commands = [
             f"docker stop {GRAFANA_CONTAINER}",
             f"docker run --rm -v emhealth_grafana-storage:/var/lib/grafana "
-            f"-v ./backups:/backups busybox sh -c '"
+            f"-v {BACKUP_PATH}:/backups busybox sh -c '"
             f"cp {backup_file} /var/lib/grafana/grafana.db && "
             "chown 472:root /var/lib/grafana/grafana.db'",
             f"docker start {GRAFANA_CONTAINER}",

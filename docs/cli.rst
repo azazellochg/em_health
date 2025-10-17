@@ -145,7 +145,7 @@ Backup
 Description
 ^^^^^^^^^^^
 
-Perform a logical backup of TimescaleDB and a physical backup of Grafana database. The backups are saved into `docker/backups` folder.
+Perform a logical backup of TimescaleDB and a physical backup of Grafana database. The backups are saved into `BACKUP_DIR` folder.
 
 Syntax
 ^^^^^^
