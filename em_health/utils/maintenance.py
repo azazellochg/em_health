@@ -129,7 +129,7 @@ def restore(dbname: str, backup_file: Path) -> None:
             f"docker stop {GRAFANA_CONTAINER}",
             f"docker run --rm -v emhealth_grafana-storage:/var/lib/grafana "
             f"-v {BACKUP_HOST_PATH}:/backups busybox sh -c '"
-            f"cp {backup_file} /var/lib/grafana/grafana.db && "
+            f"cp /backups/{backup_file.name} /var/lib/grafana/grafana.db && "
             "chown 472:root /var/lib/grafana/grafana.db'",
             f"docker start {GRAFANA_CONTAINER}",
         ]
@@ -146,7 +146,7 @@ def restore(dbname: str, backup_file: Path) -> None:
         restore_cmd = f"""
 docker exec {PG_CONTAINER} bash -c "\
 psql -d {dbname} -c \\"SELECT timescaledb_pre_restore();\\" && \
-pg_restore -Fc -d {dbname} /{backup_file} && \
+pg_restore -Fc -d {dbname} /backups/{backup_file.name} && \
 psql -d {dbname} -c \\"SELECT timescaledb_post_restore(); ANALYZE;\\""
 """
         run_command(restore_cmd)
