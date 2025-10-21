@@ -10,7 +10,7 @@ services:
     environment:
       POSTGRES_INITDB_ARGS: --locale=C --encoding=UTF8
     ports:
-      - "5432"
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ../em_health/sql:/sql:ro

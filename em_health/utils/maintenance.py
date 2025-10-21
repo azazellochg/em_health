@@ -42,7 +42,7 @@ def chdir_docker_dir() -> None:
     os.chdir(package_root)
 
 
-def get_tsdb_version(dbname: str) -> str:
+def get_ts_version(dbname: str) -> str:
     """Retrieve TimescaleDB extension version from a running container."""
     result = run_command(
         f"docker exec {PG_CONTAINER} psql -d {dbname} -t -c "
@@ -51,13 +51,29 @@ def get_tsdb_version(dbname: str) -> str:
     return result.stdout.strip()
 
 
-def get_tsdb_version_from_backup(fn: Path) -> str | None:
-    """Extract TimescaleDB version from backup filename."""
-    try:
-        return fn.name.split("_")[2]
-    except IndexError:
-        logger.warning("Could not determine Timescale version from backup filename: %s", fn)
-        return None
+def get_pg_version(dbname: str) -> str:
+    """Retrieve Postgres version from a running container."""
+    result = run_command(
+        f"docker exec {PG_CONTAINER} psql -d {dbname} -t -c "
+        "\"SELECT current_setting('server_version_num');\"",
+        capture_output=True)
+    return result.stdout.strip()
+
+def check_versions(fn: Path):
+    """Compare backup file with server versions."""
+    pg_version = fn.name.split("_")[2]
+    ts_version = fn.name.split("_")[3]
+
+    pg_version_server = get_pg_version("tem")
+    ts_version_server = get_ts_version("tem")
+
+    if pg_version != pg_version_server:
+        print("Check migration documentation at https://em-health.readthedocs.io")
+        raise ValueError(f"Postgres version mismatch: server {pg_version_server}, backup {pg_version}")
+
+    if ts_version != ts_version_server:
+        print("Check migration documentation at https://em-health.readthedocs.io")
+        raise ValueError(f"Timescale version mismatch: server {ts_version_server}, backup {ts_version}")
 
 
 def erase_db(dbname: str, ts_version: str | None = None, do_init: bool = False) -> None:
@@ -73,24 +89,22 @@ psql -d tem -c \\"CREATE EXTENSION IF NOT EXISTS timescaledb{version_clause} CAS
     run_command(cmd)
 
     if do_init:
-        run_command(
-            f'docker exec {PG_CONTAINER} bash -c "psql -v ON_ERROR_STOP=1 -d {dbname} '
-            '-f /docker-entrypoint-initdb.d/init_db.sql"'
-        )
+        run_command(f'docker exec {PG_CONTAINER} /docker-entrypoint-initdb.d/init_db.sh')
 
 
 def backup(dbname: str = "tem") -> tuple[Path, Path]:
     """Backup TimescaleDB and Grafana."""
     timestamp = datetime.now().strftime("%d%m%Y_%H%M%S")
-    ts_version = get_tsdb_version(dbname)
+    ts_version = get_ts_version(dbname)
+    pg_version = get_pg_version(dbname)
 
-    pg_backup = Path("/backups") / f"pg_{dbname}_{ts_version}_{timestamp}.dump"
-    pg_host_backup = BACKUP_HOST_PATH / f"pg_{dbname}_{ts_version}_{timestamp}.dump"
+    pg_backup = Path("/backups") / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
+    pg_host_backup = BACKUP_HOST_PATH / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
     grafana_backup = BACKUP_HOST_PATH / f"grafana_{timestamp}.db"
 
     # TimescaleDB backup
     logger.info("Backing up TimescaleDB '%s' to %s", dbname, pg_host_backup.resolve())
-    run_command(f"docker exec {PG_CONTAINER} pg_dump -Fc -d {dbname} -f /{pg_backup}")
+    run_command(f"docker exec {PG_CONTAINER} pg_dump -Fc -d {dbname} -f {pg_backup}")
 
     # Grafana backup
     logger.info("Backing up Grafana DB to %s", grafana_backup.resolve())
@@ -124,8 +138,9 @@ def restore(dbname: str, backup_file: Path) -> None:
 
     else:
         # TimescaleDB restore
-        logger.info("Restoring TimescaleDB '%s' from %s", dbname, backup_file)
-        ts_version = get_tsdb_version_from_backup(backup_file)
+        check_versions(backup_file)
+        ts_version = backup_file.name.split("_")[3]
+        logger.info("Restoring TimescaleDB %s '%s' from %s", ts_version, dbname, backup_file)
         erase_db(dbname, ts_version, do_init=False)
 
         restore_cmd = f"""
@@ -140,12 +155,22 @@ psql -d {dbname} -c \\"SELECT timescaledb_post_restore(); ANALYZE;\\""
 
 
 def update() -> None:
-    """Migrate DB schema, backup, update containers restore safely."""
+    """Update everything."""
+    # migrate db schema
     from em_health.db_manager import main as db_manager
     db_manager("tem", "migrate")
 
+    # update extensions if possible
+    run_command(
+        f'docker exec {PG_CONTAINER} psql -X -d tem -c "ALTER EXTENSION timescaledb UPDATE; '
+        'ALTER EXTENSION timescaledb_toolkit UPDATE;"'
+        'ALTER EXTENSION tds_fdw UPDATE;"'
+    )
+
+    # backup db
     pg_backup, grafana_backup = backup("tem")
 
+    # update containers
     chdir_docker_dir()
     for cmd in [
         f"docker compose -f {DOCKER_COMPOSE_FILE} down",
@@ -155,15 +180,9 @@ def update() -> None:
     ]:
         run_command(cmd)
 
+    # restore backups
     restore("tem", pg_backup)
     restore("tem", grafana_backup)
-
-    # Update extensions
-    run_command(
-        f'docker exec {PG_CONTAINER} psql -d tem -c "ALTER EXTENSION timescaledb UPDATE; '
-        'ALTER EXTENSION timescaledb_toolkit UPDATE;"'
-        'ALTER EXTENSION tds_fdw UPDATE;"'
-    )
 
     logger.info("Finished updating")
 
@@ -179,12 +198,12 @@ def main(dbname: str, action: str) -> None:
     elif action == "restore":
         confirm = input("Restoring will DELETE existing database.\nType YES to continue: ")
         if confirm != "YES":
-            logger.warning("Restore aborted by user.")
+            print("Restore aborted by user.")
             return
 
         backups = list_backups()
         if not backups:
-            logger.error("No backups found.")
+            print("No backups found.")
             return
 
         print("Available backups:")
@@ -193,7 +212,7 @@ def main(dbname: str, action: str) -> None:
 
         choice = input(f"Select a backup to restore (1-{len(backups)}): ").strip()
         if not choice.isdigit() or not (1 <= int(choice) <= len(backups)):
-            logger.error("Invalid backup choice.")
+            print("Invalid backup choice.")
             return
 
         restore(dbname, backups[int(choice) - 1])
