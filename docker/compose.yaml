@@ -10,13 +10,13 @@ services:
     environment:
       POSTGRES_INITDB_ARGS: --locale=C --encoding=UTF8
     ports:
-      - "5432:5432" # FIXME: do not expose for production
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ../em_health/sql:/sql:ro
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
       - ./pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro
-      - ./backups:/backups
+      - ${BACKUP_DIR}:/backups
     command: >
       postgres
       -c timescaledb.enable_chunk_skipping=on
@@ -85,13 +85,12 @@ services:
       GF_RENDERING_SERVER_URL: http://renderer:8081/render
       GF_RENDERING_CALLBACK_URL: http://grafana:3000/
       GF_RENDERING_RENDERER_TOKEN: "-"
-      GF_LOG_FILTERS: rendering:debug
       GF_UNIFIED_ALERTING_SCREENSHOTS_CAPTURE: true # https://grafana.com/docs/grafana/latest/alerting/configure-notifications/template-notifications/images-in-notifications/#configuration
       EMHEALTH_DEBUG: ${EMHEALTH_DEBUG}
     volumes:
       - grafana-storage:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
-      - ./backups:/backups
+      - ${BACKUP_DIR}:/backups
     tmpfs:
       - /var/lib/grafana/plugins   # keeps plugins in container only
 

@@ -1,0 +1,461 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${sourceTEM}"
+        },
+        "enable": true,
+        "filter": {
+          "exclude": false,
+          "ids": [
+            11,
+            27,
+            38,
+            39,
+            37
+          ]
+        },
+        "hide": false,
+        "iconColor": "red",
+        "name": "TEM off",
+        "target": {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH target_instrument AS (\n  SELECT id, name\n  FROM instruments\n  WHERE id IN ($instrument)\n)\n\nSELECT\n  o.start_time AS time,\n  o.end_time AS timeEnd,\n  t.name || ' OFF' AS title,\n  'TEM server offline' AS text\nFROM tem_off o\nJOIN target_instrument t\n  ON o.instrument_id = t.id\n",
+          "refId": "Anno",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 67,
+  "links": [
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [
+        "overview",
+        "tem"
+      ],
+      "targetBlank": false,
+      "title": "Overviews",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    },
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "module",
+        "tem"
+      ],
+      "targetBlank": false,
+      "title": "Modules",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    },
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [
+        "dev",
+        "tem"
+      ],
+      "targetBlank": true,
+      "title": "",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    }
+  ],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 34,
+      "panels": [],
+      "title": "EPU",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceTEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisGridShow": true,
+            "axisLabel": "",
+            "axisPlacement": "left",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 8,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "always",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "nm/s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
+      "id": 27,
+      "options": {
+        "legend": {
+          "calcs": [
+            "min",
+            "max",
+            "median"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH param_id AS (\n  SELECT\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND subsystem = 'EPU'\n    AND component = 'Corrections'\n    AND param_name = 'DriftMeasurement'\n)\nSELECT\n    d.time AS time,\n    d.value_num * 10^9 AS \"Drift\"\nFROM data d\nJOIN param_id p ON p.param_id = d.param_id\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "EPU drift measurement",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "id": 35,
+      "panels": [],
+      "title": "Tomography",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceTEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisGridShow": true,
+            "axisLabel": "",
+            "axisPlacement": "left",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 8,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "always",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "lengthm"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Rotation"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "degree"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "id": 36,
+      "options": {
+        "legend": {
+          "calcs": [
+            "min",
+            "max",
+            "median"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "asc"
+        }
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_id,\n    param_name\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND subsystem = 'Tomography'\n    AND component = 'SampleManagement'\n    AND param_name ~* 'AtlasRealignment'\n)\nSELECT\n  d.time,\n  p.param_name,\n  CASE\n    WHEN p.param_name ~* 'Rotation' THEN DEGREES(ABS(d.value_num))\n    WHEN p.param_name ~* 'Shift' THEN ABS(d.value_num)\n    ELSE d.value_num\n  END AS value\nFROM data d\nJOIN param_ids p ON p.param_id = d.param_id\nWHERE\n  d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nORDER BY\n  d.time;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Tomo atlas realignment",
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "value AtlasRealignment(.*)",
+            "renamePattern": "$1"
+          }
+        }
+      ],
+      "type": "timeseries"
+    }
+  ],
+  "preload": false,
+  "schemaVersion": 41,
+  "tags": [
+    "module",
+    "tem"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "tem",
+          "value": "hm-tem"
+        },
+        "hide": 2,
+        "name": "sourceTEM",
+        "options": [],
+        "query": "grafana-postgresql-datasource",
+        "refresh": 1,
+        "regex": "/^tem$/",
+        "type": "datasource"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "Krios 4 [Titan Krios G4] (4248)",
+          "value": "6"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${sourceTEM}"
+        },
+        "definition": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
+        "name": "instrument",
+        "options": [],
+        "query": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": []
+  },
+  "timezone": "Europe/London",
+  "title": "Module | Acquisition",
+  "uid": "4225e67b-0356-34fd-94a8-684533567800",
+  "version": 7
+}
