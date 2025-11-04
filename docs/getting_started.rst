@@ -38,11 +38,11 @@ Prerequisites
 
 Requirements for ``EMHealth`` package:
 
-- `docker <https://docs.docker.com/compose/install/>`_
+- `docker <https://docs.docker.com/compose/install/>`_ or `podman <https://podman.io/docs/installation>`_
 - `psql <https://www.timescale.com/blog/how-to-install-psql-on-mac-ubuntu-debian-windows>`_
 
-The rest is managed by Docker and Conda environment. It's recommended to
-manage Docker as a non-root user, see `details <https://docs.docker.com/engine/install/linux-postinstall/>`_
+The rest is managed by Docker/Podman and Conda environment. It's recommended to
+manage Docker as a non-root user, see `details <https://docs.docker.com/engine/install/linux-postinstall/>`_.
 
 Installation
 ^^^^^^^^^^^^
@@ -63,6 +63,12 @@ Installation
    .. code-block::
 
        docker compose -f docker/compose.yaml up -d
+
+   or if you are running Podman
+
+   .. code-block::
+
+       podman-compose -f docker/compose.yaml up -d
 
 Data Import
 ^^^^^^^^^^^

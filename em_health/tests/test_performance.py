@@ -45,6 +45,7 @@ DB_NAME = "benchmark"
 DB_USER = "postgres"
 DB_PASS = "postgres"
 DEFAULT_FILENAME = "simulated_data.csv"
+MANAGER = os.getenv("MANAGER_TYPE")
 
 
 # ---------------------------------------------------------------------------
@@ -216,8 +217,8 @@ class Benchmark:
     # --- DB setup ---
     @staticmethod
     def create_test_db() -> None:
-        cmd = r"""
-            docker exec timescaledb bash -c "\
+        cmd = fr"""
+            {MANAGER} exec timescaledb bash -c "\
             psql -d postgres -c \"DROP DATABASE IF EXISTS benchmark;\" && \
             psql -d postgres -c \"CREATE DATABASE benchmark;\" && \
             psql -d benchmark -c \"CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;\" && \
