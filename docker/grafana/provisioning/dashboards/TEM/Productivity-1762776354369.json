@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 63,
+  "id": 26,
   "links": [
     {
       "asDropdown": true,
@@ -153,7 +153,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
-      "description": "Acquisitions are counted for both TFS and Gatan cameras. Data volume is only available for Falcon cameras",
+      "description": "Acquisitions are counted for both TFS and Gatan cameras. Data volume is only available for TFS cameras",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -586,7 +586,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH all_durations AS (\n  SELECT\n    time::date AS day,\n    'epu' AS source,\n    EXTRACT(EPOCH FROM running_duration) AS running_seconds\n  FROM epu_running_daily\n  WHERE $__timeFilter(time)\n    AND instrument_id = $instrument\n\n  UNION ALL\n\n  SELECT\n    time::date AS day,\n    'tomo' AS source,\n    EXTRACT(EPOCH FROM running_duration) AS running_seconds\n  FROM tomo_running_daily\n  WHERE $__timeFilter(time)\n    AND instrument_id = $instrument\n),\n\ndays AS (\n  SELECT generate_series(\n    $__timeFrom()::date,\n    $__timeTo()::date,\n    interval '1 day'\n  ) AS day\n)\n\nSELECT\n  d.day AS time,\n  ROUND(100.0 * COALESCE(SUM(running_seconds) FILTER (WHERE source = 'epu'), 0) / 86400.0, 2) AS \"EPU\",\n  ROUND(100.0 * COALESCE(SUM(running_seconds) FILTER (WHERE source = 'tomo'), 0) / 86400.0, 2) AS \"Tomo\"\nFROM days d\nLEFT JOIN all_durations ad ON ad.day = d.day\nGROUP BY d.day\nORDER BY d.day;\n",
+          "rawSql": "WITH all_durations AS (\n  SELECT\n    time::date AS day,\n    'epu' AS source,\n    EXTRACT(EPOCH FROM running_duration) AS running_seconds\n  FROM epu_running_daily\n  WHERE $__timeFilter(time)\n    AND instrument_id = $instrument\n\n  UNION ALL\n\n  SELECT\n    time::date AS day,\n    'tomo' AS source,\n    EXTRACT(EPOCH FROM running_duration) AS running_seconds\n  FROM tomo_running_daily\n  WHERE $__timeFilter(time)\n    AND instrument_id = $instrument\n),\n\ndays AS (\n  SELECT generate_series(\n    $__timeFrom()::date,\n    $__timeTo()::date,\n    interval '1 day'\n  ) AS day\n)\n\nSELECT\n  d.day AS time,\n  ROUND(100.0 * COALESCE(SUM(CASE WHEN ad.source = 'epu' THEN ad.running_seconds END), 0) / 86400.0, 2) AS \"EPU\",\n  ROUND(100.0 * COALESCE(SUM(CASE WHEN ad.source = 'tomo' THEN ad.running_seconds END), 0) / 86400.0, 2) AS \"Tomo\"\nFROM days d\nLEFT JOIN all_durations ad ON ad.day = d.day\nGROUP BY d.day\nORDER BY d.day;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -795,7 +795,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  day AS \"time\",\n  state,\n  100.0 * SUM(seconds) / NULLIF(SUM(SUM(seconds)) OVER (PARTITION BY day), 0) AS percentage\nFROM vacuum_state_daily\nWHERE $__timeFilter(day)\n  AND instrument_id = $instrument\nGROUP BY day, state\nORDER BY day, state\n",
+          "rawSql": "WITH daily_totals AS (\n  SELECT\n    day,\n    SUM(seconds) AS total_seconds\n  FROM vacuum_state_daily\n  WHERE $__timeFilter(day)\n    AND instrument_id = $instrument\n  GROUP BY day\n)\nSELECT\n  v.day AS \"time\",\n  v.state,\n  100.0 * SUM(v.seconds) / NULLIF(t.total_seconds, 0) AS percentage\nFROM vacuum_state_daily v\nJOIN daily_totals t\n  ON v.day = t.day\nWHERE $__timeFilter(v.day)\n  AND v.instrument_id = $instrument\nGROUP BY v.day, v.state, t.total_seconds\nORDER BY v.day, v.state;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1000,7 +1000,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  ec.session_id AS \"SessionID\",\n  es.start_time AS \"Start time\",\n  es.end_time AS \"End time\",\n  er.running_duration AS \"Running duration\",\n  ec.total_image_counter AS \"Total images\",\n  ec.skip_image_counter AS \"Skipped images\",\n  CASE \n    WHEN EXTRACT(EPOCH FROM er.running_duration) > 0 THEN\n      ec.total_image_counter / (EXTRACT(EPOCH FROM er.running_duration) / 3600)\n    ELSE NULL\n  END AS \"Images/hour\",\n  er.has_terminated AS \"Terminated\"\nFROM epu_counters ec\nJOIN epu_sessions es\n  ON es.session_id = ec.session_id\n  AND es.instrument_id = $instrument\n  AND es.start_time = ec.start_time\nJOIN epu_runs er\n  ON er.session_id = ec.session_id\n  AND er.instrument_id = $instrument\n  AND er.start_time = ec.start_time\nWHERE ec.instrument_id = $instrument\n  AND $__timeFilter(es.start_time)\nORDER BY es.start_time;\n",
+          "rawSql": "SELECT\n  ec.session_id AS \"SessionID\",\n  es.start_time AS \"Start time\",\n  es.end_time AS \"End time\",\n  er.running_duration AS \"Running duration\",\n  ec.total_image_counter AS \"Total images\",\n  ec.skip_image_counter AS \"Skipped images\",\n  CASE \n    WHEN EXTRACT(EPOCH FROM er.running_duration) > 0 THEN\n      ec.total_image_counter / (EXTRACT(EPOCH FROM er.running_duration) / 3600)\n    ELSE NULL\n  END AS \"Images/hour\",\n  er.has_terminated AS \"Terminated\"\nFROM epu_counters ec\nJOIN epu_sessions es\n  ON es.session_id = ec.session_id\n  AND es.start_time = ec.start_time\nJOIN epu_runs er\n  ON er.session_id = ec.session_id\n  AND er.start_time = ec.start_time\nWHERE ec.instrument_id = $instrument\n  AND es.instrument_id = $instrument\n  AND er.instrument_id = $instrument\n  AND $__timeFilter(es.start_time)\nORDER BY es.start_time;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1201,7 +1201,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  ec.session_id AS \"SessionID\",\n  es.start_time AS \"Start time\",\n  es.end_time AS \"End time\",\n  er.running_duration AS \"Running duration\",\n  ec.total_image_counter AS \"Total images\",\n  ec.total_ts_counter AS \"Tilt series\",\n  ec.total_sm_counter AS \"Search maps\",\n  CASE \n    WHEN EXTRACT(EPOCH FROM er.running_duration) > 0 THEN\n      ec.total_image_counter / (EXTRACT(EPOCH FROM er.running_duration) / 3600)\n    ELSE NULL\n  END AS \"Images/hour\",\n  er.has_terminated AS \"Terminated\"\nFROM tomo_counters ec\nJOIN tomo_sessions es\n  ON es.session_id = ec.session_id\n  AND es.instrument_id = $instrument\n  AND es.start_time = ec.start_time\nJOIN tomo_runs er\n  ON er.session_id = ec.session_id\n  AND er.instrument_id = $instrument\n  AND er.start_time = ec.start_time\nWHERE ec.instrument_id = $instrument\n  AND $__timeFilter(es.start_time)\nORDER BY es.start_time;\n",
+          "rawSql": "SELECT\n  ec.session_id AS \"SessionID\",\n  es.start_time AS \"Start time\",\n  es.end_time AS \"End time\",\n  er.running_duration AS \"Running duration\",\n  ec.total_image_counter AS \"Total images\",\n  ec.total_ts_counter AS \"Tilt series\",\n  ec.total_sm_counter AS \"Search maps\",\n  CASE \n    WHEN EXTRACT(EPOCH FROM er.running_duration) > 0 THEN\n      ec.total_image_counter / (EXTRACT(EPOCH FROM er.running_duration) / 3600)\n    ELSE NULL\n  END AS \"Images/hour\",\n  er.has_terminated AS \"Terminated\"\nFROM tomo_counters ec\nJOIN tomo_sessions es\n  ON es.session_id = ec.session_id\n  AND es.start_time = ec.start_time\nJOIN tomo_runs er\n  ON er.session_id = ec.session_id\n  AND er.start_time = ec.start_time\nWHERE ec.instrument_id = $instrument\n  AND es.instrument_id = $instrument\n  AND er.instrument_id = $instrument\n  AND $__timeFilter(es.start_time)\nORDER BY es.start_time;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1249,8 +1249,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Krios 4 [Titan Krios G4] (4248)",
-          "value": "6"
+          "text": "Tundra [Tundra] (9955700)",
+          "value": "9"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -1283,12 +1283,12 @@
     ]
   },
   "time": {
-    "from": "now-30d",
+    "from": "now-24h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "Europe/London",
   "title": "Productivity",
   "uid": "6b926c0e-9894-4124-9c6e-75cf6d9d898a",
-  "version": 5
+  "version": 2
 }

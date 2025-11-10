@@ -18,7 +18,7 @@
           "type": "grafana-postgresql-datasource",
           "uid": "${sourceTEM}"
         },
-        "enable": true,
+        "enable": false,
         "filter": {
           "exclude": false,
           "ids": [
@@ -62,7 +62,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 8,
+  "id": 30,
   "links": [
     {
       "asDropdown": true,
@@ -256,7 +256,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "repeat": "instrument",
       "repeatDirection": "h",
       "targets": [
@@ -268,7 +268,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  state,\n  SUM(seconds) AS duration_seconds,\n  ROUND(100.0 * SUM(seconds) / NULLIF(SUM(SUM(seconds)) OVER (), 0), 2) AS percentage\nFROM vacuum_state_daily\nWHERE $__timeFilter(day)\n  AND instrument_id = $instrument\nGROUP BY state\nORDER BY percentage DESC;\n",
+          "rawSql": "WITH total AS (\n  SELECT SUM(seconds) AS total_seconds\n  FROM vacuum_state_daily\n  WHERE $__timeFilter(day)\n    AND instrument_id = $instrument\n)\nSELECT\n  v.state,\n  SUM(v.seconds) AS duration_seconds,\n  ROUND(100.0 * SUM(v.seconds) / NULLIF(t.total_seconds, 0), 2) AS percentage\nFROM vacuum_state_daily v\nCROSS JOIN total t\nWHERE $__timeFilter(v.day)\n  AND v.instrument_id = $instrument\nGROUP BY v.state, t.total_seconds\nORDER BY percentage DESC;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -381,7 +381,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "-- Total EPU time\nWITH epu_sum AS (\n  SELECT\n    EXTRACT(EPOCH FROM SUM(running_duration)) AS total_epu_seconds\n  FROM epu_running_daily\n  WHERE instrument_id = $instrument\n    AND $__timeFilter(time)\n),\n\n-- Total Tomo time\ntomo_sum AS (\n  SELECT\n    EXTRACT(EPOCH FROM SUM(running_duration)) AS total_tomo_seconds\n  FROM tomo_running_daily\n  WHERE instrument_id = $instrument\n    AND $__timeFilter(time)\n)\n\n-- Final result\nSELECT\n  ROUND(COALESCE(e.total_epu_seconds, 0) / NULLIF(($__to - $__from) / 1000.0, 0) * 100.0, 2) AS epu_utilization_percent,\n  ROUND(COALESCE(t.total_tomo_seconds, 0) / NULLIF(($__to - $__from) / 1000.0, 0) * 100.0, 2) AS tomo_utilization_percent\nFROM epu_sum e\nCROSS JOIN tomo_sum t;\n",
+          "rawSql": "WITH total AS (\n  SELECT\n    (SELECT EXTRACT(EPOCH FROM SUM(running_duration))\n     FROM epu_running_daily\n     WHERE instrument_id = $instrument\n       AND $__timeFilter(time)) AS total_epu_seconds,\n    (SELECT EXTRACT(EPOCH FROM SUM(running_duration))\n     FROM tomo_running_daily\n     WHERE instrument_id = $instrument\n       AND $__timeFilter(time)) AS total_tomo_seconds\n)\nSELECT\n  ROUND(COALESCE(total_epu_seconds, 0) / NULLIF(($__to - $__from) / 1000.0, 0) * 100.0, 2) AS epu_utilization_percent,\n  ROUND(COALESCE(total_tomo_seconds, 0) / NULLIF(($__to - $__from) / 1000.0, 0) * 100.0, 2) AS tomo_utilization_percent\nFROM total;\n",
           "refId": "uptime",
           "sql": {
             "columns": [
@@ -463,32 +463,7 @@
           },
           "unit": "days"
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "ColumnCryoCycleDuration"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "column"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "AutoloaderCryoCycleDuration"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "autoloader"
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 4,
@@ -527,7 +502,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT param_name, param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND param_name IN ('AutoloaderCryoCycleDuration', 'ColumnCryoCycleDuration')\n)\nSELECT\n  p.param_name,\n  CURRENT_DATE - d.time::date AS days_since_cryocycle_start,\n  d.time AS cryo_start_time\nFROM param_ids p\nJOIN LATERAL (\n  SELECT time\n  FROM data\n  WHERE instrument_id = $instrument\n    AND param_id = p.param_id\n    AND value_num <> 0\n  ORDER BY time DESC\n  LIMIT 1\n) d ON true",
+          "rawSql": "SELECT\n  p.param_name,\n  CURRENT_DATE - d.time::date AS days_since_cryocycle_start,\n  d.time AS cryo_start_time\nFROM parameters p\nJOIN LATERAL (\n  SELECT time\n  FROM data\n  WHERE instrument_id = $instrument\n    AND value_num <> 0\n    AND param_id = p.param_id\n  ORDER BY time DESC\n  LIMIT 1\n) d ON true\nWHERE p.instrument_id = $instrument\n  AND p.param_name IN ('AutoloaderCryoCycleDuration', 'ColumnCryoCycleDuration', 'CryoCycleDurationCLS', 'CryoCycleDurationMicroscope');\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -559,6 +534,13 @@
                 "handlerKey": "__ignore"
               }
             ]
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^(.*)CryoCycleDuration(.*)$",
+            "renamePattern": "$1 $2"
           }
         }
       ],
@@ -669,7 +651,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  lcd.day AS time,\n  i.name AS instrument,\n  lcd.daily_cartridge_count AS value\nFROM load_counters_daily lcd\nJOIN instruments i ON i.id = lcd.instrument_id\nWHERE\n  lcd.instrument_id IN ($instrument)\n  AND $__timeFilter(lcd.day)\nORDER BY lcd.day;\n",
+          "rawSql": "SELECT\n  lcd.day AS time,\n  i.name AS instrument,\n  lcd.daily_cartridge_count AS value\nFROM load_counters_daily lcd\nJOIN instruments i \n  ON i.id = lcd.instrument_id\nWHERE lcd.instrument_id IN ($instrument)\n  AND $__timeFilter(lcd.day)\nORDER BY lcd.day;\n",
           "refId": "counters",
           "sql": {
             "columns": [
@@ -794,7 +776,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  lcd.day AS time,\n  i.name AS instrument,\n  lcd.daily_cassette_count AS value\nFROM load_counters_daily lcd\nJOIN instruments i ON lcd.instrument_id = i.id\nWHERE\n  lcd.instrument_id IN ($instrument)\n  AND $__timeFilter(lcd.day)\nORDER BY lcd.day;\n",
+          "rawSql": "SELECT\n  lcd.day AS time,\n  i.name AS instrument,\n  lcd.daily_cassette_count AS value\nFROM load_counters_daily lcd\nJOIN instruments i \n  ON lcd.instrument_id = i.id\nWHERE lcd.instrument_id IN ($instrument)\n  AND $__timeFilter(lcd.day)\nORDER BY lcd.day;\n",
           "refId": "counters",
           "sql": {
             "columns": [
@@ -845,7 +827,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
-      "description": "Only for Falcon cameras",
+      "description": "Only for TFS cameras",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -935,7 +917,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  dcd.day AS time,\n  i.name AS instrument,\n  SUM(dcd.daily_terabytes) AS value\nFROM data_counters_daily dcd\nJOIN instruments i ON dcd.instrument_id = i.id\nWHERE\n  dcd.instrument_id IN ($instrument)\n  AND $__timeFilter(dcd.day)\nGROUP BY dcd.day, i.name\nORDER BY dcd.day;\n",
+          "rawSql": "SELECT\n  dcd.day AS time,\n  i.name AS instrument,\n  SUM(dcd.daily_terabytes) AS value\nFROM data_counters_daily dcd\nJOIN instruments i \n  ON dcd.instrument_id = i.id\nWHERE dcd.instrument_id IN ($instrument)\n  AND $__timeFilter(dcd.day)\nGROUP BY dcd.day, i.name\nORDER BY dcd.day;\n",
           "refId": "data",
           "sql": {
             "columns": [
@@ -1061,7 +1043,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  icd.day AS time,\n  i.name AS instrument,\n  SUM(icd.daily_images) AS value\nFROM image_counters_daily icd\nJOIN instruments i ON icd.instrument_id = i.id\nWHERE\n  icd.instrument_id IN ($instrument)\n  AND $__timeFilter(icd.day)\nGROUP BY icd.day, i.name\nORDER BY icd.day;\n",
+          "rawSql": "SELECT\n  icd.day AS time,\n  i.name AS instrument,\n  SUM(icd.daily_images) AS value\nFROM image_counters_daily icd\nJOIN instruments i \n  ON icd.instrument_id = i.id\nWHERE icd.instrument_id IN ($instrument)\n  AND $__timeFilter(icd.day)\nGROUP BY icd.day, i.name\nORDER BY icd.day;\n",
           "refId": "uptime",
           "sql": {
             "columns": [
@@ -1143,12 +1125,12 @@
     ]
   },
   "time": {
-    "from": "now-30d",
+    "from": "now-24h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "Europe/London",
   "title": "Fleet overview",
   "uid": "4350492f-ef51-4e3f-a22b-14c55eee6a97",
-  "version": 2
+  "version": 4
 }

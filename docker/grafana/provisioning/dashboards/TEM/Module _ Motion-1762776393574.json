@@ -24,7 +24,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 8,
+  "id": 24,
   "links": [
     {
       "asDropdown": true,
@@ -138,7 +138,7 @@
         "colorMode": "value",
         "graphMode": "none",
         "justifyMode": "center",
-        "orientation": "auto",
+        "orientation": "horizontal",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [],
@@ -3770,7 +3770,7 @@
     ]
   },
   "time": {
-    "from": "now-30d",
+    "from": "now-24h",
     "to": "now"
   },
   "timepicker": {
@@ -3779,5 +3779,5 @@
   "timezone": "Europe/London",
   "title": "Module | Motion",
   "uid": "4395e67b-0280-47fd-94a8-684004567800",
-  "version": 16
+  "version": 2
 }

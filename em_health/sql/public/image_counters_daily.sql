@@ -1,5 +1,5 @@
 /* Create a CAGG of acquired images counter.
-   Here we count AcquisitionJobs, BM-Falcon-NumberOfAcquisitionJobs
+   Here we count AcquisitionJobs, BM-Falcon-NumberOfAcquisitionJobs, BM-Ceta-NumberOfAcquisitionJobs
    and AcquisitionNumber (for Gatan cameras)
 */
 CREATE MATERIALIZED VIEW image_counters_daily
@@ -13,6 +13,6 @@ SELECT
 FROM data d
          JOIN parameters p
               ON d.param_id = p.param_id AND d.instrument_id = p.instrument_id
-WHERE p.param_name IN ('AcquisitionJobs', 'BM-Falcon-NumberOfAcquisitionJobs', 'AcquisitionNumber')
+WHERE p.param_name IN ('AcquisitionJobs', 'BM-Falcon-NumberOfAcquisitionJobs', 'BM-Ceta-NumberOfAcquisitionJobs', 'AcquisitionNumber')
 GROUP BY day, d.instrument_id, p.param_name
 WITH NO DATA

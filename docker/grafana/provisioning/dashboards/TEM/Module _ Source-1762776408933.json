@@ -72,7 +72,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 14,
+  "id": 25,
   "links": [
     {
       "asDropdown": true,
@@ -2281,7 +2281,7 @@
         "allowCustomValue": false,
         "current": {
           "text": "Krios 4 [Titan Krios G4] (4248)",
-          "value": "6"
+          "value": "4"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -2299,7 +2299,7 @@
     ]
   },
   "time": {
-    "from": "now-30d",
+    "from": "now-24h",
     "to": "now"
   },
   "timepicker": {
@@ -2308,5 +2308,5 @@
   "timezone": "Europe/London",
   "title": "Module | Source",
   "uid": "4395e67b-0345-47fd-94a8-684004567800",
-  "version": 6
+  "version": 1
 }

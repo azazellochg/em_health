@@ -1,5 +1,5 @@
 /* Create a CAGG of acquired data counter
-   (Tb per day). Only Falcon cameras have such a counter.
+   (Tb per day). Only TFS cameras have such a counter.
 */
 CREATE MATERIALIZED VIEW data_counters_daily
 WITH (timescaledb.continuous)
@@ -12,6 +12,6 @@ SELECT
 FROM data d
          JOIN parameters p
               ON d.param_id = p.param_id AND d.instrument_id = p.instrument_id
-WHERE p.param_name IN ('NumberOffloadedTerabytes', 'BM-Falcon-NumberOffloadedTB')
+WHERE p.param_name IN ('NumberOffloadedTerabytes', 'BM-Falcon-NumberOffloadedTB', 'BM-Ceta-NumberOffloadedTB')
 GROUP BY day, d.instrument_id, p.param_name
 WITH NO DATA

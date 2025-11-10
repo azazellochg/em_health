@@ -59,7 +59,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 18,
+  "id": 46,
   "links": [],
   "panels": [
     {
@@ -304,7 +304,6 @@
         }
       },
       "pluginVersion": "12.1.0",
-      "repeatDirection": "v",
       "targets": [
         {
           "datasource": {
@@ -653,7 +652,7 @@
         },
         "definition": "SELECT param_id AS __value,\nparam_name AS __text\nFROM parameters\nWHERE instrument_id = $instrument \nAND subsystem = '$subsystem'\nAND component IN (${component:sqlstring})\n",
         "description": "",
-        "includeAll": true,
+        "includeAll": false,
         "multi": true,
         "name": "param",
         "options": [],
@@ -689,5 +688,5 @@
   "timezone": "Europe/London",
   "title": "Data browser",
   "uid": "bdc45e8d-6118-44ea-89f6-00c573b7016b",
-  "version": 7
+  "version": 2
 }

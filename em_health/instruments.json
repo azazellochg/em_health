@@ -45,6 +45,15 @@
         "server": "192.168.72.2"
     },
     {
+        "instrument": "9955700, Tundra",
+        "serial": 9955700,
+        "model": "Tundra",
+        "name": "Tundra",
+        "type": "tem",
+        "template": "tundra",
+        "server": "192.168.66.2"
+    },
+    {
         "instrument": "9923526, Scios",
         "serial": 9923526,
         "model": "Scios",

@@ -28,11 +28,8 @@
         "filter": {
           "exclude": false,
           "ids": [
-            11,
             27,
-            38,
-            39,
-            37
+            36
           ]
         },
         "hide": false,
@@ -68,7 +65,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 67,
+  "id": 31,
   "links": [
     {
       "asDropdown": true,
@@ -161,7 +158,7 @@
             "insertNulls": false,
             "lineInterpolation": "smooth",
             "lineWidth": 2,
-            "pointSize": 8,
+            "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
             },
@@ -291,7 +288,7 @@
             "insertNulls": false,
             "lineInterpolation": "smooth",
             "lineWidth": 2,
-            "pointSize": 8,
+            "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
             },
@@ -430,7 +427,7 @@
         "allowCustomValue": false,
         "current": {
           "text": "Krios 4 [Titan Krios G4] (4248)",
-          "value": "6"
+          "value": "4"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -448,7 +445,7 @@
     ]
   },
   "time": {
-    "from": "now-30d",
+    "from": "now-24h",
     "to": "now"
   },
   "timepicker": {
@@ -457,5 +454,5 @@
   "timezone": "Europe/London",
   "title": "Module | Acquisition",
   "uid": "4225e67b-0356-34fd-94a8-684533567800",
-  "version": 7
+  "version": 1
 }
