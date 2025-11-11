@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 47,
+  "id": 13,
   "links": [
     {
       "asDropdown": false,
@@ -52,7 +52,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${source}"
+        "uid": "hm-tem"
       },
       "fieldConfig": {
         "defaults": {
@@ -150,7 +150,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${source}"
+        "uid": "hm-tem"
       },
       "fieldConfig": {
         "defaults": {
@@ -237,22 +237,7 @@
     "perf"
   ],
   "templating": {
-    "list": [
-      {
-        "allowCustomValue": false,
-        "current": {
-          "text": "tem",
-          "value": "hm-tem"
-        },
-        "label": "Database",
-        "name": "source",
-        "options": [],
-        "query": "grafana-postgresql-datasource",
-        "refresh": 1,
-        "regex": "",
-        "type": "datasource"
-      }
-    ]
+    "list": []
   },
   "time": {
     "from": "now-7d",
@@ -272,5 +257,5 @@
   "timezone": "Europe/London",
   "title": "Configuration",
   "uid": "ee46beab-c046-42b1-b547-23990e2ec0f3",
-  "version": 12
+  "version": 6
 }

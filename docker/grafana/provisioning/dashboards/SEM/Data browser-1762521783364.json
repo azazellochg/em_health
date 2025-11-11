@@ -59,7 +59,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 16,
+  "id": 46,
   "links": [],
   "panels": [
     {
@@ -179,7 +179,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT \n  param_id,\n  subsystem,\n  component,\n  param_name,\n  display_name,\n  COALESCE(storage_unit, '') AS storage_unit,\n  enum_id, \n  value_type \nFROM parameters\nWHERE \n  instrument_id = $instrument\n  AND subsystem IN ($subsystem)\n  AND component IN ($component)\n  AND param_name IN ($param);\n",
+          "rawSql": "SELECT \n  param_id,\n  subsystem,\n  component,\n  param_name,\n  display_name,\n  COALESCE(storage_unit, '') AS storage_unit,\n  enum_id, \n  value_type \nFROM parameters\nWHERE \n  instrument_id = $instrument\n  AND param_id IN ($param)\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -220,7 +220,7 @@
       },
       "id": 4,
       "panels": [],
-      "title": "Raw data",
+      "title": "Time series",
       "type": "row"
     },
     {
@@ -284,7 +284,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 16,
         "w": 24,
         "x": 0,
         "y": 6
@@ -300,7 +300,7 @@
         "tooltip": {
           "hideZeros": false,
           "mode": "multi",
-          "sort": "none"
+          "sort": "asc"
         }
       },
       "pluginVersion": "12.1.0",
@@ -313,7 +313,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH selected_params AS (\n  SELECT instrument_id, param_id, param_name, display_name\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem IN ($subsystem)\n    AND component IN ($component)\n    AND param_name IN ($param)\n)\nSELECT\n  v.time,\n  v.value_num AS \"value\",\n  p.display_name AS \"__name__\"\nFROM data v\nJOIN selected_params p\n  ON v.param_id = p.param_id\n  AND v.instrument_id = p.instrument_id\nWHERE $__timeFilter(v.time)\nORDER BY v.time;\n",
+          "rawSql": "WITH params AS (\n  SELECT\n    param_id,\n    display_name\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_id IN ($param)\n)\nSELECT\n  d.time,\n  d.value_num AS \"value\",\n  p.display_name AS \"__name__\"\nFROM\n  data d\n  JOIN params p USING (param_id)\nWHERE\n  d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nORDER BY\n  d.time;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -334,7 +334,7 @@
           }
         }
       ],
-      "title": "Time series for ${param:csv}",
+      "title": "Time series for $param",
       "transformations": [
         {
           "id": "renameByRegex",
@@ -345,6 +345,19 @@
         }
       ],
       "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "id": 8,
+      "panels": [],
+      "title": "Table view",
+      "type": "row"
     },
     {
       "datasource": {
@@ -381,7 +394,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 14
+        "y": 23
       },
       "id": 7,
       "options": {
@@ -398,6 +411,8 @@
         "showHeader": true
       },
       "pluginVersion": "12.1.0",
+      "repeat": "param",
+      "repeatDirection": "v",
       "targets": [
         {
           "datasource": {
@@ -407,7 +422,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH selected_params AS (\n  SELECT instrument_id, param_id, param_name, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem IN ($subsystem)\n    AND component IN ($component)\n    AND param_name IN ($param)\n)\n\nSELECT\n  v.time,\n  p.param_name AS \"parameter\",\n  v.value_num AS \"value\",\n  e.member_name AS \"enumeration\"\nFROM data v\nJOIN selected_params p\n  ON v.param_id = p.param_id\n  AND v.instrument_id = p.instrument_id\nLEFT JOIN enum_values e\n  ON e.enum_id = p.enum_id\n  AND e.value = v.value_num\nWHERE $__timeFilter(v.time)\nORDER BY v.time;\n",
+          "rawSql": "SELECT\n    d.time,\n    d.value_num AS \"value\",\n    e.member_name AS \"enumeration\"\nFROM data d\nLEFT JOIN enum_values e\n  ON e.enum_id = (SELECT enum_id FROM parameters WHERE instrument_id = $instrument AND param_id = $param)\n AND e.value = d.value_num\nWHERE d.instrument_id = $instrument\n  AND d.param_id = $param\n  AND $__timeFilter(d.time)\nORDER BY d.time;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -428,7 +443,7 @@
           }
         }
       ],
-      "title": "Table view for ${param:csv}",
+      "title": "Table view for $param",
       "transformations": [
         {
           "id": "renameByRegex",
@@ -446,11 +461,11 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 24
+        "y": 43
       },
       "id": 5,
       "panels": [],
-      "title": "Details",
+      "title": "Enumerations",
       "type": "row"
     },
     {
@@ -489,7 +504,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 25
+        "y": 44
       },
       "id": 1,
       "options": {
@@ -507,6 +522,8 @@
         "sortBy": []
       },
       "pluginVersion": "12.1.0",
+      "repeat": "param",
+      "repeatDirection": "v",
       "targets": [
         {
           "datasource": {
@@ -516,7 +533,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH target_param AS (\n  SELECT enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem IN ($subsystem)\n    AND component IN ($component)\n    AND param_name IN ($param)\n)\n\nSELECT\n et.id AS enum_id,\n et.name AS enum_name,\n ev.member_name,\n ev.value\nFROM enum_values ev\nJOIN enum_types et ON et.id = ev.enum_id\nWHERE et.instrument_id = $instrument\n  AND (\n    NOT EXISTS (SELECT 1 FROM target_param)\n    OR et.id IN (SELECT enum_id FROM target_param)\n  )\nORDER BY ev.value",
+          "rawSql": "WITH target_param AS (\n  SELECT enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_id = $param\n)\n\nSELECT\n et.id AS enum_id,\n et.name AS enum_name,\n ev.member_name,\n ev.value\nFROM enum_values ev\nJOIN enum_types et ON et.id = ev.enum_id\nWHERE et.instrument_id = $instrument\n  AND (\n    NOT EXISTS (SELECT 1 FROM target_param)\n    OR et.id IN (SELECT enum_id FROM target_param)\n  )\nORDER BY ev.value",
           "refId": "A",
           "sql": {
             "columns": [
@@ -544,7 +561,7 @@
           "table": "glacios_enums"
         }
       ],
-      "title": "Enumerations for ${param:csv}",
+      "title": "Enumerations for $param",
       "type": "table"
     }
   ],
@@ -559,8 +576,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "",
-          "value": ""
+          "text": "Glacios [Glacios] (9952833)",
+          "value": "10"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -579,12 +596,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": [
-            "AcquisitionServer"
-          ],
-          "value": [
-            "AcquisitionServer"
-          ]
+          "text": "AcquisitionServer",
+          "value": "AcquisitionServer"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -592,7 +605,7 @@
         },
         "definition": "SELECT subsystem\nFROM parameters\nWHERE instrument_id = $instrument\n",
         "description": "",
-        "multi": true,
+        "includeAll": false,
         "name": "subsystem",
         "options": [],
         "query": "SELECT subsystem\nFROM parameters\nWHERE instrument_id = $instrument\n",
@@ -604,23 +617,18 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": [
-            "FalconECCamera"
-          ],
-          "value": [
-            "FalconECCamera"
-          ]
+          "text": "FalconECCamera",
+          "value": "FalconECCamera"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
           "uid": "${sourceSEM}"
         },
-        "definition": "SELECT component\nFROM parameters\nWHERE instrument_id = $instrument\nAND ($subsystem IS NULL OR subsystem IN ($subsystem))\n\n",
+        "definition": "SELECT component\nFROM parameters\nWHERE instrument_id = $instrument\nAND subsystem = '$subsystem'\n",
         "description": "",
-        "multi": true,
         "name": "component",
         "options": [],
-        "query": "SELECT component\nFROM parameters\nWHERE instrument_id = $instrument\nAND ($subsystem IS NULL OR subsystem IN ($subsystem))\n\n",
+        "query": "SELECT component\nFROM parameters\nWHERE instrument_id = $instrument\nAND subsystem = '$subsystem'\n",
         "refresh": 1,
         "regex": "",
         "sort": 1,
@@ -630,22 +638,25 @@
         "allowCustomValue": false,
         "current": {
           "text": [
-            "Availability"
+            "Availability",
+            "CCU_1V5_Voltage"
           ],
           "value": [
-            "Availability"
+            "25",
+            "13"
           ]
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
           "uid": "${sourceSEM}"
         },
-        "definition": "SELECT param_name\nFROM parameters\nWHERE instrument_id = $instrument \nAND subsystem IN ($subsystem)\nAND component IN ($component)\n",
+        "definition": "SELECT param_id AS __value,\nparam_name AS __text\nFROM parameters\nWHERE instrument_id = $instrument \nAND subsystem = '$subsystem'\nAND component IN (${component:sqlstring})\n",
         "description": "",
+        "includeAll": false,
         "multi": true,
         "name": "param",
         "options": [],
-        "query": "SELECT param_name\nFROM parameters\nWHERE instrument_id = $instrument \nAND subsystem IN ($subsystem)\nAND component IN ($component)\n",
+        "query": "SELECT param_id AS __value,\nparam_name AS __text\nFROM parameters\nWHERE instrument_id = $instrument \nAND subsystem = '$subsystem'\nAND component IN (${component:sqlstring})\n",
         "refresh": 1,
         "regex": "",
         "sort": 1,
@@ -655,7 +666,7 @@
         "allowCustomValue": false,
         "current": {
           "text": "sem",
-          "value": "PE604F8C97CAAADB4"
+          "value": "hm-sem"
         },
         "hide": 2,
         "name": "sourceSEM",
@@ -668,7 +679,7 @@
     ]
   },
   "time": {
-    "from": "now-7d",
+    "from": "now-30d",
     "to": "now"
   },
   "timepicker": {
@@ -676,6 +687,6 @@
   },
   "timezone": "Europe/London",
   "title": "Data browser",
-  "uid": "bdc45e8d-6228-44ea-89f6-00c573b7016b",
+  "uid": "bdc45e8d-6118-44ea-89f6-00c345b7016b",
   "version": 2
 }
