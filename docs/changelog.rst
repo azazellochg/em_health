@@ -9,4 +9,5 @@ Version 0.1
 
     - TEM Glacios
     - TEM Titan Krios G1, G2, G3i, G4
+    - TEM Tundra
     - Health Monitor 1.12.0

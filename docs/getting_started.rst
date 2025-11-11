@@ -34,7 +34,7 @@ Typical Setup
 Prerequisites
 ^^^^^^^^^^^^^
 
-.. important:: Currently we support Titan Krios and Glacios instruments only.
+.. important:: Currently we support Titan Krios, Glacios and Tundra instruments only.
 
 Requirements for ``EMHealth`` package:
 
