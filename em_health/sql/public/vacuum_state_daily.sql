@@ -52,7 +52,7 @@ WITH vacuum_param AS (
              ve.end_time,
              ve.state
          FROM vacuum_events ve
-                  LEFT JOIN tem_off o
+                  LEFT JOIN em_off o
                             ON ve.instrument_id = o.instrument_id
                                 AND ve.start_time < o.end_time
                                 AND ve.end_time > o.start_time
@@ -63,7 +63,7 @@ WITH vacuum_param AS (
      all_states AS (
          SELECT instrument_id, start_time, end_time, state FROM cleaned_vacuum
          UNION ALL
-         SELECT instrument_id, start_time, end_time, 'off' AS state FROM tem_off
+         SELECT instrument_id, start_time, end_time, 'off' AS state FROM em_off
      ),
 
      -- map intervals onto days

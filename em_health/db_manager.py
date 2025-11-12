@@ -409,33 +409,39 @@ class DatabaseManager(PgClient):
 def main(dbname, action, instrument=None, date=None):
     if action == "create-stats":
         logger.info("Running aggregation on database %s", dbname)
-        mviews: dict[str, bool] = {
-            # name: is_cagg
-            "tem_off": False,
-            "vacuum_state_daily": False,
+        mviews = {
+            "tem": {
+                # name: is_cagg
+                "em_off": False,
+                "vacuum_state_daily": False,
 
-            "epu_sessions": False,
-            "tomo_sessions": False,
+                "epu_sessions": False,
+                "tomo_sessions": False,
 
-            "epu_runs": False,
-            "tomo_runs": False,
+                "epu_runs": False,
+                "tomo_runs": False,
 
-            "epu_state_daily": True,
-            "tomo_state_daily": True,
+                "epu_state_daily": True,
+                "tomo_state_daily": True,
 
-            "epu_running_daily": False,
-            "tomo_running_daily": False,
+                "epu_running_daily": False,
+                "tomo_running_daily": False,
 
-            "epu_counters": False,
-            "tomo_counters": False,
+                "epu_counters": False,
+                "tomo_counters": False,
 
-            "load_counters_daily": True,
-            "data_counters_daily": True,
-            "image_counters_daily": True,
+                "load_counters_daily": True,
+                "data_counters_daily": True,
+                "image_counters_daily": True,
+            },
+            "sem": {
+                "em_off": False,
+                "vacuum_state_daily": False,
+            }
         }
 
         with DatabaseManager(dbname) as db:
-            for mview, is_cagg in mviews.items():
+            for mview, is_cagg in mviews[dbname].items():
                 db.drop_mview(mview)
                 db.create_mview(mview)
                 if is_cagg:

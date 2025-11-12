@@ -1,9 +1,9 @@
-/* Create a materialized view with "TEM server off" periods.
+/* Create a materialized view with "TEM/xT server off" periods.
    Normally, the server value is stored every 2 minutes. If the server goes off,
    the next value will be "1" only when it's up again. So, there are no consecutive zeros.
-   It could happen that the TEM server crashed or powered off and there was no 0 recorded.
+   It could happen that the server crashed or powered off and there was no 0 recorded.
 */
-CREATE MATERIALIZED VIEW IF NOT EXISTS tem_off AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS em_off AS
 WITH server_param AS (
     SELECT instrument_id, param_id
     FROM parameters
