@@ -153,6 +153,7 @@ BEGIN
                  JOIN pg_database d ON d.oid = s.dbid
         WHERE userid IN ('grafana'::regrole::oid, 'emhealth'::regrole::oid)
           AND queryid IS NOT NULL
+          AND toplevel = 't'
           AND d.datname = current_database()
     ),
 
