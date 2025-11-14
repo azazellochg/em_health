@@ -419,6 +419,7 @@ def main(dbname, action, instrument=None, date=None):
                 "tomo_sessions": False,
 
                 "epu_runs": False,
+                "epud_runs": False,
                 "tomo_runs": False,
 
                 "epu_state_daily": True,

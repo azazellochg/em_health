@@ -24,11 +24,11 @@ state_enum AS (
      runs AS (SELECT seg.instrument_id,
                      seg.session_id,
                      seg.start_time,
-                     (seg.end_time - seg.start_time)                                                        AS total_duration,
+                     (seg.end_time - seg.start_time) AS total_duration,
                      SUM(CASE
                              WHEN v.state = se.running_value THEN v.duration
-                             ELSE INTERVAL '0 second' END)                                                  AS running_duration,
-                     BOOL_OR(v.state = se.terminated_value)                                                 AS has_terminated
+                             ELSE INTERVAL '0 second' END) AS running_duration,
+                     BOOL_OR(v.state = se.terminated_value) AS has_terminated
               FROM epu_sessions seg
                        JOIN state_enum se USING (instrument_id)
                        JOIN state_param sp

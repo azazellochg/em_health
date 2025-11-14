@@ -15,7 +15,7 @@ state_enum AS (
     SELECT
         p.instrument_id,
         p.param_id,
-        MAX(e.value) FILTER (WHERE e.member_name IN ('Running', 'Acquiring'))    AS running_value,
+        MAX(e.value) FILTER (WHERE e.member_name IN ('Running', 'Acquiring')) AS running_value,
         COALESCE(MAX(e.value) FILTER (WHERE e.member_name = 'Terminated'), -1) AS terminated_value
     FROM state_param p
              JOIN enum_values e ON e.enum_id = p.enum_id
