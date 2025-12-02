@@ -437,7 +437,9 @@ def main(dbname, action, instrument=None, date=None):
             },
             "sem": {
                 "em_off": False,
-                "vacuum_state_daily": False,
+                #"vacuum_state_daily": False,
+
+                "load_counters_daily": True,
             }
         }
 

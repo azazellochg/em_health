@@ -1,0 +1,3151 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 59,
+  "links": [
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [
+        "overview",
+        "sem"
+      ],
+      "targetBlank": false,
+      "title": "Overviews",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    },
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "module",
+        "sem"
+      ],
+      "targetBlank": false,
+      "title": "Modules",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    },
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [
+        "dev",
+        "sem"
+      ],
+      "targetBlank": true,
+      "title": "",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    }
+  ],
+  "panels": [
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [],
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "#EAB839",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "stage_errors"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Stage"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "aperture_errors"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Apertures"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
+      "id": 18,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "vertical",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": false
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH error_params AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n  AND component IN ('X', 'Y', 'Z', 'AT', 'R')\n  AND param_name LIKE '%_ErrorState'\n  AND subsystem = '110mmStage'\n),\n\nerrors AS (\n  SELECT v.value_num AS error_code\n  FROM data v\n  JOIN error_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n    AND v.value_num != 0\n)\nSELECT COUNT(*) AS stage_errors\nFROM errors\n",
+          "refId": "stage move errors",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH error_params1 AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND component IN ('Sem.X', 'Sem.Y', 'Fib.X', 'Fib.Y')\n    AND param_name LIKE '%RootError'\n    AND subsystem = 'Apertures'\n),\nerrors1 AS (\n  SELECT v.value_num AS error_code\n  FROM data v\n  JOIN error_params1 p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument\n    AND $__timeFilter(v.time)\n    AND v.value_num != 0\n)\n\nSELECT COUNT(*) AS aperture_errors\nFROM errors1\n\n",
+          "refId": "aperture errors",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Errors",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 20,
+        "x": 4,
+        "y": 0
+      },
+      "id": 19,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": true,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "time"
+          }
+        ]
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH matching_params AS (\n  SELECT param_id, component, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n  AND component IN ('X', 'Y', 'Z', 'AT', 'R')\n  AND param_name LIKE '%_ErrorState'\n  AND subsystem = '110mmStage'\n),\n\nerrors AS (\n  SELECT\n    d.time,\n    p.component,\n    d.value_num AS error_code,\n    p.enum_id\n  FROM data d\n  JOIN matching_params p ON d.param_id = p.param_id\n  WHERE d.instrument_id = $instrument \n    AND $__timeFilter(d.time)\n    AND d.value_num != 0\n)\n\nSELECT\n  e.time AS \"Time\",\n  'Stage.' || e.component AS \"Component\",\n  en.member_name AS \"Error\"\nFROM errors e\nLEFT JOIN enum_values en\n ON en.enum_id = e.enum_id\n AND en.value = e.error_code\nORDER BY e.time DESC;\n",
+          "refId": "stage errors",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH matching_params1 AS (\n  SELECT param_id, component, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component IN ('Sem.X', 'Sem.Y', 'Fib.X', 'Fib.Y')\n    AND param_name LIKE '%RootError'\n    AND subsystem = 'Apertures'\n),\n\nall_errors AS (\n  SELECT\n    v.time,\n    p.component,\n    v.value_num AS error_code,\n    p.enum_id\n  FROM data v\n  JOIN matching_params1 p ON v.param_id = p.param_id\n  WHERE v.instrument_id = $instrument\n    AND $__timeFilter(v.time)\n    AND v.value_num != 0\n)\n\nSELECT\n  e.time AS \"Time\",\n  'Apertures.' || e.component AS \"Component\",\n  en.member_name AS \"Error\"\nFROM all_errors e\nLEFT JOIN enum_values en\n  ON en.enum_id = e.enum_id\n  AND en.value = e.error_code\nORDER BY e.time DESC;\n",
+          "refId": "aperture move errors",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Last errors",
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": true,
+                "field": "time"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [],
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "#EAB839",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "stage"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Stage"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "polepiece"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Pole piece"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 4
+      },
+      "id": 45,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "vertical",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": false
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH error_params AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n  AND component = 'Safety'\n  AND param_name = 'TouchAlarmCountParameter'\n  AND subsystem = 'System'\n)\n\nSELECT MAX(v.value_num)-MIN(v.value_num) AS stage\nFROM data v\nJOIN error_params p ON v.param_id = p.param_id\nWHERE instrument_id = $instrument \n  AND $__timeFilter(v.time)\n",
+          "refId": "stage",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH error_params AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n  AND component = 'Safety'\n  AND param_name = 'PolePieceTouchAlarmParameter'\n  AND subsystem = 'System'\n)\n\nSELECT MAX(v.value_num)-MIN(v.value_num) AS polepiece\nFROM data v\nJOIN error_params p ON v.param_id = p.param_id\nWHERE instrument_id = $instrument \n  AND $__timeFilter(v.time)\n",
+          "refId": "polepiece",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Touch alarms",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "id": 25,
+      "panels": [],
+      "title": "Stage",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "mode": "lcd",
+              "type": "gauge",
+              "valueDisplayMode": "text"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "lengthmm"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max Controller Output"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "volt"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 5
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 4
+                    },
+                    {
+                      "color": "orange",
+                      "value": 4.25
+                    },
+                    {
+                      "color": "red",
+                      "value": 4.5
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Settling Duration"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.6
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.8
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max Position Error"
+            },
+            "properties": [
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 0.3
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.25
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "id": 22,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "time"
+          }
+        ]
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'X', 'X.ControlOutput'),\n    ('Compustage', 'X', 'X.SettlingDuration'),\n    ('Compustage', 'X', 'X.MaxPositionError'),\n    ('110mmStage', 'X', 'X_MoveStopped_MaxControllerOut'),\n    ('110mmStage', 'X', 'X_MoveStopped_SettlingTime'),\n    ('110mmStage', 'X', 'X_MoveStopped_MaxPositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.ControlOutput', 'Max Controller Output'),\n    ('X_MoveStopped_MaxControllerOut',  'Max Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X_MoveStopped_SettlingTime', 'Settling Duration'),\n    ('X.MaxPositionError', 'Max Position Error'),\n    ('X_MoveStopped_MaxPositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Stage X",
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {}
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "mode": "lcd",
+              "type": "gauge",
+              "valueDisplayMode": "text"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "degree"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max Controller Output"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "volt"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 10
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 4.5
+                    },
+                    {
+                      "color": "orange",
+                      "value": 5
+                    },
+                    {
+                      "color": "red",
+                      "value": 5.5
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Settling Duration"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.6
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.8
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max Position Error"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "id": 36,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "time"
+          }
+        ]
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'A', 'A.ControlOutput'),\n    ('Compustage', 'A', 'A.SettlingDuration'),\n    ('Compustage', 'A', 'A.MaxPositionError'),\n    ('110mmStage', 'AT', 'AT_MoveStopped_MaxControllerOut'),\n    ('110mmStage', 'AT', 'AT_MoveStopped_SettlingTime'),\n    ('110mmStage', 'AT', 'AT_MoveStopped_MaxPositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('A.ControlOutput', 'Max Controller Output'),\n    ('AT_MoveStopped_MaxControllerOut',  'Max Controller Output'),\n    ('A.SettlingDuration', 'Settling Duration'),\n    ('AT_MoveStopped_SettlingTime', 'Settling Duration'),\n    ('A.MaxPositionError', 'Max Position Error'),\n    ('AT_MoveStopped_MaxPositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Stage A/AT",
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {}
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "mode": "lcd",
+              "type": "gauge",
+              "valueDisplayMode": "text"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "lengthmm"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max Controller Output"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "volt"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 5
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 3
+                    },
+                    {
+                      "color": "orange",
+                      "value": 3.25
+                    },
+                    {
+                      "color": "red",
+                      "value": 3.5
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Settling Duration"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.6
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.8
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max Position Error"
+            },
+            "properties": [
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 0.3
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.25
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 0,
+        "y": 13
+      },
+      "id": 34,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "time"
+          }
+        ]
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'Y', 'Y.ControlOutput'),\n    ('Compustage', 'Y', 'Y.SettlingDuration'),\n    ('Compustage', 'Y', 'Y.MaxPositionError'),\n    ('110mmStage', 'Y', 'Y_MoveStopped_MaxControllerOut'),\n    ('110mmStage', 'Y', 'Y_MoveStopped_SettlingTime'),\n    ('110mmStage', 'Y', 'Y_MoveStopped_MaxPositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.ControlOutput', 'Max Controller Output'),\n    ('Y_MoveStopped_MaxControllerOut',  'Max Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('Y_MoveStopped_SettlingTime', 'Settling Duration'),\n    ('Y.MaxPositionError', 'Max Position Error'),\n    ('Y_MoveStopped_MaxPositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Stage Y",
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {}
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "mode": "lcd",
+              "type": "gauge",
+              "valueDisplayMode": "text"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "degree"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max Controller Output"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "volt"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 10
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Settling Duration"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.6
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.8
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max Position Error"
+            },
+            "properties": [
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 13
+      },
+      "id": 37,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "time"
+          }
+        ]
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('110mmStage', 'R', 'R_MoveStopped_MaxControllerOut'),\n    ('110mmStage', 'R', 'R_MoveStopped_SettlingTime'),\n    ('110mmStage', 'R', 'R_MoveStopped_MaxPositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('R_MoveStopped_MaxControllerOut',  'Max Controller Output'),\n    ('R_MoveStopped_SettlingTime', 'Settling Duration'),\n    ('R_MoveStopped_MaxPositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Stage R",
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {}
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "mode": "lcd",
+              "type": "gauge",
+              "valueDisplayMode": "text"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "lengthmm"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max Controller Output"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "volt"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 5
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 4
+                    },
+                    {
+                      "color": "orange",
+                      "value": 4.5
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Settling Duration"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.6
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.8
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max Position Error"
+            },
+            "properties": [
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 0.3
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.25
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 0,
+        "y": 17
+      },
+      "id": 35,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "time"
+          }
+        ]
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'Z', 'Z.ControlOutput'),\n    ('Compustage', 'Z', 'Z.SettlingDuration'),\n    ('Compustage', 'Z', 'Z.MaxPositionError'),\n    ('110mmStage', 'Z', 'Z_MoveStopped_MaxControllerOut'),\n    ('110mmStage', 'Z', 'Z_MoveStopped_SettlingTime'),\n    ('110mmStage', 'Z', 'Z_MoveStopped_MaxPositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Z.ControlOutput', 'Max Controller Output'),\n    ('Z_MoveStopped_MaxControllerOut',  'Max Controller Output'),\n    ('Z.SettlingDuration', 'Settling Duration'),\n    ('Z_MoveStopped_SettlingTime', 'Settling Duration'),\n    ('Z.MaxPositionError', 'Max Position Error'),\n    ('Z_MoveStopped_MaxPositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Stage Z",
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {}
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "id": 17,
+      "panels": [],
+      "title": "Apertures",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "mode": "lcd",
+              "type": "gauge",
+              "valueDisplayMode": "text"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "lengthmm"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Controller Output"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "volt"
+              },
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Settling Duration"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.9
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max Position Error"
+            },
+            "properties": [
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Position Error"
+            },
+            "properties": [
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 0,
+        "y": 22
+      },
+      "id": 26,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "time"
+          }
+        ]
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'Sem.X', 'X.ControlOutput'),\n    ('Apertures', 'Sem.X', 'X.SettlingDuration'),\n    ('Apertures', 'Sem.X', 'X.MaxPositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.ControlOutput', 'Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "SEM.X",
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {}
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "mode": "lcd",
+              "type": "gauge",
+              "valueDisplayMode": "text"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "lengthmm"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Controller Output"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "volt"
+              },
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Settling Duration"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.9
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max Position Error"
+            },
+            "properties": [
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 22
+      },
+      "id": 38,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "time"
+          }
+        ]
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'Sem.Y', 'Y.ControlOutput'),\n    ('Apertures', 'Sem.Y', 'Y.SettlingDuration'),\n    ('Apertures', 'Sem.Y', 'X.MaxPositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.ControlOutput', 'Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "SEM.Y",
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {}
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "mode": "lcd",
+              "type": "gauge",
+              "valueDisplayMode": "text"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "lengthmm"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Controller Output"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "volt"
+              },
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Settling Duration"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.9
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max Position Error"
+            },
+            "properties": [
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 0,
+        "y": 26
+      },
+      "id": 39,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "time"
+          }
+        ]
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'Fib.X', 'X.ControlOutput'),\n    ('Apertures', 'Fib.X', 'X.SettlingDuration'),\n    ('Apertures', 'Fib.X', 'X.MaxPositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.ControlOutput', 'Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "FIB.X",
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {}
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "mode": "lcd",
+              "type": "gauge",
+              "valueDisplayMode": "text"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "lengthmm"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Controller Output"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "volt"
+              },
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Settling Duration"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.9
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max Position Error"
+            },
+            "properties": [
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 26
+      },
+      "id": 40,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "time"
+          }
+        ]
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'Fib.Y', 'Y.ControlOutput'),\n    ('Apertures', 'Fib.Y', 'Y.SettlingDuration'),\n    ('Apertures', 'Fib.Y', 'X.MaxPositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.ControlOutput', 'Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "FIB.Y",
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {}
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "mode": "lcd",
+              "type": "gauge",
+              "valueDisplayMode": "text"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "lengthmm"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Controller Output"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "volt"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 15
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 12
+                    },
+                    {
+                      "color": "orange",
+                      "value": 14
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Settling Duration"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.6
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.8
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max Position Error"
+            },
+            "properties": [
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 0,
+        "y": 30
+      },
+      "id": 41,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "time"
+          }
+        ]
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'Baa.X', 'X.ControlOutput'),\n    ('Apertures', 'Baa.X', 'X.SettlingDuration'),\n    ('Apertures', 'Baa.X', 'X.MaxPositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.ControlOutput', 'Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "BAA.X",
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {}
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "mode": "lcd",
+              "type": "gauge",
+              "valueDisplayMode": "text"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "lengthmm"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Controller Output"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "volt"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 15
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 12
+                    },
+                    {
+                      "color": "orange",
+                      "value": 14
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Settling Duration"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.6
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.8
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max Position Error"
+            },
+            "properties": [
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 30
+      },
+      "id": 42,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "time"
+          }
+        ]
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'Baa.Y', 'Y.ControlOutput'),\n    ('Apertures', 'Baa.Y', 'Y.SettlingDuration'),\n    ('Apertures', 'Baa.Y', 'X.MaxPositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.ControlOutput', 'Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "BAA.Y",
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {}
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "mode": "lcd",
+              "type": "gauge",
+              "valueDisplayMode": "text"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "lengthmm"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Controller Output"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "volt"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 15
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 12
+                    },
+                    {
+                      "color": "orange",
+                      "value": 14
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Settling Duration"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.6
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.8
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max Position Error"
+            },
+            "properties": [
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 0,
+        "y": 34
+      },
+      "id": 43,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "time"
+          }
+        ]
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'Bda.X', 'X.ControlOutput'),\n    ('Apertures', 'Bda.X', 'X.SettlingDuration'),\n    ('Apertures', 'Bda.X', 'X.MaxPositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.ControlOutput', 'Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "BDA.X",
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {}
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "mode": "lcd",
+              "type": "gauge",
+              "valueDisplayMode": "text"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "lengthmm"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Controller Output"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "volt"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 15
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 12
+                    },
+                    {
+                      "color": "orange",
+                      "value": 14
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Settling Duration"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.6
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.8
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max Position Error"
+            },
+            "properties": [
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 34
+      },
+      "id": 44,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "time"
+          }
+        ]
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'Bda.Y', 'Y.ControlOutput'),\n    ('Apertures', 'Bda.Y', 'Y.SettlingDuration'),\n    ('Apertures', 'Bda.Y', 'X.MaxPositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.ControlOutput', 'Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "BDA.Y",
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {}
+        }
+      ],
+      "type": "table"
+    }
+  ],
+  "preload": false,
+  "schemaVersion": 41,
+  "tags": [
+    "module",
+    "sem"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "sem",
+          "value": "hm-sem"
+        },
+        "hide": 2,
+        "name": "sourceSEM",
+        "options": [],
+        "query": "grafana-postgresql-datasource",
+        "refresh": 1,
+        "regex": "/^sem$/",
+        "type": "datasource"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "Aquilos [Aquilos 2+] (9960381)",
+          "value": "1"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${sourceSEM}"
+        },
+        "definition": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
+        "name": "instrument",
+        "options": [],
+        "query": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "avg",
+          "value": "avg"
+        },
+        "description": "Choose which values to show",
+        "label": "Axis values",
+        "name": "stat_type",
+        "options": [
+          {
+            "selected": true,
+            "text": "avg",
+            "value": "avg"
+          },
+          {
+            "selected": false,
+            "text": "min",
+            "value": "min"
+          },
+          {
+            "selected": false,
+            "text": "max",
+            "value": "max"
+          },
+          {
+            "selected": false,
+            "text": "stdev",
+            "value": "stdev"
+          }
+        ],
+        "query": "avg,min,max,stdev",
+        "type": "custom"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": []
+  },
+  "timezone": "Europe/London",
+  "title": "Module | Motion",
+  "uid": "4395e67b-0280-47fd-94a8-684025567800",
+  "version": 13
+}
