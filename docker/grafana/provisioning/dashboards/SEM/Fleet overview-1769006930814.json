@@ -62,7 +62,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 65,
+  "id": 66,
   "links": [
     {
       "asDropdown": true,
@@ -907,5 +907,5 @@
   "timezone": "Europe/London",
   "title": "Fleet overview",
   "uid": "4350492f-ef51-4e3f-a22b-14c66eee6a97",
-  "version": 6
+  "version": 1
 }

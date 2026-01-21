@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 50,
+  "id": 54,
   "links": [
     {
       "asDropdown": true,
@@ -94,7 +94,7 @@
       },
       "gridPos": {
         "h": 7,
-        "w": 3,
+        "w": 4,
         "x": 0,
         "y": 0
       },
@@ -199,8 +199,8 @@
       },
       "gridPos": {
         "h": 7,
-        "w": 3,
-        "x": 3,
+        "w": 4,
+        "x": 4,
         "y": 0
       },
       "id": 4,
@@ -321,8 +321,8 @@
       },
       "gridPos": {
         "h": 7,
-        "w": 4,
-        "x": 6,
+        "w": 7,
+        "x": 8,
         "y": 0
       },
       "id": 5,
@@ -433,7 +433,7 @@
       "gridPos": {
         "h": 7,
         "w": 2,
-        "x": 10,
+        "x": 15,
         "y": 0
       },
       "id": 11,
@@ -545,8 +545,8 @@
       },
       "gridPos": {
         "h": 7,
-        "w": 4,
-        "x": 12,
+        "w": 7,
+        "x": 17,
         "y": 0
       },
       "id": 10,
@@ -1280,6 +1280,22 @@
                 }
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "TS/hour"
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              }
+            ]
           }
         ]
       },
@@ -1323,7 +1339,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  ec.session_id AS \"SessionID\",\n  es.start_time AS \"Start time\",\n  es.end_time AS \"End time\",\n  er.running_duration AS \"Running duration\",\n  ec.total_image_counter AS \"Total images\",\n  ec.total_ts_counter AS \"Tilt series\",\n  ec.total_sm_counter AS \"Search maps\",\n  CASE \n    WHEN EXTRACT(EPOCH FROM er.running_duration) > 0 THEN\n      ec.total_image_counter / (EXTRACT(EPOCH FROM er.running_duration) / 3600)\n    ELSE NULL\n  END AS \"Images/hour\",\n  er.has_terminated AS \"Terminated\"\nFROM tomo_counters ec\nJOIN tomo_sessions es\n  ON es.session_id = ec.session_id\n  AND es.start_time = ec.start_time\nJOIN tomo_runs er\n  ON er.session_id = ec.session_id\n  AND er.start_time = ec.start_time\nWHERE ec.instrument_id = $instrument\n  AND es.instrument_id = $instrument\n  AND er.instrument_id = $instrument\n  AND $__timeFilter(es.start_time)\nORDER BY es.start_time;\n",
+          "rawSql": "SELECT\n  ec.session_id AS \"SessionID\",\n  es.start_time AS \"Start time\",\n  es.end_time AS \"End time\",\n  er.running_duration AS \"Running duration\",\n  ec.total_image_counter AS \"Total images\",\n  ec.total_ts_counter AS \"Tilt series\",\n  CASE \n    WHEN EXTRACT(EPOCH FROM er.running_duration) > 0 THEN\n      ec.total_image_counter / (EXTRACT(EPOCH FROM er.running_duration) / 3600)\n    ELSE NULL\n  END AS \"Images/hour\",\n  CASE \n    WHEN EXTRACT(EPOCH FROM er.running_duration) > 0 THEN\n      ec.total_ts_counter / (EXTRACT(EPOCH FROM er.running_duration) / 3600)\n    ELSE NULL\n  END AS \"TS/hour\",  \n  ec.total_sm_counter AS \"Search maps\",\n  er.has_terminated AS \"Terminated\"\nFROM tomo_counters ec\nJOIN tomo_sessions es\n  ON es.session_id = ec.session_id\n  AND es.start_time = ec.start_time\nJOIN tomo_runs er\n  ON er.session_id = ec.session_id\n  AND er.start_time = ec.start_time\nWHERE ec.instrument_id = $instrument\n  AND es.instrument_id = $instrument\n  AND er.instrument_id = $instrument\n  AND $__timeFilter(es.start_time)\nORDER BY es.start_time;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1412,5 +1428,5 @@
   "timezone": "Europe/London",
   "title": "Productivity",
   "uid": "6b926c0e-9894-4124-9c6e-75cf6d9d898a",
-  "version": 5
+  "version": 2
 }

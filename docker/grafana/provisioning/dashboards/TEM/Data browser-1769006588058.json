@@ -16,7 +16,7 @@
       {
         "datasource": {
           "type": "grafana-postgresql-datasource",
-          "uid": "${sourceSEM}"
+          "uid": "${sourceTEM}"
         },
         "enable": true,
         "filter": {
@@ -27,12 +27,12 @@
         },
         "hide": false,
         "iconColor": "red",
-        "name": "SEM off",
+        "name": "TEM off",
         "target": {
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH target_instrument AS (\n  SELECT id, name\n  FROM instruments\n  WHERE id IN ($instrument)\n)\n\nSELECT\n  o.start_time AS time,\n  o.end_time AS timeEnd,\n  t.name || ' OFF' AS title,\n  'SEM server offline' AS text\nFROM sem_off o\nJOIN target_instrument t\n  ON o.instrument_id = t.id\n",
+          "rawSql": "WITH target_instrument AS (\n  SELECT id, name\n  FROM instruments\n  WHERE id IN ($instrument)\n)\n\nSELECT\n  o.start_time AS time,\n  o.end_time AS timeEnd,\n  t.name || ' OFF' AS title,\n  'TEM server offline' AS text\nFROM em_off o\nJOIN target_instrument t\n  ON o.instrument_id = t.id\n",
           "refId": "Anno",
           "sql": {
             "columns": [
@@ -59,13 +59,13 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 46,
+  "id": 23,
   "links": [],
   "panels": [
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
+        "uid": "${sourceTEM}"
       },
       "fieldConfig": {
         "defaults": {
@@ -174,7 +174,7 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
+            "uid": "${sourceTEM}"
           },
           "editorMode": "code",
           "format": "table",
@@ -226,7 +226,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
+        "uid": "${sourceTEM}"
       },
       "fieldConfig": {
         "defaults": {
@@ -308,7 +308,7 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
+            "uid": "${sourceTEM}"
           },
           "editorMode": "code",
           "format": "time_series",
@@ -362,7 +362,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
+        "uid": "${sourceTEM}"
       },
       "fieldConfig": {
         "defaults": {
@@ -417,7 +417,7 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
+            "uid": "${sourceTEM}"
           },
           "editorMode": "code",
           "format": "table",
@@ -471,7 +471,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
+        "uid": "${sourceTEM}"
       },
       "fieldConfig": {
         "defaults": {
@@ -528,7 +528,7 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
+            "uid": "${sourceTEM}"
           },
           "editorMode": "code",
           "format": "table",
@@ -569,7 +569,7 @@
   "schemaVersion": 41,
   "tags": [
     "dev",
-    "sem"
+    "tem"
   ],
   "templating": {
     "list": [
@@ -577,11 +577,11 @@
         "allowCustomValue": false,
         "current": {
           "text": "Glacios [Glacios] (9952833)",
-          "value": "10"
+          "value": "5"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
-          "uid": "${sourceSEM}"
+          "uid": "${sourceTEM}"
         },
         "definition": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
         "description": "",
@@ -601,7 +601,7 @@
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
-          "uid": "${sourceSEM}"
+          "uid": "${sourceTEM}"
         },
         "definition": "SELECT subsystem\nFROM parameters\nWHERE instrument_id = $instrument\n",
         "description": "",
@@ -622,7 +622,7 @@
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
-          "uid": "${sourceSEM}"
+          "uid": "${sourceTEM}"
         },
         "definition": "SELECT component\nFROM parameters\nWHERE instrument_id = $instrument\nAND subsystem = '$subsystem'\n",
         "description": "",
@@ -648,7 +648,7 @@
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
-          "uid": "${sourceSEM}"
+          "uid": "${sourceTEM}"
         },
         "definition": "SELECT param_id AS __value,\nparam_name AS __text\nFROM parameters\nWHERE instrument_id = $instrument \nAND subsystem = '$subsystem'\nAND component IN (${component:sqlstring})\n",
         "description": "",
@@ -665,21 +665,21 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "sem",
-          "value": "hm-sem"
+          "text": "tem",
+          "value": "hm-tem"
         },
         "hide": 2,
-        "name": "sourceSEM",
+        "name": "sourceTEM",
         "options": [],
         "query": "grafana-postgresql-datasource",
         "refresh": 1,
-        "regex": "/^sem$/",
+        "regex": "/^tem$/",
         "type": "datasource"
       }
     ]
   },
   "time": {
-    "from": "now-30d",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {
@@ -687,6 +687,6 @@
   },
   "timezone": "Europe/London",
   "title": "Data browser",
-  "uid": "bdc45e8d-6118-44ea-89f6-00c345b7016b",
-  "version": 2
+  "uid": "bdc45e8d-6118-44ea-89f6-00c573b7016b",
+  "version": 3
 }

@@ -24,7 +24,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 24,
+  "id": 43,
   "links": [
     {
       "asDropdown": true,
@@ -648,7 +648,7 @@
               }
             ]
           },
-          "unit": "lengthmm"
+          "unit": "mrad"
         },
         "overrides": [
           {
@@ -740,30 +740,6 @@
               {
                 "id": "min",
                 "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
               }
             ]
           },
@@ -776,30 +752,6 @@
               {
                 "id": "min",
                 "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
               }
             ]
           }
@@ -1158,7 +1110,7 @@
               }
             ]
           },
-          "unit": "lengthmm"
+          "unit": "mrad"
         },
         "overrides": [
           {
@@ -1250,30 +1202,6 @@
               {
                 "id": "min",
                 "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
               }
             ]
           },
@@ -1286,30 +1214,6 @@
               {
                 "id": "min",
                 "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
               }
             ]
           }
@@ -3770,7 +3674,7 @@
     ]
   },
   "time": {
-    "from": "now-24h",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {
@@ -3779,5 +3683,5 @@
   "timezone": "Europe/London",
   "title": "Module | Motion",
   "uid": "4395e67b-0280-47fd-94a8-684004567800",
-  "version": 2
+  "version": 4
 }

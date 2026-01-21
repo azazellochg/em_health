@@ -64,7 +64,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 48,
+  "id": 49,
   "links": [
     {
       "asDropdown": true,
@@ -664,8 +664,8 @@
     ]
   },
   "time": {
-    "from": "2025-11-06T13:05:22.712Z",
-    "to": "2025-11-12T10:48:03.786Z"
+    "from": "now-7d",
+    "to": "now"
   },
   "timepicker": {
     "refresh_intervals": []
@@ -673,5 +673,5 @@
   "timezone": "Europe/London",
   "title": "Module | PC Health",
   "uid": "4395e67b-0560-47fd-94a8-684003f10755",
-  "version": 9
+  "version": 2
 }

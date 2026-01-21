@@ -11,4 +11,4 @@ BEGIN
         -- N. Update schema version
         UPDATE public.schema_info SET version = 3;
     END IF;
-END $$;
+END $$
