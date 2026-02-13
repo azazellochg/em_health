@@ -77,7 +77,7 @@
         "model": "Arctis",
         "name": "Arctis",
         "type": "sem",
-        "template": "sem",
+        "template": "pfib",
         "server": "192.168.79.2"
     }
 ]

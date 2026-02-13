@@ -59,7 +59,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 46,
+  "id": 83,
   "links": [],
   "panels": [
     {
@@ -677,7 +677,7 @@
     ]
   },
   "time": {
-    "from": "now-7d",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {
@@ -686,5 +686,5 @@
   "timezone": "Europe/London",
   "title": "Data browser",
   "uid": "bdc45e8d-6118-44ea-89f6-00c345b7016b",
-  "version": 4
+  "version": 1
 }

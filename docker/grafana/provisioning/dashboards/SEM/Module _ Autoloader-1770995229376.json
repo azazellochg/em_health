@@ -69,7 +69,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 55,
+  "id": 91,
   "links": [
     {
       "asDropdown": true,
@@ -1830,7 +1830,7 @@
     ]
   },
   "time": {
-    "from": "now-7d",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {
@@ -1839,5 +1839,5 @@
   "timezone": "Europe/London",
   "title": "Module | Autoloader",
   "uid": "4395e67b-0280-47fd-94a8-644503f10800",
-  "version": 2
+  "version": 1
 }

@@ -440,6 +440,8 @@ def main(dbname, action, instrument=None, date=None):
                 #"vacuum_state_daily": False,
 
                 "load_counters_daily": True,
+                "fib_baa_counters_daily": True,
+                "fib_bda_counters_daily": True,
             }
         }
 

@@ -62,7 +62,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 66,
+  "id": 84,
   "links": [
     {
       "asDropdown": true,
@@ -900,7 +900,7 @@
     ]
   },
   "time": {
-    "from": "now-30d",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {},

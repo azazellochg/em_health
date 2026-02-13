@@ -24,7 +24,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 64,
+  "id": 90,
   "links": [
     {
       "asDropdown": true,
@@ -3138,7 +3138,7 @@
     ]
   },
   "time": {
-    "from": "now-7d",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {
@@ -3147,5 +3147,5 @@
   "timezone": "Europe/London",
   "title": "Module | Motion",
   "uid": "4395e67b-0280-47fd-94a8-684025567800",
-  "version": 2
+  "version": 1
 }

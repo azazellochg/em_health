@@ -70,7 +70,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 69,
+  "id": 89,
   "links": [
     {
       "asDropdown": true,
@@ -357,7 +357,14 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
           },
           "mappings": [],
           "thresholds": {
@@ -370,29 +377,73 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Daily usage"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Total usage (%)"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 83
+                    },
+                    {
+                      "color": "orange",
+                      "value": 100
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 12,
-        "w": 3,
+        "h": 6,
+        "w": 12,
         "x": 12,
         "y": 0
       },
-      "id": 54,
+      "id": 57,
       "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [],
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
           "fields": "",
-          "values": true
+          "reducer": [
+            "sum"
+          ],
+          "show": false
         },
-        "showPercentChange": false,
-        "textMode": "value_and_name",
-        "wideLayout": true
+        "showHeader": true
       },
       "pluginVersion": "12.1.0",
       "targets": [
@@ -404,7 +455,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH counter_params AS (\n  SELECT param_id, param_name, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem = 'Vacuum'\n    AND component = 'Interlocks'\n),\n\nbad_values AS (\n  SELECT cp.param_id, cp.param_name, ev.value\n  FROM enum_values ev\n  JOIN counter_params cp USING (enum_id)\n  WHERE ev.member_name IN ('Interlock BAD', 'Disabled')\n)\n\nSELECT\n  bv.param_name,\n  COUNT(*) AS bad_count\nFROM data d\nJOIN bad_values bv ON bv.param_id = d.param_id\n  AND bv.value = d.value_num\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nGROUP BY bv.param_name\nORDER BY bv.param_name",
+          "rawSql": "WITH gis_params AS (\n  SELECT\n    instrument_id,\n    param_id,\n    component AS port\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND subsystem = 'GISes'\n    AND param_name LIKE 'GIS%ValveOpenTimeParameter'\n),\n\nfiltered AS (\n  SELECT\n    d.instrument_id,\n    d.param_id,\n    d.time,\n    d.value_num,\n    p.port\n  FROM data d\n  JOIN gis_params p USING (instrument_id, param_id)\n),\n\naggregated AS (\n  SELECT\n    port,\n    -- latest total value\n    last(value_num, time) AS total_usage,\n    -- last replacement\n    max(time) FILTER (WHERE value_num = 0) AS last_changed\n  FROM filtered\n  GROUP BY port\n),\n\ndaily AS (\n  SELECT\n    port,\n    AVG(daily_usage) AS daily_avg\n  FROM (\n    SELECT\n      port,\n      time_bucket('1 day', time) AS day,\n      delta(counter_agg(time, value_num)) AS daily_usage\n    FROM filtered\n    WHERE $__timeFilter(time)\n    GROUP BY port, day\n  ) t\n  GROUP BY port\n)\n\nSELECT\n  g.port AS \"Port\",\n  COALESCE(d.daily_avg, 0) AS \"Daily usage\",\n  a.total_usage/3600.0 AS \"Total usage (h)\",\n  a.total_usage/3600.0/120*100 AS \"Total usage (%)\",\n  a.last_changed AS \"Last replacement\"\nFROM gis_params g\nLEFT JOIN aggregated a ON a.port = g.port\nLEFT JOIN daily d      ON d.port = g.port\nORDER BY g.port\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -425,18 +476,8 @@
           }
         }
       ],
-      "title": "Interlocks",
-      "transformations": [
-        {
-          "id": "formatString",
-          "options": {
-            "outputFormat": "Substring",
-            "stringField": "param_name",
-            "substringStart": 11
-          }
-        }
-      ],
-      "type": "stat"
+      "title": "GIS",
+      "type": "table"
     },
     {
       "datasource": {
@@ -638,6 +679,95 @@
       "fieldConfig": {
         "defaults": {
           "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      },
+      "id": 54,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH counter_params AS (\n  SELECT param_id, param_name, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem = 'Vacuum'\n    AND component = 'Interlocks'\n),\n\nbad_values AS (\n  SELECT cp.param_id, cp.param_name, ev.value\n  FROM enum_values ev\n  JOIN counter_params cp USING (enum_id)\n  WHERE ev.member_name IN ('Interlock BAD', 'Disabled')\n)\n\nSELECT\n  bv.param_name,\n  COUNT(*) AS bad_count\nFROM data d\nJOIN bad_values bv ON bv.param_id = d.param_id\n  AND bv.value = d.value_num\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nGROUP BY bv.param_name\nORDER BY bv.param_name",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Interlocks",
+      "transformations": [
+        {
+          "id": "formatString",
+          "options": {
+            "outputFormat": "Substring",
+            "stringField": "param_name",
+            "substringStart": 11
+          }
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
             "mode": "thresholds"
           },
           "mappings": [],
@@ -784,7 +914,7 @@
       },
       "gridPos": {
         "h": 7,
-        "w": 9,
+        "w": 12,
         "x": 0,
         "y": 13
       },
@@ -905,8 +1035,8 @@
       },
       "gridPos": {
         "h": 7,
-        "w": 9,
-        "x": 9,
+        "w": 12,
+        "x": 12,
         "y": 13
       },
       "id": 52,
@@ -1447,7 +1577,7 @@
     ]
   },
   "time": {
-    "from": "now-7d",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {
@@ -1456,5 +1586,5 @@
   "timezone": "Europe/London",
   "title": "Module | Column",
   "uid": "4395e67b-0345-47fd-94a8-683653567800",
-  "version": 18
+  "version": 7
 }
