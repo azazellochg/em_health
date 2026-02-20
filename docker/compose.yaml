@@ -20,6 +20,7 @@ services:
     command: >
       postgres
       -c timescaledb.enable_chunk_skipping=on
+      -c timescaledb.enable_cagg_window_functions=true
       -c shared_preload_libraries=timescaledb,pg_stat_statements,auto_explain
       -c pg_stat_statements.max=10000
       -c pg_stat_statements.track=top

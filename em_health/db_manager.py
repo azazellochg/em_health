@@ -412,36 +412,44 @@ def main(dbname, action, instrument=None, date=None):
         mviews = {
             "tem": {
                 # name: is_cagg
-                "em_off": False,
-                "vacuum_state_daily": False,
-
+                "em_off_daily": True,
+                "em_off": False, # depends on em_off_daily
                 "epu_sessions": False,
                 "tomo_sessions": False,
-
-                "epu_runs": False,
-                "epud_runs": False,
-                "tomo_runs": False,
-
-                "epu_state_daily": True,
-                "tomo_state_daily": True,
-
-                "epu_running_daily": False,
-                "tomo_running_daily": False,
-
-                "epu_counters": False,
-                "tomo_counters": False,
-
                 "load_counters_daily": True,
                 "data_counters_daily": True,
                 "image_counters_daily": True,
+                "epu_state_daily": True,
+                "tomo_state_daily": True,
+
+                # Depends on em_off
+                "vacuum_state_daily": False,
+
+                # Depend on *_sessions
+                "epu_runs": False,
+                "epud_runs": False,
+                "tomo_runs": False,
+                "epu_counters": False,
+                "tomo_counters": False,
+
+                # Depend on *_state_daily
+                "epu_running_daily": False,
+                "tomo_running_daily": False,
             },
             "sem": {
-                "em_off": False,
-                #"vacuum_state_daily": False,
-
+                "em_off_daily": True,
+                "em_off": False, # depends on em_off_daily
                 "load_counters_daily": True,
                 "fib_baa_counters_daily": True,
                 "fib_bda_counters_daily": True,
+                "fib_beam_daily": True,
+                "sem_beam_daily": True,
+                "sem_cryocycle_al_daily": True,
+                "sem_cryocycle_noal_daily": True,
+
+                # Depends on the views above
+                "sem_beamtime_daily": False,
+
             }
         }
 

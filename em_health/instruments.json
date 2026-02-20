@@ -59,7 +59,7 @@
         "model": "Scios",
         "name": "Scios",
         "type": "sem",
-        "template": "sem",
+        "template": "sdb",
         "server": "192.168.75.2"
     },
     {
@@ -68,7 +68,7 @@
         "model": "Aquilos 2+",
         "name": "Aquilos",
         "type": "sem",
-        "template": "sem",
+        "template": "sdb",
         "server": "192.168.73.4"
     },
         {

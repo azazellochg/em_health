@@ -13,5 +13,5 @@ CREATE MATERIALIZED VIEW tomo_state_daily WITH (timescaledb.continuous) AS
     WHERE
         p.param_name IN ('Tomo5TiltSeriesState', 'TiltSeries')
         AND p.subsystem = 'Tomography'
-    GROUP BY d.instrument_id, time_bucket('1 day', d.time)
+    GROUP BY d.instrument_id, time
  WITH NO DATA
