@@ -1,7 +1,8 @@
 -- Create a CAGG of autoloader counters
 CREATE MATERIALIZED VIEW load_counters_daily WITH (timescaledb.continuous) AS
     SELECT
-        time_bucket('1 day', d.time) AS day, d.instrument_id,
+        time_bucket('1 day', d.time) AS day,
+        d.instrument_id,
         max(CASE
             WHEN p.param_name IN ('LoadCartridgeCounter', 'SampleTransferCount') THEN d.value_num
         END) - min(CASE

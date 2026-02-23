@@ -7,40 +7,33 @@ NOTES:
 - It appears that the sessionIDs are not unique so we can have duplicated IDs
 */
 CREATE MATERIALIZED VIEW IF NOT EXISTS tomo_sessions AS
-    WITH session_param AS (
-        SELECT instrument_id, param_id
-        FROM parameters
-        WHERE
-            param_name = 'SessionId'
-            AND subsystem = 'Tomography'
-    ), raw AS (
-        SELECT d.time, d.instrument_id, d.param_id, d.value_num
-        FROM
-            data d
-            JOIN session_param sp USING (instrument_id, param_id)
-    ), changes AS (
-        SELECT
-            time, instrument_id, param_id, value_num,
-            lag(value_num) OVER (
-                PARTITION BY instrument_id, param_id
-                ORDER BY time
-            ) AS prev_value
-        FROM raw
-    ), change_points AS (
-        SELECT time, instrument_id, param_id, value_num
-        FROM changes
-        WHERE value_num <> prev_value
-    ), session_boundaries AS (
-        SELECT
-            instrument_id, param_id, value_num AS session_id,
-            time AS start_time,
-            lead(time) OVER (
-                PARTITION BY instrument_id, param_id
-                ORDER BY time
-            ) AS end_time
-        FROM change_points
-    )
-    SELECT instrument_id, session_id::int, start_time, end_time
-    FROM session_boundaries
-    WHERE session_id <> 0
-    ORDER BY instrument_id, start_time
+WITH cagg AS (
+    SELECT
+        d.instrument_id,
+        state_agg(d.time, d.value_num::bigint) AS agg
+    FROM data d
+             JOIN parameters p USING (instrument_id, param_id)
+    WHERE p.param_name = 'SessionId'
+      AND p.subsystem = 'Tomography'
+    GROUP BY d.instrument_id
+),
+
+     sessions AS (
+         SELECT
+             instrument_id,
+             state AS session_id,
+             start_time,
+             end_time
+         FROM cagg,
+             state_int_timeline(agg)
+         WHERE state <> 0
+     )
+
+SELECT
+    instrument_id,
+    session_id,
+    start_time,
+    end_time
+FROM sessions
+WHERE (end_time-start_time) > '0 seconds'
+ORDER BY instrument_id, start_time

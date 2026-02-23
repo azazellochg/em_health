@@ -1,5 +1,6 @@
 /* Create a materialized view of SEM states: e-beam unblank, i-beam unblank, cryocycle, xT off
    First, for the AL systems we need to merge overlapping cryocycles of the AL and column. Then union results with non-AL systems
+   Note: if a system is warm / cryocycling and any beam is used, the total usage may be > 100%
  */
 CREATE MATERIALIZED VIEW IF NOT EXISTS sem_beamtime_daily AS
 WITH cryocycles_al_intervals AS (
@@ -12,7 +13,7 @@ WITH cryocycles_al_intervals AS (
         state_periods(agg, 1) -- boolean = 1 where value = CryoCycle
 ),
 
-    -- attach previous end_time to each interval. This lets you detect whether intervals overlap or are disjoint.
+     -- attach previous end_time to each interval. This lets you detect whether intervals overlap or are disjoint.
      cryocycles_al_ordered AS (
          SELECT
              instrument_id,
@@ -44,7 +45,7 @@ WITH cryocycles_al_intervals AS (
          FROM cryocycles_al_ordered
      ),
 
-    -- collapse each group into single interval
+     -- collapse each group into single interval
      cryocycles_al_merged AS (
          SELECT
              instrument_id,
@@ -98,19 +99,19 @@ WITH cryocycles_al_intervals AS (
          FROM em_off_daily
      ),
 
-    all_states AS (
-        SELECT *
-        FROM cryocycles
-        UNION ALL
-        SELECT *
-        FROM sem_off
-        UNION ALL
-        SELECT *
-        FROM ibeam
-        UNION ALL
-        SELECT *
-        FROM ebeam
-    )
+     all_states AS (
+         SELECT *
+         FROM cryocycles
+         UNION ALL
+         SELECT *
+         FROM sem_off
+         UNION ALL
+         SELECT *
+         FROM ibeam
+         UNION ALL
+         SELECT *
+         FROM ebeam
+     )
 
 SELECT
     instrument_id, day, state,

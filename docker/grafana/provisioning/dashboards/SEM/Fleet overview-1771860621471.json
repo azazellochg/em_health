@@ -62,7 +62,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 104,
+  "id": 107,
   "links": [
     {
       "asDropdown": true,
@@ -129,11 +129,11 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
       },
-      "description": "Beam time is based on the vacuum state of each instrument",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "fixed"
+            "mode": "palette-classic-by-name"
           },
           "custom": {
             "hideFrom": {
@@ -155,13 +155,6 @@
             },
             "properties": [
               {
-                "id": "color",
-                "value": {
-                  "fixedColor": "blue",
-                  "mode": "fixed"
-                }
-              },
-              {
                 "id": "displayName",
                 "value": "Cryo-cycle"
               }
@@ -174,13 +167,6 @@
             },
             "properties": [
               {
-                "id": "color",
-                "value": {
-                  "fixedColor": "green",
-                  "mode": "fixed"
-                }
-              },
-              {
                 "id": "displayName",
                 "value": "Ion beam"
               }
@@ -192,13 +178,6 @@
               "options": "ebeam"
             },
             "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "orange",
-                  "mode": "fixed"
-                }
-              },
               {
                 "id": "displayName",
                 "value": "Electron beam"
@@ -214,12 +193,6 @@
               {
                 "id": "displayName",
                 "value": "Offline"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed"
-                }
               }
             ]
           }
@@ -268,7 +241,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH total AS (\n  SELECT SUM(seconds) AS total_seconds\n  FROM sem_beamtime_daily\n  WHERE $__timeFilter(day)\n    AND instrument_id = $instrument \n)\nSELECT\n  v.state,\n  SUM(v.seconds) AS duration_seconds,\n  ROUND(\n      100.0 * SUM(v.seconds) / NULLIF(t.total_seconds, 0),\n      2\n  ) AS percentage\nFROM sem_beamtime_daily v\nCROSS JOIN total t\nWHERE $__timeFilter(v.day)\n  AND v.instrument_id = $instrument \nGROUP BY v.state, t.total_seconds\nORDER BY percentage DESC\n",
+          "rawSql": "WITH combined AS (\n    SELECT day, state, seconds\n    FROM sem_beamtime_daily\n    WHERE instrument_id = $instrument \n    AND $__timeFilter(day)\n\n    UNION ALL\n\n    SELECT\n        day,\n        'Unknown' AS state,\n        GREATEST(86400 - SUM(seconds), 0) AS seconds\n    FROM sem_beamtime_daily\n    WHERE instrument_id = $instrument \n    AND $__timeFilter(day)\n    GROUP BY day\n)\nSELECT\n    state,\n    SUM(seconds) AS duration_seconds,\n    ROUND(100.0 * SUM(seconds) / NULLIF(SUM(SUM(seconds)) OVER (), 0), 2) AS percentage\nFROM combined\nGROUP BY state\nORDER BY percentage DESC\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -315,7 +288,7 @@
       },
       "id": 3,
       "panels": [],
-      "title": "Utilization",
+      "title": "pFIB gas usage",
       "type": "row"
     },
     {
@@ -323,25 +296,22 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
       },
-      "description": "Average amount of time EPU or Tomo  acquisition is running ",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
           },
-          "decimals": 0,
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
           "mappings": [],
           "max": 100,
           "min": 0,
-          "thresholds": {
-            "mode": "percentage",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
           "unit": "percent"
         },
         "overrides": []
@@ -352,22 +322,30 @@
         "x": 0,
         "y": 8
       },
-      "id": 4,
+      "id": 13,
       "maxPerRow": 6,
       "options": {
-        "minVizHeight": 75,
-        "minVizWidth": 75,
-        "orientation": "auto",
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "pieType": "donut",
         "reduceOptions": {
           "calcs": [
-            "sum"
+            "lastNotNull"
           ],
           "fields": "",
           "values": true
         },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true,
-        "sizing": "auto"
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "pluginVersion": "12.1.0",
       "repeat": "instrument",
@@ -381,8 +359,8 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH total AS (\n  SELECT\n    (SELECT EXTRACT(EPOCH FROM SUM(running_duration))\n     FROM epu_running_daily\n     WHERE instrument_id = $instrument\n       AND $__timeFilter(time)) AS total_epu_seconds,\n    (SELECT EXTRACT(EPOCH FROM SUM(running_duration))\n     FROM tomo_running_daily\n     WHERE instrument_id = $instrument\n       AND $__timeFilter(time)) AS total_tomo_seconds\n)\nSELECT\n  ROUND(COALESCE(total_epu_seconds, 0) / NULLIF(($__to - $__from) / 1000.0, 0) * 100.0, 2) AS epu_utilization_percent,\n  ROUND(COALESCE(total_tomo_seconds, 0) / NULLIF(($__to - $__from) / 1000.0, 0) * 100.0, 2) AS tomo_utilization_percent\nFROM total;\n",
-          "refId": "uptime",
+          "rawSql": "WITH params AS (\n  SELECT instrument_id, param_id, param_name\n  FROM parameters\n  WHERE instrument_id IN ($instrument)\n    AND component = 'FIB'\n    AND param_name LIKE 'GasUsage_%Parameter'\n),\n\ntotals AS (\n  SELECT\n    substring(p.param_name FROM '^GasUsage_(.+)Parameter$') AS gas_type,\n    delta(counter_agg(d.time, d.value_num)) AS total_usage\n  FROM data d\n  JOIN params p USING (instrument_id, param_id)\n  WHERE $__timeFilter(d.time)\n  GROUP BY p.param_name\n)\n\nSELECT\n  gas_type,\n  total_usage,\n  total_usage * 100.0 / SUM(total_usage) OVER () AS pct_of_total\nFROM totals\nORDER BY pct_of_total DESC\n",
+          "refId": "A",
           "sql": {
             "columns": [
               {
@@ -405,19 +383,18 @@
       "title": "$instrument",
       "transformations": [
         {
-          "id": "organize",
+          "id": "rowsToFields",
           "options": {
-            "excludeByName": {},
-            "includeByName": {},
-            "indexByName": {},
-            "renameByName": {
-              "epu_utilization_percent": "EPU",
-              "tomo_utilization_percent": "Tomo"
-            }
+            "mappings": [
+              {
+                "fieldName": "total_usage",
+                "handlerKey": "__ignore"
+              }
+            ]
           }
         }
       ],
-      "type": "gauge"
+      "type": "piechart"
     },
     {
       "collapsed": false,
@@ -863,7 +840,9 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "All",
+          "text": [
+            "All"
+          ],
           "value": [
             "$__all"
           ]
@@ -907,5 +886,5 @@
   "timezone": "Europe/London",
   "title": "Fleet overview",
   "uid": "4350492f-ef51-4e3f-a22b-14c66eee6a97",
-  "version": 9
+  "version": 10
 }

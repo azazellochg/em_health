@@ -72,7 +72,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 93,
+  "id": 96,
   "links": [
     {
       "asDropdown": true,
@@ -321,7 +321,7 @@
         ]
       },
       "gridPos": {
-        "h": 23,
+        "h": 19,
         "w": 12,
         "x": 0,
         "y": 6
@@ -465,7 +465,7 @@
         ]
       },
       "gridPos": {
-        "h": 23,
+        "h": 19,
         "w": 12,
         "x": 12,
         "y": 6
@@ -615,7 +615,7 @@
         "h": 17,
         "w": 4,
         "x": 0,
-        "y": 29
+        "y": 25
       },
       "id": 29,
       "options": {
@@ -709,8 +709,8 @@
     ]
   },
   "time": {
-    "from": "2025-10-20T02:31:34.892Z",
-    "to": "2025-11-09T11:55:38.932Z"
+    "from": "2025-10-13T20:44:02.704Z",
+    "to": "2025-11-09T13:28:41.225Z"
   },
   "timepicker": {
     "refresh_intervals": []
@@ -718,5 +718,5 @@
   "timezone": "Europe/London",
   "title": "Module | Apertures",
   "uid": "4395e67b-0345-47fd-55b9-684457567800",
-  "version": 50
+  "version": 2
 }
