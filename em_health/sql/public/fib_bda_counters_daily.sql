@@ -9,5 +9,6 @@ FROM
     data d
         JOIN parameters p USING (param_id, instrument_id)
 WHERE p.subsystem IN ('AvaBda', 'AvaFib')
+  AND p.component ILIKE '%strip%'
 GROUP BY d.instrument_id, day, aperture_idx
 WITH NO DATA
