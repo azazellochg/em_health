@@ -70,7 +70,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 89,
+  "id": 94,
   "links": [
     {
       "asDropdown": true,
@@ -696,7 +696,7 @@
       },
       "gridPos": {
         "h": 6,
-        "w": 12,
+        "w": 7,
         "x": 12,
         "y": 6
       },
@@ -758,6 +758,118 @@
           }
         }
       ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Avg duration"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 300
+                    },
+                    {
+                      "color": "orange",
+                      "value": 600
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 5,
+        "x": 19,
+        "y": 6
+      },
+      "id": 56,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH state_param AS (\n  SELECT\n    param_id,\n    enum_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'Buffer.BufferState'\n    AND subsystem = 'Vacuum'\n),\n\nstate_enum AS (\n  SELECT e.member_name, e.value\n  FROM\n    enum_values e\n    JOIN state_param p USING (enum_id)\n),\n\ndurations AS (\n  SELECT\n    e.member_name AS state,\n    EXTRACT(EPOCH FROM (end_time-start_time)) AS duration\n  FROM\n    state_int_timeline(\n      (\n        SELECT\n          state_agg(d.time, d.value_num :: bigint) AS agg\n        FROM\n          data d\n          JOIN state_param p USING (param_id)\n        WHERE\n          d.instrument_id = $instrument\n          AND $__timeFilter(d.time)\n          AND d.value_num != 0 -- filter out zeros\n      )\n    )\n  JOIN state_enum e ON e.value = state\n)\n\nSELECT\n  AVG(duration) FILTER (WHERE state = 'Overflow') AS \"Avg duration\",\n  AVG(duration) FILTER (WHERE state = 'OK')  AS \"Avg time between cycles\"\nFROM durations\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Buffer cycle",
       "type": "stat"
     },
     {
@@ -841,7 +953,7 @@
       "type": "stat"
     },
     {
-      "collapsed": false,
+      "collapsed": true,
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -849,688 +961,577 @@
         "y": 12
       },
       "id": 51,
-      "panels": [],
+      "panels": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "Pa",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "dashed"
+                }
+              },
+              "decimals": 2,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "sci"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 12,
+            "x": 0,
+            "y": 13
+          },
+          "id": 48,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "12.1.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-postgresql-datasource",
+                "uid": "${sourceSEM}"
+              },
+              "editorMode": "code",
+              "format": "time_series",
+              "rawQuery": true,
+              "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'Quickloader'\n    AND param_name = 'Quickloader.QLG'\n),\n\nhourly_avg AS (\n  SELECT\n    time_bucket('1 hour', d.time) AS hour,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    --AND d.value_num < 10000\n  GROUP BY hour\n)\n\nSELECT\n  hour AS time,\n  avg_value AS \"1-hour average\",\n  AVG(avg_value) OVER (\n    ORDER BY hour\n    RANGE BETWEEN INTERVAL '24 hours' PRECEDING AND CURRENT ROW\n    ) AS \"24-hour average\"\nFROM hourly_avg\nORDER BY hour\n",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "QuickLoader pressure",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "left",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "dashed"
+                }
+              },
+              "decimals": 2,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "#EAB839",
+                    "value": 75
+                  },
+                  {
+                    "color": "orange",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "celsius"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 12,
+            "x": 12,
+            "y": 13
+          },
+          "id": 52,
+          "options": {
+            "legend": {
+              "calcs": [
+                "min",
+                "max",
+                "median"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "12.1.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-postgresql-datasource",
+                "uid": "${sourceSEM}"
+              },
+              "editorMode": "code",
+              "format": "time_series",
+              "rawQuery": true,
+              "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND subsystem = 'Options'\n    AND component = 'Thermometers'\n    AND param_name LIKE 'ExperimentalThermometerCryo%Temperature'\n)\nSELECT\n    time_bucket_gapfill('1 hour', d.time) AS time,\n    p.param_name,\n    locf(approx_percentile(0.5, percentile_agg(d.value_num))) AS median_1h\nFROM data d\nJOIN param_ids p ON p.param_id = d.param_id\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nGROUP BY 1, 2\nORDER BY 1\n",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Temperatures (1-hour median)",
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "median_1h ExperimentalThermometer(.*)Temperature",
+                "renamePattern": "$1"
+              }
+            }
+          ],
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "fillOpacity": 80,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 1,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 9,
+            "x": 0,
+            "y": 20
+          },
+          "id": 47,
+          "options": {
+            "barRadius": 0,
+            "barWidth": 0.97,
+            "fullHighlight": false,
+            "groupWidth": 0.7,
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": false
+            },
+            "orientation": "horizontal",
+            "showValue": "auto",
+            "stacking": "none",
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            },
+            "xField": "State",
+            "xTickLabelRotation": 0,
+            "xTickLabelSpacing": 100
+          },
+          "pluginVersion": "12.1.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-postgresql-datasource",
+                "uid": "${sourceSEM}"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "WITH state_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'Chamber'\n    AND param_name = 'Chamber.Mode'\n),\n\nenums AS (\n  SELECT e.enum_id, e.member_name, e.value\n  FROM enum_values e\n  JOIN state_param p ON p.enum_id = e.enum_id\n)\n\nSELECT\n  e.member_name AS \"State\",\n  COUNT(*) AS \"Count\"\nFROM data d\nJOIN state_param p ON d.param_id = p.param_id\nJOIN enums e ON e.enum_id = p.enum_id\n  AND e.value = d.value_num\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nGROUP BY e.member_name\nORDER BY \"Count\" DESC\n",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Chamber states",
+          "type": "barchart"
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "inspect": false
+              },
+              "decimals": 2,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "#EAB839",
+                    "value": 75
+                  },
+                  {
+                    "color": "orange",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 9,
+            "x": 9,
+            "y": 20
+          },
+          "id": 53,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true
+          },
+          "pluginVersion": "12.1.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-postgresql-datasource",
+                "uid": "${sourceSEM}"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "WITH params AS (\n    SELECT param_id\n    FROM parameters\n    WHERE instrument_id = $instrument \n      AND subsystem = 'Options'\n      AND component = 'Thermometers'\n      AND param_name LIKE 'ExperimentalThermometerCryoShieldTemperature'\n),\n\nflagged AS (\n    SELECT\n        d.time,\n        d.value_num AS temp,\n        CASE WHEN d.value_num > 0 THEN 1 ELSE 0 END AS is_positive\n    FROM data d\n    JOIN params p ON p.param_id = d.param_id\n    WHERE d.instrument_id = $instrument \n      AND $__timeFilter(d.time)\n),\n\ngrouped AS (\n    SELECT\n        *,\n        ROW_NUMBER() OVER (ORDER BY time) \n        - ROW_NUMBER() OVER (PARTITION BY is_positive ORDER BY time) AS grp\n    FROM flagged\n)\n\nSELECT\n    MIN(time) AS start_time,\n    MAX(time) AS end_time,\n    MAX(time)-MIN(time) AS duration\nFROM grouped\nWHERE is_positive = 1\nGROUP BY grp\nORDER BY start_time DESC\n",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Cryo cycles",
+          "transformations": [
+            {
+              "id": "renameByRegex",
+              "options": {
+                "regex": "median_1h ExperimentalThermometer(.*)Temperature",
+                "renamePattern": "$1"
+              }
+            }
+          ],
+          "type": "table"
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "fillOpacity": 80,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 1,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 9,
+            "x": 0,
+            "y": 27
+          },
+          "id": 50,
+          "options": {
+            "barRadius": 0,
+            "barWidth": 0.97,
+            "fullHighlight": false,
+            "groupWidth": 0.7,
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": false
+            },
+            "orientation": "horizontal",
+            "showValue": "auto",
+            "stacking": "none",
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            },
+            "xField": "State",
+            "xTickLabelRotation": 0,
+            "xTickLabelSpacing": 100
+          },
+          "pluginVersion": "12.1.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-postgresql-datasource",
+                "uid": "${sourceSEM}"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "WITH state_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'Stage'\n    AND param_name = 'ActiveHolder'\n),\n\nenums AS (\n  SELECT e.enum_id, e.member_name, e.value\n  FROM enum_values e\n  JOIN state_param p ON p.enum_id = e.enum_id\n)\n\nSELECT\n  e.member_name AS \"Holder\",\n  COUNT(*) AS \"Count\"\nFROM data d\nJOIN state_param p ON d.param_id = p.param_id\nJOIN enums e ON e.enum_id = p.enum_id\n  AND e.value = d.value_num\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nGROUP BY e.member_name\nORDER BY \"Count\" DESC\n",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Holder types",
+          "type": "barchart"
+        }
+      ],
       "title": "Aquilos only",
       "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "Pa",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "dashed"
-            }
-          },
-          "decimals": 2,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "sci"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 0,
-        "y": 13
-      },
-      "id": 48,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'Quickloader'\n    AND param_name = 'Quickloader.QLG'\n),\n\nhourly_avg AS (\n  SELECT\n    time_bucket('1 hour', d.time) AS hour,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    --AND d.value_num < 10000\n  GROUP BY hour\n)\n\nSELECT\n  hour AS time,\n  avg_value AS \"1-hour average\",\n  AVG(avg_value) OVER (\n    ORDER BY hour\n    RANGE BETWEEN INTERVAL '24 hours' PRECEDING AND CURRENT ROW\n    ) AS \"24-hour average\"\nFROM hourly_avg\nORDER BY hour\n",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "QuickLoader pressure",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "left",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "dashed"
-            }
-          },
-          "decimals": 2,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "#EAB839",
-                "value": 75
-              },
-              {
-                "color": "orange",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "celsius"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 12,
-        "y": 13
-      },
-      "id": 52,
-      "options": {
-        "legend": {
-          "calcs": [
-            "min",
-            "max",
-            "median"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND subsystem = 'Options'\n    AND component = 'Thermometers'\n    AND param_name LIKE 'ExperimentalThermometerCryo%Temperature'\n)\nSELECT\n    time_bucket_gapfill('1 hour', d.time) AS time,\n    p.param_name,\n    locf(approx_percentile(0.5, percentile_agg(d.value_num))) AS median_1h\nFROM data d\nJOIN param_ids p ON p.param_id = d.param_id\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nGROUP BY 1, 2\nORDER BY 1\n",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "Temperatures (1-hour median)",
-      "transformations": [
-        {
-          "id": "renameByRegex",
-          "options": {
-            "regex": "median_1h ExperimentalThermometer(.*)Temperature",
-            "renamePattern": "$1"
-          }
-        }
-      ],
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "fillOpacity": 80,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineWidth": 1,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 9,
-        "x": 0,
-        "y": 20
-      },
-      "id": 47,
-      "options": {
-        "barRadius": 0,
-        "barWidth": 0.97,
-        "fullHighlight": false,
-        "groupWidth": 0.7,
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "orientation": "horizontal",
-        "showValue": "auto",
-        "stacking": "none",
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        },
-        "xField": "State",
-        "xTickLabelRotation": 0,
-        "xTickLabelSpacing": 100
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "WITH state_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'Chamber'\n    AND param_name = 'Chamber.Mode'\n),\n\nenums AS (\n  SELECT e.enum_id, e.member_name, e.value\n  FROM enum_values e\n  JOIN state_param p ON p.enum_id = e.enum_id\n)\n\nSELECT\n  e.member_name AS \"State\",\n  COUNT(*) AS \"Count\"\nFROM data d\nJOIN state_param p ON d.param_id = p.param_id\nJOIN enums e ON e.enum_id = p.enum_id\n  AND e.value = d.value_num\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nGROUP BY e.member_name\nORDER BY \"Count\" DESC\n",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "Chamber states",
-      "type": "barchart"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "inspect": false
-          },
-          "decimals": 2,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "#EAB839",
-                "value": 75
-              },
-              {
-                "color": "orange",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 9,
-        "x": 9,
-        "y": 20
-      },
-      "id": 53,
-      "options": {
-        "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
-        "showHeader": true
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "WITH params AS (\n    SELECT param_id\n    FROM parameters\n    WHERE instrument_id = $instrument \n      AND subsystem = 'Options'\n      AND component = 'Thermometers'\n      AND param_name LIKE 'ExperimentalThermometerCryoShieldTemperature'\n),\n\nflagged AS (\n    SELECT\n        d.time,\n        d.value_num AS temp,\n        CASE WHEN d.value_num > 0 THEN 1 ELSE 0 END AS is_positive\n    FROM data d\n    JOIN params p ON p.param_id = d.param_id\n    WHERE d.instrument_id = $instrument \n      AND $__timeFilter(d.time)\n),\n\ngrouped AS (\n    SELECT\n        *,\n        ROW_NUMBER() OVER (ORDER BY time) \n        - ROW_NUMBER() OVER (PARTITION BY is_positive ORDER BY time) AS grp\n    FROM flagged\n)\n\nSELECT\n    MIN(time) AS start_time,\n    MAX(time) AS end_time,\n    MAX(time)-MIN(time) AS duration\nFROM grouped\nWHERE is_positive = 1\nGROUP BY grp\nORDER BY start_time DESC\n",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "Cryo cycles",
-      "transformations": [
-        {
-          "id": "renameByRegex",
-          "options": {
-            "regex": "median_1h ExperimentalThermometer(.*)Temperature",
-            "renamePattern": "$1"
-          }
-        }
-      ],
-      "type": "table"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "fillOpacity": 80,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineWidth": 1,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 9,
-        "x": 0,
-        "y": 27
-      },
-      "id": 50,
-      "options": {
-        "barRadius": 0,
-        "barWidth": 0.97,
-        "fullHighlight": false,
-        "groupWidth": 0.7,
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "orientation": "horizontal",
-        "showValue": "auto",
-        "stacking": "none",
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        },
-        "xField": "State",
-        "xTickLabelRotation": 0,
-        "xTickLabelSpacing": 100
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "WITH state_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'Stage'\n    AND param_name = 'ActiveHolder'\n),\n\nenums AS (\n  SELECT e.enum_id, e.member_name, e.value\n  FROM enum_values e\n  JOIN state_param p ON p.enum_id = e.enum_id\n)\n\nSELECT\n  e.member_name AS \"Holder\",\n  COUNT(*) AS \"Count\"\nFROM data d\nJOIN state_param p ON d.param_id = p.param_id\nJOIN enums e ON e.enum_id = p.enum_id\n  AND e.value = d.value_num\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nGROUP BY e.member_name\nORDER BY \"Count\" DESC\n",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "Holder types",
-      "type": "barchart"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "s"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Avg duration"
-            },
-            "properties": [
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 300
-                    },
-                    {
-                      "color": "orange",
-                      "value": 600
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 9,
-        "y": 27
-      },
-      "id": 56,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "mean"
-          ],
-          "fields": "",
-          "values": true
-        },
-        "showPercentChange": false,
-        "textMode": "value_and_name",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "WITH state_param AS (\n  SELECT\n    param_id,\n    enum_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'Buffer.BufferState'\n    AND subsystem = 'Vacuum'\n),\n\nstate_enum AS (\n  SELECT e.member_name, e.value\n  FROM\n    enum_values e\n    JOIN state_param p USING (enum_id)\n),\n\ndurations AS (\n  SELECT\n    e.member_name AS state,\n    EXTRACT(EPOCH FROM (end_time-start_time)) AS duration\n  FROM\n    state_int_timeline(\n      (\n        SELECT\n          state_agg(d.time, d.value_num :: bigint) AS agg\n        FROM\n          data d\n          JOIN state_param p USING (param_id)\n        WHERE\n          d.instrument_id = $instrument\n          AND $__timeFilter(d.time)\n          AND d.value_num != 0 -- filter out zeros\n      )\n    )\n  JOIN state_enum e ON e.value = state\n)\n\nSELECT\n  AVG(duration) FILTER (WHERE state = 'Overflow') AS \"Avg duration\",\n  AVG(duration) FILTER (WHERE state = 'OK')  AS \"Avg time between cycles\"\nFROM durations\n",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "Buffer cycle",
-      "type": "stat"
     }
   ],
   "preload": false,
@@ -1558,8 +1559,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Arctis [Arctis] (9960963)",
-          "value": "2"
+          "text": "Scios [Scios] (9923526)",
+          "value": "3"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -1577,7 +1578,7 @@
     ]
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {
@@ -1586,5 +1587,5 @@
   "timezone": "Europe/London",
   "title": "Module | Column",
   "uid": "4395e67b-0345-47fd-94a8-683653567800",
-  "version": 7
+  "version": 3
 }

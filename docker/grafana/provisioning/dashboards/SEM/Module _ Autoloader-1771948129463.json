@@ -69,7 +69,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 91,
+  "id": 101,
   "links": [
     {
       "asDropdown": true,
@@ -1777,8 +1777,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Arctis [Arctis] (9960963)",
-          "value": "2"
+          "text": "Scios [Scios] (9923526)",
+          "value": "3"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -1830,7 +1830,7 @@
     ]
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {

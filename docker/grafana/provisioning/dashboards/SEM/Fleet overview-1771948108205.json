@@ -62,7 +62,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 107,
+  "id": 113,
   "links": [
     {
       "asDropdown": true,
@@ -840,9 +840,7 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": [
-            "All"
-          ],
+          "text": "All",
           "value": [
             "$__all"
           ]
@@ -879,12 +877,12 @@
     ]
   },
   "time": {
-    "from": "2025-10-13T20:44:02.704Z",
-    "to": "2025-11-09T13:28:41.225Z"
+    "from": "now-7d",
+    "to": "now"
   },
   "timepicker": {},
   "timezone": "Europe/London",
   "title": "Fleet overview",
   "uid": "4350492f-ef51-4e3f-a22b-14c66eee6a97",
-  "version": 10
+  "version": 1
 }

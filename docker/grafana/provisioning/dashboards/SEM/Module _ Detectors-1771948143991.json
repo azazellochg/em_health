@@ -68,7 +68,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 85,
+  "id": 102,
   "links": [
     {
       "asDropdown": true,
@@ -415,7 +415,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH matching_params AS (\n  SELECT\n    param_id,\n    component\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name LIKE 'mppc_Channel%_TemperatureParameter'\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', v.time) AS time,\n  p.component,\n  AVG(v.value_num) AS temperature\nFROM\n  data v\n  JOIN matching_params p ON v.param_id = p.param_id\nWHERE\n  v.instrument_id = $instrument\n  AND $__timeFilter(v.time)\n  AND v.value_num != 0 -- filter bad values early\nGROUP BY\n  time,\n  p.component\nORDER BY\n  time;",
+          "rawSql": "WITH matching_params AS (\n  SELECT\n    param_id,\n    component\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name LIKE '%_Channel%_TemperatureParameter'\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', v.time) AS time,\n  p.component,\n  AVG(v.value_num) AS temperature\nFROM\n  data v\n  JOIN matching_params p ON v.param_id = p.param_id\nWHERE\n  v.instrument_id = $instrument\n  AND $__timeFilter(v.time)\n  AND v.value_num != 0 -- filter bad values early\nGROUP BY\n  time,\n  p.component\nORDER BY\n  time;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -474,8 +474,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Arctis [Arctis] (9960963)",
-          "value": "2"
+          "text": "Scios [Scios] (9923526)",
+          "value": "3"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -493,7 +493,7 @@
     ]
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {
@@ -502,5 +502,5 @@
   "timezone": "Europe/London",
   "title": "Module | Detectors",
   "uid": "4395e67b-0280-47fd-94a8-648667f10800",
-  "version": 1
+  "version": 3
 }

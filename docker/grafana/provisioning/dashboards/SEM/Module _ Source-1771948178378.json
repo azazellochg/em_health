@@ -72,7 +72,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 109,
+  "id": 111,
   "links": [
     {
       "asDropdown": true,
@@ -727,10 +727,11 @@
             "lineStyle": {
               "fill": "solid"
             },
-            "lineWidth": 1,
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
-              "type": "linear"
+              "log": 2,
+              "type": "log"
             },
             "showPoints": "never",
             "spanNulls": true,
@@ -1563,7 +1564,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
           },
           "custom": {
             "axisBorderShow": false,
@@ -1586,10 +1587,11 @@
             "lineStyle": {
               "fill": "solid"
             },
-            "lineWidth": 1,
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
-              "type": "linear"
+              "log": 2,
+              "type": "log"
             },
             "showPoints": "never",
             "spanNulls": true,
@@ -1598,9 +1600,10 @@
               "mode": "none"
             },
             "thresholdsStyle": {
-              "mode": "dashed+area"
+              "mode": "dashed"
             }
           },
+          "fieldMinMax": false,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -1610,7 +1613,7 @@
                 "value": 0
               },
               {
-                "color": "green",
+                "color": "yellow",
                 "value": 0.0000018
               },
               {
@@ -1674,7 +1677,7 @@
           }
         }
       ],
-      "title": "LMIS emission current (Aquilos only)",
+      "title": "LMIS emission current",
       "type": "timeseries"
     }
   ],
@@ -1703,8 +1706,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Arctis [Arctis] (9960963)",
-          "value": "2"
+          "text": "Scios [Scios] (9923526)",
+          "value": "3"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -1722,8 +1725,8 @@
     ]
   },
   "time": {
-    "from": "2025-10-13T20:44:02.704Z",
-    "to": "2025-11-09T13:28:41.225Z"
+    "from": "now-7d",
+    "to": "now"
   },
   "timepicker": {
     "refresh_intervals": []
@@ -1731,5 +1734,5 @@
   "timezone": "Europe/London",
   "title": "Module | Source",
   "uid": "4395e67b-0345-47fd-94a8-684457567800",
-  "version": 3
+  "version": 4
 }

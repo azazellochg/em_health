@@ -26,9 +26,13 @@
         },
         "enable": true,
         "filter": {
-          "exclude": true,
+          "exclude": false,
           "ids": [
-            17
+            2,
+            12,
+            14,
+            3,
+            13
           ]
         },
         "hide": false,
@@ -64,7 +68,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 88,
+  "id": 97,
   "links": [
     {
       "asDropdown": true,
@@ -114,6 +118,208 @@
   ],
   "panels": [
     {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 18,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "This dashboard is for Arctis only!",
+        "mode": "markdown"
+      },
+      "pluginVersion": "12.1.0",
+      "title": "",
+      "transparent": true,
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 4,
+        "x": 0,
+        "y": 2
+      },
+      "id": 20,
+      "options": {
+        "displayLabels": [
+          "percent",
+          "name"
+        ],
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH state_param AS (\n  SELECT\n    param_id,\n    enum_id\n  FROM\n    parameters p\n  WHERE\n    p.instrument_id = $instrument\n    AND p.param_name = 'FilterSwitcherFilterType'\n    AND p.subsystem = 'FLM'\n),\n\nstate_enum AS (\n  SELECT\n    p.param_id,\n    e.member_name,\n    e.value\n  FROM\n    enum_values e\n    JOIN state_param p USING (enum_id)\n),\n\nstates AS (\n  SELECT\n    state,\n    duration\n  FROM\n    toolkit_experimental.into_int_values((\n        SELECT\n          toolkit_experimental.compact_state_agg(d.time, d.value_num :: bigint) AS agg\n        FROM\n          data d\n        JOIN state_param p USING (param_id)\n        WHERE\n          d.instrument_id = $instrument\n          AND $__timeFilter(d.time)\n      ))\n)\n\nSELECT\n  e.member_name AS state,\n  EXTRACT(EPOCH FROM s.duration) AS duration\nFROM\n  states s\n  JOIN state_enum e ON e.value = s.state\n  ",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Filter type",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 4,
+        "x": 4,
+        "y": 2
+      },
+      "id": 21,
+      "options": {
+        "displayLabels": [
+          "percent",
+          "name"
+        ],
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH state_param AS (\n  SELECT\n    param_id,\n    enum_id\n  FROM\n    parameters p\n  WHERE\n    p.instrument_id = $instrument\n    AND p.param_name = 'LightSourceLEDColor'\n    AND p.subsystem = 'FLM'\n),\n\nstate_enum AS (\n  SELECT\n    p.param_id,\n    e.member_name,\n    e.value\n  FROM\n    enum_values e\n    JOIN state_param p USING (enum_id)\n),\n\nstates AS (\n  SELECT\n    state,\n    duration\n  FROM\n    toolkit_experimental.into_int_values((\n        SELECT\n          toolkit_experimental.compact_state_agg(d.time, d.value_num :: bigint) AS agg\n        FROM\n          data d\n        JOIN state_param p USING (param_id)\n        WHERE\n          d.instrument_id = $instrument\n          AND $__timeFilter(d.time)\n      ))\n)\n\nSELECT\n  e.member_name AS state,\n  EXTRACT(EPOCH FROM s.duration) AS duration\nFROM\n  states s\n  JOIN state_enum e ON e.value = s.state\n  ",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Light source",
+      "type": "piechart"
+    },
+    {
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
@@ -121,37 +327,16 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "fixed"
+            "mode": "thresholds"
           },
           "custom": {
-            "axisPlacement": "hidden",
-            "fillOpacity": 60,
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
             },
-            "insertNulls": 3600000,
-            "lineWidth": 3,
-            "spanNulls": true
+            "inspect": false
           },
-          "mappings": [
-            {
-              "options": {
-                "0": {
-                  "color": "red",
-                  "index": 1,
-                  "text": "DOWN"
-                },
-                "1": {
-                  "color": "green",
-                  "index": 0,
-                  "text": "UP"
-                }
-              },
-              "type": "value"
-            }
-          ],
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -165,12 +350,140 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 3,
+        "h": 7,
+        "w": 16,
+        "x": 8,
+        "y": 2
+      },
+      "id": 22,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": true,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "time"
+          }
+        ]
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH matching_params AS (\n  SELECT param_id, param_name, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n  AND component = 'RetractableObjective'\n  AND param_name LIKE 'Retractable%State'\n  AND subsystem = 'FLM'\n),\n\nerror_states AS (\n  SELECT p.param_id, p.param_name, e.member_name, e.value\n  FROM enum_values e\n  JOIN matching_params p USING (enum_id)\n  WHERE e.member_name IN ('OverTemperature', 'PositionerFault', 'PowerSupplyOverload', 'PowerSupplyFailure', 'Error')\n)\n\nSELECT\n  d.time AS \"Time\",\n  e.param_name AS \"Component\",\n  e.member_name AS \"Error\"\nFROM data d\nJOIN error_states e ON e.param_id = d.param_id\n  AND e.value = d.value_num\nWHERE d.instrument_id = $instrument \n  AND $__timeFilter(d.time)\nORDER BY d.time DESC\n",
+          "refId": "obj",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Last errors for Objective lens",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "id": 16,
+      "panels": [],
+      "title": "Status",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed"
+          },
+          "custom": {
+            "axisPlacement": "auto",
+            "fillOpacity": 60,
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": 3600000,
+            "lineWidth": 3,
+            "spanNulls": true
+          },
+          "displayName": "status",
+          "mappings": [
+            {
+              "options": {
+                "3": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "OFF"
+                },
+                "99": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "ON"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "noValue": "99",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
         "w": 12,
         "x": 0,
-        "y": 0
+        "y": 10
       },
-      "id": 17,
+      "id": 2,
       "options": {
         "alignValue": "center",
         "legend": {
@@ -195,10 +508,10 @@
             "uid": "${sourceSEM}"
           },
           "editorMode": "code",
-          "format": "table",
+          "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH matching_param AS (\n  SELECT\n    component,\n    param_id\n  FROM\n    parameters p\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'Value'\n    AND component = 'Server'\n    AND subsystem = 'Software'\n)\nSELECT\n  v.time,\n  v.value_num\nFROM\n  data v\n  JOIN matching_param p ON v.param_id = p.param_id\nWHERE\n  instrument_id = $instrument\n  AND $__timeFilter(v.time)\nORDER BY\n  v.time\n",
-          "refId": "A",
+          "rawSql": "WITH matching_param AS (\n  SELECT param_id, enum_id\n  FROM parameters p\n  WHERE instrument_id = $instrument\n    AND subsystem = 'FluorescenceMicroscope'\n    AND param_name = 'OpticalMicroscopeStateParameter'\n),\n\noffline_state AS (\n  SELECT p.param_id, e.value\n  FROM enum_values e\n  JOIN matching_param p USING (enum_id)\n  WHERE e.member_name = 'Offline'\n)\n\nSELECT\n  d.time,\n  d.value_num\nFROM\n  data d\n  JOIN offline_state oe ON oe.param_id = d.param_id\n    AND d.value_num = oe.value\nWHERE\n  instrument_id = $instrument\n  AND $__timeFilter(d.time)\nORDER BY\n  d.time\n",
+          "refId": "scan camera",
           "sql": {
             "columns": [
               {
@@ -218,214 +531,58 @@
           }
         }
       ],
-      "title": "xT server",
+      "title": "AreaScanCamera",
       "type": "state-timeline"
     },
     {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 3
-      },
-      "id": 20,
-      "panels": [],
-      "title": "Microscope PC",
-      "type": "row"
-    },
-    {
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
       },
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "fixedColor": "semi-dark-green",
             "mode": "fixed"
           },
           "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisGridShow": true,
-            "axisLabel": "",
-            "axisPlacement": "left",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "none",
+            "axisPlacement": "auto",
+            "fillOpacity": 60,
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
-            "insertNulls": false,
-            "lineInterpolation": "stepBefore",
-            "lineStyle": {
-              "fill": "solid"
-            },
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "line"
-            }
+            "insertNulls": 3600000,
+            "lineWidth": 3,
+            "spanNulls": true
           },
-          "decimals": 0,
-          "mappings": [],
-          "max": 100,
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "yellow",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "percent"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 0,
-        "y": 4
-      },
-      "id": 14,
-      "options": {
-        "legend": {
-          "calcs": [
-            "max",
-            "median"
-          ],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'Usage.CPU'\n    AND subsystem = 'ProcessMonitor'\n    AND component = 'SystemResources'\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', v.time) AS time,\n  avg(v.value_num) AS \"CPU load avg\"\nFROM\n  data v\nWHERE\n  $__timeFilter(v.time)\n  AND v.instrument_id = $instrument\n  AND v.param_id = (\n    SELECT\n      param_id\n    FROM\n      matching_param\n  )\nGROUP BY\n  time\nORDER BY\n  time",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "CPU load",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "#919590",
-            "mode": "fixed"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisGridShow": true,
-            "axisLabel": "",
-            "axisPlacement": "left",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "stepBefore",
-            "lineStyle": {
-              "fill": "solid"
-            },
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "fieldMinMax": false,
+          "displayName": "status",
           "mappings": [
             {
               "options": {
-                "100": {
-                  "color": "red",
+                "99": {
+                  "color": "green",
                   "index": 0,
-                  "text": "CRIT"
-                },
-                "200": {
-                  "color": "orange",
-                  "index": 1,
-                  "text": "WARN"
+                  "text": "ON"
                 }
               },
               "type": "value"
+            },
+            {
+              "options": {
+                "from": 1,
+                "result": {
+                  "color": "red",
+                  "index": 1,
+                  "text": "ERROR"
+                },
+                "to": 6
+              },
+              "type": "range"
             }
           ],
+          "noValue": "99",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -434,8 +591,7 @@
                 "value": 0
               }
             ]
-          },
-          "unit": "decmbytes"
+          }
         },
         "overrides": []
       },
@@ -443,18 +599,19 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 4
+        "y": 10
       },
-      "id": 16,
+      "id": 19,
       "options": {
+        "alignValue": "center",
         "legend": {
-          "calcs": [
-            "min"
-          ],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
+        "mergeValues": true,
+        "rowHeight": 0.5,
+        "showValue": "always",
         "tooltip": {
           "hideZeros": false,
           "mode": "single",
@@ -471,8 +628,8 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'AvailableGBytes.CDriveSpace'\n    AND subsystem = 'ProcessMonitor'\n    AND component = 'SystemResources'\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', v.time) AS time,\n  avg(v.value_num) AS \"Free space\"\nFROM\n  data v\nWHERE\n  $__timeFilter(v.time)\n  AND v.instrument_id = $instrument\n  AND v.param_id = (\n    SELECT\n      param_id\n    FROM\n      matching_param\n  )\nGROUP BY\n  time\nORDER BY\n  time",
-          "refId": "A",
+          "rawSql": "WITH matching_param AS (\n  SELECT param_id, enum_id\n  FROM parameters p\n  WHERE instrument_id = $instrument\n    AND subsystem = 'FLM'\n    AND component = 'FilterExchanger'\n    AND param_name = 'FilterSwitcherFaultState'\n),\n\nnoerror_state AS (\n  SELECT p.param_id, e.value\n  FROM enum_values e\n  JOIN matching_param p USING (enum_id)\n  WHERE e.member_name = 'None'\n)\n\nSELECT\n  d.time,\n  d.value_num\nFROM\n  data d\n  JOIN noerror_state ns ON ns.param_id = d.param_id\n    AND d.value_num != ns.value\nWHERE\n  instrument_id = $instrument\n  AND $__timeFilter(d.time)\nORDER BY\n  d.time\n",
+          "refId": "scan camera",
           "sql": {
             "columns": [
               {
@@ -492,132 +649,8 @@
           }
         }
       ],
-      "title": "Free disk space C:",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "semi-dark-green",
-            "mode": "fixed"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisGridShow": true,
-            "axisLabel": "",
-            "axisPlacement": "left",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "stepBefore",
-            "lineStyle": {
-              "fill": "solid"
-            },
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "line"
-            }
-          },
-          "decimals": 0,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "yellow",
-                "value": 512
-              }
-            ]
-          },
-          "unit": "decmbytes"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 0,
-        "y": 11
-      },
-      "id": 15,
-      "options": {
-        "legend": {
-          "calcs": [
-            "min",
-            "median"
-          ],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'AvailableMBytes.PhysicalMemory'\n    AND subsystem = 'ProcessMonitor'\n    AND component = 'SystemResources'\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', v.time) AS time,\n  avg(v.value_num) AS \"Available memory avg\"\nFROM\n  data v\nWHERE\n  $__timeFilter(v.time)\n  AND v.instrument_id = $instrument\n  AND v.param_id = (\n    SELECT\n      param_id\n    FROM\n      matching_param\n  )\nGROUP BY\n  time\nORDER BY\n  time",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "Available memory",
-      "type": "timeseries"
+      "title": "FilterExchanger",
+      "type": "state-timeline"
     }
   ],
   "preload": false,
@@ -645,8 +678,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Arctis [Arctis] (9960963)",
-          "value": "2"
+          "text": "Scios [Scios] (9923526)",
+          "value": "3"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -664,14 +697,14 @@
     ]
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {
     "refresh_intervals": []
   },
   "timezone": "Europe/London",
-  "title": "Module | PC Health",
-  "uid": "4395e67b-0560-47fd-94a8-684003f10755",
+  "title": "Module | FLM",
+  "uid": "4395e67b-0280-47fd-94a8-648997f10800",
   "version": 1
 }
