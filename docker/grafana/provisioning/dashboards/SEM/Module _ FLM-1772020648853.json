@@ -68,7 +68,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 97,
+  "id": 120,
   "links": [
     {
       "asDropdown": true,
@@ -678,8 +678,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Scios [Scios] (9923526)",
-          "value": "3"
+          "text": "Arctis [Arctis] (9960963)",
+          "value": "2"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -706,5 +706,5 @@
   "timezone": "Europe/London",
   "title": "Module | FLM",
   "uid": "4395e67b-0280-47fd-94a8-648997f10800",
-  "version": 1
+  "version": 2
 }

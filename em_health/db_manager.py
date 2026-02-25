@@ -442,6 +442,7 @@ def main(dbname, action, instrument=None, date=None):
                 "load_counters_daily": True,
                 "fib_baa_counters_daily": True,
                 "fib_bda_counters_daily": True,
+                "gis_counters_daily": True,
                 "fib_beam_daily": True,
                 "sem_beam_daily": True,
                 "sem_cryocycle_al_daily": True,

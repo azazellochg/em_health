@@ -28,12 +28,9 @@
         "filter": {
           "exclude": false,
           "ids": [
-            14,
-            15,
+            32,
             24,
-            12,
-            3,
-            2
+            27
           ]
         },
         "hide": false,
@@ -69,7 +66,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 101,
+  "id": 116,
   "links": [
     {
       "asDropdown": true,
@@ -1777,8 +1774,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Scios [Scios] (9923526)",
-          "value": "3"
+          "text": "Arctis [Arctis] (9960963)",
+          "value": "2"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -1839,5 +1836,5 @@
   "timezone": "Europe/London",
   "title": "Module | Autoloader",
   "uid": "4395e67b-0280-47fd-94a8-644503f10800",
-  "version": 1
+  "version": 3
 }

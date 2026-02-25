@@ -62,7 +62,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 113,
+  "id": 122,
   "links": [
     {
       "asDropdown": true,
@@ -288,7 +288,7 @@
       },
       "id": 3,
       "panels": [],
-      "title": "pFIB gas usage",
+      "title": "Ion source lifetime",
       "type": "row"
     },
     {
@@ -296,56 +296,72 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            }
+            "mode": "thresholds"
           },
           "mappings": [],
-          "max": 100,
-          "min": 0,
-          "unit": "percent"
+          "noValue": "Unknown",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Source age"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "hours"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last replacement"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsLocal"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 6,
+        "h": 4,
         "w": 24,
         "x": 0,
         "y": 8
       },
-      "id": 13,
+      "id": 14,
       "maxPerRow": 6,
       "options": {
-        "displayLabels": [
-          "percent"
-        ],
-        "legend": {
-          "displayMode": "list",
-          "placement": "right",
-          "showLegend": true
-        },
-        "pieType": "donut",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
+          "calcs": [],
+          "fields": "/.*/",
           "values": true
         },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": false
       },
       "pluginVersion": "12.1.0",
       "repeat": "instrument",
@@ -359,7 +375,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT instrument_id, param_id, param_name\n  FROM parameters\n  WHERE instrument_id IN ($instrument)\n    AND component = 'FIB'\n    AND param_name LIKE 'GasUsage_%Parameter'\n),\n\ntotals AS (\n  SELECT\n    substring(p.param_name FROM '^GasUsage_(.+)Parameter$') AS gas_type,\n    delta(counter_agg(d.time, d.value_num)) AS total_usage\n  FROM data d\n  JOIN params p USING (instrument_id, param_id)\n  WHERE $__timeFilter(d.time)\n  GROUP BY p.param_name\n)\n\nSELECT\n  gas_type,\n  total_usage,\n  total_usage * 100.0 / SUM(total_usage) OVER () AS pct_of_total\nFROM totals\nORDER BY pct_of_total DESC\n",
+          "rawSql": "WITH counter_param AS (\n  SELECT instrument_id, param_id\n  FROM parameters\n  WHERE instrument_id IN ($instrument)\n    AND component = 'FIB'\n    AND param_name IN ('SourceAgeParameter', 'OperatingTimeFIBParameter')\n),\n\nfiltered AS (\n  SELECT\n    d.time,\n    d.value_num AS operate_time,\n    lag(d.value_num) OVER (ORDER BY time) AS prev_value\n  FROM data d\n  JOIN counter_param p USING (instrument_id, param_id)\n),\n\nlast_replacement AS (\n  SELECT time\n  FROM filtered\n  WHERE operate_time < prev_value   -- counter reset\n  ORDER BY time DESC\n  LIMIT 1\n),\n\nlast_value AS (\n  SELECT last(operate_time, time) AS source_age\n  FROM filtered\n)\n\nSELECT\n  lv.source_age / 3600 AS \"Source age\",\n  lr.time AS \"Last replacement\"\nFROM last_value lv\nLEFT JOIN last_replacement lr ON true\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -381,20 +397,7 @@
         }
       ],
       "title": "$instrument",
-      "transformations": [
-        {
-          "id": "rowsToFields",
-          "options": {
-            "mappings": [
-              {
-                "fieldName": "total_usage",
-                "handlerKey": "__ignore"
-              }
-            ]
-          }
-        }
-      ],
-      "type": "piechart"
+      "type": "stat"
     },
     {
       "collapsed": false,
@@ -402,7 +405,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 14
+        "y": 12
       },
       "id": 12,
       "panels": [],
@@ -459,7 +462,7 @@
         "h": 4,
         "w": 24,
         "x": 0,
-        "y": 15
+        "y": 13
       },
       "id": 11,
       "maxPerRow": 6,
@@ -571,7 +574,104 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 19
+        "y": 17
+      },
+      "id": 16,
+      "panels": [],
+      "title": "GIS usage",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "hours"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "id": 15,
+      "maxPerRow": 6,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": false
+      },
+      "pluginVersion": "12.1.0",
+      "repeat": "instrument",
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH gis_params AS (\n  SELECT\n    instrument_id,\n    param_id,\n    component AS port\n  FROM parameters\n  WHERE instrument_id IN ($instrument)\n    AND subsystem = 'GISes'\n    AND param_name LIKE 'GIS%ValveOpenTimeParameter'\n)\n\n    SELECT\n        port,\n        last(value_num, time)/3600.0 AS gis_usage\n    FROM data d\n    JOIN gis_params p USING (instrument_id, param_id)\n    WHERE $__timeFilter(time) \n    GROUP BY port\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "$instrument",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 22
       },
       "id": 5,
       "panels": [],
@@ -644,7 +744,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 23
       },
       "id": 7,
       "options": {
@@ -769,7 +869,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 30
       },
       "id": 9,
       "options": {
@@ -884,5 +984,5 @@
   "timezone": "Europe/London",
   "title": "Fleet overview",
   "uid": "4350492f-ef51-4e3f-a22b-14c66eee6a97",
-  "version": 1
+  "version": 10
 }

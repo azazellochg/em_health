@@ -29,14 +29,10 @@
           "exclude": false,
           "ids": [
             9,
-            2,
-            23,
-            24,
-            16,
-            25,
-            11,
-            21,
-            18
+            27,
+            28,
+            29,
+            30
           ]
         },
         "hide": false,
@@ -72,7 +68,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 111,
+  "id": 118,
   "links": [
     {
       "asDropdown": true,
@@ -835,7 +831,6 @@
             "mode": "thresholds"
           },
           "mappings": [],
-          "noValue": "Unknown",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -846,497 +841,13 @@
             ]
           }
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Source age"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "hours"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Last replacement"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "dateTimeAsLocal"
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 4,
-        "w": 5,
+        "w": 8,
         "x": 0,
         "y": 18
-      },
-      "id": 33,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [],
-          "fields": "/.*/",
-          "values": true
-        },
-        "showPercentChange": false,
-        "textMode": "value_and_name",
-        "wideLayout": false
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "WITH counter_param AS (\n  SELECT instrument_id, param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'FIB'\n    AND param_name IN ('SourceAgeParameter', 'OperatingTimeFIBParameter')\n),\n\nfiltered AS (\n  SELECT\n    d.time,\n    d.value_num AS operate_time\n  FROM data d\n  JOIN counter_param p USING (instrument_id, param_id)\n),\n\nchanges AS (\n  SELECT\n    time,\n    operate_time,\n    lag(operate_time) OVER (ORDER BY time) AS prev_value\n  FROM filtered\n),\n\nlast_replacement AS (\n  SELECT time\n  FROM changes\n  WHERE operate_time < prev_value   -- counter reset\n  ORDER BY time DESC\n  LIMIT 1\n),\n\nlast_value AS (\n  SELECT last(operate_time, time) AS source_age\n  FROM filtered\n)\n\nSELECT\n  lv.source_age / 3600 AS \"Source age\",\n  lr.time AS \"Last replacement\"\nFROM last_value lv\nLEFT JOIN last_replacement lr ON true\n",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "LMIS/PFIB",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "mappings": [],
-          "noValue": "Unknown",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 5,
-        "y": 18
-      },
-      "id": 35,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [],
-          "fields": "/^heat_cycles$/",
-          "values": true
-        },
-        "showPercentChange": false,
-        "textMode": "value",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "WITH counter_param AS (\n  SELECT instrument_id, param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'FIB'\n    AND param_name = 'TotalLifetimeHeatsParameter'\n),\n\nlast_reset AS (\n  SELECT MAX(d.time) AS reset_time\n  FROM data d\n  JOIN counter_param p USING (instrument_id, param_id)\n  WHERE d.value_num = 0\n)\n\nSELECT MAX(d.value_num) AS heat_cycles\nFROM data d\nJOIN counter_param p USING (instrument_id, param_id)\nWHERE d.time >= COALESCE(\n  (SELECT reset_time FROM last_reset),\n  to_timestamp($__from/1000)\n)",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "LMIS heat cycles",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "Pa",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "dashed"
-            }
-          },
-          "decimals": 2,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "#EAB839",
-                "value": 0.00008
-              },
-              {
-                "color": "orange",
-                "value": 0.0001
-              }
-            ]
-          },
-          "unit": "sci"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 11,
-        "x": 8,
-        "y": 18
-      },
-      "id": 29,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'I-Column'\n    AND param_name IN ('IGP3Parameter', 'I-Column.IGP3')\n),\n\ndaily_avg AS (\n  SELECT\n    time_bucket('1 day', d.time) AS day,\n    p.param_name,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    AND d.value_num > 0\n  GROUP BY day, p.param_name\n)\n\nSELECT\n  day AS time,\n  param_name,\n  avg_value AS \"24-hour average\",\n  AVG(avg_value) OVER (\n    PARTITION BY param_name\n    ORDER BY day\n    ROWS BETWEEN 27 PRECEDING AND CURRENT ROW\n  ) AS \"4-week average\"\nFROM daily_avg\nORDER BY day, param_name;\n",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "IGP3 pressure",
-      "transformations": [
-        {
-          "id": "renameByRegex",
-          "options": {
-            "regex": "(.*) (IGP3Parameter|I-Column.IGP3)",
-            "renamePattern": "$1"
-          }
-        }
-      ],
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
-      },
-      "description": "Last week mean value",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "noValue": "Unknown",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "flowlpm"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 5,
-        "x": 0,
-        "y": 22
-      },
-      "id": 37,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [],
-          "fields": "/^mean_flow$/",
-          "values": true
-        },
-        "showPercentChange": false,
-        "textMode": "value",
-        "wideLayout": false
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "WITH target_param AS (\n  SELECT\n    instrument_id,\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'FIB'\n    AND param_name = 'JacketFlowParameter'\n)\n\nSELECT\n  time_bucket('1 week', d.time) as bucket,\n  avg(d.value_num) AS mean_flow\nFROM data d\nJOIN target_param p USING (instrument_id, param_id)\nWHERE $__timeFilter(d.time)\nGROUP BY bucket\nORDER BY bucket DESC\nLIMIT 1",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "Jacket water flow",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "orange",
-                "value": 0
-              },
-              {
-                "color": "yellow",
-                "value": 0.9
-              },
-              {
-                "color": "green",
-                "value": 0.95
-              }
-            ]
-          },
-          "unit": "percentunit"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 5,
-        "y": 22
-      },
-      "id": 36,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [],
-          "fields": "",
-          "values": true
-        },
-        "showPercentChange": false,
-        "textMode": "value",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "WITH latest_week AS (\n  SELECT time_bucket('1 week', max(d.time)) AS bucket\n  FROM data d\n  JOIN parameters p\n    ON d.instrument_id = p.instrument_id\n   AND d.param_id = p.param_id\n  WHERE p.instrument_id = $instrument \n    AND p.component = 'FIB'\n    AND p.param_name IN ('SuccessfulIgnitionCountParameter', 'TotalIgnitionCountParameter')\n    AND $__timeFilter(d.time)\n)\n\nSELECT\n  COALESCE(NULLIF(delta(counter_agg(d.time, d.value_num) FILTER (WHERE p.param_name = 'SuccessfulIgnitionCountParameter')), 0), 1)::float\n  /\n  COALESCE(NULLIF(delta(counter_agg(d.time, d.value_num) FILTER (WHERE p.param_name = 'TotalIgnitionCountParameter')), 0), 1) AS ratio\n\nFROM data d\nJOIN parameters p\n  ON d.instrument_id = p.instrument_id\n AND d.param_id = p.param_id\nJOIN latest_week lw\n  ON time_bucket('1 week', d.time) = lw.bucket\nWHERE p.instrument_id = $instrument \n  AND p.component = 'FIB'\n  AND p.param_name IN ('SuccessfulIgnitionCountParameter', 'TotalIgnitionCountParameter')\n",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "PFIB ignition ratio (last week)",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 5,
-        "x": 0,
-        "y": 26
       },
       "id": 32,
       "options": {
@@ -1496,9 +1007,9 @@
         "h": 8,
         "w": 11,
         "x": 8,
-        "y": 26
+        "y": 18
       },
-      "id": 30,
+      "id": 29,
       "options": {
         "legend": {
           "calcs": [],
@@ -1522,7 +1033,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'I-Column'\n    AND param_name LIKE 'IGP4Parameter'\n),\n\ndaily_avg AS (\n  SELECT\n    time_bucket('1 day', d.time) AS day,\n    p.param_name,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    AND d.value_num > 0\n  GROUP BY day, p.param_name\n)\n\nSELECT\n  day AS time,\n  param_name,\n  avg_value AS \"24-hour average\",\n  AVG(avg_value) OVER (\n    PARTITION BY param_name\n    ORDER BY day\n    ROWS BETWEEN 27 PRECEDING AND CURRENT ROW\n  ) AS \"4-week average\"\nFROM daily_avg\nORDER BY day, param_name;\n",
+          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'I-Column'\n    AND param_name IN ('IGP3Parameter', 'I-Column.IGP3')\n),\n\ndaily_avg AS (\n  SELECT\n    time_bucket('1 day', d.time) AS day,\n    p.param_name,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    AND d.value_num > 0\n  GROUP BY day, p.param_name\n)\n\nSELECT\n  day AS time,\n  param_name,\n  avg_value AS \"24-hour average\",\n  AVG(avg_value) OVER (\n    PARTITION BY param_name\n    ORDER BY day\n    ROWS BETWEEN 27 PRECEDING AND CURRENT ROW\n  ) AS \"4-week average\"\nFROM daily_avg\nORDER BY day, param_name;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1543,17 +1054,305 @@
           }
         }
       ],
-      "title": "IGP4 pressure",
+      "title": "IGP3 pressure",
       "transformations": [
         {
           "id": "renameByRegex",
           "options": {
-            "regex": "(.*) IGP4Parameter",
+            "regex": "(.*) (IGP3Parameter|I-Column.IGP3)",
             "renamePattern": "$1"
           }
         }
       ],
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 3,
+        "x": 19,
+        "y": 18
+      },
+      "id": 38,
+      "options": {
+        "displayLabels": [
+          "percent",
+          "name"
+        ],
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": false
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH params AS (\n  SELECT instrument_id, param_id, param_name\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'FIB'\n    AND param_name LIKE 'GasUsage_%Parameter'\n),\n\ntotals AS (\n  SELECT\n    substring(p.param_name FROM '^GasUsage_(.+)Parameter$') AS gas_type,\n    delta(counter_agg(d.time, d.value_num)) AS total_usage\n  FROM data d\n  JOIN params p USING (instrument_id, param_id)\n  WHERE $__timeFilter(d.time)\n  GROUP BY p.param_name\n)\n\nSELECT\n  gas_type,\n  total_usage,\n  total_usage * 100.0\n    / NULLIF(SUM(total_usage) OVER (), 0) AS pct_of_total\nFROM totals\nORDER BY pct_of_total DESC\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "PFIB gas usage",
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {
+            "mappings": [
+              {
+                "fieldName": "total_usage",
+                "handlerKey": "__ignore"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "Unknown",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Source age"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "hours"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last replacement"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsLocal"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 0,
+        "y": 22
+      },
+      "id": 33,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "/.*/",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": false
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH counter_param AS (\n  SELECT instrument_id, param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'FIB'\n    AND param_name IN ('SourceAgeParameter', 'OperatingTimeFIBParameter')\n),\n\nfiltered AS (\n  SELECT\n    d.time,\n    d.value_num AS operate_time\n  FROM data d\n  JOIN counter_param p USING (instrument_id, param_id)\n),\n\nchanges AS (\n  SELECT\n    time,\n    operate_time,\n    lag(operate_time) OVER (ORDER BY time) AS prev_value\n  FROM filtered\n),\n\nlast_replacement AS (\n  SELECT time\n  FROM changes\n  WHERE operate_time < prev_value   -- counter reset\n  ORDER BY time DESC\n  LIMIT 1\n),\n\nlast_value AS (\n  SELECT last(operate_time, time) AS source_age\n  FROM filtered\n)\n\nSELECT\n  lv.source_age / 3600 AS \"Source age\",\n  lr.time AS \"Last replacement\"\nFROM last_value lv\nLEFT JOIN last_replacement lr ON true\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "LMIS/PFIB",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "noValue": "Unknown",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 5,
+        "y": 22
+      },
+      "id": 35,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "/^heat_cycles$/",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH counter_param AS (\n  SELECT instrument_id, param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'FIB'\n    AND param_name = 'TotalLifetimeHeatsParameter'\n),\n\nlast_reset AS (\n  SELECT MAX(d.time) AS reset_time\n  FROM data d\n  JOIN counter_param p USING (instrument_id, param_id)\n  WHERE d.value_num = 0\n)\n\nSELECT MAX(d.value_num) AS heat_cycles\nFROM data d\nJOIN counter_param p USING (instrument_id, param_id)\nWHERE d.time >= COALESCE(\n  (SELECT reset_time FROM last_reset),\n  to_timestamp($__from/1000)\n)",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "LMIS heat cycles",
+      "type": "stat"
     },
     {
       "datasource": {
@@ -1630,7 +1429,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 30
+        "y": 26
       },
       "id": 34,
       "options": {
@@ -1679,6 +1478,306 @@
       ],
       "title": "LMIS emission current",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Pa",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "decimals": 2,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "#EAB839",
+                "value": 0.00008
+              },
+              {
+                "color": "orange",
+                "value": 0.0001
+              }
+            ]
+          },
+          "unit": "sci"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 11,
+        "x": 8,
+        "y": 26
+      },
+      "id": 30,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'I-Column'\n    AND param_name LIKE 'IGP4Parameter'\n),\n\ndaily_avg AS (\n  SELECT\n    time_bucket('1 day', d.time) AS day,\n    p.param_name,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    AND d.value_num > 0\n  GROUP BY day, p.param_name\n)\n\nSELECT\n  day AS time,\n  param_name,\n  avg_value AS \"24-hour average\",\n  AVG(avg_value) OVER (\n    PARTITION BY param_name\n    ORDER BY day\n    ROWS BETWEEN 27 PRECEDING AND CURRENT ROW\n  ) AS \"4-week average\"\nFROM daily_avg\nORDER BY day, param_name;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "IGP4 pressure",
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "(.*) IGP4Parameter",
+            "renamePattern": "$1"
+          }
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "Last week mean value",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "Unknown",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "flowlpm"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 19,
+        "y": 26
+      },
+      "id": 37,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "/^mean_flow$/",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": false
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH target_param AS (\n  SELECT\n    instrument_id,\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'FIB'\n    AND param_name = 'JacketFlowParameter'\n)\n\nSELECT\n  time_bucket('1 week', d.time) as bucket,\n  avg(d.value_num) AS mean_flow\nFROM data d\nJOIN target_param p USING (instrument_id, param_id)\nWHERE $__timeFilter(d.time)\nGROUP BY bucket\nORDER BY bucket DESC\nLIMIT 1",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Jacket water flow",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "orange",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 0.9
+              },
+              {
+                "color": "green",
+                "value": 0.95
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 19,
+        "y": 30
+      },
+      "id": 36,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH latest_week AS (\n  SELECT time_bucket('1 week', max(d.time)) AS bucket\n  FROM data d\n  JOIN parameters p\n    ON d.instrument_id = p.instrument_id\n   AND d.param_id = p.param_id\n  WHERE p.instrument_id = $instrument \n    AND p.component = 'FIB'\n    AND p.param_name IN ('SuccessfulIgnitionCountParameter', 'TotalIgnitionCountParameter')\n    AND $__timeFilter(d.time)\n)\n\nSELECT\n  COALESCE(NULLIF(delta(counter_agg(d.time, d.value_num) FILTER (WHERE p.param_name = 'SuccessfulIgnitionCountParameter')), 0), 1)::float\n  /\n  COALESCE(NULLIF(delta(counter_agg(d.time, d.value_num) FILTER (WHERE p.param_name = 'TotalIgnitionCountParameter')), 0), 1) AS ratio\n\nFROM data d\nJOIN parameters p\n  ON d.instrument_id = p.instrument_id\n AND d.param_id = p.param_id\nJOIN latest_week lw\n  ON time_bucket('1 week', d.time) = lw.bucket\nWHERE p.instrument_id = $instrument \n  AND p.component = 'FIB'\n  AND p.param_name IN ('SuccessfulIgnitionCountParameter', 'TotalIgnitionCountParameter')\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "PFIB ignition ratio (last week)",
+      "type": "stat"
     }
   ],
   "preload": false,
@@ -1706,8 +1805,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Scios [Scios] (9923526)",
-          "value": "3"
+          "text": "Arctis [Arctis] (9960963)",
+          "value": "2"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -1734,5 +1833,5 @@
   "timezone": "Europe/London",
   "title": "Module | Source",
   "uid": "4395e67b-0345-47fd-94a8-684457567800",
-  "version": 4
+  "version": 6
 }

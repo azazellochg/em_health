@@ -18,61 +18,13 @@
           "type": "dashboard"
         },
         "type": "dashboard"
-      },
-      {
-        "datasource": {
-          "type": "grafana-postgresql-datasource",
-          "uid": "${sourceSEM}"
-        },
-        "enable": true,
-        "filter": {
-          "exclude": false,
-          "ids": [
-            9,
-            2,
-            23,
-            24,
-            16,
-            25,
-            11,
-            21,
-            18
-          ]
-        },
-        "hide": false,
-        "iconColor": "red",
-        "name": "SEM off",
-        "target": {
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "WITH target_instrument AS (\n  SELECT id, name\n  FROM instruments\n  WHERE id IN ($instrument)\n)\n\nSELECT\n  o.start_time AS time,\n  o.end_time AS timeEnd,\n  t.name || ' OFF' AS title,\n  'SEM server offline' AS text\nFROM em_off o\nJOIN target_instrument t\n  ON o.instrument_id = t.id\n",
-          "refId": "Anno",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
       }
     ]
   },
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 112,
+  "id": 114,
   "links": [
     {
       "asDropdown": true,
@@ -690,8 +642,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Scios [Scios] (9923526)",
-          "value": "3"
+          "text": "Arctis [Arctis] (9960963)",
+          "value": "2"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -718,5 +670,5 @@
   "timezone": "Europe/London",
   "title": "Module | Apertures",
   "uid": "4395e67b-0345-47fd-55b9-684457567800",
-  "version": 8
+  "version": 4
 }
