@@ -3,7 +3,7 @@ CREATE MATERIALIZED VIEW gis_counters_daily WITH (timescaledb.continuous) AS
 SELECT
     d.instrument_id,
     time_bucket('1 day', d.time) AS day,
-    delta(counter_agg(d.time, d.value_num)) AS daily_usage,
+    counter_agg(d.time, d.value_num) AS agg,
     p.component AS gis_port
 FROM
     data d

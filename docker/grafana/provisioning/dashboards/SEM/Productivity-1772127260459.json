@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 121,
+  "id": 138,
   "links": [
     {
       "asDropdown": true,
@@ -495,7 +495,7 @@
               }
             ]
           },
-          "unit": "m"
+          "unit": "s"
         },
         "overrides": []
       },
@@ -529,7 +529,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  day AS time,\n  gis_port AS name,\n  daily_usage/60.0 AS value\nFROM gis_counters_daily\nWHERE instrument_id = $instrument\n  AND $__timeFilter(day)\nORDER BY day\n",
+          "rawSql": "SELECT\n  day AS time,\n  gis_port AS name,\n  delta(agg) AS value\nFROM gis_counters_daily\nWHERE instrument_id = $instrument\n  AND $__timeFilter(day)\nORDER BY day",
           "refId": "counters",
           "sql": {
             "columns": [
@@ -608,12 +608,12 @@
     ]
   },
   "time": {
-    "from": "now-7d",
+    "from": "now-30d",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "Europe/London",
   "title": "Productivity",
   "uid": "6b926c0e-9894-4124-9c6e-75cf6d9d008a",
-  "version": 15
+  "version": 2
 }

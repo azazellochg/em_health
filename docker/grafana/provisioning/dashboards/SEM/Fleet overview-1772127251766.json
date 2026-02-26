@@ -62,7 +62,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 122,
+  "id": 137,
   "links": [
     {
       "asDropdown": true,
@@ -495,7 +495,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH state_param AS (\n  SELECT\n    param_id,\n    param_name,\n    enum_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument \n    AND param_name LIKE '%TemperatureState'\n    AND subsystem LIKE '%TemperatureControl'\n),\nstate_enum AS (\n  SELECT\n    p.param_id,\n    e.value AS cryocycle\n  FROM\n    state_param p\n    JOIN enum_values e ON e.enum_id = p.enum_id\n  WHERE\n    e.member_name = 'CryoCycle'\n),\nautoloader_states AS (\n  SELECT\n    sp.param_id,\n    sp.param_name,\n    st.state,\n    st.start_time,\n    st.end_time\n  FROM\n    state_param sp\n    CROSS JOIN LATERAL (\n      SELECT\n        state,\n        start_time,\n        end_time\n      FROM\n        state_int_timeline(\n          (\n            SELECT\n              state_agg(d.time, d.value_num :: bigint)\n            FROM\n              data d\n            WHERE\n              d.instrument_id = $instrument \n              AND d.param_id = sp.param_id\n          )\n        )\n    ) AS st\n),\ncryo_cycles AS (\n  SELECT\n    r.param_name,\n    r.start_time,\n    r.end_time,\n    EXTRACT(EPOCH FROM(r.end_time - r.start_time)) AS total_duration\n  FROM\n    autoloader_states r\n    JOIN state_enum se USING (param_id)\n  WHERE\n    r.state = se.cryocycle\n    AND (r.end_time - r.start_time) > INTERVAL '0 second'\n  ORDER BY r.start_time\n)\nSELECT DISTINCT ON (param_name)\n  param_name,\n  CURRENT_DATE - start_time::date AS days_since_cryocycle_start\nFROM cryo_cycles\nORDER BY param_name, start_time DESC;\n",
+          "rawSql": "WITH cryo_cycles AS (\n  SELECT\n    param_name,\n    start_time,\n    end_time\n  FROM sem_cryocycle_al_daily,\n  LATERAL state_periods(agg, 1) -- boolean = 1 where value = CryoCycle\n  WHERE instrument_id = $instrument\n    AND (end_time - start_time) > INTERVAL '0 second'\n  ORDER BY start_time\n)\n\nSELECT\n  DISTINCT ON (param_name) param_name,\n  CURRENT_DATE - start_time :: date AS days_since_cryocycle_start\nFROM cryo_cycles\nORDER BY param_name, start_time DESC\n",
           "refId": "Arctis",
           "sql": {
             "columns": [
@@ -524,7 +524,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n    SELECT param_id\n    FROM parameters\n    WHERE instrument_id = $instrument \n      AND subsystem = 'Options'\n      AND component = 'Thermometers'\n      AND param_name LIKE 'ExperimentalThermometerCryoShieldTemperature'\n),\n\nstate_series AS (\n    SELECT\n        state_agg(\n            d.time,\n            (d.value_num > 0)::int\n        ) AS agg\n    FROM data d\n    JOIN params p ON p.param_id = d.param_id\n    WHERE d.instrument_id = $instrument \n),\n\ncryo_cycles AS (\n    SELECT\n        start_time,\n        end_time\n    FROM state_series,\n    LATERAL state_int_timeline(agg)\n    WHERE state = 1\n    ORDER BY start_time\n)\n\nSELECT CURRENT_DATE - start_time::date AS days_since_cryocycle_start\nFROM cryo_cycles\nORDER BY start_time DESC\nLIMIT 1\n",
+          "rawSql": "WITH cryo_cycles AS (\n    SELECT\n        start_time,\n        end_time\n    FROM sem_cryocycle_noal_daily,\n    LATERAL state_periods(agg, 1) -- boolean state = 1 where value > 0\n    WHERE instrument_id = $instrument\n    ORDER BY start_time\n)\n\nSELECT CURRENT_DATE - start_time::date AS days_since_cryocycle_start\nFROM cryo_cycles\nORDER BY start_time DESC\nLIMIT 1\n",
           "refId": "Aquilos",
           "sql": {
             "columns": [
@@ -641,7 +641,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH gis_params AS (\n  SELECT\n    instrument_id,\n    param_id,\n    component AS port\n  FROM parameters\n  WHERE instrument_id IN ($instrument)\n    AND subsystem = 'GISes'\n    AND param_name LIKE 'GIS%ValveOpenTimeParameter'\n)\n\n    SELECT\n        port,\n        last(value_num, time)/3600.0 AS gis_usage\n    FROM data d\n    JOIN gis_params p USING (instrument_id, param_id)\n    WHERE $__timeFilter(time) \n    GROUP BY port\n",
+          "rawSql": "SELECT\n    gis_port,\n    MAX(day) AS last_day,\n    last_val(rollup(agg)) / 3600.0 AS gis_usage\nFROM gis_counters_daily\nWHERE instrument_id = $instrument\n AND $__timeFilter(day) \nGROUP BY gis_port",
           "refId": "A",
           "sql": {
             "columns": [
@@ -977,12 +977,12 @@
     ]
   },
   "time": {
-    "from": "now-7d",
+    "from": "now-30d",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "Europe/London",
   "title": "Fleet overview",
   "uid": "4350492f-ef51-4e3f-a22b-14c66eee6a97",
-  "version": 10
+  "version": 7
 }

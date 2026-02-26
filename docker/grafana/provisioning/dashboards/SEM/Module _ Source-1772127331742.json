@@ -68,7 +68,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 118,
+  "id": 125,
   "links": [
     {
       "asDropdown": true,
@@ -395,7 +395,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 11,
+        "w": 16,
         "x": 8,
         "y": 1
       },
@@ -541,7 +541,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH state_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'FEG'\n    AND param_name = 'ExternalStateParameter'\n),\n\nenums AS (\n  SELECT e.enum_id, e.member_name, e.value\n  FROM enum_values e\n  JOIN state_param p ON p.enum_id = e.enum_id\n)\n\nSELECT\n  e.member_name AS \"State\",\n  COUNT(*) AS \"Count\"\nFROM data d\nJOIN state_param p ON d.param_id = p.param_id\nJOIN enums e ON e.enum_id = p.enum_id\n  AND e.value = d.value_num\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nGROUP BY e.member_name\nORDER BY \"Count\" DESC\n",
+          "rawSql": "WITH cagg AS (\n  SELECT\n    p.enum_id,\n    state_agg(d.time, d.value_num :: int) AS agg\n  FROM\n    data d\n    JOIN parameters p USING (instrument_id, param_id)\n  WHERE\n    d.instrument_id = $instrument \n    AND $__timeFilter(d.time)\n    AND p.param_name = 'ExternalStateParameter'\n    AND p.component = 'FEG'\n  GROUP BY\n    p.enum_id\n)\nSELECT\n  ev.member_name AS state,\n  COUNT(*) AS interval_count\nFROM\n  cagg\n  CROSS JOIN LATERAL state_int_timeline(agg) s\n  JOIN enum_values ev ON ev.enum_id = cagg.enum_id AND ev.value = s.state\nGROUP BY\n  ev.member_name\nORDER BY\n  ev.member_name",
           "refId": "A",
           "sql": {
             "columns": [
@@ -630,7 +630,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 11,
+        "w": 16,
         "x": 8,
         "y": 9
       },
@@ -1005,7 +1005,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 11,
+        "w": 13,
         "x": 8,
         "y": 18
       },
@@ -1094,7 +1094,7 @@
       "gridPos": {
         "h": 8,
         "w": 3,
-        "x": 19,
+        "x": 21,
         "y": 18
       },
       "id": 38,
@@ -1330,7 +1330,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH counter_param AS (\n  SELECT instrument_id, param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'FIB'\n    AND param_name = 'TotalLifetimeHeatsParameter'\n),\n\nlast_reset AS (\n  SELECT MAX(d.time) AS reset_time\n  FROM data d\n  JOIN counter_param p USING (instrument_id, param_id)\n  WHERE d.value_num = 0\n)\n\nSELECT MAX(d.value_num) AS heat_cycles\nFROM data d\nJOIN counter_param p USING (instrument_id, param_id)\nWHERE d.time >= COALESCE(\n  (SELECT reset_time FROM last_reset),\n  to_timestamp($__from/1000)\n)",
+          "rawSql": "SELECT d.value_num AS heat_cycles\nFROM data d\nJOIN parameters p\n  ON d.param_id = p.param_id\nWHERE p.instrument_id = $instrument\n  AND p.component = 'FIB'\n  AND p.param_name = 'TotalLifetimeHeatsParameter'\nORDER BY d.time DESC\nLIMIT 1",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1548,7 +1548,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 11,
+        "w": 13,
         "x": 8,
         "y": 26
       },
@@ -1614,7 +1614,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
       },
-      "description": "Last week mean value",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1638,7 +1638,7 @@
       "gridPos": {
         "h": 4,
         "w": 3,
-        "x": 19,
+        "x": 21,
         "y": 26
       },
       "id": 37,
@@ -1650,7 +1650,7 @@
         "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [],
-          "fields": "/^mean_flow$/",
+          "fields": "",
           "values": true
         },
         "showPercentChange": false,
@@ -1667,7 +1667,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH target_param AS (\n  SELECT\n    instrument_id,\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'FIB'\n    AND param_name = 'JacketFlowParameter'\n)\n\nSELECT\n  time_bucket('1 week', d.time) as bucket,\n  avg(d.value_num) AS mean_flow\nFROM data d\nJOIN target_param p USING (instrument_id, param_id)\nWHERE $__timeFilter(d.time)\nGROUP BY bucket\nORDER BY bucket DESC\nLIMIT 1",
+          "rawSql": "SELECT\n  average(stats_agg(d.value_num)) AS avg_flow\nFROM\n  data d\n  JOIN parameters p USING (instrument_id, param_id)\nWHERE\n  d.instrument_id = $instrument \n  AND $__timeFilter(d.time)\n  AND p.component = 'FIB'\n  AND p.param_name = 'JacketFlowParameter'",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1688,7 +1688,7 @@
           }
         }
       ],
-      "title": "Jacket water flow",
+      "title": "PFIB jacket water flow",
       "type": "stat"
     },
     {
@@ -1726,7 +1726,7 @@
       "gridPos": {
         "h": 4,
         "w": 3,
-        "x": 19,
+        "x": 21,
         "y": 30
       },
       "id": 36,
@@ -1805,8 +1805,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Arctis [Arctis] (9960963)",
-          "value": "2"
+          "text": "Aquilos [Aquilos 2+] (9960381)",
+          "value": "1"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",

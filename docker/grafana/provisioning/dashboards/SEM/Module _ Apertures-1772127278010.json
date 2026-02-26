@@ -24,7 +24,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 114,
+  "id": 133,
   "links": [
     {
       "asDropdown": true,
@@ -592,7 +592,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH erosion_params AS (\n    SELECT p.instrument_id,\n           p.param_id,\n           (substring(p.param_name FROM '(\\d+)$')::int + 1) AS index\n    FROM parameters p\n    WHERE instrument_id = $instrument \n        AND subsystem = 'AvaSem'\n        AND component ILIKE '%strip%'\n\n),\n\nerosion_time AS (\n    SELECT DISTINCT ON (d.instrument_id, p.index)\n           d.instrument_id,\n           p.index,\n           d.value_num AS erosion_time\n    FROM data d\n    JOIN erosion_params p USING (instrument_id, param_id)\n    ORDER BY d.instrument_id, p.index, d.time DESC\n\n)\n\nSELECT \n    p.index AS \"Aperture index\",\n    e.erosion_time/3600.0 AS \"Erosion time (h)\"\nFROM erosion_params p\nJOIN erosion_time e USING (instrument_id, index)\nORDER BY p.index\n",
+          "rawSql": "WITH erosion_params AS (\n    SELECT p.instrument_id,\n           p.param_id,\n           (substring(p.param_name FROM '(\\d+)$')::int + 1) AS index\n    FROM parameters p\n    WHERE instrument_id = $instrument\n      AND subsystem = 'AvaSem'\n      AND component ILIKE '%strip%'\n)\n\nSELECT\n    p.index AS \"Aperture index\",\n    d.value_num / 3600.0 AS \"Erosion time (h)\"\nFROM erosion_params p\nJOIN LATERAL (\n    SELECT value_num\n    FROM data d\n    WHERE d.instrument_id = p.instrument_id\n      AND d.param_id = p.param_id\n    ORDER BY d.time DESC\n    LIMIT 1\n) d ON true\nORDER BY p.index",
           "refId": "A",
           "sql": {
             "columns": [
@@ -642,8 +642,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Arctis [Arctis] (9960963)",
-          "value": "2"
+          "text": "Aquilos [Aquilos 2+] (9960381)",
+          "value": "1"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -670,5 +670,5 @@
   "timezone": "Europe/London",
   "title": "Module | Apertures",
   "uid": "4395e67b-0345-47fd-55b9-684457567800",
-  "version": 4
+  "version": 2
 }

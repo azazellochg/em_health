@@ -71,7 +71,7 @@ WITH cryocycles_al_intervals AS (
              instrument_id,
              day,
              'cryocycle' AS state,
-             toolkit_experimental.duration_in(agg, 1) AS total_duration -- boolean = 1 where value > 0
+             duration_in(agg, 1) AS total_duration -- boolean = 1 where value > 0
          FROM sem_cryocycle_noal_daily
      ),
 

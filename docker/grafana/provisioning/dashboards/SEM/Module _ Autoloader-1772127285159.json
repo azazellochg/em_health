@@ -66,7 +66,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 116,
+  "id": 130,
   "links": [
     {
       "asDropdown": true,
@@ -1237,7 +1237,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH state_param AS (\n  SELECT\n    param_id,\n    enum_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'AutoloaderTemperatureState'\n    AND subsystem = 'AutoloaderTemperatureControl'\n),\nstate_enum AS (\n  SELECT\n    p.param_id,\n    e.value AS cryocycle\n  FROM\n    state_param p\n    JOIN enum_values e ON e.enum_id = p.enum_id\n  WHERE\n    e.member_name = 'CryoCycle'\n),\nautoloader_states AS (\n  SELECT\n    sp.param_id,\n    st.state,\n    st.start_time,\n    st.end_time\n  FROM\n    state_param sp\n    CROSS JOIN LATERAL (\n      SELECT\n        state,\n        start_time,\n        end_time\n      FROM\n        state_int_timeline(\n          (\n            SELECT\n              state_agg(d.time, d.value_num :: bigint)\n            FROM\n              data d\n            WHERE\n              d.instrument_id = $instrument\n              AND d.param_id = sp.param_id\n          )\n        )\n    ) AS st\n)\n\n  SELECT\n    r.start_time,\n    r.end_time,\n    EXTRACT(EPOCH FROM(r.end_time - r.start_time)) AS total_duration\n  FROM\n    autoloader_states r\n    JOIN state_enum se USING (param_id)\n  WHERE\n    r.state = se.cryocycle\n    AND (r.end_time - r.start_time) > INTERVAL '0 second'\n  ORDER BY\n    r.start_time\n",
+          "rawSql": "    SELECT\n        start_time,\n        end_time,\n        EXTRACT(EPOCH FROM(end_time - start_time)) AS total_duration\n    FROM sem_cryocycle_al_daily,\n        state_periods(agg, 1) -- boolean = 1 where value = CryoCycle\n    WHERE instrument_id = $instrument\n      AND param_name = 'AutoloaderTemperatureState'\n      AND $__timeFilter(day)\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1724,7 +1724,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH state_param AS (\n  SELECT\n    param_id,\n    enum_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'AutoloaderTemperatureState'\n    AND subsystem = 'AutoloaderTemperatureControl'\n),\n\nstate_enum AS (\n  SELECT\n    p.param_id,\n    e.value AS cryocycle\n  FROM\n    state_param p\n    JOIN enum_values e ON e.enum_id = p.enum_id\n  WHERE\n    e.member_name = 'CryoCycle'\n),\n\nautoloader_states AS (\n  SELECT\n    sp.param_id,\n    st.state,\n    st.start_time,\n    st.end_time\n  FROM\n    state_param sp\n    CROSS JOIN LATERAL (\n      SELECT\n        state,\n        start_time,\n        end_time\n      FROM\n        state_int_timeline(\n          (\n            SELECT\n              state_agg(d.time, d.value_num :: bigint)\n            FROM\n              data d\n            WHERE\n              d.instrument_id = $instrument\n              AND d.param_id = sp.param_id\n          )\n        )\n    ) AS st\n),\n\nlast_cryo AS (\n  SELECT\n    r.end_time AS cryo_end_time\n  FROM\n    autoloader_states r\n    JOIN state_enum se USING (param_id)\n  WHERE\n    r.state = se.cryocycle\n    AND (r.end_time - r.start_time) > INTERVAL '0 second'\n  ORDER BY r.end_time DESC\n  LIMIT 1\n),\n\ncassette_counter_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'LoadCassetteCounter'\n),\n\nbaseline AS (\n  SELECT d.value_num AS baseline_val\n  FROM data d\n  JOIN cassette_counter_param ccp ON d.param_id = ccp.param_id\n  JOIN last_cryo lc ON true\n  WHERE d.instrument_id = $instrument\n    AND d.time <= lc.cryo_end_time\n  ORDER BY d.time DESC\n  LIMIT 1\n),\n\nafter_cryo AS (\n  SELECT MAX(d.value_num) AS max_val\n  FROM data d\n  JOIN cassette_counter_param ccp ON d.param_id = ccp.param_id\n  JOIN last_cryo lc ON true\n  WHERE d.instrument_id = $instrument\n    AND d.time >= lc.cryo_end_time\n)\n\nSELECT\n  COALESCE(a.max_val, b.baseline_val) - COALESCE(b.baseline_val, 0) AS cassette_loads_since_cryocycle\nFROM baseline b\nCROSS JOIN after_cryo a;\n",
+          "rawSql": "WITH last_cryo AS (\n  SELECT\n    end_time\n  FROM\n    sem_cryocycle_al_daily,\n    state_periods(agg, 1) -- boolean = 1 where value = CryoCycle\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'AutoloaderTemperatureState'\n  ORDER BY\n    end_time DESC\n  LIMIT\n    1\n)\nSELECT\n  COALESCE(SUM(lcd.daily_cassette_count), 0) AS cassette_loads_since_cryocycle\nFROM\n  load_counters_daily lcd\n  CROSS JOIN last_cryo lc\nWHERE\n  lcd.day > lc.end_time",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1774,8 +1774,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Arctis [Arctis] (9960963)",
-          "value": "2"
+          "text": "Aquilos [Aquilos 2+] (9960381)",
+          "value": "1"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -1836,5 +1836,5 @@
   "timezone": "Europe/London",
   "title": "Module | Autoloader",
   "uid": "4395e67b-0280-47fd-94a8-644503f10800",
-  "version": 3
+  "version": 4
 }
