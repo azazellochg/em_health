@@ -447,6 +447,7 @@ def main(dbname, action, instrument=None, date=None):
                 "sem_beam_daily": True,
                 "sem_cryocycle_al_daily": True,
                 "sem_cryocycle_noal_daily": True,
+                "sem_chamber_state_daily": True,
 
                 # Depends on the views above
                 "sem_beamtime_daily": False,

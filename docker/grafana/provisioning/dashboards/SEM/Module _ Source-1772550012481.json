@@ -68,7 +68,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 125,
+  "id": 143,
   "links": [
     {
       "asDropdown": true,
@@ -1313,7 +1313,7 @@
         "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [],
-          "fields": "/^heat_cycles$/",
+          "fields": "",
           "values": true
         },
         "showPercentChange": false,
@@ -1330,7 +1330,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT d.value_num AS heat_cycles\nFROM data d\nJOIN parameters p\n  ON d.param_id = p.param_id\nWHERE p.instrument_id = $instrument\n  AND p.component = 'FIB'\n  AND p.param_name = 'TotalLifetimeHeatsParameter'\nORDER BY d.time DESC\nLIMIT 1",
+          "rawSql": "SELECT d.value_num\nFROM data d\nJOIN parameters p\n  ON d.param_id = p.param_id\nWHERE p.instrument_id = $instrument\n  AND p.component = 'FIB'\n  AND p.param_name IN ('TotalLifetimeHeatsParameter', 'TotalIgnitionCountParameter')\nORDER BY d.time DESC\nLIMIT 1",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1351,7 +1351,7 @@
           }
         }
       ],
-      "title": "LMIS heat cycles",
+      "title": "LMIS heat cycles / PFIB ignition count",
       "type": "stat"
     },
     {
@@ -1805,8 +1805,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Aquilos [Aquilos 2+] (9960381)",
-          "value": "1"
+          "text": "Arctis [Arctis] (9960963)",
+          "value": "2"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -1824,8 +1824,8 @@
     ]
   },
   "time": {
-    "from": "now-7d",
-    "to": "now"
+    "from": "2026-02-11T02:04:08.599Z",
+    "to": "2026-02-24T04:37:55.784Z"
   },
   "timepicker": {
     "refresh_intervals": []
@@ -1833,5 +1833,5 @@
   "timezone": "Europe/London",
   "title": "Module | Source",
   "uid": "4395e67b-0345-47fd-94a8-684457567800",
-  "version": 6
+  "version": 3
 }

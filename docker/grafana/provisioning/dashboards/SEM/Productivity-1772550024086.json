@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 138,
+  "id": 141,
   "links": [
     {
       "asDropdown": true,
@@ -195,56 +195,7 @@
           },
           "unit": "percent"
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "percentage off"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Offline"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "percentage ebeam"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Electron beam"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "percentage cryocycle"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Cryo-cycle"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "percentage ibeam"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Ion beam"
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 7,
@@ -308,6 +259,23 @@
         }
       ],
       "title": "Beam time",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "percentage chamber": "Vacuum actions",
+              "percentage cryocycle": "Cryo-cycle",
+              "percentage ebeam": "Electron beam",
+              "percentage ibeam": "Ion beam",
+              "percentage off": "Offline"
+            }
+          }
+        }
+      ],
       "type": "barchart"
     },
     {
@@ -608,8 +576,8 @@
     ]
   },
   "time": {
-    "from": "now-30d",
-    "to": "now"
+    "from": "2026-02-11T02:04:08.599Z",
+    "to": "2026-02-24T04:37:55.784Z"
   },
   "timepicker": {},
   "timezone": "Europe/London",

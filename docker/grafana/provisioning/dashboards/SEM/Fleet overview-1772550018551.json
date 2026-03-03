@@ -62,7 +62,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 137,
+  "id": 147,
   "links": [
     {
       "asDropdown": true,
@@ -195,6 +195,18 @@
                 "value": "Offline"
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "chamber"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Vacuum actions"
+              }
+            ]
           }
         ]
       },
@@ -213,7 +225,10 @@
         "legend": {
           "displayMode": "list",
           "placement": "right",
-          "showLegend": true
+          "showLegend": true,
+          "values": [
+            "percent"
+          ]
         },
         "pieType": "donut",
         "reduceOptions": {
@@ -578,7 +593,7 @@
       },
       "id": 16,
       "panels": [],
-      "title": "GIS usage",
+      "title": "Total GIS usage",
       "type": "row"
     },
     {
@@ -602,7 +617,7 @@
               }
             ]
           },
-          "unit": "hours"
+          "unit": "s"
         },
         "overrides": []
       },
@@ -641,7 +656,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n    gis_port,\n    MAX(day) AS last_day,\n    last_val(rollup(agg)) / 3600.0 AS gis_usage\nFROM gis_counters_daily\nWHERE instrument_id = $instrument\n AND $__timeFilter(day) \nGROUP BY gis_port",
+          "rawSql": "SELECT\n    gis_port,\n    MAX(day) AS last_day,\n    last_val(rollup(agg)) AS gis_usage\nFROM gis_counters_daily\nWHERE instrument_id = $instrument\n AND $__timeFilter(day) \nGROUP BY gis_port",
           "refId": "A",
           "sql": {
             "columns": [
@@ -977,12 +992,12 @@
     ]
   },
   "time": {
-    "from": "now-30d",
-    "to": "now"
+    "from": "2026-02-11T02:04:08.599Z",
+    "to": "2026-02-24T04:37:55.784Z"
   },
   "timepicker": {},
   "timezone": "Europe/London",
   "title": "Fleet overview",
   "uid": "4350492f-ef51-4e3f-a22b-14c66eee6a97",
-  "version": 7
+  "version": 4
 }

@@ -91,6 +91,14 @@ WITH cryocycles_al_intervals AS (
          FROM fib_beam_daily
      ),
 
+     chamber AS (
+         SELECT instrument_id,
+                day,
+                'chamber' AS state,
+                toolkit_experimental.duration_in(agg, 1) AS total_duration -- boolean = 1 where value != Pumped
+         FROM sem_chamber_state_daily
+     ),
+
      sem_off AS (
          SELECT instrument_id,
                 day,
@@ -111,6 +119,9 @@ WITH cryocycles_al_intervals AS (
          UNION ALL
          SELECT *
          FROM ebeam
+         UNION ALL
+         SELECT *
+         FROM chamber
      )
 
 SELECT
