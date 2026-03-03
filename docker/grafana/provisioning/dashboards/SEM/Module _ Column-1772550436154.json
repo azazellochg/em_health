@@ -70,7 +70,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 148,
+  "id": 150,
   "links": [
     {
       "asDropdown": true,
@@ -1477,8 +1477,8 @@
     ]
   },
   "time": {
-    "from": "2026-02-11T02:04:08.599Z",
-    "to": "2026-02-24T04:37:55.784Z"
+    "from": "now-7d",
+    "to": "now"
   },
   "timepicker": {
     "refresh_intervals": []
@@ -1486,5 +1486,5 @@
   "timezone": "Europe/London",
   "title": "Module | Column",
   "uid": "4395e67b-0345-47fd-94a8-683653567800",
-  "version": 3
+  "version": 2
 }

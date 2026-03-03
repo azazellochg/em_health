@@ -68,7 +68,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 143,
+  "id": 153,
   "links": [
     {
       "asDropdown": true,
@@ -1805,8 +1805,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Arctis [Arctis] (9960963)",
-          "value": "2"
+          "text": "Aquilos [Aquilos 2+] (9960381)",
+          "value": "1"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -1824,8 +1824,8 @@
     ]
   },
   "time": {
-    "from": "2026-02-11T02:04:08.599Z",
-    "to": "2026-02-24T04:37:55.784Z"
+    "from": "now-7d",
+    "to": "now"
   },
   "timepicker": {
     "refresh_intervals": []
@@ -1833,5 +1833,5 @@
   "timezone": "Europe/London",
   "title": "Module | Source",
   "uid": "4395e67b-0345-47fd-94a8-684457567800",
-  "version": 3
+  "version": 2
 }
