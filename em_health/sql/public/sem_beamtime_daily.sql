@@ -91,6 +91,14 @@ WITH cryocycles_al_intervals AS (
          FROM fib_beam_daily
      ),
 
+     flm AS (
+         SELECT instrument_id,
+                day,
+                'flm' AS state,
+                toolkit_experimental.duration_in(agg, 1) AS total_duration -- boolean = 1 where value = Running
+         FROM flm_beam_daily
+     ),
+
      chamber AS (
          SELECT instrument_id,
                 day,
@@ -119,6 +127,9 @@ WITH cryocycles_al_intervals AS (
          UNION ALL
          SELECT *
          FROM ebeam
+         UNION ALL
+         SELECT *
+         FROM flm
          UNION ALL
          SELECT *
          FROM chamber

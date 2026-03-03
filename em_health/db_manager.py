@@ -445,6 +445,7 @@ def main(dbname, action, instrument=None, date=None):
                 "gis_counters_daily": True,
                 "fib_beam_daily": True,
                 "sem_beam_daily": True,
+                "flm_beam_daily": True,
                 "sem_cryocycle_al_daily": True,
                 "sem_cryocycle_noal_daily": True,
                 "sem_chamber_state_daily": True,

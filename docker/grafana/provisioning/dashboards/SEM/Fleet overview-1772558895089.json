@@ -62,7 +62,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 151,
+  "id": 154,
   "links": [
     {
       "asDropdown": true,
@@ -147,68 +147,7 @@
           "min": 0,
           "unit": "percent"
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "cryocycle"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Cryo-cycle"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "ibeam"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Ion beam"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "ebeam"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Electron beam"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "off"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Offline"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "chamber"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Vacuum actions"
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 6,
@@ -288,6 +227,23 @@
                 "handlerKey": "__ignore"
               }
             ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "Unknown": "",
+              "chamber": "Vacuum actions",
+              "cryocycle": "Cryo-cycle",
+              "ebeam": "Electron beam",
+              "flm": "iFLM",
+              "ibeam": "Ion beam",
+              "off": "Offline"
+            }
           }
         }
       ],
@@ -955,7 +911,9 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "All",
+          "text": [
+            "All"
+          ],
           "value": [
             "$__all"
           ]
