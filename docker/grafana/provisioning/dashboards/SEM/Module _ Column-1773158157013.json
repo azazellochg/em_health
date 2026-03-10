@@ -70,7 +70,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 150,
+  "id": 84,
   "links": [
     {
       "asDropdown": true,
@@ -326,7 +326,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH chamber_state_param AS (\n    SELECT param_id, enum_id\n    FROM parameters\n    WHERE \n        instrument_id = $instrument\n        AND subsystem = 'Vacuum'\n        AND component = 'Chamber'\n        AND param_name = 'Chamber.StateSC'\n),\npumped_value AS (\n    SELECT \n        e.value AS pumped_value_num,\n        p.param_id\n    FROM chamber_state_param p\n    JOIN enum_values e ON e.enum_id = p.enum_id\n    WHERE e.member_name = 'Pumped'\n),\nraw_states AS (\n    SELECT state_agg(v.time, v.value_num::bigint) AS agg\n    FROM data v\n    JOIN chamber_state_param p ON p.param_id = v.param_id\n    WHERE v.instrument_id = $instrument\n      AND $__timeFilter(v.time)\n),\npumped_states AS (\n    SELECT start_time, end_time\n    FROM state_periods(\n        (SELECT agg FROM raw_states),\n        (SELECT pumped_value_num FROM pumped_value)::bigint\n        )\n),\npressure_param AS (\n    SELECT param_id\n    FROM parameters\n    WHERE \n      instrument_id = $instrument\n      AND component = 'Chamber'\n      AND param_name = 'Chamber.HVG'\n),\npressure_values AS (\n    SELECT \n        v.time,\n        v.value_num AS pressure_value\n    FROM data v\n    JOIN pressure_param p ON p.param_id = v.param_id\n    JOIN pumped_states r \n        ON v.time >= r.start_time \n        AND v.time <= r.end_time\n    WHERE \n        v.instrument_id = $instrument\n)\nSELECT\n    time,\n    approx_percentile(\n        0.5,\n        percentile_agg(pressure_value)\n            OVER (\n                ORDER BY time\n                RANGE BETWEEN INTERVAL '2 days' PRECEDING AND CURRENT ROW\n            )\n    ) AS \"Rolling 2-day median HVG pressure\"\nFROM pressure_values\nORDER BY time;",
+          "rawSql": "WITH chamber_state_param AS (\n    SELECT param_id, enum_id\n    FROM parameters\n    WHERE \n        instrument_id = $instrument\n        AND subsystem = 'Vacuum'\n        AND component = 'Chamber'\n        AND param_name = 'Chamber.StateSC'\n),\npumped_value AS (\n    SELECT \n        e.value AS pumped_value_num,\n        p.param_id\n    FROM chamber_state_param p\n    JOIN enum_values e ON e.enum_id = p.enum_id\n    WHERE e.member_name = 'Pumped'\n),\nraw_states AS (\n    SELECT state_agg(v.time, v.value_num::bigint) AS agg\n    FROM data v\n    JOIN chamber_state_param p ON p.param_id = v.param_id\n    WHERE v.instrument_id = $instrument\n      AND $__timeFilter(v.time)\n),\npumped_states AS (\n    SELECT start_time, end_time\n    FROM state_periods(\n        (SELECT agg FROM raw_states),\n        (SELECT pumped_value_num FROM pumped_value)::bigint\n        )\n),\npressure_param AS (\n    SELECT param_id\n    FROM parameters\n    WHERE \n      instrument_id = $instrument\n      AND component = 'Chamber'\n      AND param_name = 'Chamber.HVG'\n),\npressure_values AS (\n    SELECT \n        v.time,\n        v.value_num AS pressure_value\n    FROM data v\n    JOIN pressure_param p ON p.param_id = v.param_id\n    JOIN pumped_states r \n        ON v.time >= r.start_time \n        AND v.time <= r.end_time\n    WHERE \n        v.instrument_id = $instrument\n)\nSELECT\n    time,\n    approx_percentile(\n        0.5,\n        percentile_agg(pressure_value)\n            OVER (\n                ORDER BY time\n                RANGE BETWEEN INTERVAL '24 hours' PRECEDING AND CURRENT ROW\n            )\n    ) AS \"Rolling 24-hour median HVG pressure\"\nFROM pressure_values\nORDER BY time;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1459,7 +1459,7 @@
         "allowCustomValue": false,
         "current": {
           "text": "Aquilos [Aquilos 2+] (9960381)",
-          "value": "1"
+          "value": "7"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -1486,5 +1486,5 @@
   "timezone": "Europe/London",
   "title": "Module | Column",
   "uid": "4395e67b-0345-47fd-94a8-683653567800",
-  "version": 2
+  "version": 3
 }

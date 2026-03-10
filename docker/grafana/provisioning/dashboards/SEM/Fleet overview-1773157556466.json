@@ -18,7 +18,7 @@
           "type": "grafana-postgresql-datasource",
           "uid": "${sourceSEM}"
         },
-        "enable": false,
+        "enable": true,
         "filter": {
           "exclude": false,
           "ids": [
@@ -62,7 +62,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 154,
+  "id": 89,
   "links": [
     {
       "asDropdown": true,
@@ -911,9 +911,7 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": [
-            "All"
-          ],
+          "text": "All",
           "value": [
             "$__all"
           ]
@@ -957,5 +955,5 @@
   "timezone": "Europe/London",
   "title": "Fleet overview",
   "uid": "4350492f-ef51-4e3f-a22b-14c66eee6a97",
-  "version": 2
+  "version": 3
 }
