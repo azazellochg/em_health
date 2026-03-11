@@ -62,7 +62,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 40,
+  "id": 71,
   "links": [
     {
       "asDropdown": true,
@@ -502,7 +502,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  p.param_name,\n  CURRENT_DATE - d.time::date AS days_since_cryocycle_start,\n  d.time AS cryo_start_time\nFROM parameters p\nJOIN LATERAL (\n  SELECT time\n  FROM data\n  WHERE instrument_id = $instrument\n    AND value_num <> 0\n    AND param_id = p.param_id\n  ORDER BY time DESC\n  LIMIT 1\n) d ON true\nWHERE p.instrument_id = $instrument\n  AND p.param_name IN ('AutoloaderCryoCycleDuration', 'ColumnCryoCycleDuration', 'CryoCycleDurationCLS', 'CryoCycleDurationMicroscope');\n",
+          "rawSql": "WITH cryo_cycles AS (\n  SELECT\n    param_name,\n    start_time,\n    end_time\n  FROM tem_cryocycle_daily,\n  LATERAL state_periods(agg, 1) -- boolean = 1 where value = CryoCycle\n  WHERE instrument_id = $instrument \n    AND (end_time - start_time) > INTERVAL '0 second'\n  ORDER BY start_time\n)\n\nSELECT\n  DISTINCT ON (param_name) param_name,\n  CURRENT_DATE - start_time :: date AS days_since_cryocycle_start\nFROM cryo_cycles\nORDER BY param_name, start_time DESC\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -524,26 +524,6 @@
         }
       ],
       "title": "$instrument",
-      "transformations": [
-        {
-          "id": "rowsToFields",
-          "options": {
-            "mappings": [
-              {
-                "fieldName": "cryo_start_time",
-                "handlerKey": "__ignore"
-              }
-            ]
-          }
-        },
-        {
-          "id": "renameByRegex",
-          "options": {
-            "regex": "^(.*)CryoCycleDuration(.*)$",
-            "renamePattern": "$1 $2"
-          }
-        }
-      ],
       "type": "stat"
     },
     {
@@ -1132,5 +1112,5 @@
   "timezone": "Europe/London",
   "title": "Fleet overview",
   "uid": "4350492f-ef51-4e3f-a22b-14c55eee6a97",
-  "version": 3
+  "version": 4
 }

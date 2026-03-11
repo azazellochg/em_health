@@ -179,7 +179,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "    SELECT\n        start_time,\n        end_time,\n        EXTRACT(EPOCH FROM(end_time - start_time)) AS total_duration\n    FROM sem_cryocycle_al_daily,\n        state_periods(agg, 1) -- boolean = 1 where value = CryoCycle\n    WHERE instrument_id = $instrument\n      AND param_name = 'ColumnTemperatureState'\n      AND $__timeFilter(day)\n",
+          "rawSql": "    SELECT\n        start_time,\n        end_time,\n        EXTRACT(EPOCH FROM(end_time - start_time)) AS total_duration\n    FROM sem_cryocycle_al_daily,\n        state_periods(agg, 1) -- boolean = 1 where value = CryoCycle\n    WHERE instrument_id = $instrument\n      AND param_name = 'Column'\n      AND $__timeFilter(day)\n",
           "refId": "Arctis",
           "sql": {
             "columns": [

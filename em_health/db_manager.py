@@ -421,6 +421,7 @@ def main(dbname, action, instrument=None, date=None):
                 "image_counters_daily": True,
                 "epu_state_daily": True,
                 "tomo_state_daily": True,
+                "tem_cryocycle_daily": True,
 
                 # Depends on em_off
                 "vacuum_state_daily": False,

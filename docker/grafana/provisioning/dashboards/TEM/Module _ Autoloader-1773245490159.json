@@ -69,7 +69,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 35,
+  "id": 77,
   "links": [
     {
       "asDropdown": true,
@@ -1356,10 +1356,10 @@
         "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "mean"
           ],
-          "fields": "",
-          "values": true
+          "fields": "/^total_duration$/",
+          "values": false
         },
         "showPercentChange": false,
         "textMode": "value",
@@ -1374,9 +1374,10 @@
           },
           "editorMode": "code",
           "format": "table",
+          "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH matching_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'CryoCycles'\n    AND param_name = 'AutoloaderCryoCycleDuration'\n),\n\nvalue_data AS (\n  SELECT\n    d.time,\n    d.value_num,\n    LAG(d.value_num) OVER (ORDER BY d.time) AS prev_value\n  FROM data d\n  JOIN matching_param p ON d.param_id = p.param_id\n  WHERE d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n),\n\nresets AS (\n  SELECT time, prev_value\n  FROM value_data\n  WHERE value_num = 0\n    AND prev_value IS NOT NULL\n    AND prev_value > 0\n)\n\nSELECT AVG(prev_value) AS avg_max_before_reset\nFROM resets;\n",
-          "refId": "A",
+          "rawSql": "    SELECT\n        start_time,\n        end_time,\n        EXTRACT(EPOCH FROM(end_time - start_time)) AS total_duration\n    FROM tem_cryocycle_daily,\n        state_periods(agg, 1) -- boolean = 1 where value = CryoCycle\n    WHERE instrument_id = $instrument\n      AND param_name = 'Autoloader'\n      AND $__timeFilter(day)\n",
+          "refId": "B",
           "sql": {
             "columns": [
               {
@@ -1861,9 +1862,10 @@
           },
           "editorMode": "code",
           "format": "table",
+          "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT param_name, param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'AutoloaderCryoCycleDuration'\n),\n\nlast_cryo AS (\n  SELECT\n    p.param_name,\n    d.time AS cryo_end_time\n  FROM param_ids p\n  JOIN LATERAL (\n    SELECT time\n    FROM data\n    WHERE instrument_id = $instrument\n      AND param_id = p.param_id\n      AND value_num <> 0\n    ORDER BY time DESC\n    LIMIT 1\n  ) d ON true\n),\n\ncassette_counter_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'LoadCassetteCounter'\n),\n\nbaseline AS (\n  SELECT d.value_num AS baseline_val\n  FROM data d\n  JOIN cassette_counter_param ccp ON d.param_id = ccp.param_id\n  JOIN last_cryo lc ON true\n  WHERE d.instrument_id = $instrument\n    AND d.time <= lc.cryo_end_time\n  ORDER BY d.time DESC\n  LIMIT 1\n),\n\nafter_cryo AS (\n  SELECT MAX(d.value_num) AS max_val\n  FROM data d\n  JOIN cassette_counter_param ccp ON d.param_id = ccp.param_id\n  JOIN last_cryo lc ON true\n  WHERE d.instrument_id = $instrument\n    AND d.time >= lc.cryo_end_time\n)\n\nSELECT\n  COALESCE(a.max_val, b.baseline_val) - COALESCE(b.baseline_val, 0) AS cassette_loads_since_cryocycle\nFROM baseline b\nCROSS JOIN after_cryo a;\n",
-          "refId": "A",
+          "rawSql": "WITH last_cryo AS (\n  SELECT\n    end_time\n  FROM\n    tem_cryocycle_daily,\n    state_periods(agg, 1) -- boolean = 1 where value>0\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'Autoloader'\n  ORDER BY\n    end_time DESC\n  LIMIT\n    1\n)\nSELECT\n  COALESCE(SUM(lcd.daily_cassette_count), 0) AS cassette_loads_since_cryocycle\nFROM\n  load_counters_daily lcd\n  CROSS JOIN last_cryo lc\nWHERE\n  lcd.day > lc.end_time",
+          "refId": "B",
           "sql": {
             "columns": [
               {

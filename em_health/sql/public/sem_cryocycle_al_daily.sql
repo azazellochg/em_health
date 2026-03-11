@@ -5,7 +5,7 @@ CREATE MATERIALIZED VIEW sem_cryocycle_al_daily WITH (timescaledb.continuous) AS
 SELECT
     d.instrument_id,
     time_bucket('1 day', d.time) AS day,
-    p.param_name,
+    REPLACE(p.param_name, 'TemperatureState', '') AS param_name,
     state_agg(d.time, (d.value_num::int = e.value)::int) AS agg
 FROM data d
          JOIN parameters p USING (instrument_id, param_id)

@@ -110,7 +110,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 39,
+  "id": 170,
   "links": [
     {
       "asDropdown": true,
@@ -198,10 +198,10 @@
         "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "mean"
           ],
-          "fields": "",
-          "values": true
+          "fields": "/^total_duration$/",
+          "values": false
         },
         "showPercentChange": false,
         "textMode": "value",
@@ -216,9 +216,10 @@
           },
           "editorMode": "code",
           "format": "table",
+          "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH matching_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'CryoCycles'\n    AND param_name = 'ColumnCryoCycleDuration'\n),\n\nvalue_data AS (\n  SELECT\n    d.time,\n    d.value_num,\n    LAG(d.value_num) OVER (ORDER BY d.time) AS prev_value\n  FROM data d\n  JOIN matching_param p ON d.param_id = p.param_id\n  WHERE d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n),\n\nresets AS (\n  SELECT time, prev_value\n  FROM value_data\n  WHERE value_num = 0\n    AND prev_value IS NOT NULL\n    AND prev_value > 0\n)\n\nSELECT AVG(prev_value) AS avg_max_before_reset\nFROM resets;\n",
-          "refId": "A",
+          "rawSql": "    SELECT\n        start_time,\n        end_time,\n        EXTRACT(EPOCH FROM(end_time - start_time)) AS total_duration\n    FROM tem_cryocycle_daily,\n        state_periods(agg, 1) -- boolean = 1 states\n    WHERE instrument_id = $instrument\n      AND param_name = 'Column'\n      AND $__timeFilter(day)\n",
+          "refId": "B",
           "sql": {
             "columns": [
               {
@@ -1294,7 +1295,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'IGPcl'\n    AND param_name = 'IGPclPressure'\n),\n\ndaily_avg AS (\n  SELECT\n    time_bucket('1 day', d.time) AS day,\n    p.param_name,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    AND d.value_num > 0\n  GROUP BY day, p.param_name\n)\n\nSELECT\n  day AS time,\n  param_name,\n  avg_value AS \"24-hour average\",\n  AVG(avg_value) OVER (\n    PARTITION BY param_name\n    ORDER BY day\n    ROWS BETWEEN 27 PRECEDING AND CURRENT ROW\n  ) AS \"4-week average\"\nFROM daily_avg\nORDER BY day, param_name;\n",
+          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'IGPcl'\n    AND param_name = 'IGPclPressure'\n),\n\nhourly_avg AS (\n  SELECT\n    time_bucket('1h', d.time) AS hour,\n    p.param_name,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    AND d.value_num > 0\n  GROUP BY hour, p.param_name\n)\n\nSELECT\n  hour AS time,\n  param_name,\n  avg_value AS \"1-hour average\",\n  AVG(avg_value) OVER (\n    PARTITION BY param_name\n    ORDER BY hour\n    ROWS BETWEEN 23 PRECEDING AND CURRENT ROW\n  ) AS \"24-hour average\"\nFROM hourly_avg\nORDER BY hour, param_name;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1627,7 +1628,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'IGPco'\n    AND param_name = 'IGPcoPressure'\n),\n\ndaily_avg AS (\n  SELECT\n    time_bucket('1 day', d.time) AS day,\n    p.param_name,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    AND d.value_num > 0\n  GROUP BY day, p.param_name\n)\n\nSELECT\n  day AS time,\n  param_name,\n  avg_value AS \"24-hour average\",\n  AVG(avg_value) OVER (\n    PARTITION BY param_name\n    ORDER BY day\n    ROWS BETWEEN 27 PRECEDING AND CURRENT ROW\n  ) AS \"4-week average\"\nFROM daily_avg\nORDER BY day, param_name;\n",
+          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'IGPco'\n    AND param_name = 'IGPcoPressure'\n),\n\nhourly_avg AS (\n  SELECT\n    time_bucket('1h', d.time) AS hour,\n    p.param_name,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    AND d.value_num > 0\n  GROUP BY hour, p.param_name\n)\n\nSELECT\n  hour AS time,\n  param_name,\n  avg_value AS \"1-hour average\",\n  AVG(avg_value) OVER (\n    PARTITION BY param_name\n    ORDER BY hour\n    ROWS BETWEEN 23 PRECEDING AND CURRENT ROW\n  ) AS \"24-hour average\"\nFROM hourly_avg\nORDER BY hour, param_name;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1653,7 +1654,7 @@
         {
           "id": "renameByRegex",
           "options": {
-            "regex": "(.*) IGPclPressure",
+            "regex": "(.*) IGPcoPressure",
             "renamePattern": "$1"
           }
         }
@@ -1932,8 +1933,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Glacios [Glacios] (9952833)",
-          "value": "5"
+          "text": "Krios 4 [Titan Krios G4] (4248)",
+          "value": "4"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -1960,5 +1961,5 @@
   "timezone": "Europe/London",
   "title": "Module | Column",
   "uid": "4395e67b-0345-47fd-94a8-684533567800",
-  "version": 4
+  "version": 2
 }

@@ -1237,7 +1237,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "    SELECT\n        start_time,\n        end_time,\n        EXTRACT(EPOCH FROM(end_time - start_time)) AS total_duration\n    FROM sem_cryocycle_al_daily,\n        state_periods(agg, 1) -- boolean = 1 where value = CryoCycle\n    WHERE instrument_id = $instrument\n      AND param_name = 'AutoloaderTemperatureState'\n      AND $__timeFilter(day)\n",
+          "rawSql": "    SELECT\n        start_time,\n        end_time,\n        EXTRACT(EPOCH FROM(end_time - start_time)) AS total_duration\n    FROM sem_cryocycle_al_daily,\n        state_periods(agg, 1) -- boolean = 1 where value = CryoCycle\n    WHERE instrument_id = $instrument\n      AND param_name = 'Autoloader'\n      AND $__timeFilter(day)\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1724,7 +1724,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH last_cryo AS (\n  SELECT\n    end_time\n  FROM\n    sem_cryocycle_al_daily,\n    state_periods(agg, 1) -- boolean = 1 where value = CryoCycle\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'AutoloaderTemperatureState'\n  ORDER BY\n    end_time DESC\n  LIMIT\n    1\n)\nSELECT\n  COALESCE(SUM(lcd.daily_cassette_count), 0) AS cassette_loads_since_cryocycle\nFROM\n  load_counters_daily lcd\n  CROSS JOIN last_cryo lc\nWHERE\n  lcd.day > lc.end_time",
+          "rawSql": "WITH last_cryo AS (\n  SELECT\n    end_time\n  FROM\n    sem_cryocycle_al_daily,\n    state_periods(agg, 1) -- boolean = 1 where value = CryoCycle\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'Autoloader'\n  ORDER BY\n    end_time DESC\n  LIMIT\n    1\n)\nSELECT\n  COALESCE(SUM(lcd.daily_cassette_count), 0) AS cassette_loads_since_cryocycle\nFROM\n  load_counters_daily lcd\n  CROSS JOIN last_cryo lc\nWHERE\n  lcd.day > lc.end_time",
           "refId": "A",
           "sql": {
             "columns": [
