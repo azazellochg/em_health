@@ -7,6 +7,8 @@ This section describes ``EMHealth`` commands available through the command-line 
 
     emhealth [-d DATABASE] COMMAND arg1 arg2 ...
 
+The default database is `tem`.
+
 Main Tasks
 ----------
 
@@ -80,7 +82,7 @@ Syntax
 
 .. code-block::
 
-    emhealth db create-stats
+    emhealth -d tem db create-stats
 
 ----
 

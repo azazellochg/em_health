@@ -34,7 +34,14 @@ Typical Setup
 Prerequisites
 ^^^^^^^^^^^^^
 
-.. important:: Currently we support Titan Krios, Glacios and Tundra instruments only.
+Supported systems:
+
+    - TEM Glacios
+    - TEM Titan Krios G1, G2, G3i, G4
+    - TEM Tundra
+    - SDB Scios
+    - SDB Aquilos 2+
+    - pFIB Arctis
 
 Requirements for ``EMHealth`` package:
 

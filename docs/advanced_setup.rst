@@ -27,7 +27,7 @@ Instruments Configuration
 - **model**: custom field, used for display purposes. You can customize this.
 - **name**: custom field, used for display purposes. You can customize this.
 - **type**: database name. "tem" or "sem" only.
-- **template**: microscope platform. Allowed values are "krios", "talos" or "sem". Currently not in use.
+- **template**: microscope platform. Allowed values are "krios", "talos", "tundra", "sdb", "pfib". See examples in `instruments.json`
 - **server**: Optional field. IP address of the microscope PC (#1 on the screenshot above). This is used to connect to MSSQL/PostgreSQL servers on the MPC directly.
 
 Security Configuration
