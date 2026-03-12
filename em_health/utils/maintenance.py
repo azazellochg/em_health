@@ -43,19 +43,19 @@ def chdir_docker_dir() -> None:
     os.chdir(package_root)
 
 
-def get_ts_version(dbname: str) -> str:
+def get_ts_version() -> str:
     """Retrieve TimescaleDB extension version from a running container."""
     result = run_command(
-        f"{MANAGER} exec {PG_CONTAINER} psql -d {dbname} -t -c "
+        f"{MANAGER} exec {PG_CONTAINER} psql -d tem -t -c "
         "\"SELECT extversion FROM pg_extension WHERE extname='timescaledb';\"",
         capture_output=True)
     return result.stdout.strip()
 
 
-def get_pg_version(dbname: str) -> str:
+def get_pg_version() -> str:
     """Retrieve Postgres version from a running container."""
     result = run_command(
-        f"{MANAGER} exec {PG_CONTAINER} psql -d {dbname} -t -c "
+        f"{MANAGER} exec {PG_CONTAINER} psql -d tem -t -c "
         "\"SELECT current_setting('server_version_num');\"",
         capture_output=True)
     return result.stdout.strip()
@@ -65,8 +65,8 @@ def check_versions(fn: Path):
     pg_version = fn.name.split("_")[2]
     ts_version = fn.name.split("_")[3]
 
-    pg_version_server = get_pg_version("tem")
-    ts_version_server = get_ts_version("tem")
+    pg_version_server = get_pg_version()
+    ts_version_server = get_ts_version()
 
     if pg_version != pg_version_server:
         print("Check migration documentation at https://em-health.readthedocs.io")
@@ -96,8 +96,8 @@ psql -d tem -c \\"CREATE EXTENSION IF NOT EXISTS timescaledb{version_clause} CAS
 def backup(dbname: str = "tem") -> tuple[Path, Path]:
     """Backup TimescaleDB and Grafana."""
     timestamp = datetime.now().strftime("%d%m%Y_%H%M%S")
-    ts_version = get_ts_version(dbname)
-    pg_version = get_pg_version(dbname)
+    ts_version = get_ts_version()
+    pg_version = get_pg_version()
 
     pg_backup = Path("/backups") / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
     pg_host_backup = BACKUP_HOST_PATH / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
@@ -139,6 +139,9 @@ def restore(dbname: str, backup_file: Path) -> None:
 
     else:
         # TimescaleDB restore
+        if backup_file.name.split("_")[1] != dbname:
+            raise ValueError("Target database name does not match the backup")
+
         check_versions(backup_file)
         ts_version = backup_file.name.split("_")[3]
         logger.info("Restoring TimescaleDB %s '%s' from %s", ts_version, dbname, backup_file)
@@ -155,21 +158,21 @@ psql -d {dbname} -c \\"SELECT timescaledb_post_restore(); ANALYZE;\\""
     logger.info("Restore completed")
 
 
-def update() -> None:
+def update(dbname: str) -> None:
     """Update everything."""
     # migrate db schema
     from em_health.db_manager import main as db_manager
-    db_manager("tem", "migrate")
+    db_manager(dbname, "migrate")
 
     # update extensions if possible
     run_command(
-        f'{MANAGER} exec {PG_CONTAINER} psql -X -d tem -c "ALTER EXTENSION timescaledb UPDATE; '
+        f'{MANAGER} exec {PG_CONTAINER} psql -X -d {dbname} -c "ALTER EXTENSION timescaledb UPDATE; '
         'ALTER EXTENSION timescaledb_toolkit UPDATE;"'
         'ALTER EXTENSION tds_fdw UPDATE;"'
     )
 
     # backup db
-    pg_backup, grafana_backup = backup("tem")
+    pg_backup, grafana_backup = backup(dbname)
 
     # update containers
     chdir_docker_dir()
@@ -182,8 +185,8 @@ def update() -> None:
         run_command(cmd)
 
     # restore backups
-    restore("tem", pg_backup)
-    restore("tem", grafana_backup)
+    restore(dbname, pg_backup)
+    restore(dbname, grafana_backup)
 
     logger.info("Finished updating")
 
@@ -191,7 +194,7 @@ def update() -> None:
 def main(dbname: str, action: str) -> None:
     """Run update/backup/restore interactively."""
     if action == "update":
-        update()
+        update(dbname)
 
     elif action == "backup":
         backup(dbname)

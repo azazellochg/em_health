@@ -20,28 +20,28 @@ Typical Setup
 
 1. Windows PC (microscope or support) with:
 
-   - Health Monitor client
-   - Scheduled task for continuous data export to a location shared with Linux PC
+- Health Monitor client
+- Scheduled task for continuous data export to a location shared with Linux PC
 
 .. tip:: A single Health Monitor client (e.g. on a support PC) can connect to different microscopes if they are all on the same network.
    
 2. Linux PC running ``EMHealth`` with:
 
-   - Access to the shared directory with exported files
-   - Watchdog service monitoring modified XML files
-   - Automatic data import pipeline
+- Access to the shared directory with exported files
+- Watchdog service monitoring modified XML files
+- Automatic data import pipeline
 
 Prerequisites
 ^^^^^^^^^^^^^
 
 Supported systems:
 
-    - TEM Glacios
-    - TEM Titan Krios G1, G2, G3i, G4
-    - TEM Tundra
-    - SDB Scios
-    - SDB Aquilos 2+
-    - pFIB Arctis
+- TEM Glacios
+- TEM Titan Krios G1, G2, G3i, G4
+- TEM Tundra
+- SDB Scios
+- SDB Aquilos 2+
+- pFIB Arctis
 
 Requirements for ``EMHealth`` package:
 
@@ -131,7 +131,7 @@ Post-Import Steps
 
    .. code-block::
 
-       emhealth db create-stats
+       emhealth db -d tem create-stats
 
 2. Access Grafana dashboards at http://localhost:3000
 

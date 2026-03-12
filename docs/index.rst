@@ -9,7 +9,7 @@ interactive Grafana dashboards, it helps you easily analyze and understand your 
 
 .. image:: /_static/dash-overview.png
 
-.. important:: The package is still in alpha version, not recommended for production use.
+.. important:: The package is still in active development, not recommended for production use.
 
 .. image:: https://img.shields.io/pypi/v/em_health.svg
         :target: https://pypi.python.org/pypi/em_health

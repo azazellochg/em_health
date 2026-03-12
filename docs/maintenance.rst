@@ -43,7 +43,7 @@ which can be used to restore the database between different PostgreSQL versions.
 
 .. code-block::
 
-    emhealth db backup
+    emhealth db -d tem backup
 
 ----
 
@@ -54,7 +54,7 @@ You can restore either TimescaleDB or Grafana database from a backup file.
 
 .. code-block::
 
-    emhealth db restore
+    emhealth db -d tem restore
 
 Updating
 --------
@@ -62,7 +62,7 @@ Updating
 Due to Timescale extension, updating the database might get complicated, we recommend the procedure below:
 
 1. Run `pip install -U em_health`. This will update the python package and current schema version
-2. Run `emhealth update`. The script will try to:
+2. Run `emhealth update`. For each database, the script will try to:
 
     * migrate the current db schema to the latest version
     * do the full backup

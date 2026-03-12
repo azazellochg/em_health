@@ -5,9 +5,7 @@ This section describes ``EMHealth`` commands available through the command-line 
 
 .. code::
 
-    emhealth [-d DATABASE] COMMAND arg1 arg2 ...
-
-The default database is `tem`.
+    emhealth COMMAND arg1 arg2 ...
 
 Main Tasks
 ----------
@@ -82,7 +80,7 @@ Syntax
 
 .. code-block::
 
-    emhealth -d tem db create-stats
+    emhealth db -d tem create-stats
 
 ----
 
@@ -100,7 +98,7 @@ Syntax
 
 .. code-block::
 
-    emhealth db clean-inst -i 3299 [--date DATE]
+    emhealth db -d tem clean-inst -i 3299 [--date DATE]
 
 
 Maintenance Tasks
@@ -112,7 +110,7 @@ Update EMHealth
 Description
 ^^^^^^^^^^^
 
-Make sure to run `pip install -U em_health` before running this command. The update script will migrate the database schema to the latest
+Make sure to run `pip install -U em_health` before running this command. The update script will migrate the databases schema to the latest
 version and update container images.
 
 Syntax
@@ -137,7 +135,7 @@ Syntax
 
 .. code-block::
 
-    emhealth db migrate
+    emhealth db -d tem migrate
 
 ----
 
@@ -154,7 +152,7 @@ Syntax
 
 .. code-block::
 
-    emhealth db backup
+    emhealth db -d tem backup
 
 ----
 
@@ -171,7 +169,7 @@ Syntax
 
 .. code-block::
 
-    emhealth db restore
+    emhealth db -d tem restore
 
 ----
 
@@ -209,7 +207,7 @@ Syntax
 
 .. code-block::
 
-    emhealth db create-perf-stats [-f]
+    emhealth db -d tem create-perf-stats [-f]
 
 Execute queries
 ~~~~~~~~~~~~~~~

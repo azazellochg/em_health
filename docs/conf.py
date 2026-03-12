@@ -7,7 +7,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'EMHealth'
-copyright = '2023-2025, Grigory Sharov'
+copyright = '2023-2026, Grigory Sharov'
 author = 'Grigory Sharov'
 
 # The full version, including alpha/beta/rc tags
