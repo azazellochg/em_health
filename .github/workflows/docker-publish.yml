@@ -35,8 +35,8 @@ jobs:
           file: docker/Dockerfile
           push: true
           tags: |
-            ${{ env.IMAGE_NAME }}:dev
             ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:0.1a4
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max

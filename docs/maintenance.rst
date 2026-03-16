@@ -69,3 +69,5 @@ Due to Timescale extension, updating the database might get complicated, we reco
     * pull the latest container images which may contain newer PostgreSQL / Timescale / Grafana versions
     * restore PostgreSQL and Grafana db from the backup
     * upgrade Timescale extension
+
+3. Update historical stats: `emhealth db -d tem create-stats`
