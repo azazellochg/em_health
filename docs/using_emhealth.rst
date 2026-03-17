@@ -142,7 +142,7 @@ as well as the *server* field for each instrument in the `instruments.json`.
 
 .. code-block::
 
-    emhealth db import-uec
+    emhealth db -d tem import-uec
 
 Alerting
 --------

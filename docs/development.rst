@@ -74,7 +74,7 @@ All ``EMHealth`` application actions are saved into `emhealth.log`. PostgreSQL l
 
 .. code-block::
 
-    docker exec -it postgres timescaledb bash
+    docker exec -it timescaledb bash
     cd /var/lib/postgresql/data/log
     cat *.csv
 

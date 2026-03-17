@@ -42,7 +42,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH target_instrument AS (\n  SELECT id, name\n  FROM instruments\n  WHERE id IN ($instrument)\n)\n\nSELECT\n  o.start_time AS time,\n  o.end_time AS timeEnd,\n  t.name || ' OFF' AS title,\n  'TEM server offline' AS text\nFROM tem_off o\nJOIN target_instrument t\n  ON o.instrument_id = t.id\n",
+          "rawSql": "WITH target_instrument AS (\n  SELECT id, name\n  FROM instruments\n  WHERE id IN ($instrument)\n)\n\nSELECT\n  o.start_time AS time,\n  o.end_time AS timeEnd,\n  t.name || ' OFF' AS title,\n  'TEM server offline' AS text\nFROM em_off o\nJOIN target_instrument t\n  ON o.instrument_id = t.id\n",
           "refId": "Anno",
           "sql": {
             "columns": [
@@ -110,7 +110,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 13,
+  "id": 170,
   "links": [
     {
       "asDropdown": true,
@@ -198,10 +198,10 @@
         "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "mean"
           ],
-          "fields": "",
-          "values": true
+          "fields": "/^total_duration$/",
+          "values": false
         },
         "showPercentChange": false,
         "textMode": "value",
@@ -216,9 +216,10 @@
           },
           "editorMode": "code",
           "format": "table",
+          "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'CryoCycles'\n    AND param_name = 'ColumnCryoCycleDuration'\n),\nvalue_data AS (\n  SELECT\n    v.time,\n    v.value_num,\n    LAG(v.value_num) OVER (\n      ORDER BY\n        v.time\n    ) AS prev_value\n  FROM\n    data v\n    JOIN matching_param p ON v.param_id = p.param_id\n  WHERE\n    v.instrument_id = $instrument\n    AND $__timeFilter(v.time)\n),\nresets AS (\n  SELECT\n    time,\n    prev_value\n  FROM\n    value_data\n  WHERE\n    value_num = 0\n    AND prev_value IS NOT NULL\n    AND prev_value > 0\n)\nSELECT\n  AVG(prev_value) AS avg_max_before_reset\nFROM\n  resets",
-          "refId": "A",
+          "rawSql": "    SELECT\n        start_time,\n        end_time,\n        EXTRACT(EPOCH FROM(end_time - start_time)) AS total_duration\n    FROM tem_cryocycle_daily,\n        state_periods(agg, 1) -- boolean = 1 states\n    WHERE instrument_id = $instrument\n      AND param_name = 'Column'\n      AND $__timeFilter(day)\n",
+          "refId": "B",
           "sql": {
             "columns": [
               {
@@ -299,7 +300,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'TempCtrl'\n    AND param_name = 'Lcldwr'\n),\n\nbucketed AS (\n  SELECT\n    time_bucket('30 seconds', v.time) AS bucket,\n    AVG(v.value_num) AS avg_value\n  FROM data v\n  JOIN matching_param p ON v.param_id = p.param_id\n  WHERE v.instrument_id = $instrument\n    AND $__timeFilter(v.time)\n  GROUP BY bucket\n),\n\nlagged AS (\n  SELECT\n    bucket,\n    avg_value,\n    LAG(avg_value, 1) OVER (ORDER BY bucket) AS val_1,\n    LAG(avg_value, 2) OVER (ORDER BY bucket) AS val_2,\n    LAG(avg_value, 3) OVER (ORDER BY bucket) AS val_3\n  FROM bucketed\n),\n\nlabeled AS (\n  SELECT *,\n    CASE\n      -- Rule 1: threshold crossing (for sparse data / sudden jump)\n      WHEN avg_value > 90 AND (val_1 < 90 OR val_1 IS NULL) THEN true\n\n      -- Rule 2: local maximum compared to neighbors (for dense data)\n      WHEN avg_value >= COALESCE(val_1, -1e9)\n       AND avg_value >= COALESCE(val_2, -1e9)\n       AND avg_value >= COALESCE(val_3, -1e9)\n       AND avg_value > 90\n      THEN true\n\n      ELSE false\n    END AS is_peak\n  FROM lagged\n),\n\nwith_peak_groups AS (\n  SELECT *,\n    CASE\n      WHEN is_peak AND NOT LAG(is_peak, 1, false) OVER (ORDER BY bucket) THEN 1\n      ELSE 0\n    END AS new_peak_start\n  FROM labeled\n),\n\npeak_groups AS (\n  SELECT *,\n    SUM(new_peak_start) OVER (ORDER BY bucket) AS peak_group_id\n  FROM with_peak_groups\n),\n\nranked_peaks AS (\n  SELECT\n    bucket AS time,\n    avg_value,\n    peak_group_id,\n    RANK() OVER (PARTITION BY peak_group_id ORDER BY avg_value DESC) AS val_rank\n  FROM peak_groups\n  WHERE is_peak\n),\n\ncollapsed_peaks AS (\n  SELECT\n    time\n  FROM ranked_peaks\n  WHERE val_rank = 1\n),\n\nwith_deltas AS (\n  SELECT\n    time,\n    LAG(time) OVER (ORDER BY time) AS prev_time\n  FROM collapsed_peaks\n),\n\ndeltas AS (\n  SELECT\n    EXTRACT(EPOCH FROM (time - prev_time)) AS sec_between\n  FROM with_deltas\n  WHERE prev_time IS NOT NULL\n)\n\nSELECT AVG(sec_between) AS avg_sec_between_refills\nFROM deltas;\n",
+          "rawSql": "WITH matching_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'TempCtrl'\n    AND param_name = 'Lcldwr'\n),\n\nbucketed AS (\n  SELECT\n    time_bucket('30 seconds', d.time) AS bucket,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN matching_param p ON d.param_id = p.param_id\n  WHERE d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n  GROUP BY bucket\n),\n\nlagged AS (\n  SELECT\n    bucket,\n    avg_value,\n    LAG(avg_value, 1) OVER (ORDER BY bucket) AS val_1,\n    LAG(avg_value, 2) OVER (ORDER BY bucket) AS val_2,\n    LAG(avg_value, 3) OVER (ORDER BY bucket) AS val_3\n  FROM bucketed\n),\n\nlabeled AS (\n  SELECT *,\n    CASE\n      WHEN avg_value > 90 AND (val_1 < 90 OR val_1 IS NULL) THEN true\n      WHEN avg_value >= COALESCE(val_1, -1e9)\n       AND avg_value >= COALESCE(val_2, -1e9)\n       AND avg_value >= COALESCE(val_3, -1e9)\n       AND avg_value > 90 THEN true\n      ELSE false\n    END AS is_peak\n  FROM lagged\n),\n\nwith_peak_groups AS (\n  SELECT *,\n    CASE\n      WHEN is_peak AND NOT LAG(is_peak, 1, false) OVER (ORDER BY bucket) THEN 1\n      ELSE 0\n    END AS new_peak_start\n  FROM labeled\n),\n\npeak_groups AS (\n  SELECT *,\n    SUM(new_peak_start) OVER (ORDER BY bucket) AS peak_group_id\n  FROM with_peak_groups\n),\n\nranked_peaks AS (\n  SELECT\n    bucket AS time,\n    avg_value,\n    peak_group_id,\n    RANK() OVER (PARTITION BY peak_group_id ORDER BY avg_value DESC) AS val_rank\n  FROM peak_groups\n  WHERE is_peak\n),\n\ncollapsed_peaks AS (\n  SELECT time\n  FROM ranked_peaks\n  WHERE val_rank = 1\n),\n\nwith_deltas AS (\n  SELECT\n    time,\n    LAG(time) OVER (ORDER BY time) AS prev_time\n  FROM collapsed_peaks\n),\n\ndeltas AS (\n  SELECT\n    EXTRACT(EPOCH FROM (time - prev_time)) AS sec_between\n  FROM with_deltas\n  WHERE prev_time IS NOT NULL\n)\n\nSELECT AVG(sec_between) AS avg_sec_between_refills\nFROM deltas;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1294,7 +1295,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'IGPcl'\n    AND param_name = 'IGPclPressure'\n),\n\ndaily_avg AS (\n  SELECT\n    time_bucket('1 day', d.time) AS day,\n    p.param_name,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    AND d.value_num > 0\n  GROUP BY day, p.param_name\n)\n\nSELECT\n  day AS time,\n  param_name,\n  avg_value AS \"24-hour average\",\n  AVG(avg_value) OVER (\n    PARTITION BY param_name\n    ORDER BY day\n    ROWS BETWEEN 27 PRECEDING AND CURRENT ROW\n  ) AS \"4-week average\"\nFROM daily_avg\nORDER BY day, param_name;\n",
+          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'IGPcl'\n    AND param_name = 'IGPclPressure'\n),\n\nhourly_avg AS (\n  SELECT\n    time_bucket('1h', d.time) AS hour,\n    p.param_name,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    AND d.value_num > 0\n  GROUP BY hour, p.param_name\n)\n\nSELECT\n  hour AS time,\n  param_name,\n  avg_value AS \"1-hour average\",\n  AVG(avg_value) OVER (\n    PARTITION BY param_name\n    ORDER BY hour\n    ROWS BETWEEN 23 PRECEDING AND CURRENT ROW\n  ) AS \"24-hour average\"\nFROM hourly_avg\nORDER BY hour, param_name;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1627,7 +1628,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'IGPco'\n    AND param_name = 'IGPcoPressure'\n),\n\ndaily_avg AS (\n  SELECT\n    time_bucket('1 day', d.time) AS day,\n    p.param_name,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    AND d.value_num > 0\n  GROUP BY day, p.param_name\n)\n\nSELECT\n  day AS time,\n  param_name,\n  avg_value AS \"24-hour average\",\n  AVG(avg_value) OVER (\n    PARTITION BY param_name\n    ORDER BY day\n    ROWS BETWEEN 27 PRECEDING AND CURRENT ROW\n  ) AS \"4-week average\"\nFROM daily_avg\nORDER BY day, param_name;\n",
+          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'IGPco'\n    AND param_name = 'IGPcoPressure'\n),\n\nhourly_avg AS (\n  SELECT\n    time_bucket('1h', d.time) AS hour,\n    p.param_name,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    AND d.value_num > 0\n  GROUP BY hour, p.param_name\n)\n\nSELECT\n  hour AS time,\n  param_name,\n  avg_value AS \"1-hour average\",\n  AVG(avg_value) OVER (\n    PARTITION BY param_name\n    ORDER BY hour\n    ROWS BETWEEN 23 PRECEDING AND CURRENT ROW\n  ) AS \"24-hour average\"\nFROM hourly_avg\nORDER BY hour, param_name;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1653,7 +1654,7 @@
         {
           "id": "renameByRegex",
           "options": {
-            "regex": "(.*) IGPclPressure",
+            "regex": "(.*) IGPcoPressure",
             "renamePattern": "$1"
           }
         }
@@ -1932,8 +1933,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Glacios [Glacios] (9952833)",
-          "value": "10"
+          "text": "Krios 4 [Titan Krios G4] (4248)",
+          "value": "4"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -1960,5 +1961,5 @@
   "timezone": "Europe/London",
   "title": "Module | Column",
   "uid": "4395e67b-0345-47fd-94a8-684533567800",
-  "version": 6
+  "version": 2
 }

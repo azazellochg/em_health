@@ -21,7 +21,8 @@ dependencies = [
     'psycopg[binary]',
     'watchdog',
     'python-dotenv',
-    'requests'
+    'requests',
+    'podman-compose'
 ]
 
 [project.optional-dependencies]

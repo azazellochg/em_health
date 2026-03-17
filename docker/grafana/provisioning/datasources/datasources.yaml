@@ -10,8 +10,8 @@ datasources:
     user: "grafana"
     secureJsonData:
       password: "$POSTGRES_GRAFANA_PASSWORD"
-    database: tem
     jsonData:
+      database: tem
       sslmode: disable
       postgresVersion: 1500
       timescaledb: true
@@ -25,8 +25,8 @@ datasources:
     user: "grafana"
     secureJsonData:
       password: "$POSTGRES_GRAFANA_PASSWORD"
-    database: sem
     jsonData:
+      database: sem
       sslmode: disable
       postgresVersion: 1500
       timescaledb: true

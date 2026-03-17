@@ -86,4 +86,4 @@ BEGIN
         -- 7. Update schema version
         UPDATE public.schema_info SET version = 2;
     END IF;
-END $$;
+END $$

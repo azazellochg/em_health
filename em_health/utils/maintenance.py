@@ -27,9 +27,11 @@
 import os
 from datetime import datetime
 from pathlib import Path
+from packaging.version import Version
 
 from em_health.utils.tools import logger, run_command
 
+MANAGER = os.getenv("MANAGER_TYPE")
 DOCKER_COMPOSE_FILE = "compose.yaml"
 PG_CONTAINER = "timescaledb"
 GRAFANA_CONTAINER = "grafana"
@@ -45,74 +47,75 @@ def chdir_docker_dir() -> None:
 def get_ts_version(dbname: str) -> str:
     """Retrieve TimescaleDB extension version from a running container."""
     result = run_command(
-        f"docker exec {PG_CONTAINER} psql -d {dbname} -t -c "
+        f"{MANAGER} exec {PG_CONTAINER} psql -d {dbname} -t -c "
         "\"SELECT extversion FROM pg_extension WHERE extname='timescaledb';\"",
         capture_output=True)
     return result.stdout.strip()
 
 
-def get_pg_version(dbname: str) -> str:
+def get_pg_version() -> str:
     """Retrieve Postgres version from a running container."""
     result = run_command(
-        f"docker exec {PG_CONTAINER} psql -d {dbname} -t -c "
+        f"{MANAGER} exec {PG_CONTAINER} psql -d tem -t -c "
         "\"SELECT current_setting('server_version_num');\"",
         capture_output=True)
     return result.stdout.strip()
 
-def check_versions(fn: Path):
+def check_versions(dbname: str, fn: Path):
     """Compare backup file with server versions."""
     pg_version = fn.name.split("_")[2]
     ts_version = fn.name.split("_")[3]
 
-    pg_version_server = get_pg_version("tem")
-    ts_version_server = get_ts_version("tem")
+    pg_version_server = get_pg_version()
+    ts_version_server = get_ts_version(dbname)
 
     if pg_version != pg_version_server:
-        print("Check migration documentation at https://em-health.readthedocs.io")
-        raise ValueError(f"Postgres version mismatch: server {pg_version_server}, backup {pg_version}")
+        logger.warning(f"Postgres version mismatch: server {pg_version_server}, backup {pg_version}")
 
     if ts_version != ts_version_server:
-        print("Check migration documentation at https://em-health.readthedocs.io")
-        raise ValueError(f"Timescale version mismatch: server {ts_version_server}, backup {ts_version}")
+        logger.warning(f"Timescale version mismatch: server {ts_version_server} (db {dbname}), backup {ts_version}")
 
 
 def erase_db(dbname: str, ts_version: str | None = None, do_init: bool = False) -> None:
     """Erase existing DB and optionally re-initialize it."""
     version_clause = f" VERSION '{ts_version}'" if ts_version else ""
     cmd = f"""
-docker exec {PG_CONTAINER} bash -c "\
+{MANAGER} exec {PG_CONTAINER} bash -c "\
 psql -d postgres -c \\"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{dbname}';\\" && \
 psql -d postgres -c \\"DROP DATABASE IF EXISTS {dbname};\\" && \
 psql -d postgres -c \\"CREATE DATABASE {dbname};\\" && \
-psql -d tem -c \\"CREATE EXTENSION IF NOT EXISTS timescaledb{version_clause} CASCADE; CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit CASCADE;\\""
+psql -d {dbname} -c \\"CREATE EXTENSION IF NOT EXISTS timescaledb{version_clause} CASCADE; CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit CASCADE;\\""
 """
     run_command(cmd)
 
     if do_init:
-        run_command(f'docker exec {PG_CONTAINER} /docker-entrypoint-initdb.d/init_db.sh')
+        run_command(f'{MANAGER} exec {PG_CONTAINER} /docker-entrypoint-initdb.d/init_db.sh')
 
 
-def backup(dbname: str = "tem") -> tuple[Path, Path]:
+def backup() -> list[Path]:
     """Backup TimescaleDB and Grafana."""
+    outputs = []
     timestamp = datetime.now().strftime("%d%m%Y_%H%M%S")
-    ts_version = get_ts_version(dbname)
-    pg_version = get_pg_version(dbname)
-
-    pg_backup = Path("/backups") / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
-    pg_host_backup = BACKUP_HOST_PATH / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
-    grafana_backup = BACKUP_HOST_PATH / f"grafana_{timestamp}.db"
+    pg_version = get_pg_version()
 
     # TimescaleDB backup
-    logger.info("Backing up TimescaleDB '%s' to %s", dbname, pg_host_backup.resolve())
-    run_command(f"docker exec {PG_CONTAINER} pg_dump -Fc -d {dbname} -f {pg_backup}")
+    for dbname in ["tem", "sem"]:
+        ts_version = get_ts_version(dbname)
+        pg_backup = Path("/backups") / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
+        pg_host_backup = BACKUP_HOST_PATH / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
+        logger.info("Backing up TimescaleDB '%s' to %s", dbname, pg_host_backup.resolve())
+        run_command(f"{MANAGER} exec {PG_CONTAINER} pg_dump -Fc -d {dbname} -f {pg_backup}")
+        outputs.append(pg_backup)
 
     # Grafana backup
+    grafana_backup = BACKUP_HOST_PATH / f"grafana_{timestamp}.db"
     logger.info("Backing up Grafana DB to %s", grafana_backup.resolve())
-    run_command(f"docker stop {GRAFANA_CONTAINER}")
-    run_command(f"docker cp {GRAFANA_CONTAINER}:/var/lib/grafana/grafana.db {grafana_backup}")
-    run_command(f"docker start {GRAFANA_CONTAINER}")
+    run_command(f"{MANAGER} stop {GRAFANA_CONTAINER}")
+    run_command(f"{MANAGER} cp {GRAFANA_CONTAINER}:/var/lib/grafana/grafana.db {grafana_backup}")
+    run_command(f"{MANAGER} start {GRAFANA_CONTAINER}")
+    outputs.append(grafana_backup)
 
-    return pg_backup, grafana_backup
+    return outputs
 
 
 def list_backups() -> list[Path]:
@@ -120,31 +123,34 @@ def list_backups() -> list[Path]:
     return [f for f in BACKUP_HOST_PATH.iterdir() if f.suffix in (".db", ".dump")]
 
 
-def restore(dbname: str, backup_file: Path) -> None:
+def restore(backup_file: Path, update: bool = False) -> None:
     """Restore TimescaleDB or Grafana from a backup file."""
     if backup_file.suffix == ".db":
         # Grafana restore
         logger.info("Restoring Grafana DB from %s", backup_file)
         commands = [
-            f"docker stop {GRAFANA_CONTAINER}",
-            f"docker run --rm -v emhealth_grafana-storage:/var/lib/grafana "
+            f"{MANAGER} stop {GRAFANA_CONTAINER}",
+            f"{MANAGER} run --rm -v emhealth_grafana-storage:/var/lib/grafana "
             f"-v {BACKUP_HOST_PATH}:/backups busybox sh -c '"
             f"cp /backups/{backup_file.name} /var/lib/grafana/grafana.db && "
             "chown 472:root /var/lib/grafana/grafana.db'",
-            f"docker start {GRAFANA_CONTAINER}",
+            f"{MANAGER} start {GRAFANA_CONTAINER}",
         ]
+        if update:
+            commands.append(f"{MANAGER} exec {GRAFANA_CONTAINER} grafana cli plugins update-all")
         for cmd in commands:
             run_command(cmd)
 
     else:
         # TimescaleDB restore
-        check_versions(backup_file)
+        dbname = backup_file.name.split("_")[1]
+        check_versions(dbname, backup_file)
         ts_version = backup_file.name.split("_")[3]
         logger.info("Restoring TimescaleDB %s '%s' from %s", ts_version, dbname, backup_file)
         erase_db(dbname, ts_version, do_init=False)
 
         restore_cmd = f"""
-docker exec {PG_CONTAINER} bash -c "\
+{MANAGER} exec {PG_CONTAINER} bash -c "\
 psql -d {dbname} -c \\"SELECT timescaledb_pre_restore();\\" && \
 pg_restore -Fc -d {dbname} /backups/{backup_file.name} && \
 psql -d {dbname} -c \\"SELECT timescaledb_post_restore(); ANALYZE;\\""
@@ -156,44 +162,59 @@ psql -d {dbname} -c \\"SELECT timescaledb_post_restore(); ANALYZE;\\""
 
 def update() -> None:
     """Update everything."""
+    from em_health import __version__
+    if (Version(__version__) >= Version("0.1a5") and
+            get_pg_version().startswith("17") and
+            get_ts_version("tem") != "2.25.2"):
+        raise ValueError("EMHealth 0.1a5+ does not support PostgreSQL 17. Check updating documentation at https://em-health.readthedocs.io")
+
     # migrate db schema
     from em_health.db_manager import main as db_manager
     db_manager("tem", "migrate")
-
-    # update extensions if possible
-    run_command(
-        f'docker exec {PG_CONTAINER} psql -X -d tem -c "ALTER EXTENSION timescaledb UPDATE; '
-        'ALTER EXTENSION timescaledb_toolkit UPDATE;"'
-        'ALTER EXTENSION tds_fdw UPDATE;"'
-    )
+    db_manager("sem", "migrate")
 
     # backup db
-    pg_backup, grafana_backup = backup("tem")
+    pg_backup_tem, pg_backup_sem, grafana_backup = backup()
 
     # update containers
     chdir_docker_dir()
+
+    if MANAGER == "podman":
+        mgr_cmd = "podman-compose"
+    else:
+        mgr_cmd = f"docker compose"
+
     for cmd in [
-        f"docker compose -f {DOCKER_COMPOSE_FILE} down",
-        f"docker compose -f {DOCKER_COMPOSE_FILE} pull",
-        f"docker compose -f {DOCKER_COMPOSE_FILE} up -d",
-        "docker image prune -f",
+        f"{mgr_cmd} -f {DOCKER_COMPOSE_FILE} down",
+        f"{mgr_cmd} -f {DOCKER_COMPOSE_FILE} pull",
+        f"{mgr_cmd} -f {DOCKER_COMPOSE_FILE} up -d",
+        f"{MANAGER} image prune -f",
     ]:
         run_command(cmd)
 
     # restore backups
-    restore("tem", pg_backup)
-    restore("tem", grafana_backup)
+    restore(pg_backup_tem)
+    restore(pg_backup_sem)
+    # update extensions if possible
+    for dbname in ["tem", "sem"]:
+        run_command(
+            f'{MANAGER} exec {PG_CONTAINER} psql -X -d {dbname} -c "ALTER EXTENSION timescaledb UPDATE;'
+            'ALTER EXTENSION timescaledb_toolkit UPDATE;'
+            'ALTER EXTENSION tds_fdw UPDATE;"'
+        )
+
+    restore(grafana_backup, update=True)
 
     logger.info("Finished updating")
 
 
-def main(dbname: str, action: str) -> None:
+def main(action: str) -> None:
     """Run update/backup/restore interactively."""
     if action == "update":
         update()
 
     elif action == "backup":
-        backup(dbname)
+        backup()
 
     elif action == "restore":
         confirm = input("Restoring will DELETE existing database.\nType YES to continue: ")
@@ -215,4 +236,4 @@ def main(dbname: str, action: str) -> None:
             print("Invalid backup choice.")
             return
 
-        restore(dbname, backups[int(choice) - 1])
+        restore(backups[int(choice) - 1])

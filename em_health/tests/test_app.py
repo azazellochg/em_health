@@ -24,6 +24,7 @@
 # *
 # **************************************************************************
 
+import os
 import os.path
 import unittest
 from datetime import datetime as dt, timezone as tz
@@ -193,7 +194,8 @@ class TestEMHealth(unittest.TestCase):
 
     def test_pgtap(self):
         """ Run database tests with pgTAP. """
-        run_command('docker exec timescaledb bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/*.sql"')
+        MANAGER = os.getenv("MANAGER_TYPE")
+        run_command(f'{MANAGER} exec timescaledb bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/*.sql"')
 
 if __name__ == '__main__':
     unittest.main()

@@ -32,7 +32,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH target_instrument AS (\n  SELECT id, name\n  FROM instruments\n  WHERE id IN ($instrument)\n)\n\nSELECT\n  o.start_time AS time,\n  o.end_time AS timeEnd,\n  t.name || ' OFF' AS title,\n  'TEM server offline' AS text\nFROM tem_off o\nJOIN target_instrument t\n  ON o.instrument_id = t.id\n",
+          "rawSql": "WITH target_instrument AS (\n  SELECT id, name\n  FROM instruments\n  WHERE id IN ($instrument)\n)\n\nSELECT\n  o.start_time AS time,\n  o.end_time AS timeEnd,\n  t.name || ' OFF' AS title,\n  'TEM server offline' AS text\nFROM em_off o\nJOIN target_instrument t\n  ON o.instrument_id = t.id\n",
           "refId": "Anno",
           "sql": {
             "columns": [
@@ -59,7 +59,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 18,
+  "id": 23,
   "links": [],
   "panels": [
     {
@@ -304,7 +304,6 @@
         }
       },
       "pluginVersion": "12.1.0",
-      "repeatDirection": "v",
       "targets": [
         {
           "datasource": {
@@ -578,7 +577,7 @@
         "allowCustomValue": false,
         "current": {
           "text": "Glacios [Glacios] (9952833)",
-          "value": "10"
+          "value": "5"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -653,7 +652,7 @@
         },
         "definition": "SELECT param_id AS __value,\nparam_name AS __text\nFROM parameters\nWHERE instrument_id = $instrument \nAND subsystem = '$subsystem'\nAND component IN (${component:sqlstring})\n",
         "description": "",
-        "includeAll": true,
+        "includeAll": false,
         "multi": true,
         "name": "param",
         "options": [],
@@ -680,7 +679,7 @@
     ]
   },
   "time": {
-    "from": "now-30d",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {
@@ -689,5 +688,5 @@
   "timezone": "Europe/London",
   "title": "Data browser",
   "uid": "bdc45e8d-6118-44ea-89f6-00c573b7016b",
-  "version": 7
+  "version": 3
 }

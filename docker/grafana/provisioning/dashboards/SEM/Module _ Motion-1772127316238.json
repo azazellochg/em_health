@@ -24,7 +24,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 8,
+  "id": 131,
   "links": [
     {
       "asDropdown": true,
@@ -33,7 +33,7 @@
       "keepTime": true,
       "tags": [
         "overview",
-        "tem"
+        "sem"
       ],
       "targetBlank": false,
       "title": "Overviews",
@@ -48,7 +48,7 @@
       "keepTime": true,
       "tags": [
         "module",
-        "tem"
+        "sem"
       ],
       "targetBlank": false,
       "title": "Modules",
@@ -63,7 +63,7 @@
       "keepTime": true,
       "tags": [
         "dev",
-        "tem"
+        "sem"
       ],
       "targetBlank": true,
       "title": "",
@@ -76,7 +76,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
+        "uid": "${sourceSEM}"
       },
       "description": "",
       "fieldConfig": {
@@ -109,7 +109,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "Stage errors"
+                "value": "Stage"
               }
             ]
           },
@@ -121,14 +121,14 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "Aperture errors"
+                "value": "Apertures"
               }
             ]
           }
         ]
       },
       "gridPos": {
-        "h": 9,
+        "h": 4,
         "w": 4,
         "x": 0,
         "y": 0
@@ -138,7 +138,7 @@
         "colorMode": "value",
         "graphMode": "none",
         "justifyMode": "center",
-        "orientation": "auto",
+        "orientation": "vertical",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [],
@@ -154,12 +154,12 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
+            "uid": "${sourceSEM}"
           },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH error_params AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n  AND component IN ('X', 'Y', 'Z', 'A', 'B')\n  AND param_name = 'MoveError'\n  AND subsystem = 'Compustage'\n),\n\nerrors AS (\n  SELECT v.value_num AS error_code\n  FROM data v\n  JOIN error_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n)\nSELECT COUNT(*) AS stage_errors\nFROM errors;\n",
+          "rawSql": "WITH error_params AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n  AND component IN ('X', 'Y', 'Z', 'AT', 'R')\n  AND param_name LIKE '%_ErrorState'\n  AND subsystem IN ('110mmStage', '110mmDcMk1')\n),\n\nerrors AS (\n  SELECT v.value_num AS error_code\n  FROM data v\n  JOIN error_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n    AND v.value_num != 0\n)\nSELECT COUNT(*) AS stage_errors\nFROM errors\n",
           "refId": "stage move errors",
           "sql": {
             "columns": [
@@ -182,13 +182,13 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
+            "uid": "${sourceSEM}"
           },
           "editorMode": "code",
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "-- Combined aperture error counts\nWITH\n-- First error source: MoveError\nerror_params1 AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND component IN ('C1.X', 'C1.Y', 'C2.X', 'C2.Y', 'OBJ.X', 'OBJ.Y', 'SA.X', 'SA.Y')\n    AND param_name = 'MoveError'\n    AND subsystem = 'Apertures'\n),\nerrors1 AS (\n  SELECT 1 AS error\n  FROM data v\n  JOIN error_params1 p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument\n    AND $__timeFilter(v.time)\n),\n\n-- Second error source: *_ErrorState\nerror_params2 AS (\n  SELECT *\n  FROM (VALUES\n    ('AvaC1', 'C1X', 'C1X_ErrorState'),\n    ('AvaC1', 'C1Y', 'C1Y_ErrorState'),\n    ('AvaC2', 'C2X', 'C2X_ErrorState'),\n    ('AvaC2', 'C2Y', 'C2Y_ErrorState'),\n    ('AvaObj', 'OBJX', 'OBJX_ErrorState'),\n    ('AvaObj', 'OBJY', 'OBJY_ErrorState'),\n    ('AvaSA', 'SAX', 'SAX_ErrorState'),\n    ('AvaSA', 'SAY', 'SAY_ErrorState')\n  ) AS t(subsystem, component, param_name)\n),\nmatching_params2 AS (\n  SELECT p.param_id\n  FROM parameters p\n  JOIN error_params2 t\n    ON p.subsystem = t.subsystem AND p.component = t.component AND p.param_name = t.param_name\n  WHERE p.instrument_id = $instrument\n),\nerrors2 AS (\n  SELECT 1 AS error\n  FROM data v\n  JOIN matching_params2 p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument\n    AND $__timeFilter(v.time)\n    AND v.value_num != 0\n)\n\n-- Final result: counts from both\nSELECT\n  (SELECT COUNT(*) FROM errors1) + (SELECT COUNT(*) FROM errors2) AS aperture_errors\n",
+          "rawSql": "WITH error_params1 AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND component IN ('Sem.X', 'Sem.Y', 'Fib.X', 'Fib.Y', 'SEMX', 'SEMY', 'FIBX', 'FIBY')\n    AND param_name LIKE ANY (ARRAY['%RootError','%_ErrorState'])\n    AND subsystem IN ('Apertures', 'AvaFib', 'AvaSem')\n),\nerrors1 AS (\n  SELECT v.value_num AS error_code\n  FROM data v\n  JOIN error_params1 p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument\n    AND $__timeFilter(v.time)\n    AND v.value_num != 0\n)\n\nSELECT COUNT(*) AS aperture_errors\nFROM errors1\n\n",
           "refId": "aperture errors",
           "sql": {
             "columns": [
@@ -209,13 +209,13 @@
           }
         }
       ],
-      "title": "",
+      "title": "Errors",
       "type": "stat"
     },
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
+        "uid": "${sourceSEM}"
       },
       "fieldConfig": {
         "defaults": {
@@ -243,7 +243,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 9,
+        "h": 8,
         "w": 20,
         "x": 4,
         "y": 0
@@ -274,12 +274,13 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
+            "uid": "${sourceSEM}"
           },
           "editorMode": "code",
           "format": "table",
+          "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH matching_params AS (\n  SELECT param_id, component, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND subsystem = 'Compustage'\n    AND param_name = 'MoveError'\n    AND component IN ('X', 'Y', 'Z', 'A', 'B')\n),\n\nerrors AS (\n  SELECT\n    d.time,\n    p.component,\n    d.value_num AS error_code,\n    p.enum_id\n  FROM data d\n  JOIN matching_params p ON d.param_id = p.param_id\n  WHERE d.instrument_id = $instrument \n    AND $__timeFilter(d.time)\n)\n\nSELECT\n  e.time AS \"Time\",\n  'Compustage.' || e.component AS \"Component\",\n  en.member_name AS \"Error\"\nFROM errors e\nLEFT JOIN enum_values en\n ON en.enum_id = e.enum_id\n AND en.value = e.error_code\nORDER BY e.time DESC;\n",
+          "rawSql": "WITH matching_params AS (\n  SELECT param_id, component, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n  AND component IN ('X', 'Y', 'Z', 'AT', 'R')\n  AND param_name LIKE '%_ErrorState'\n  AND subsystem IN ('110mmStage', '110mmDcMk1')\n),\n\nerrors AS (\n  SELECT\n    d.time,\n    p.component,\n    d.value_num AS error_code,\n    p.enum_id\n  FROM data d\n  JOIN matching_params p ON d.param_id = p.param_id\n  WHERE d.instrument_id = $instrument \n    AND $__timeFilter(d.time)\n    AND d.value_num != 0\n)\n\nSELECT\n  e.time AS \"Time\",\n  'Stage.' || e.component AS \"Component\",\n  en.member_name AS \"Error\"\nFROM errors e\nLEFT JOIN enum_values en\n ON en.enum_id = e.enum_id\n AND en.value = e.error_code\nORDER BY e.time DESC;\n",
           "refId": "stage errors",
           "sql": {
             "columns": [
@@ -302,13 +303,13 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
+            "uid": "${sourceSEM}"
           },
           "editorMode": "code",
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH static_error_params AS (\n  SELECT *\n  FROM (VALUES\n    ('AvaC1', 'C1X', 'C1X_ErrorState'),\n    ('AvaC1', 'C1Y', 'C1Y_ErrorState'),\n    ('AvaC2', 'C2X', 'C2X_ErrorState'),\n    ('AvaC2', 'C2Y', 'C2Y_ErrorState'),\n    ('AvaObj', 'OBJX', 'OBJX_ErrorState'),\n    ('AvaObj', 'OBJY', 'OBJY_ErrorState'),\n    ('AvaSA', 'SAX', 'SAX_ErrorState'),\n    ('AvaSA', 'SAY', 'SAY_ErrorState')\n  ) AS t(subsystem, component, param_name)\n),\n\nmatching_params1 AS (\n  SELECT param_id, component, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem = 'Apertures'\n    AND param_name = 'MoveError'\n    AND component IN ('C1.X', 'C1.Y', 'C2.X', 'C2.Y', 'OBJ.X', 'OBJ.Y', 'SA.X', 'SA.Y')\n),\n\nmatching_params2 AS (\n  SELECT p.param_id, p.component, p.enum_id\n  FROM parameters p\n  JOIN static_error_params t\n    ON p.subsystem = t.subsystem\n   AND p.component = t.component\n   AND p.param_name = t.param_name\n  WHERE p.instrument_id = $instrument\n),\n\nall_errors AS (\n  SELECT\n    v.time,\n    p.component,\n    v.value_num AS error_code,\n    p.enum_id\n  FROM data v\n  JOIN matching_params1 p ON v.param_id = p.param_id\n  WHERE v.instrument_id = $instrument\n    AND $__timeFilter(v.time)\n\n  UNION ALL\n\n  SELECT\n    v.time,\n    p.component,\n    v.value_num AS error_code,\n    p.enum_id\n  FROM data v\n  JOIN matching_params2 p ON v.param_id = p.param_id\n  WHERE v.instrument_id = $instrument\n    AND $__timeFilter(v.time)\n    AND v.value_num != 0\n)\n\nSELECT\n  e.time AS \"Time\",\n  'Apertures.' || e.component AS \"Component\",\n  en.member_name AS \"Error\"\nFROM all_errors e\nLEFT JOIN enum_values en\n  ON en.enum_id = e.enum_id\n  AND en.value = e.error_code\nORDER BY e.time DESC;\n",
+          "rawSql": "WITH matching_params1 AS (\n  SELECT param_id, component, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component IN ('Sem.X', 'Sem.Y', 'Fib.X', 'Fib.Y', 'SEMX', 'SEMY', 'FIBX', 'FIBY')\n    AND param_name LIKE ANY (ARRAY['%RootError','%_ErrorState'])\n    AND subsystem IN ('Apertures', 'AvaFib', 'AvaSem')\n),\n\nall_errors AS (\n  SELECT\n    v.time,\n    p.component,\n    v.value_num AS error_code,\n    p.enum_id\n  FROM data v\n  JOIN matching_params1 p ON v.param_id = p.param_id\n  WHERE v.instrument_id = $instrument\n    AND $__timeFilter(v.time)\n    AND v.value_num != 0\n)\n\nSELECT\n  e.time AS \"Time\",\n  'Apertures.' || e.component AS \"Component\",\n  en.member_name AS \"Error\"\nFROM all_errors e\nLEFT JOIN enum_values en\n  ON en.enum_id = e.enum_id\n  AND en.value = e.error_code\nORDER BY e.time DESC\n",
           "refId": "aperture move errors",
           "sql": {
             "columns": [
@@ -351,12 +352,152 @@
       "type": "table"
     },
     {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [],
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "#EAB839",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "stage"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Stage"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "polepiece"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Pole piece"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 4
+      },
+      "id": 45,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "vertical",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": false
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH error_params AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n  AND component = 'Safety'\n  AND param_name = 'TouchAlarmCountParameter'\n  AND subsystem = 'System'\n)\n\nSELECT MAX(v.value_num)-MIN(v.value_num) AS stage\nFROM data v\nJOIN error_params p ON v.param_id = p.param_id\nWHERE instrument_id = $instrument \n  AND $__timeFilter(v.time)\n",
+          "refId": "stage",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH error_params AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n  AND component = 'Safety'\n  AND param_name = 'PolePieceTouchAlarmParameter'\n  AND subsystem = 'System'\n)\n\nSELECT MAX(v.value_num)-MIN(v.value_num) AS polepiece\nFROM data v\nJOIN error_params p ON v.param_id = p.param_id\nWHERE instrument_id = $instrument \n  AND $__timeFilter(v.time)\n",
+          "refId": "polepiece",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Touch alarms",
+      "type": "stat"
+    },
+    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 9
+        "y": 8
       },
       "id": 25,
       "panels": [],
@@ -366,7 +507,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
+        "uid": "${sourceSEM}"
       },
       "description": "",
       "fieldConfig": {
@@ -412,7 +553,7 @@
               },
               {
                 "id": "max",
-                "value": 15
+                "value": 5
               },
               {
                 "id": "thresholds",
@@ -425,11 +566,15 @@
                     },
                     {
                       "color": "yellow",
-                      "value": 12
+                      "value": 4
                     },
                     {
                       "color": "orange",
-                      "value": 14
+                      "value": 4.25
+                    },
+                    {
+                      "color": "red",
+                      "value": 4.5
                     }
                   ]
                 }
@@ -479,7 +624,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Motion Error"
+              "options": "Max Position Error"
             },
             "properties": [
               {
@@ -488,7 +633,7 @@
               },
               {
                 "id": "max",
-                "value": 0.15
+                "value": 0.3
               },
               {
                 "id": "thresholds",
@@ -501,47 +646,7 @@
                     },
                     {
                       "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Position Error"
-            },
-            "properties": [
-              {
-                "id": "min",
-                "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
+                      "value": 0.25
                     }
                   ]
                 }
@@ -554,7 +659,7 @@
         "h": 4,
         "w": 12,
         "x": 0,
-        "y": 10
+        "y": 9
       },
       "id": 22,
       "options": {
@@ -582,13 +687,13 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
+            "uid": "${sourceSEM}"
           },
           "editorMode": "code",
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'X', 'X.MaxControllerOut'),\n    ('Compustage', 'X', 'X.SettlingDuration'),\n    ('Compustage', 'X', 'X.MaxPositionError'),\n    ('Compustage', 'X', 'X.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.MaxControllerOut', 'Max Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Motion Error'),\n    ('X.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;\n",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'X', 'X.ControlOutput'),\n    ('Compustage', 'X', 'X.SettlingDuration'),\n    ('Compustage', 'X', 'X.MaxPositionError'),\n    ('110mmStage', 'X', 'X_MoveStopped_MaxControllerOut'),\n    ('110mmStage', 'X', 'X_MoveStopped_SettlingTime'),\n    ('110mmStage', 'X', 'X_MoveStopped_MaxPositionError'),\n    ('110mmDcMk1', 'X', 'X_MoveStopped_MaxControllerOut'),\n    ('110mmDcMk1', 'X', 'X_MoveStopped_SettlingTime'),\n    ('110mmDcMk1', 'X', 'X_MoveStopped_MaxPositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.ControlOutput', 'Max Controller Output'),\n    ('X_MoveStopped_MaxControllerOut',  'Max Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X_MoveStopped_SettlingTime', 'Settling Duration'),\n    ('X.MaxPositionError', 'Max Position Error'),\n    ('X_MoveStopped_MaxPositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -621,7 +726,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
+        "uid": "${sourceSEM}"
       },
       "description": "",
       "fieldConfig": {
@@ -648,7 +753,7 @@
               }
             ]
           },
-          "unit": "lengthmm"
+          "unit": "degree"
         },
         "overrides": [
           {
@@ -667,7 +772,7 @@
               },
               {
                 "id": "max",
-                "value": 15
+                "value": 10
               },
               {
                 "id": "thresholds",
@@ -680,11 +785,15 @@
                     },
                     {
                       "color": "yellow",
-                      "value": 12
+                      "value": 4.5
                     },
                     {
                       "color": "orange",
-                      "value": 14
+                      "value": 5
+                    },
+                    {
+                      "color": "red",
+                      "value": 5.5
                     }
                   ]
                 }
@@ -734,17 +843,9 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Motion Error"
+              "options": "Max Position Error"
             },
             "properties": [
-              {
-                "id": "min",
-                "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
               {
                 "id": "thresholds",
                 "value": {
@@ -756,47 +857,7 @@
                     },
                     {
                       "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Position Error"
-            },
-            "properties": [
-              {
-                "id": "min",
-                "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
+                      "value": 1
                     }
                   ]
                 }
@@ -809,9 +870,9 @@
         "h": 4,
         "w": 12,
         "x": 12,
-        "y": 10
+        "y": 9
       },
-      "id": 20,
+      "id": 36,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -837,13 +898,13 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
+            "uid": "${sourceSEM}"
           },
           "editorMode": "code",
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'A', 'A.MaxControllerOut'),\n    ('Compustage', 'A', 'A.SettlingDuration'),\n    ('Compustage', 'A', 'A.MaxPositionError'),\n    ('Compustage', 'A', 'A.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('A.MaxControllerOut', 'Max Controller Output'),\n    ('A.SettlingDuration', 'Settling Duration'),\n    ('A.MaxPositionError', 'Motion Error'),\n    ('A.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'A', 'A.ControlOutput'),\n    ('Compustage', 'A', 'A.SettlingDuration'),\n    ('Compustage', 'A', 'A.MaxPositionError'),\n    ('110mmStage', 'AT', 'AT_MoveStopped_MaxControllerOut'),\n    ('110mmStage', 'AT', 'AT_MoveStopped_SettlingTime'),\n    ('110mmStage', 'AT', 'AT_MoveStopped_MaxPositionError'),\n    ('110mmDcMk1', 'AT', 'AT_MoveStopped_MaxControllerOut'),\n    ('110mmDcMk1', 'AT', 'AT_MoveStopped_SettlingTime'),\n    ('110mmDcMk1', 'AT', 'AT_MoveStopped_MaxPositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('A.ControlOutput', 'Max Controller Output'),\n    ('AT_MoveStopped_MaxControllerOut',  'Max Controller Output'),\n    ('A.SettlingDuration', 'Settling Duration'),\n    ('AT_MoveStopped_SettlingTime', 'Settling Duration'),\n    ('A.MaxPositionError', 'Max Position Error'),\n    ('AT_MoveStopped_MaxPositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -864,7 +925,7 @@
           }
         }
       ],
-      "title": "Stage A",
+      "title": "Stage A/AT",
       "transformations": [
         {
           "id": "rowsToFields",
@@ -876,7 +937,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
+        "uid": "${sourceSEM}"
       },
       "description": "",
       "fieldConfig": {
@@ -922,7 +983,7 @@
               },
               {
                 "id": "max",
-                "value": 15
+                "value": 5
               },
               {
                 "id": "thresholds",
@@ -935,11 +996,15 @@
                     },
                     {
                       "color": "yellow",
-                      "value": 12
+                      "value": 3
                     },
                     {
                       "color": "orange",
-                      "value": 14
+                      "value": 3.25
+                    },
+                    {
+                      "color": "red",
+                      "value": 3.5
                     }
                   ]
                 }
@@ -989,7 +1054,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Motion Error"
+              "options": "Max Position Error"
             },
             "properties": [
               {
@@ -998,7 +1063,7 @@
               },
               {
                 "id": "max",
-                "value": 0.15
+                "value": 0.3
               },
               {
                 "id": "thresholds",
@@ -1011,47 +1076,7 @@
                     },
                     {
                       "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Position Error"
-            },
-            "properties": [
-              {
-                "id": "min",
-                "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
+                      "value": 0.25
                     }
                   ]
                 }
@@ -1064,9 +1089,9 @@
         "h": 4,
         "w": 12,
         "x": 0,
-        "y": 14
+        "y": 13
       },
-      "id": 23,
+      "id": 34,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -1092,13 +1117,13 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
+            "uid": "${sourceSEM}"
           },
           "editorMode": "code",
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'Y', 'Y.MaxControllerOut'),\n    ('Compustage', 'Y', 'Y.SettlingDuration'),\n    ('Compustage', 'Y', 'Y.MaxPositionError'),\n    ('Compustage', 'Y', 'Y.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.MaxControllerOut', 'Max Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('Y.MaxPositionError', 'Motion Error'),\n    ('Y.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'Y', 'Y.ControlOutput'),\n    ('Compustage', 'Y', 'Y.SettlingDuration'),\n    ('Compustage', 'Y', 'Y.MaxPositionError'),\n    ('110mmStage', 'Y', 'Y_MoveStopped_MaxControllerOut'),\n    ('110mmStage', 'Y', 'Y_MoveStopped_SettlingTime'),\n    ('110mmStage', 'Y', 'Y_MoveStopped_MaxPositionError'),\n    ('110mmDcMk1', 'Y', 'Y_MoveStopped_MaxControllerOut'),\n    ('110mmDcMk1', 'Y', 'Y_MoveStopped_SettlingTime'),\n    ('110mmDcMk1', 'Y', 'Y_MoveStopped_MaxPositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.ControlOutput', 'Max Controller Output'),\n    ('Y_MoveStopped_MaxControllerOut',  'Max Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('Y_MoveStopped_SettlingTime', 'Settling Duration'),\n    ('Y.MaxPositionError', 'Max Position Error'),\n    ('Y_MoveStopped_MaxPositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1131,7 +1156,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
+        "uid": "${sourceSEM}"
       },
       "description": "",
       "fieldConfig": {
@@ -1158,7 +1183,7 @@
               }
             ]
           },
-          "unit": "lengthmm"
+          "unit": "degree"
         },
         "overrides": [
           {
@@ -1177,7 +1202,7 @@
               },
               {
                 "id": "max",
-                "value": 15
+                "value": 10
               },
               {
                 "id": "thresholds",
@@ -1187,14 +1212,6 @@
                     {
                       "color": "green",
                       "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 12
-                    },
-                    {
-                      "color": "orange",
-                      "value": 14
                     }
                   ]
                 }
@@ -1244,16 +1261,12 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Motion Error"
+              "options": "Max Position Error"
             },
             "properties": [
               {
                 "id": "min",
                 "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
               },
               {
                 "id": "thresholds",
@@ -1266,47 +1279,7 @@
                     },
                     {
                       "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Position Error"
-            },
-            "properties": [
-              {
-                "id": "min",
-                "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
+                      "value": 1
                     }
                   ]
                 }
@@ -1319,9 +1292,9 @@
         "h": 4,
         "w": 12,
         "x": 12,
-        "y": 14
+        "y": 13
       },
-      "id": 21,
+      "id": 37,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -1347,13 +1320,13 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
+            "uid": "${sourceSEM}"
           },
           "editorMode": "code",
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'B', 'B.MaxControllerOut'),\n    ('Compustage', 'B', 'B.SettlingTime'),\n    ('Compustage', 'B', 'B.MaxPositionError'),\n    ('Compustage', 'B', 'B.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('B.MaxControllerOut', 'Max Controller Output'),\n    ('B.SettlingTime', 'Settling Duration'),\n    ('B.MaxPositionError', 'Motion Error'),\n    ('B.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('110mmStage', 'R', 'R_MoveStopped_MaxControllerOut'),\n    ('110mmStage', 'R', 'R_MoveStopped_SettlingTime'),\n    ('110mmStage', 'R', 'R_MoveStopped_MaxPositionError'),\n    ('110mmDcMk1', 'R', 'R_MoveStopped_MaxControllerOut'),\n    ('110mmDcMk1', 'R', 'R_MoveStopped_SettlingTime'),\n    ('110mmDcMk1', 'R', 'R_MoveStopped_MaxPositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('R_MoveStopped_MaxControllerOut',  'Max Controller Output'),\n    ('R_MoveStopped_SettlingTime', 'Settling Duration'),\n    ('R_MoveStopped_MaxPositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1374,7 +1347,7 @@
           }
         }
       ],
-      "title": "Stage B",
+      "title": "Stage R",
       "transformations": [
         {
           "id": "rowsToFields",
@@ -1386,7 +1359,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
+        "uid": "${sourceSEM}"
       },
       "description": "",
       "fieldConfig": {
@@ -1432,7 +1405,7 @@
               },
               {
                 "id": "max",
-                "value": 15
+                "value": 5
               },
               {
                 "id": "thresholds",
@@ -1445,11 +1418,11 @@
                     },
                     {
                       "color": "yellow",
-                      "value": 12
+                      "value": 4
                     },
                     {
                       "color": "orange",
-                      "value": 14
+                      "value": 4.5
                     }
                   ]
                 }
@@ -1499,7 +1472,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Motion Error"
+              "options": "Max Position Error"
             },
             "properties": [
               {
@@ -1508,7 +1481,7 @@
               },
               {
                 "id": "max",
-                "value": 0.15
+                "value": 0.3
               },
               {
                 "id": "thresholds",
@@ -1521,47 +1494,7 @@
                     },
                     {
                       "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Position Error"
-            },
-            "properties": [
-              {
-                "id": "min",
-                "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
+                      "value": 0.25
                     }
                   ]
                 }
@@ -1574,9 +1507,9 @@
         "h": 4,
         "w": 12,
         "x": 0,
-        "y": 18
+        "y": 17
       },
-      "id": 24,
+      "id": 35,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -1602,13 +1535,13 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
+            "uid": "${sourceSEM}"
           },
           "editorMode": "code",
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'Z', 'Z.MaxControllerOut'),\n    ('Compustage', 'Z', 'Z.SettlingDuration'),\n    ('Compustage', 'Z', 'Z.MaxPositionError'),\n    ('Compustage', 'Z', 'Z.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Z.MaxControllerOut', 'Max Controller Output'),\n    ('Z.SettlingDuration', 'Settling Duration'),\n    ('Z.MaxPositionError', 'Motion Error'),\n    ('Z.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Compustage', 'Z', 'Z.ControlOutput'),\n    ('Compustage', 'Z', 'Z.SettlingDuration'),\n    ('Compustage', 'Z', 'Z.MaxPositionError'),\n    ('110mmStage', 'Z', 'Z_MoveStopped_MaxControllerOut'),\n    ('110mmStage', 'Z', 'Z_MoveStopped_SettlingTime'),\n    ('110mmStage', 'Z', 'Z_MoveStopped_MaxPositionError'),\n    ('110mmDcMk1', 'Z', 'Z_MoveStopped_MaxControllerOut'),\n    ('110mmDcMk1', 'Z', 'Z_MoveStopped_SettlingTime'),\n    ('110mmDcMk1', 'Z', 'Z_MoveStopped_MaxPositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Z.ControlOutput', 'Max Controller Output'),\n    ('Z_MoveStopped_MaxControllerOut',  'Max Controller Output'),\n    ('Z.SettlingDuration', 'Settling Duration'),\n    ('Z_MoveStopped_SettlingTime', 'Settling Duration'),\n    ('Z.MaxPositionError', 'Max Position Error'),\n    ('Z_MoveStopped_MaxPositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1644,7 +1577,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 22
+        "y": 21
       },
       "id": 17,
       "panels": [],
@@ -1654,7 +1587,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
+        "uid": "${sourceSEM}"
       },
       "description": "",
       "fieldConfig": {
@@ -1687,7 +1620,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Max Controller Output"
+              "options": "Controller Output"
             },
             "properties": [
               {
@@ -1697,30 +1630,6 @@
               {
                 "id": "min",
                 "value": 0
-              },
-              {
-                "id": "max",
-                "value": 15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 12
-                    },
-                    {
-                      "color": "orange",
-                      "value": 14
-                    }
-                  ]
-                }
               }
             ]
           },
@@ -1741,11 +1650,11 @@
                     },
                     {
                       "color": "yellow",
-                      "value": 0.6
+                      "value": 0.9
                     },
                     {
                       "color": "orange",
-                      "value": 0.8
+                      "value": 1
                     }
                   ]
                 }
@@ -1767,36 +1676,12 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Motion Error"
+              "options": "Max Position Error"
             },
             "properties": [
               {
                 "id": "min",
                 "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
               }
             ]
           },
@@ -1809,30 +1694,6 @@
               {
                 "id": "min",
                 "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
               }
             ]
           }
@@ -1842,7 +1703,7 @@
         "h": 4,
         "w": 12,
         "x": 0,
-        "y": 23
+        "y": 22
       },
       "id": 26,
       "options": {
@@ -1870,13 +1731,13 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
+            "uid": "${sourceSEM}"
           },
           "editorMode": "code",
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'C1.X', 'X.MaxControllerOut'),\n    ('Apertures', 'C1.X', 'X.SettlingDuration'),\n    ('Apertures', 'C1.X', 'X.MaxPositionError'),\n    ('Apertures', 'C1.X', 'X.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.MaxControllerOut', 'Max Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Motion Error'),\n    ('X.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'Sem.X', 'X.ControlOutput'),\n    ('Apertures', 'Sem.X', 'X.SettlingDuration'),\n    ('Apertures', 'Sem.X', 'X.MaxPositionError'),\n    ('AvaSem', 'SEMX', 'SEMX_MoveStopped_SettlingTime'),\n    ('AvaSem', 'SEMX', 'SEMX_MoveStopped_PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.ControlOutput', 'Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Max Position Error'),\n    ('SEMX_MoveStopped_SettlingTime', 'Settling Duration'),\n    ('SEMX_MoveStopped_PositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1897,7 +1758,7 @@
           }
         }
       ],
-      "title": "C1.X",
+      "title": "SEM.X",
       "transformations": [
         {
           "id": "rowsToFields",
@@ -1909,7 +1770,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
+        "uid": "${sourceSEM}"
       },
       "description": "",
       "fieldConfig": {
@@ -1942,7 +1803,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Max Controller Output"
+              "options": "Controller Output"
             },
             "properties": [
               {
@@ -1952,30 +1813,6 @@
               {
                 "id": "min",
                 "value": 0
-              },
-              {
-                "id": "max",
-                "value": 15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 12
-                    },
-                    {
-                      "color": "orange",
-                      "value": 14
-                    }
-                  ]
-                }
               }
             ]
           },
@@ -1996,11 +1833,11 @@
                     },
                     {
                       "color": "yellow",
-                      "value": 0.6
+                      "value": 0.9
                     },
                     {
                       "color": "orange",
-                      "value": 0.8
+                      "value": 1
                     }
                   ]
                 }
@@ -2022,72 +1859,12 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Motion Error"
+              "options": "Max Position Error"
             },
             "properties": [
               {
                 "id": "min",
                 "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Position Error"
-            },
-            "properties": [
-              {
-                "id": "min",
-                "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
               }
             ]
           }
@@ -2097,9 +1874,9 @@
         "h": 4,
         "w": 12,
         "x": 12,
-        "y": 23
+        "y": 22
       },
-      "id": 27,
+      "id": 38,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -2125,13 +1902,13 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
+            "uid": "${sourceSEM}"
           },
           "editorMode": "code",
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'C1.Y', 'Y.MaxControllerOut'),\n    ('Apertures', 'C1.Y', 'Y.SettlingDuration'),\n    ('Apertures', 'C1.Y', 'Y.MaxPositionError'),\n    ('Apertures', 'C1.Y', 'Y.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.MaxControllerOut', 'Max Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('Y.MaxPositionError', 'Motion Error'),\n    ('Y.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'Sem.Y', 'Y.ControlOutput'),\n    ('Apertures', 'Sem.Y', 'Y.SettlingDuration'),\n    ('Apertures', 'Sem.Y', 'X.MaxPositionError'),\n    ('AvaSem', 'SEMY', 'SEMY_MoveStopped_SettlingTime'),\n    ('AvaSem', 'SEMY', 'SEMY_MoveStopped_PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.ControlOutput', 'Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Max Position Error'),\n    ('SEMY_MoveStopped_SettlingTime', 'Settling Duration'),\n    ('SEMY_MoveStopped_PositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -2152,7 +1929,7 @@
           }
         }
       ],
-      "title": "C1.Y",
+      "title": "SEM.Y",
       "transformations": [
         {
           "id": "rowsToFields",
@@ -2164,7 +1941,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
+        "uid": "${sourceSEM}"
       },
       "description": "",
       "fieldConfig": {
@@ -2197,7 +1974,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Max Controller Output"
+              "options": "Controller Output"
             },
             "properties": [
               {
@@ -2207,30 +1984,6 @@
               {
                 "id": "min",
                 "value": 0
-              },
-              {
-                "id": "max",
-                "value": 15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 12
-                    },
-                    {
-                      "color": "orange",
-                      "value": 14
-                    }
-                  ]
-                }
               }
             ]
           },
@@ -2251,11 +2004,11 @@
                     },
                     {
                       "color": "yellow",
-                      "value": 0.6
+                      "value": 0.9
                     },
                     {
                       "color": "orange",
-                      "value": 0.8
+                      "value": 1
                     }
                   ]
                 }
@@ -2277,72 +2030,12 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Motion Error"
+              "options": "Max Position Error"
             },
             "properties": [
               {
                 "id": "min",
                 "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Position Error"
-            },
-            "properties": [
-              {
-                "id": "min",
-                "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
               }
             ]
           }
@@ -2352,9 +2045,9 @@
         "h": 4,
         "w": 12,
         "x": 0,
-        "y": 27
+        "y": 26
       },
-      "id": 28,
+      "id": 39,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -2380,13 +2073,13 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
+            "uid": "${sourceSEM}"
           },
           "editorMode": "code",
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'C2.X', 'X.MaxControllerOut'),\n    ('Apertures', 'C2.X', 'X.SettlingDuration'),\n    ('Apertures', 'C2.X', 'X.MaxPositionError'),\n    ('Apertures', 'C2.X', 'X.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.MaxControllerOut', 'Max Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Motion Error'),\n    ('X.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'Fib.X', 'X.ControlOutput'),\n    ('Apertures', 'Fib.X', 'X.SettlingDuration'),\n    ('Apertures', 'Fib.X', 'X.MaxPositionError'),\n    ('AvaFib', 'FIBX', 'FIBX_MoveStopped_SettlingTime'),\n    ('AvaFib', 'FIBX', 'FIBX_MoveStopped_PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.ControlOutput', 'Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Max Position Error'),\n    ('FIBX_MoveStopped_SettlingTime', 'Settling Duration'),\n    ('FIBX_MoveStopped_PositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -2407,7 +2100,7 @@
           }
         }
       ],
-      "title": "C2.X",
+      "title": "FIB.X",
       "transformations": [
         {
           "id": "rowsToFields",
@@ -2419,7 +2112,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
+        "uid": "${sourceSEM}"
       },
       "description": "",
       "fieldConfig": {
@@ -2452,7 +2145,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Max Controller Output"
+              "options": "Controller Output"
             },
             "properties": [
               {
@@ -2462,30 +2155,6 @@
               {
                 "id": "min",
                 "value": 0
-              },
-              {
-                "id": "max",
-                "value": 15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 12
-                    },
-                    {
-                      "color": "orange",
-                      "value": 14
-                    }
-                  ]
-                }
               }
             ]
           },
@@ -2506,11 +2175,11 @@
                     },
                     {
                       "color": "yellow",
-                      "value": 0.6
+                      "value": 0.9
                     },
                     {
                       "color": "orange",
-                      "value": 0.8
+                      "value": 1
                     }
                   ]
                 }
@@ -2532,72 +2201,12 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Motion Error"
+              "options": "Max Position Error"
             },
             "properties": [
               {
                 "id": "min",
                 "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Position Error"
-            },
-            "properties": [
-              {
-                "id": "min",
-                "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
               }
             ]
           }
@@ -2607,9 +2216,9 @@
         "h": 4,
         "w": 12,
         "x": 12,
-        "y": 27
+        "y": 26
       },
-      "id": 29,
+      "id": 40,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -2635,13 +2244,13 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
+            "uid": "${sourceSEM}"
           },
           "editorMode": "code",
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'C2.Y', 'Y.MaxControllerOut'),\n    ('Apertures', 'C2.Y', 'Y.SettlingDuration'),\n    ('Apertures', 'C2.Y', 'Y.MaxPositionError'),\n    ('Apertures', 'C2.Y', 'Y.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.MaxControllerOut', 'Max Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('Y.MaxPositionError', 'Motion Error'),\n    ('Y.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'Fib.Y', 'Y.ControlOutput'),\n    ('Apertures', 'Fib.Y', 'Y.SettlingDuration'),\n    ('Apertures', 'Fib.Y', 'X.MaxPositionError'),\n    ('AvaFib', 'FIBY', 'FIBY_MoveStopped_SettlingTime'),\n    ('AvaFib', 'FIBY', 'FIBY_MoveStopped_PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.ControlOutput', 'Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Max Position Error'),\n    ('FIBY_MoveStopped_SettlingTime', 'Settling Duration'),\n    ('FIBY_MoveStopped_PositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -2662,7 +2271,7 @@
           }
         }
       ],
-      "title": "C2.Y",
+      "title": "FIB.Y",
       "transformations": [
         {
           "id": "rowsToFields",
@@ -2674,7 +2283,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
+        "uid": "${sourceSEM}"
       },
       "description": "",
       "fieldConfig": {
@@ -2707,7 +2316,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Max Controller Output"
+              "options": "Controller Output"
             },
             "properties": [
               {
@@ -2787,72 +2396,12 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Motion Error"
+              "options": "Max Position Error"
             },
             "properties": [
               {
                 "id": "min",
                 "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Position Error"
-            },
-            "properties": [
-              {
-                "id": "min",
-                "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
               }
             ]
           }
@@ -2862,9 +2411,9 @@
         "h": 4,
         "w": 12,
         "x": 0,
-        "y": 31
+        "y": 30
       },
-      "id": 30,
+      "id": 41,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -2890,13 +2439,13 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
+            "uid": "${sourceSEM}"
           },
           "editorMode": "code",
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'OBJ.X', 'X.MaxControllerOut'),\n    ('Apertures', 'OBJ.X', 'X.SettlingDuration'),\n    ('Apertures', 'OBJ.X', 'X.MaxPositionError'),\n    ('Apertures', 'OBJ.X', 'X.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.MaxControllerOut', 'Max Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Motion Error'),\n    ('X.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'Baa.X', 'X.ControlOutput'),\n    ('Apertures', 'Baa.X', 'X.SettlingDuration'),\n    ('Apertures', 'Baa.X', 'X.MaxPositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.ControlOutput', 'Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -2917,7 +2466,7 @@
           }
         }
       ],
-      "title": "OBJ.X",
+      "title": "BAA.X",
       "transformations": [
         {
           "id": "rowsToFields",
@@ -2929,7 +2478,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
+        "uid": "${sourceSEM}"
       },
       "description": "",
       "fieldConfig": {
@@ -2962,7 +2511,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Max Controller Output"
+              "options": "Controller Output"
             },
             "properties": [
               {
@@ -3042,72 +2591,12 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Motion Error"
+              "options": "Max Position Error"
             },
             "properties": [
               {
                 "id": "min",
                 "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Position Error"
-            },
-            "properties": [
-              {
-                "id": "min",
-                "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
               }
             ]
           }
@@ -3117,9 +2606,9 @@
         "h": 4,
         "w": 12,
         "x": 12,
-        "y": 31
+        "y": 30
       },
-      "id": 31,
+      "id": 42,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -3145,13 +2634,13 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
+            "uid": "${sourceSEM}"
           },
           "editorMode": "code",
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'OBJ.Y', 'Y.MaxControllerOut'),\n    ('Apertures', 'OBJ.Y', 'Y.SettlingDuration'),\n    ('Apertures', 'OBJ.Y', 'Y.MaxPositionError'),\n    ('Apertures', 'OBJ.Y', 'Y.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.MaxControllerOut', 'Max Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('Y.MaxPositionError', 'Motion Error'),\n    ('Y.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'Baa.Y', 'Y.ControlOutput'),\n    ('Apertures', 'Baa.Y', 'Y.SettlingDuration'),\n    ('Apertures', 'Baa.Y', 'X.MaxPositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.ControlOutput', 'Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -3172,7 +2661,7 @@
           }
         }
       ],
-      "title": "OBJ.Y",
+      "title": "BAA.Y",
       "transformations": [
         {
           "id": "rowsToFields",
@@ -3184,7 +2673,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
+        "uid": "${sourceSEM}"
       },
       "description": "",
       "fieldConfig": {
@@ -3217,7 +2706,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Max Controller Output"
+              "options": "Controller Output"
             },
             "properties": [
               {
@@ -3297,72 +2786,12 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Motion Error"
+              "options": "Max Position Error"
             },
             "properties": [
               {
                 "id": "min",
                 "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Position Error"
-            },
-            "properties": [
-              {
-                "id": "min",
-                "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
               }
             ]
           }
@@ -3372,9 +2801,9 @@
         "h": 4,
         "w": 12,
         "x": 0,
-        "y": 35
+        "y": 34
       },
-      "id": 32,
+      "id": 43,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -3400,13 +2829,13 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
+            "uid": "${sourceSEM}"
           },
           "editorMode": "code",
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'SA.X', 'X.MaxControllerOut'),\n    ('Apertures', 'SA.X', 'X.SettlingDuration'),\n    ('Apertures', 'SA.X', 'X.MaxPositionError'),\n    ('Apertures', 'SA.X', 'X.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.MaxControllerOut', 'Max Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Motion Error'),\n    ('X.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'Bda.X', 'X.ControlOutput'),\n    ('Apertures', 'Bda.X', 'X.SettlingDuration'),\n    ('Apertures', 'Bda.X', 'X.MaxPositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.ControlOutput', 'Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -3427,7 +2856,7 @@
           }
         }
       ],
-      "title": "SA.X",
+      "title": "BDA.X",
       "transformations": [
         {
           "id": "rowsToFields",
@@ -3439,7 +2868,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
+        "uid": "${sourceSEM}"
       },
       "description": "",
       "fieldConfig": {
@@ -3472,7 +2901,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Max Controller Output"
+              "options": "Controller Output"
             },
             "properties": [
               {
@@ -3552,72 +2981,12 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Motion Error"
+              "options": "Max Position Error"
             },
             "properties": [
               {
                 "id": "min",
                 "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Position Error"
-            },
-            "properties": [
-              {
-                "id": "min",
-                "value": 0
-              },
-              {
-                "id": "max",
-                "value": 0.15
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 0.08
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.12
-                    }
-                  ]
-                }
               }
             ]
           }
@@ -3627,9 +2996,9 @@
         "h": 4,
         "w": 12,
         "x": 12,
-        "y": 35
+        "y": 34
       },
-      "id": 33,
+      "id": 44,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -3655,13 +3024,13 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
+            "uid": "${sourceSEM}"
           },
           "editorMode": "code",
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'SA.Y', 'Y.MaxControllerOut'),\n    ('Apertures', 'SA.Y', 'Y.SettlingDuration'),\n    ('Apertures', 'SA.Y', 'Y.MaxPositionError'),\n    ('Apertures', 'SA.Y', 'Y.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.MaxControllerOut', 'Max Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('Y.MaxPositionError', 'Motion Error'),\n    ('Y.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
+          "rawSql": "WITH params AS (\n  SELECT subsystem, component, param_name\n  FROM (VALUES\n    ('Apertures', 'Bda.Y', 'Y.ControlOutput'),\n    ('Apertures', 'Bda.Y', 'Y.SettlingDuration'),\n    ('Apertures', 'Bda.Y', 'X.MaxPositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Y.ControlOutput', 'Controller Output'),\n    ('Y.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Max Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.component = t.component\n   AND p.param_name = t.param_name\n   AND p.subsystem = t.subsystem\n  WHERE p.instrument_id = $instrument \n),\n\nraw_values AS (\n  SELECT\n    v.time,\n    p.param_name,\n    v.value_num\n  FROM data v\n  JOIN matching_params p ON v.param_id = p.param_id\n  WHERE instrument_id = $instrument \n    AND $__timeFilter(v.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE \n    WHEN av.param_name ~* 'Position' THEN\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE \n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -3682,7 +3051,7 @@
           }
         }
       ],
-      "title": "SA.Y",
+      "title": "BDA.Y",
       "transformations": [
         {
           "id": "rowsToFields",
@@ -3696,33 +3065,33 @@
   "schemaVersion": 41,
   "tags": [
     "module",
-    "tem"
+    "sem"
   ],
   "templating": {
     "list": [
       {
         "allowCustomValue": false,
         "current": {
-          "text": "tem",
-          "value": "hm-tem"
+          "text": "sem",
+          "value": "hm-sem"
         },
         "hide": 2,
-        "name": "sourceTEM",
+        "name": "sourceSEM",
         "options": [],
         "query": "grafana-postgresql-datasource",
         "refresh": 1,
-        "regex": "/^tem$/",
+        "regex": "/^sem$/",
         "type": "datasource"
       },
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Krios 4 [Titan Krios G4] (4248)",
-          "value": "4"
+          "text": "Aquilos [Aquilos 2+] (9960381)",
+          "value": "1"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
-          "uid": "${sourceTEM}"
+          "uid": "${sourceSEM}"
         },
         "definition": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
         "name": "instrument",
@@ -3770,7 +3139,7 @@
     ]
   },
   "time": {
-    "from": "now-30d",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {
@@ -3778,6 +3147,6 @@
   },
   "timezone": "Europe/London",
   "title": "Module | Motion",
-  "uid": "4395e67b-0280-47fd-94a8-684004567800",
-  "version": 16
+  "uid": "4395e67b-0280-47fd-94a8-684025567800",
+  "version": 1
 }

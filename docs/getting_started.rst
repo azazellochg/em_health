@@ -20,29 +20,36 @@ Typical Setup
 
 1. Windows PC (microscope or support) with:
 
-   - Health Monitor client
-   - Scheduled task for continuous data export to a location shared with Linux PC
+- Health Monitor client
+- Scheduled task for continuous data export to a location shared with Linux PC
 
 .. tip:: A single Health Monitor client (e.g. on a support PC) can connect to different microscopes if they are all on the same network.
    
 2. Linux PC running ``EMHealth`` with:
 
-   - Access to the shared directory with exported files
-   - Watchdog service monitoring modified XML files
-   - Automatic data import pipeline
+- Access to the shared directory with exported files
+- Watchdog service monitoring modified XML files
+- Automatic data import pipeline
 
 Prerequisites
 ^^^^^^^^^^^^^
 
-.. important:: Currently we support Titan Krios and Glacios instruments only.
+Supported systems:
+
+- TEM Glacios
+- TEM Titan Krios G1, G2, G3i, G4
+- TEM Tundra
+- SDB Scios
+- SDB Aquilos 2+
+- pFIB Arctis
 
 Requirements for ``EMHealth`` package:
 
-- `docker <https://docs.docker.com/compose/install/>`_
+- `docker <https://docs.docker.com/compose/install/>`_ or `podman <https://podman.io/docs/installation>`_
 - `psql <https://www.timescale.com/blog/how-to-install-psql-on-mac-ubuntu-debian-windows>`_
 
-The rest is managed by Docker and Conda environment. It's recommended to
-manage Docker as a non-root user, see `details <https://docs.docker.com/engine/install/linux-postinstall/>`_
+The rest is managed by Docker/Podman and Conda environment. It's recommended to
+manage Docker as a non-root user, see `details <https://docs.docker.com/engine/install/linux-postinstall/>`_.
 
 Installation
 ^^^^^^^^^^^^
@@ -63,6 +70,12 @@ Installation
    .. code-block::
 
        docker compose -f docker/compose.yaml up -d
+
+   or if you are running Podman
+
+   .. code-block::
+
+       podman-compose -f docker/compose.yaml up -d
 
 Data Import
 ^^^^^^^^^^^
@@ -118,7 +131,7 @@ Post-Import Steps
 
    .. code-block::
 
-       emhealth db create-stats
+       emhealth db -d tem create-stats
 
 2. Access Grafana dashboards at http://localhost:3000
 

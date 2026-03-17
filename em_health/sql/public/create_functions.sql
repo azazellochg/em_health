@@ -1,8 +1,7 @@
 -- BEFORE INSERT triggers: upsert logic
 
 -- Creating trigger enum_values_upsert_before_insert()
-CREATE OR REPLACE FUNCTION enum_values_upsert_before_insert()
-    RETURNS trigger AS $$
+CREATE OR REPLACE FUNCTION enum_values_upsert_before_insert() RETURNS trigger AS $$
 BEGIN
     IF EXISTS (
         SELECT 1
@@ -19,17 +18,13 @@ BEGIN
         RETURN NEW; -- proceed with insert
     END IF;
 END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER enum_values_upsert_before_insert
-BEFORE INSERT ON public.enum_values
-FOR EACH ROW
-EXECUTE FUNCTION enum_values_upsert_before_insert();
+$$ LANGUAGE plpgsql
+; CREATE TRIGGER enum_values_upsert_before_insert BEFORE INSERT ON public.enum_values FOR EACH ROW EXECUTE FUNCTION enum_values_upsert_before_insert()
+;
 
 
 -- Creating trigger parameters_upsert_before_insert()
-CREATE OR REPLACE FUNCTION parameters_upsert_before_insert()
-RETURNS trigger AS $$
+CREATE OR REPLACE FUNCTION parameters_upsert_before_insert() RETURNS trigger AS $$
 BEGIN
     -- If exists, update instead of insert
     IF EXISTS (
@@ -58,19 +53,15 @@ BEGIN
         RETURN NEW; -- proceed with insert
     END IF;
 END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER parameters_upsert_before_insert
-BEFORE INSERT ON public.parameters
-FOR EACH ROW
-EXECUTE FUNCTION parameters_upsert_before_insert();
+$$ LANGUAGE plpgsql
+; CREATE TRIGGER parameters_upsert_before_insert BEFORE INSERT ON public.parameters FOR EACH ROW EXECUTE FUNCTION parameters_upsert_before_insert()
+;
 
 
 -- AFTER UPDATE triggers: log old values to history
 
 -- Creating trigger enum_values_log_after_update()
-CREATE OR REPLACE FUNCTION enum_values_log_after_update()
-    RETURNS trigger AS $$
+CREATE OR REPLACE FUNCTION enum_values_log_after_update() RETURNS trigger AS $$
 BEGIN
     IF ROW(OLD.*) IS DISTINCT FROM ROW(NEW.*) THEN
         INSERT INTO public.enum_values_history (enum_id, member_name, value)
@@ -80,17 +71,13 @@ BEGIN
 
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER enum_values_log_after_update
-AFTER UPDATE ON public.enum_values
-FOR EACH ROW
-EXECUTE FUNCTION enum_values_log_after_update();
+$$ LANGUAGE plpgsql
+; CREATE TRIGGER enum_values_log_after_update AFTER UPDATE ON public.enum_values FOR EACH ROW EXECUTE FUNCTION enum_values_log_after_update()
+;
 
 
 -- Creating trigger parameters_log_after_update()
-CREATE OR REPLACE FUNCTION parameters_log_after_update()
-RETURNS trigger AS $$
+CREATE OR REPLACE FUNCTION parameters_log_after_update() RETURNS trigger AS $$
 BEGIN
     IF ROW(OLD.*) IS DISTINCT FROM ROW(NEW.*) THEN
         INSERT INTO public.parameters_history (
@@ -109,9 +96,5 @@ BEGIN
 
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER parameters_log_after_update
-AFTER UPDATE ON public.parameters
-FOR EACH ROW
-EXECUTE FUNCTION parameters_log_after_update();
+$$ LANGUAGE plpgsql
+; CREATE TRIGGER parameters_log_after_update AFTER UPDATE ON public.parameters FOR EACH ROW EXECUTE FUNCTION parameters_log_after_update()

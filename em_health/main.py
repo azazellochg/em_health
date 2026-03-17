@@ -65,7 +65,7 @@ def db_cmd(args):
 
     elif action in ["backup", "restore"]:
         from em_health.utils.maintenance import main as func
-        func(dbname, action)
+        func(action)
 
     elif action.startswith("test-"):
         from em_health.tests.test_performance import TestPerformance
@@ -74,7 +74,7 @@ def db_cmd(args):
 
 def update_cmd(args):
     from em_health.utils.maintenance import main as func
-    func(args.database, "update")
+    func("update")
 
 
 def test_cmd(args):
@@ -106,9 +106,6 @@ def main():
         description=f"EMHealth CLI (v{__version__})",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-
-    parser.add_argument("-d", dest="database", default="tem",
-                        help="Database name (default: tem)")
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -144,6 +141,8 @@ def main():
 
     # --- Database maintenance commands ---
     db_parser = subparsers.add_parser("db", help="Database operations")
+    db_parser.add_argument("-d", dest="database", default="tem",
+                           help="Database name (default: tem)")
     db_subparsers = db_parser.add_subparsers(dest="action", required=True)
 
     db_subparsers.add_parser("create-stats", help="Create aggregated statistics")
@@ -187,9 +186,6 @@ def main():
         add_count_arg(db_subparsers.add_parser("test-query", help="Benchmark query execution performance [DEV]"))
 
     args = parser.parse_args()
-
-    if args.database not in ["tem", "sem"]:
-        parser.error("Database name must be 'tem' or 'sem'")
 
     if args.command in COMMAND_DISPATCH:
         COMMAND_DISPATCH[args.command](args)

@@ -2,7 +2,7 @@ name: emhealth
 
 services:
   timescaledb:
-    image: ghcr.io/azazellochg/timescaledb:dev
+    image: ghcr.io/azazellochg/timescaledb:0.1a4
     container_name: timescaledb
     restart: unless-stopped
     env_file:
@@ -20,15 +20,16 @@ services:
     command: >
       postgres
       -c timescaledb.enable_chunk_skipping=on
+      -c timescaledb.enable_cagg_window_functions=true
       -c shared_preload_libraries=timescaledb,pg_stat_statements,auto_explain
       -c pg_stat_statements.max=10000
-      -c pg_stat_statements.track=all
+      -c pg_stat_statements.track=top
       -c pg_stat_statements.track_planning=on
       -c track_io_timing=on
       -c logging_collector=on
       -c log_destination='csvlog'
       -c log_rotation_size=0
-      -c log_rotation_age=24
+      -c log_rotation_age=24h
       -c log_truncate_on_rotation=on
       -c log_filename='postgresql-%Y-%m-%d.log'
       -c log_line_prefix=''
@@ -52,7 +53,7 @@ services:
       retries: 5
 
   renderer:
-    image: grafana/grafana-image-renderer:v4.0.17
+    image: docker.io/grafana/grafana-image-renderer:v5.7.1
     container_name: renderer
     restart: unless-stopped
     ports:
@@ -61,7 +62,7 @@ services:
       - ./image-renderer-config.json:/home/nonroot/config.json
 
   grafana:
-    image: grafana/grafana:12.1.0
+    image: docker.io/grafana/grafana:12.4
     container_name: grafana
     restart: unless-stopped
     ports:
@@ -86,6 +87,7 @@ services:
       GF_RENDERING_CALLBACK_URL: http://grafana:3000/
       GF_RENDERING_RENDERER_TOKEN: "-"
       GF_UNIFIED_ALERTING_SCREENSHOTS_CAPTURE: true # https://grafana.com/docs/grafana/latest/alerting/configure-notifications/template-notifications/images-in-notifications/#configuration
+      GF_USERS_DEFAULT_THEME: system
       EMHEALTH_DEBUG: ${EMHEALTH_DEBUG}
     volumes:
       - grafana-storage:/var/lib/grafana

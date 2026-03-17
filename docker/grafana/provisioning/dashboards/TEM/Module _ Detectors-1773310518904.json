@@ -42,7 +42,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH target_instrument AS (\n  SELECT id, name\n  FROM instruments\n  WHERE id IN ($instrument)\n)\n\nSELECT\n  o.start_time AS time,\n  o.end_time AS timeEnd,\n  t.name || ' OFF' AS title,\n  'TEM server offline' AS text\nFROM tem_off o\nJOIN target_instrument t\n  ON o.instrument_id = t.id\n",
+          "rawSql": "WITH target_instrument AS (\n  SELECT id, name\n  FROM instruments\n  WHERE id IN ($instrument)\n)\n\nSELECT\n  o.start_time AS time,\n  o.end_time AS timeEnd,\n  t.name || ' OFF' AS title,\n  'TEM server offline' AS text\nFROM em_off o\nJOIN target_instrument t\n  ON o.instrument_id = t.id\n",
           "refId": "Anno",
           "sql": {
             "columns": [
@@ -68,7 +68,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 10,
+  "id": 31,
   "links": [
     {
       "asDropdown": true,
@@ -658,7 +658,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "-- Step 1: Get ProductFamily\nWITH family AS (\n  SELECT e.member_name AS family_name\n  FROM data d\n  JOIN parameters p ON d.param_id = p.param_id\n  JOIN enum_values e ON e.enum_id = p.enum_id AND e.value = d.value_num\n  WHERE d.instrument_id = $instrument\n    AND p.instrument_id = $instrument\n    AND p.param_name = 'ProductFamily'\n    AND d.value_num > 0\n  LIMIT 1\n),\n\n-- Step 2: Decide pressure param name\nselected_param_name AS (\n  SELECT CASE\n    WHEN family_name = 'Talos' THEN 'PPmPressure'\n    ELSE 'CCGpPressure'\n  END AS param_name\n  FROM family\n),\n\n-- Step 3: Get param_id for selected pressure parameter\nmatching_param AS (\n  SELECT param_id\n  FROM parameters p\n  JOIN selected_param_name s ON p.param_name = s.param_name\n  WHERE p.instrument_id = $instrument\n)\n\n-- Final: Fetch pressure time series\nSELECT\n  time,\n  value AS pressure\nFROM unnest((\n  SELECT lttb(\n    time,\n    value_num,\n    2 * (($__to - $__from) / $__interval_ms)::int\n  )\n  FROM data\n  WHERE instrument_id = $instrument\n    AND param_id = (SELECT param_id FROM matching_param)\n    AND $__timeFilter(time)\n))\nORDER BY 1;\n",
+          "rawSql": "-- Step 1: Decide pressure param name\nWITH selected_param_name AS (\n  SELECT\n    CASE\n      WHEN template = 'tundra' THEN 'PIRcoPressure'\n      WHEN template = 'talos' THEN 'PPmPressure'\n      ELSE 'CCGpPressure'\n    END AS param_name\n  FROM instruments\n  WHERE id = $instrument\n),\n\n-- Step 3: Get param_id for selected pressure parameter\nmatching_param AS (\n  SELECT param_id\n  FROM parameters p\n  JOIN selected_param_name s ON p.param_name = s.param_name\n  WHERE p.instrument_id = $instrument\n)\n\n-- Final: Fetch pressure time series\nSELECT\n  time,\n  value AS pressure\nFROM unnest((\n  SELECT lttb(\n    time,\n    value_num,\n    2 * (($__to - $__from) / $__interval_ms)::int\n  )\n  FROM data\n  WHERE instrument_id = $instrument\n    AND param_id = (SELECT param_id FROM matching_param)\n    AND $__timeFilter(time)\n))\nORDER BY 1;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -950,8 +950,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Krios 3 [Titan Krios G3i] (3593)",
-          "value": "4"
+          "text": "Tundra [Tundra] (9955700)",
+          "value": "14311"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -969,7 +969,7 @@
     ]
   },
   "time": {
-    "from": "now-30d",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {
@@ -978,5 +978,5 @@
   "timezone": "Europe/London",
   "title": "Module | Detectors",
   "uid": "4395e67b-0280-47fd-94a8-648553f10800",
-  "version": 3
+  "version": 2
 }

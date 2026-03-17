@@ -38,7 +38,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH target_instrument AS (\n  SELECT id, name\n  FROM instruments\n  WHERE id IN ($instrument)\n)\n\nSELECT\n  o.start_time AS time,\n  o.end_time AS timeEnd,\n  t.name || ' OFF' AS title,\n  'TEM server offline' AS text\nFROM tem_off o\nJOIN target_instrument t\n  ON o.instrument_id = t.id\n",
+          "rawSql": "WITH target_instrument AS (\n  SELECT id, name\n  FROM instruments\n  WHERE id IN ($instrument)\n)\n\nSELECT\n  o.start_time AS time,\n  o.end_time AS timeEnd,\n  t.name || ' OFF' AS title,\n  'TEM server offline' AS text\nFROM em_off o\nJOIN target_instrument t\n  ON o.instrument_id = t.id\n",
           "refId": "Anno",
           "sql": {
             "columns": [
@@ -64,7 +64,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 28,
+  "id": 80,
   "links": [
     {
       "asDropdown": true,
@@ -152,6 +152,7 @@
               "type": "value"
             }
           ],
+          "noValue": "1",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -197,7 +198,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH matching_param AS (\n  SELECT\n    component,\n    param_id\n  FROM\n    parameters p\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'Value'\n    AND component = 'Server'\n    AND subsystem = 'Software'\n)\nSELECT\n  v.time,\n  v.value_num\nFROM\n  data v\n  JOIN matching_param p ON v.param_id = p.param_id\nWHERE\n  instrument_id = $instrument\n  AND $__timeFilter(v.time)\nORDER BY\n  v.time\n",
+          "rawSql": "WITH off_events AS (\n  SELECT start_time AS time, 0 AS value\n  FROM em_off\n  WHERE instrument_id = $instrument\n    AND $__timeFilter(start_time)\n)\n\nSELECT * FROM off_events\n\nUNION ALL\n\nSELECT\n  $__timeFrom() AS time,\n  1 AS value\nWHERE NOT EXISTS (SELECT 1 FROM off_events)\n\nORDER BY time;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1117,7 +1118,7 @@
         "allowCustomValue": false,
         "current": {
           "text": "tem",
-          "value": "P1F7BE6908B217B4A"
+          "value": "hm-tem"
         },
         "hide": 2,
         "name": "sourceTEM",
@@ -1130,8 +1131,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Glacios [Glacios] (9952833)",
-          "value": "5"
+          "text": "Krios 4 [Titan Krios G4] (4248)",
+          "value": "4"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -1149,7 +1150,7 @@
     ]
   },
   "time": {
-    "from": "now-30d",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {
@@ -1158,5 +1159,5 @@
   "timezone": "Europe/London",
   "title": "Module | PC Health",
   "uid": "4395e67b-0560-47fd-94a8-684003f10800",
-  "version": 4
+  "version": 3
 }

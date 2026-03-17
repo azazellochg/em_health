@@ -16,7 +16,7 @@
       {
         "datasource": {
           "type": "grafana-postgresql-datasource",
-          "uid": "${sourceTEM}"
+          "uid": "${sourceSEM}"
         },
         "enable": true,
         "filter": {
@@ -30,12 +30,12 @@
         },
         "hide": false,
         "iconColor": "red",
-        "name": "TEM off",
+        "name": "SEM off",
         "target": {
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH target_instrument AS (\n  SELECT id, name\n  FROM instruments\n  WHERE id IN ($instrument)\n)\n\nSELECT\n  o.start_time AS time,\n  o.end_time AS timeEnd,\n  t.name || ' OFF' AS title,\n  'TEM server offline' AS text\nFROM tem_off o\nJOIN target_instrument t\n  ON o.instrument_id = t.id\n",
+          "rawSql": "WITH target_instrument AS (\n  SELECT id, name\n  FROM instruments\n  WHERE id IN ($instrument)\n)\n\nSELECT\n  o.start_time AS time,\n  o.end_time AS timeEnd,\n  t.name || ' OFF' AS title,\n  'SEM server offline' AS text\nFROM em_off o\nJOIN target_instrument t\n  ON o.instrument_id = t.id\n",
           "refId": "Anno",
           "sql": {
             "columns": [
@@ -62,7 +62,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 8,
+  "id": 89,
   "links": [
     {
       "asDropdown": true,
@@ -71,7 +71,7 @@
       "keepTime": true,
       "tags": [
         "overview",
-        "tem"
+        "sem"
       ],
       "targetBlank": false,
       "title": "Overviews",
@@ -86,7 +86,7 @@
       "keepTime": true,
       "tags": [
         "module",
-        "tem"
+        "sem"
       ],
       "targetBlank": false,
       "title": "System modules",
@@ -101,7 +101,7 @@
       "keepTime": true,
       "tags": [
         "dev",
-        "tem"
+        "sem"
       ],
       "targetBlank": true,
       "title": "",
@@ -127,13 +127,13 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
+        "uid": "${sourceSEM}"
       },
-      "description": "Beam time is based on the vacuum state of each instrument",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "fixed"
+            "mode": "palette-classic-by-name"
           },
           "custom": {
             "hideFrom": {
@@ -147,83 +147,7 @@
           "min": 0,
           "unit": "percent"
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "cryocycle"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "blue",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "displayName",
-                "value": "Cryo-cycle"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "open"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "green",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "displayName",
-                "value": "Col.valves open"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "closed"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "orange",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "displayName",
-                "value": "Col.valves closed"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "off"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Offline"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed"
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 6,
@@ -239,8 +163,11 @@
         ],
         "legend": {
           "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "percent"
+          ]
         },
         "pieType": "donut",
         "reduceOptions": {
@@ -256,19 +183,19 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.1.0",
       "repeat": "instrument",
       "repeatDirection": "h",
       "targets": [
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
+            "uid": "${sourceSEM}"
           },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  state,\n  SUM(seconds) AS duration_seconds,\n  ROUND(100.0 * SUM(seconds) / NULLIF(SUM(SUM(seconds)) OVER (), 0), 2) AS percentage\nFROM vacuum_state_daily\nWHERE $__timeFilter(day)\n  AND instrument_id = $instrument\nGROUP BY state\nORDER BY percentage DESC;\n",
+          "rawSql": "WITH combined AS (\n    SELECT day, state, seconds\n    FROM sem_beamtime_daily\n    WHERE instrument_id = $instrument \n    AND $__timeFilter(day)\n\n    UNION ALL\n\n    SELECT\n        day,\n        'Unknown' AS state,\n        GREATEST(86400 - SUM(seconds), 0) AS seconds\n    FROM sem_beamtime_daily\n    WHERE instrument_id = $instrument \n    AND $__timeFilter(day)\n    GROUP BY day\n)\nSELECT\n    state,\n    SUM(seconds) AS duration_seconds,\n    ROUND(100.0 * SUM(seconds) / NULLIF(SUM(SUM(seconds)) OVER (), 0), 2) AS percentage\nFROM combined\nGROUP BY state\nORDER BY percentage DESC\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -301,6 +228,23 @@
               }
             ]
           }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "Unknown": "",
+              "chamber": "Vacuum actions",
+              "cryocycle": "Cryo-cycle",
+              "ebeam": "Electron beam",
+              "flm": "iFLM",
+              "ibeam": "Ion beam",
+              "off": "Offline"
+            }
+          }
         }
       ],
       "type": "piechart"
@@ -315,59 +259,80 @@
       },
       "id": 3,
       "panels": [],
-      "title": "Utilization",
+      "title": "Ion source lifetime",
       "type": "row"
     },
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
+        "uid": "${sourceSEM}"
       },
-      "description": "Average amount of time EPU or Tomo  acquisition is running ",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
-          "decimals": 0,
           "mappings": [],
-          "max": 100,
-          "min": 0,
+          "noValue": "Unknown",
           "thresholds": {
-            "mode": "percentage",
+            "mode": "absolute",
             "steps": [
               {
                 "color": "green",
                 "value": 0
               }
             ]
-          },
-          "unit": "percent"
+          }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Source age"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "hours"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last replacement"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsLocal"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 6,
+        "h": 4,
         "w": 24,
         "x": 0,
         "y": 8
       },
-      "id": 4,
+      "id": 14,
       "maxPerRow": 6,
       "options": {
-        "minVizHeight": 75,
-        "minVizWidth": 75,
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "sum"
-          ],
-          "fields": "",
+          "calcs": [],
+          "fields": "/.*/",
           "values": true
         },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true,
-        "sizing": "auto"
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": false
       },
       "pluginVersion": "12.1.0",
       "repeat": "instrument",
@@ -376,13 +341,13 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
+            "uid": "${sourceSEM}"
           },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "-- Total EPU time\nWITH epu_sum AS (\n  SELECT\n    EXTRACT(EPOCH FROM SUM(running_duration)) AS total_epu_seconds\n  FROM epu_running_daily\n  WHERE instrument_id = $instrument\n    AND $__timeFilter(time)\n),\n\n-- Total Tomo time\ntomo_sum AS (\n  SELECT\n    EXTRACT(EPOCH FROM SUM(running_duration)) AS total_tomo_seconds\n  FROM tomo_running_daily\n  WHERE instrument_id = $instrument\n    AND $__timeFilter(time)\n)\n\n-- Final result\nSELECT\n  ROUND(COALESCE(e.total_epu_seconds, 0) / NULLIF(($__to - $__from) / 1000.0, 0) * 100.0, 2) AS epu_utilization_percent,\n  ROUND(COALESCE(t.total_tomo_seconds, 0) / NULLIF(($__to - $__from) / 1000.0, 0) * 100.0, 2) AS tomo_utilization_percent\nFROM epu_sum e\nCROSS JOIN tomo_sum t;\n",
-          "refId": "uptime",
+          "rawSql": "WITH counter_param AS (\n  SELECT instrument_id, param_id\n  FROM parameters\n  WHERE instrument_id IN ($instrument)\n    AND component = 'FIB'\n    AND param_name IN ('SourceAgeParameter', 'OperatingTimeFIBParameter')\n),\n\nfiltered AS (\n  SELECT\n    d.time,\n    d.value_num AS operate_time,\n    lag(d.value_num) OVER (ORDER BY time) AS prev_value\n  FROM data d\n  JOIN counter_param p USING (instrument_id, param_id)\n),\n\nlast_replacement AS (\n  SELECT time\n  FROM filtered\n  WHERE operate_time < prev_value   -- counter reset\n  ORDER BY time DESC\n  LIMIT 1\n),\n\nlast_value AS (\n  SELECT last(operate_time, time) AS source_age\n  FROM filtered\n)\n\nSELECT\n  lv.source_age / 3600 AS \"Source age\",\n  lr.time AS \"Last replacement\"\nFROM last_value lv\nLEFT JOIN last_replacement lr ON true\n",
+          "refId": "A",
           "sql": {
             "columns": [
               {
@@ -403,21 +368,7 @@
         }
       ],
       "title": "$instrument",
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {},
-            "includeByName": {},
-            "indexByName": {},
-            "renameByName": {
-              "epu_utilization_percent": "EPU",
-              "tomo_utilization_percent": "Tomo"
-            }
-          }
-        }
-      ],
-      "type": "gauge"
+      "type": "stat"
     },
     {
       "collapsed": false,
@@ -425,7 +376,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 14
+        "y": 12
       },
       "id": 12,
       "panels": [],
@@ -435,7 +386,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
+        "uid": "${sourceSEM}"
       },
       "description": "",
       "fieldConfig": {
@@ -466,25 +417,13 @@
         "overrides": [
           {
             "matcher": {
-              "id": "byName",
-              "options": "ColumnCryoCycleDuration"
+              "id": "byFrameRefID",
+              "options": "Aquilos"
             },
             "properties": [
               {
                 "id": "displayName",
-                "value": "column"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "AutoloaderCryoCycleDuration"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "autoloader"
+                "value": "QuickLoader"
               }
             ]
           }
@@ -494,7 +433,7 @@
         "h": 4,
         "w": 24,
         "x": 0,
-        "y": 15
+        "y": 13
       },
       "id": 11,
       "maxPerRow": 6,
@@ -522,13 +461,42 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
+            "uid": "${sourceSEM}"
           },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT param_name, param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND param_name IN ('AutoloaderCryoCycleDuration', 'ColumnCryoCycleDuration')\n)\nSELECT\n  p.param_name,\n  CURRENT_DATE - d.time::date AS days_since_cryocycle_start,\n  d.time AS cryo_start_time\nFROM param_ids p\nJOIN LATERAL (\n  SELECT time\n  FROM data\n  WHERE instrument_id = $instrument\n    AND param_id = p.param_id\n    AND value_num <> 0\n  ORDER BY time DESC\n  LIMIT 1\n) d ON true",
-          "refId": "A",
+          "rawSql": "WITH cryo_cycles AS (\n  SELECT\n    param_name,\n    start_time,\n    end_time\n  FROM sem_cryocycle_al_daily,\n  LATERAL state_periods(agg, 1) -- boolean = 1 where value = CryoCycle\n  WHERE instrument_id = $instrument\n    AND (end_time - start_time) > INTERVAL '0 second'\n  ORDER BY start_time\n)\n\nSELECT\n  DISTINCT ON (param_name) param_name,\n  CURRENT_DATE - start_time :: date AS days_since_cryocycle_start\nFROM cryo_cycles\nORDER BY param_name, start_time DESC\n",
+          "refId": "Arctis",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH cryo_cycles AS (\n    SELECT\n        start_time,\n        end_time\n    FROM sem_cryocycle_noal_daily,\n    LATERAL state_periods(agg, 1) -- boolean state = 1 where value > 0\n    WHERE instrument_id = $instrument\n    ORDER BY start_time\n)\n\nSELECT CURRENT_DATE - start_time::date AS days_since_cryocycle_start\nFROM cryo_cycles\nORDER BY start_time DESC\nLIMIT 1\n",
+          "refId": "Aquilos",
           "sql": {
             "columns": [
               {
@@ -560,6 +528,13 @@
               }
             ]
           }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^(.*)TemperatureState",
+            "renamePattern": "$1"
+          }
         }
       ],
       "type": "stat"
@@ -570,17 +545,114 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 19
+        "y": 17
       },
-      "id": 5,
+      "id": 16,
       "panels": [],
-      "title": "Specimen throughput",
+      "title": "Total GIS usage",
       "type": "row"
     },
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
+        "uid": "${sourceSEM}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "id": 15,
+      "maxPerRow": 6,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": false
+      },
+      "pluginVersion": "12.1.0",
+      "repeat": "instrument",
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n    gis_port,\n    MAX(day) AS last_day,\n    last_val(rollup(agg)) AS gis_usage\nFROM gis_counters_daily\nWHERE instrument_id = $instrument\n AND $__timeFilter(day) \nGROUP BY gis_port",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "$instrument",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "id": 5,
+      "panels": [],
+      "title": "Specimen throughput (Arctis only)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceSEM}"
       },
       "fieldConfig": {
         "defaults": {
@@ -643,7 +715,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 23
       },
       "id": 7,
       "options": {
@@ -664,12 +736,12 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
+            "uid": "${sourceSEM}"
           },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  lcd.day AS time,\n  i.name AS instrument,\n  lcd.daily_cartridge_count AS value\nFROM load_counters_daily lcd\nJOIN instruments i ON i.id = lcd.instrument_id\nWHERE\n  lcd.instrument_id IN ($instrument)\n  AND $__timeFilter(lcd.day)\nORDER BY lcd.day;\n",
+          "rawSql": "SELECT\n  lcd.day AS time,\n  i.name AS instrument,\n  lcd.daily_cartridge_count AS value\nFROM load_counters_daily lcd\nJOIN instruments i \n  ON i.id = lcd.instrument_id\nWHERE lcd.instrument_id IN ($instrument)\n  AND $__timeFilter(lcd.day)\nORDER BY lcd.day;\n",
           "refId": "counters",
           "sql": {
             "columns": [
@@ -705,7 +777,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
+        "uid": "${sourceSEM}"
       },
       "fieldConfig": {
         "defaults": {
@@ -768,7 +840,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 30
       },
       "id": 9,
       "options": {
@@ -789,12 +861,12 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
+            "uid": "${sourceSEM}"
           },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  lcd.day AS time,\n  i.name AS instrument,\n  lcd.daily_cassette_count AS value\nFROM load_counters_daily lcd\nJOIN instruments i ON lcd.instrument_id = i.id\nWHERE\n  lcd.instrument_id IN ($instrument)\n  AND $__timeFilter(lcd.day)\nORDER BY lcd.day;\n",
+          "rawSql": "SELECT\n  lcd.day AS time,\n  i.name AS instrument,\n  lcd.daily_cassette_count AS value\nFROM load_counters_daily lcd\nJOIN instruments i \n  ON lcd.instrument_id = i.id\nWHERE lcd.instrument_id IN ($instrument)\n  AND $__timeFilter(lcd.day)\nORDER BY lcd.day;\n",
           "refId": "counters",
           "sql": {
             "columns": [
@@ -826,280 +898,13 @@
         }
       ],
       "type": "timeseries"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 34
-      },
-      "id": 10,
-      "panels": [],
-      "title": "Data throughput",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
-      },
-      "description": "Only for Falcon cameras",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisGridShow": true,
-            "axisLabel": "Tb",
-            "axisPlacement": "left",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineStyle": {
-              "fill": "solid"
-            },
-            "lineWidth": 2,
-            "pointSize": 10,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "always",
-            "spanNulls": true,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "decimals": 2,
-          "fieldMinMax": false,
-          "mappings": [],
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "yellow",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "dectbytes"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 24,
-        "x": 0,
-        "y": 35
-      },
-      "id": 13,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  dcd.day AS time,\n  i.name AS instrument,\n  SUM(dcd.daily_terabytes) AS value\nFROM data_counters_daily dcd\nJOIN instruments i ON dcd.instrument_id = i.id\nWHERE\n  dcd.instrument_id IN ($instrument)\n  AND $__timeFilter(dcd.day)\nGROUP BY dcd.day, i.name\nORDER BY dcd.day;\n",
-          "refId": "data",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "Offloaded data per day",
-      "transformations": [
-        {
-          "id": "renameByRegex",
-          "options": {
-            "regex": "^value (.+)$",
-            "renamePattern": "$1"
-          }
-        }
-      ],
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${sourceTEM}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisGridShow": true,
-            "axisLabel": "images",
-            "axisPlacement": "left",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineStyle": {
-              "fill": "solid"
-            },
-            "lineWidth": 2,
-            "pointSize": 10,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "always",
-            "spanNulls": true,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "decimals": 0,
-          "fieldMinMax": false,
-          "mappings": [],
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "yellow",
-                "value": 0
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 24,
-        "x": 0,
-        "y": 42
-      },
-      "id": 14,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${sourceTEM}"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  icd.day AS time,\n  i.name AS instrument,\n  SUM(icd.daily_images) AS value\nFROM image_counters_daily icd\nJOIN instruments i ON icd.instrument_id = i.id\nWHERE\n  icd.instrument_id IN ($instrument)\n  AND $__timeFilter(icd.day)\nGROUP BY icd.day, i.name\nORDER BY icd.day;\n",
-          "refId": "uptime",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "Acquisitions per day",
-      "transformations": [
-        {
-          "id": "renameByRegex",
-          "options": {
-            "regex": "^value (.+)$",
-            "renamePattern": "$1"
-          }
-        }
-      ],
-      "type": "timeseries"
     }
   ],
   "preload": false,
   "schemaVersion": 41,
   "tags": [
     "overview",
-    "tem"
+    "sem"
   ],
   "templating": {
     "list": [
@@ -1113,7 +918,7 @@
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
-          "uid": "${sourceTEM}"
+          "uid": "${sourceSEM}"
         },
         "definition": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
         "includeAll": true,
@@ -1129,15 +934,15 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "tem",
-          "value": "hm-tem"
+          "text": "sem",
+          "value": "hm-sem"
         },
         "hide": 2,
-        "name": "sourceTEM",
+        "name": "sourceSEM",
         "options": [],
         "query": "grafana-postgresql-datasource",
         "refresh": 1,
-        "regex": "/^tem$/",
+        "regex": "/^sem$/",
         "type": "datasource"
       }
     ]
@@ -1149,6 +954,6 @@
   "timepicker": {},
   "timezone": "Europe/London",
   "title": "Fleet overview",
-  "uid": "4350492f-ef51-4e3f-a22b-14c55eee6a97",
-  "version": 2
+  "uid": "4350492f-ef51-4e3f-a22b-14c66eee6a97",
+  "version": 3
 }

@@ -409,33 +409,56 @@ class DatabaseManager(PgClient):
 def main(dbname, action, instrument=None, date=None):
     if action == "create-stats":
         logger.info("Running aggregation on database %s", dbname)
-        mviews: dict[str, bool] = {
-            # name: is_cagg
-            "tem_off": False,
-            "vacuum_state_daily": False,
+        mviews = {
+            "tem": {
+                # name: is_cagg
+                "em_off_daily": True,
+                "em_off": False, # depends on em_off_daily
+                "epu_sessions": False,
+                "tomo_sessions": False,
+                "load_counters_daily": True,
+                "data_counters_daily": True,
+                "image_counters_daily": True,
+                "epu_state_daily": True,
+                "tomo_state_daily": True,
+                "tem_cryocycle_daily": True,
 
-            "epu_sessions": False,
-            "tomo_sessions": False,
+                # Depends on em_off
+                "vacuum_state_daily": False,
 
-            "epu_runs": False,
-            "tomo_runs": False,
+                # Depend on *_sessions
+                "epu_runs": False,
+                "epud_runs": False,
+                "tomo_runs": False,
+                "epu_counters": False,
+                "tomo_counters": False,
 
-            "epu_state_daily": True,
-            "tomo_state_daily": True,
+                # Depend on *_state_daily
+                "epu_running_daily": False,
+                "tomo_running_daily": False,
+            },
+            "sem": {
+                "em_off_daily": True,
+                "em_off": False, # depends on em_off_daily
+                "load_counters_daily": True,
+                "fib_baa_counters_daily": True,
+                "fib_bda_counters_daily": True,
+                "gis_counters_daily": True,
+                "fib_beam_daily": True,
+                "sem_beam_daily": True,
+                "flm_beam_daily": True,
+                "sem_cryocycle_al_daily": True,
+                "sem_cryocycle_noal_daily": True,
+                "sem_chamber_state_daily": True,
 
-            "epu_running_daily": False,
-            "tomo_running_daily": False,
+                # Depends on the views above
+                "sem_beamtime_daily": False,
 
-            "epu_counters": False,
-            "tomo_counters": False,
-
-            "load_counters_daily": True,
-            "data_counters_daily": True,
-            "image_counters_daily": True,
+            }
         }
 
         with DatabaseManager(dbname) as db:
-            for mview, is_cagg in mviews.items():
+            for mview, is_cagg in mviews[dbname].items():
                 db.drop_mview(mview)
                 db.create_mview(mview)
                 if is_cagg:

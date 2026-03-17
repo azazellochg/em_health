@@ -1,62 +1,62 @@
-CREATE SCHEMA IF NOT EXISTS uec;
+CREATE SCHEMA IF NOT EXISTS uec
+;
 
 -- Creating uec.device_type
 CREATE TABLE IF NOT EXISTS uec.device_type (
-                                               DeviceTypeID INTEGER PRIMARY KEY,
-                                               IdentifyingName TEXT NOT NULL UNIQUE
-);
+    devicetypeid int PRIMARY KEY,
+    identifyingname text NOT NULL UNIQUE
+)
+;
 
 -- Creating uec.device_instance
 CREATE TABLE IF NOT EXISTS uec.device_instance (
-                                                   DeviceInstanceID INTEGER NOT NULL,
-                                                   DeviceTypeID INTEGER NOT NULL REFERENCES uec.device_type(DeviceTypeID),
-                                                   IdentifyingName TEXT NOT NULL,
-                                                   PRIMARY KEY (DeviceInstanceID, DeviceTypeID),
-                                                   UNIQUE (DeviceTypeID, IdentifyingName)
-);
+    deviceinstanceid int NOT NULL,
+    devicetypeid int NOT NULL REFERENCES uec.device_type (devicetypeid),
+    identifyingname text NOT NULL,
+    PRIMARY KEY (deviceinstanceid, devicetypeid),
+    UNIQUE (devicetypeid, identifyingname)
+)
+;
 
 -- Creating uec.error_code
 CREATE TABLE IF NOT EXISTS uec.error_code (
-                                              DeviceTypeID INTEGER NOT NULL REFERENCES uec.device_type(DeviceTypeID),
-                                              ErrorCodeID INTEGER NOT NULL,
-                                              IdentifyingName TEXT NOT NULL,
-                                              PRIMARY KEY (DeviceTypeID, ErrorCodeID)
-);
+    devicetypeid int NOT NULL REFERENCES uec.device_type (devicetypeid),
+    errorcodeid int NOT NULL,
+    identifyingname text NOT NULL,
+    PRIMARY KEY (devicetypeid, errorcodeid)
+)
+;
 
 -- Creating uec.subsystem
 CREATE TABLE IF NOT EXISTS uec.subsystem (
-                                             SubsystemID INTEGER PRIMARY KEY,
-                                             IdentifyingName TEXT NOT NULL UNIQUE
-);
+    subsystemid int PRIMARY KEY,
+    identifyingname text NOT NULL UNIQUE
+)
+;
 
 -- Creating uec.error_definitions
 CREATE TABLE IF NOT EXISTS uec.error_definitions (
-                                                     ErrorDefinitionID INTEGER PRIMARY KEY,
-                                                     SubsystemID INTEGER NOT NULL REFERENCES uec.subsystem(SubsystemID),
-                                                     DeviceTypeID INTEGER NOT NULL REFERENCES uec.device_type(DeviceTypeID),
-                                                     ErrorCodeID INTEGER NOT NULL,
-                                                     DeviceInstanceID INTEGER NOT NULL,
-                                                     UNIQUE (ErrorCodeID, SubsystemID, DeviceTypeID, DeviceInstanceID),
-                                                     CONSTRAINT fk_error_definitions_device_instance
-                                                         FOREIGN KEY (DeviceInstanceID, DeviceTypeID)
-                                                             REFERENCES uec.device_instance(DeviceInstanceID, DeviceTypeID),
-                                                     CONSTRAINT fk_error_definitions_error_code
-                                                         FOREIGN KEY (DeviceTypeID, ErrorCodeID)
-                                                             REFERENCES uec.error_code(DeviceTypeID, ErrorCodeID)
-);
+    errordefinitionid int PRIMARY KEY,
+    subsystemid int NOT NULL REFERENCES uec.subsystem (subsystemid),
+    devicetypeid int NOT NULL REFERENCES uec.device_type (devicetypeid),
+    errorcodeid int NOT NULL,
+    deviceinstanceid int NOT NULL,
+    UNIQUE (errorcodeid, subsystemid, devicetypeid, deviceinstanceid),
+    CONSTRAINT fk_error_definitions_device_instance FOREIGN KEY (deviceinstanceid, devicetypeid) REFERENCES uec.device_instance (deviceinstanceid, devicetypeid),
+    CONSTRAINT fk_error_definitions_error_code FOREIGN KEY (devicetypeid, errorcodeid) REFERENCES uec.error_code (devicetypeid, errorcodeid)
+)
+;
 
 -- Creating uec.errors
 CREATE TABLE IF NOT EXISTS uec.errors (
-                                          Time TIMESTAMPTZ NOT NULL,
-                                          InstrumentID INTEGER NOT NULL REFERENCES public.instruments(id) ON DELETE CASCADE,
-                                          ErrorID INTEGER NOT NULL REFERENCES uec.error_definitions(ErrorDefinitionID) ON DELETE CASCADE,
-                                          MessageText TEXT,
-                                          UNIQUE (Time, InstrumentID, ErrorID)
-);
-
-GRANT USAGE ON SCHEMA uec TO grafana, emhealth;
-GRANT SELECT ON ALL TABLES IN SCHEMA uec TO grafana;
-ALTER DEFAULT PRIVILEGES IN SCHEMA uec GRANT SELECT ON TABLES TO grafana;
-
-GRANT SELECT, DELETE ON ALL TABLES IN SCHEMA uec TO emhealth;
-ALTER DEFAULT PRIVILEGES IN SCHEMA uec GRANT SELECT, DELETE ON TABLES TO emhealth;
+    time timestamptz NOT NULL,
+    instrumentid int NOT NULL REFERENCES public.instruments (id) ON DELETE CASCADE,
+    errorid int NOT NULL REFERENCES uec.error_definitions (errordefinitionid) ON DELETE CASCADE,
+    messagetext text,
+    UNIQUE (time, instrumentid, errorid)
+)
+; GRANT usage ON SCHEMA uec TO grafana, emhealth
+; GRANT select ON ALL TABLES IN SCHEMA uec TO grafana
+; ALTER DEFAULT PRIVILEGES IN SCHEMA uec GRANT select ON TABLES TO grafana
+; GRANT select, delete ON ALL TABLES IN SCHEMA uec TO emhealth
+; ALTER DEFAULT PRIVILEGES IN SCHEMA uec GRANT select, delete ON TABLES TO emhealth
