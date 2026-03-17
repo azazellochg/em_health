@@ -27,6 +27,7 @@
 import os
 from datetime import datetime
 from pathlib import Path
+from packaging.version import Version
 
 from em_health.utils.tools import logger, run_command
 
@@ -70,11 +71,11 @@ def check_versions(fn: Path):
 
     if pg_version != pg_version_server:
         print("Check migration documentation at https://em-health.readthedocs.io")
-        raise ValueError(f"Postgres version mismatch: server {pg_version_server}, backup {pg_version}")
+        logger.warning(f"Postgres version mismatch: server {pg_version_server}, backup {pg_version}")
 
     if ts_version != ts_version_server:
         print("Check migration documentation at https://em-health.readthedocs.io")
-        raise ValueError(f"Timescale version mismatch: server {ts_version_server}, backup {ts_version}")
+        logger.warning(f"Timescale version mismatch: server {ts_version_server}, backup {ts_version}")
 
 
 def erase_db(dbname: str, ts_version: str | None = None, do_init: bool = False) -> None:
@@ -93,27 +94,30 @@ psql -d tem -c \\"CREATE EXTENSION IF NOT EXISTS timescaledb{version_clause} CAS
         run_command(f'{MANAGER} exec {PG_CONTAINER} /docker-entrypoint-initdb.d/init_db.sh')
 
 
-def backup(dbname: str = "tem") -> tuple[Path, Path]:
+def backup() -> list[Path]:
     """Backup TimescaleDB and Grafana."""
+    outputs = []
     timestamp = datetime.now().strftime("%d%m%Y_%H%M%S")
     ts_version = get_ts_version()
     pg_version = get_pg_version()
 
-    pg_backup = Path("/backups") / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
-    pg_host_backup = BACKUP_HOST_PATH / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
-    grafana_backup = BACKUP_HOST_PATH / f"grafana_{timestamp}.db"
-
     # TimescaleDB backup
-    logger.info("Backing up TimescaleDB '%s' to %s", dbname, pg_host_backup.resolve())
-    run_command(f"{MANAGER} exec {PG_CONTAINER} pg_dump -Fc -d {dbname} -f {pg_backup}")
+    for dbname in ["tem", "sem"]:
+        pg_backup = Path("/backups") / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
+        pg_host_backup = BACKUP_HOST_PATH / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
+        logger.info("Backing up TimescaleDB '%s' to %s", dbname, pg_host_backup.resolve())
+        run_command(f"{MANAGER} exec {PG_CONTAINER} pg_dump -Fc -d {dbname} -f {pg_backup}")
+        outputs.append(pg_backup)
 
     # Grafana backup
+    grafana_backup = BACKUP_HOST_PATH / f"grafana_{timestamp}.db"
     logger.info("Backing up Grafana DB to %s", grafana_backup.resolve())
     run_command(f"{MANAGER} stop {GRAFANA_CONTAINER}")
     run_command(f"{MANAGER} cp {GRAFANA_CONTAINER}:/var/lib/grafana/grafana.db {grafana_backup}")
     run_command(f"{MANAGER} start {GRAFANA_CONTAINER}")
+    outputs.append(grafana_backup)
 
-    return pg_backup, grafana_backup
+    return outputs
 
 
 def list_backups() -> list[Path]:
@@ -121,7 +125,7 @@ def list_backups() -> list[Path]:
     return [f for f in BACKUP_HOST_PATH.iterdir() if f.suffix in (".db", ".dump")]
 
 
-def restore(dbname: str, backup_file: Path) -> None:
+def restore(backup_file: Path, update: bool = False) -> None:
     """Restore TimescaleDB or Grafana from a backup file."""
     if backup_file.suffix == ".db":
         # Grafana restore
@@ -134,15 +138,15 @@ def restore(dbname: str, backup_file: Path) -> None:
             "chown 472:root /var/lib/grafana/grafana.db'",
             f"{MANAGER} start {GRAFANA_CONTAINER}",
         ]
+        if update:
+            commands.append(f"{MANAGER} exec {GRAFANA_CONTAINER} grafana cli plugins update-all")
         for cmd in commands:
             run_command(cmd)
 
     else:
         # TimescaleDB restore
-        if backup_file.name.split("_")[1] != dbname:
-            raise ValueError("Target database name does not match the backup")
-
         check_versions(backup_file)
+        dbname = backup_file.name.split("_")[1]
         ts_version = backup_file.name.split("_")[3]
         logger.info("Restoring TimescaleDB %s '%s' from %s", ts_version, dbname, backup_file)
         erase_db(dbname, ts_version, do_init=False)
@@ -158,21 +162,21 @@ psql -d {dbname} -c \\"SELECT timescaledb_post_restore(); ANALYZE;\\""
     logger.info("Restore completed")
 
 
-def update(dbname: str) -> None:
+def update() -> None:
     """Update everything."""
+    from em_health import __version__
+    if (Version(__version__) >= Version("0.1a5") and
+            get_pg_version().startswith("17") and
+            get_ts_version() != "2.25.2"):
+        raise ValueError("EMHealth 0.1a5+ does not support PostgreSQL 17. Check updating documentation at https://em-health.readthedocs.io")
+
     # migrate db schema
     from em_health.db_manager import main as db_manager
-    db_manager(dbname, "migrate")
-
-    # update extensions if possible
-    run_command(
-        f'{MANAGER} exec {PG_CONTAINER} psql -X -d {dbname} -c "ALTER EXTENSION timescaledb UPDATE; '
-        'ALTER EXTENSION timescaledb_toolkit UPDATE;"'
-        'ALTER EXTENSION tds_fdw UPDATE;"'
-    )
+    db_manager("tem", "migrate")
+    db_manager("sem", "migrate")
 
     # backup db
-    pg_backup, grafana_backup = backup(dbname)
+    pg_backup_tem, pg_backup_sem, grafana_backup = backup()
 
     # update containers
     chdir_docker_dir()
@@ -185,19 +189,28 @@ def update(dbname: str) -> None:
         run_command(cmd)
 
     # restore backups
-    restore(dbname, pg_backup)
-    restore(dbname, grafana_backup)
+    restore(pg_backup_tem)
+    restore(pg_backup_sem)
+    # update extensions if possible
+    for dbname in ["tem", "sem"]:
+        run_command(
+            f'{MANAGER} exec {PG_CONTAINER} psql -X -d {dbname} -c "ALTER EXTENSION timescaledb UPDATE; '
+            'ALTER EXTENSION timescaledb_toolkit UPDATE;"'
+            'ALTER EXTENSION tds_fdw UPDATE;"'
+        )
+
+    restore(grafana_backup, update=True)
 
     logger.info("Finished updating")
 
 
-def main(dbname: str, action: str) -> None:
+def main(action: str) -> None:
     """Run update/backup/restore interactively."""
     if action == "update":
-        update(dbname)
+        update()
 
     elif action == "backup":
-        backup(dbname)
+        backup()
 
     elif action == "restore":
         confirm = input("Restoring will DELETE existing database.\nType YES to continue: ")
@@ -219,4 +232,4 @@ def main(dbname: str, action: str) -> None:
             print("Invalid backup choice.")
             return
 
-        restore(dbname, backups[int(choice) - 1])
+        restore(backups[int(choice) - 1])

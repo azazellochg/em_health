@@ -20,9 +20,9 @@ The default pgBackRest stanza name is *main*. We leave physical backups for the 
     ...
 
 
-By default, we keep up to 3 full backups. See `/etc/pgbackrest/pgbackrest.conf` for details.
+By default, we keep 2 full backups + 4 differential backups and 7 days PITR via WAL. See `/etc/pgbackrest/pgbackrest.conf` for details.
 
-To restore the latest physical backup:
+To restore the latest physical backup + replay most recent WAL:
 
 .. code-block::
 
@@ -32,18 +32,19 @@ To restore the latest physical backup:
     docker run --rm -v pgdata:/var/lib/postgresql/data \
         -v ${BACKUP_DIR}:/backups \
         -v ./docker/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro \
-        --entrypoint pgbackrest timescaledb:latest --stanza=main restore
+        --entrypoint pgbackrest timescaledb:latest \
+        --stanza=main --type=default --target=latest restore
 
 
 Logical backup
 --------------
 
-By default, both TimescaleDB and Grafana databases are backed up. For Timescale, we perform a full logical backup with `pg_dump`
+By default, all TimescaleDB and Grafana databases are backed up. For Timescale, we perform a full logical backup with `pg_dump`
 which can be used to restore the database between different PostgreSQL versions. For Grafana, we simply backup its SQLite database file.
 
 .. code-block::
 
-    emhealth db -d tem backup
+    emhealth db backup
 
 ----
 
@@ -54,7 +55,7 @@ You can restore either TimescaleDB or Grafana database from a backup file.
 
 .. code-block::
 
-    emhealth db -d tem restore
+    emhealth db restore
 
 Updating
 --------
@@ -68,6 +69,16 @@ Due to Timescale extension, updating the database might get complicated, we reco
     * do the full backup
     * pull the latest container images which may contain newer PostgreSQL / Timescale / Grafana versions
     * restore PostgreSQL and Grafana db from the backup
-    * upgrade Timescale extension
+    * upgrade Timescale and other extensions
 
 3. Update historical stats: `emhealth db -d tem create-stats`
+
+Updating PostgreSQL from v17 to v18
+-----------------------------------
+
+Starting from EMHealth 0.1a5 we have migrated PostgreSQL from v17 to v18. Major server version upgrades are not automated, so please follow the steps below:
+
+    - install the latest package that still support PG17: `pip install em_health==0.1a4`
+    - update everything except PG17 to the latest version: `emhealth update`
+    - upgrade EMHealth to 0.1a5 or later: `pip install -U em_health`
+    - update again: `emhealth update`

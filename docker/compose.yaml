@@ -62,7 +62,7 @@ services:
       - ./image-renderer-config.json:/home/nonroot/config.json
 
   grafana:
-    image: docker.io/grafana/grafana:12.3.5
+    image: docker.io/grafana/grafana:12.4
     container_name: grafana
     restart: unless-stopped
     ports:

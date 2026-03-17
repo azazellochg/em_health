@@ -65,7 +65,7 @@ def db_cmd(args):
 
     elif action in ["backup", "restore"]:
         from em_health.utils.maintenance import main as func
-        func(dbname, action)
+        func(action)
 
     elif action.startswith("test-"):
         from em_health.tests.test_performance import TestPerformance
@@ -74,8 +74,7 @@ def db_cmd(args):
 
 def update_cmd(args):
     from em_health.utils.maintenance import main as func
-    func("tem", "update")
-    func("sem", "update")
+    func("update")
 
 
 def test_cmd(args):

@@ -152,7 +152,7 @@ Syntax
 
 .. code-block::
 
-    emhealth db -d tem backup
+    emhealth db backup
 
 ----
 
@@ -169,7 +169,7 @@ Syntax
 
 .. code-block::
 
-    emhealth db -d tem restore
+    emhealth db restore
 
 ----
 
