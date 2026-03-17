@@ -8,7 +8,7 @@ BEGIN
     IF current_version = 2 THEN
         -- 1. Remove deprecated mview
         DROP MATERIALIZED VIEW IF EXISTS public.tem_off CASCADE;
-        SELECT delete_job(job_id) FROM timescaledb_information.jobs WHERE proc_name='refresh_tem_off';
+        PERFORM delete_job(job_id) FROM timescaledb_information.jobs WHERE proc_name='refresh_tem_off';
         DROP PROCEDURE IF EXISTS public.refresh_tem_off;
 
         -- 2. Update schema version

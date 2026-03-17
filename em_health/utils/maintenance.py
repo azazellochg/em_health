@@ -44,10 +44,10 @@ def chdir_docker_dir() -> None:
     os.chdir(package_root)
 
 
-def get_ts_version() -> str:
+def get_ts_version(dbname: str) -> str:
     """Retrieve TimescaleDB extension version from a running container."""
     result = run_command(
-        f"{MANAGER} exec {PG_CONTAINER} psql -d tem -t -c "
+        f"{MANAGER} exec {PG_CONTAINER} psql -d {dbname} -t -c "
         "\"SELECT extversion FROM pg_extension WHERE extname='timescaledb';\"",
         capture_output=True)
     return result.stdout.strip()
@@ -61,21 +61,19 @@ def get_pg_version() -> str:
         capture_output=True)
     return result.stdout.strip()
 
-def check_versions(fn: Path):
+def check_versions(dbname: str, fn: Path):
     """Compare backup file with server versions."""
     pg_version = fn.name.split("_")[2]
     ts_version = fn.name.split("_")[3]
 
     pg_version_server = get_pg_version()
-    ts_version_server = get_ts_version()
+    ts_version_server = get_ts_version(dbname)
 
     if pg_version != pg_version_server:
-        print("Check migration documentation at https://em-health.readthedocs.io")
         logger.warning(f"Postgres version mismatch: server {pg_version_server}, backup {pg_version}")
 
     if ts_version != ts_version_server:
-        print("Check migration documentation at https://em-health.readthedocs.io")
-        logger.warning(f"Timescale version mismatch: server {ts_version_server}, backup {ts_version}")
+        logger.warning(f"Timescale version mismatch: server {ts_version_server} (db {dbname}), backup {ts_version}")
 
 
 def erase_db(dbname: str, ts_version: str | None = None, do_init: bool = False) -> None:
@@ -86,7 +84,7 @@ def erase_db(dbname: str, ts_version: str | None = None, do_init: bool = False) 
 psql -d postgres -c \\"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{dbname}';\\" && \
 psql -d postgres -c \\"DROP DATABASE IF EXISTS {dbname};\\" && \
 psql -d postgres -c \\"CREATE DATABASE {dbname};\\" && \
-psql -d tem -c \\"CREATE EXTENSION IF NOT EXISTS timescaledb{version_clause} CASCADE; CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit CASCADE;\\""
+psql -d {dbname} -c \\"CREATE EXTENSION IF NOT EXISTS timescaledb{version_clause} CASCADE; CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit CASCADE;\\""
 """
     run_command(cmd)
 
@@ -98,11 +96,11 @@ def backup() -> list[Path]:
     """Backup TimescaleDB and Grafana."""
     outputs = []
     timestamp = datetime.now().strftime("%d%m%Y_%H%M%S")
-    ts_version = get_ts_version()
     pg_version = get_pg_version()
 
     # TimescaleDB backup
     for dbname in ["tem", "sem"]:
+        ts_version = get_ts_version(dbname)
         pg_backup = Path("/backups") / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
         pg_host_backup = BACKUP_HOST_PATH / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
         logger.info("Backing up TimescaleDB '%s' to %s", dbname, pg_host_backup.resolve())
@@ -145,8 +143,8 @@ def restore(backup_file: Path, update: bool = False) -> None:
 
     else:
         # TimescaleDB restore
-        check_versions(backup_file)
         dbname = backup_file.name.split("_")[1]
+        check_versions(dbname, backup_file)
         ts_version = backup_file.name.split("_")[3]
         logger.info("Restoring TimescaleDB %s '%s' from %s", ts_version, dbname, backup_file)
         erase_db(dbname, ts_version, do_init=False)
@@ -167,7 +165,7 @@ def update() -> None:
     from em_health import __version__
     if (Version(__version__) >= Version("0.1a5") and
             get_pg_version().startswith("17") and
-            get_ts_version() != "2.25.2"):
+            get_ts_version("tem") != "2.25.2"):
         raise ValueError("EMHealth 0.1a5+ does not support PostgreSQL 17. Check updating documentation at https://em-health.readthedocs.io")
 
     # migrate db schema
@@ -180,10 +178,16 @@ def update() -> None:
 
     # update containers
     chdir_docker_dir()
+
+    if MANAGER == "podman":
+        mgr_cmd = "podman-compose"
+    else:
+        mgr_cmd = f"docker compose"
+
     for cmd in [
-        f"{MANAGER} compose -f {DOCKER_COMPOSE_FILE} down",
-        f"{MANAGER} compose -f {DOCKER_COMPOSE_FILE} pull",
-        f"{MANAGER} compose -f {DOCKER_COMPOSE_FILE} up -d",
+        f"{mgr_cmd} -f {DOCKER_COMPOSE_FILE} down",
+        f"{mgr_cmd} -f {DOCKER_COMPOSE_FILE} pull",
+        f"{mgr_cmd} -f {DOCKER_COMPOSE_FILE} up -d",
         f"{MANAGER} image prune -f",
     ]:
         run_command(cmd)
@@ -194,8 +198,8 @@ def update() -> None:
     # update extensions if possible
     for dbname in ["tem", "sem"]:
         run_command(
-            f'{MANAGER} exec {PG_CONTAINER} psql -X -d {dbname} -c "ALTER EXTENSION timescaledb UPDATE; '
-            'ALTER EXTENSION timescaledb_toolkit UPDATE;"'
+            f'{MANAGER} exec {PG_CONTAINER} psql -X -d {dbname} -c "ALTER EXTENSION timescaledb UPDATE;'
+            'ALTER EXTENSION timescaledb_toolkit UPDATE;'
             'ALTER EXTENSION tds_fdw UPDATE;"'
         )
 
