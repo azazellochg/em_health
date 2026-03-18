@@ -70,7 +70,7 @@ class DatabaseAnalyzer(DatabaseManager):
     """
     def create_metric_tables(self) -> None:
         """ Create tables to store metrics data. """
-        self.execute_file(self.get_path("create_tables.sql", folder="pganalyze"),
+        self.execute_file(self.get_path("pganalyze/create_tables.sql"),
                           {
                               "var_pgsnaps_chunk_size": os.getenv("TBL_SNAPS_CHUNK_SIZE", "4 weeks"),
                               "var_pgstats_chunk_size": os.getenv("TBL_STATS_CHUNK_SIZE", "1 week"),
@@ -81,7 +81,7 @@ class DatabaseAnalyzer(DatabaseManager):
 
     def create_metric_collectors(self) -> None:
         """ Create functions to collect statistics. """
-        self.execute_file(self.get_path("create_functions.sql", folder="pganalyze"))
+        self.execute_file(self.get_path("pganalyze/create_functions.sql"))
         logger.info("Created pganalyze procedures")
 
     def cleanup_jobs(self) -> None:
@@ -96,7 +96,7 @@ class DatabaseAnalyzer(DatabaseManager):
 
     def schedule_metric_jobs(self) -> None:
         """ Schedule functions as TimescaleDB jobs. """
-        self.execute_file(self.get_path("create_jobs.sql", folder="pganalyze"))
+        self.execute_file(self.get_path("pganalyze/create_jobs.sql"))
         logger.info("Scheduled pganalyze jobs")
 
     # FIXME: not used at the moment
@@ -104,7 +104,7 @@ class DatabaseAnalyzer(DatabaseManager):
         """ Create cagg for pganalyze.stat_statements."""
         mview = "pganalyze.stat_statements_cagg"
         self.drop_mview(mview, is_cagg=True)
-        self.create_mview(mview)
+        self.create_mview(mview, "pganalyze/stat_statements_5min.sql")
         self.force_refresh_cagg(mview)
         self.schedule_cagg_refresh(mview,
                                    start_offset="10 minutes",

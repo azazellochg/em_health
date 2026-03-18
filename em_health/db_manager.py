@@ -355,14 +355,14 @@ class DatabaseManager(PgClient):
         self.run_query("ALTER MATERIALIZED VIEW {name} set (timescaledb.materialized_only = false)",
                        {"name": name})
 
-    def create_mview(self, name: str) -> None:
+    def create_mview(self, name: str, target: str) -> None:
         """ Create a new materialized view or a continuous aggregate. """
         if "." in name:
             schema, name = name.split(".", 1)
         else:
             schema = "public"
 
-        view_fn = self.get_path(target=name+".sql", folder=schema)
+        view_fn = self.get_path(target)
         self.execute_file(view_fn)
         logger.info("Created materialized view %s.%s", schema, name)
 
@@ -374,7 +374,7 @@ class DatabaseManager(PgClient):
 
         if current_ver < latest_ver:
             for v in range(current_ver + 1, latest_ver + 1):
-                view_fn = self.get_path(target=f"{v:03d}.sql", folder="migrations")
+                view_fn = self.get_path(target=f"migrations/{v:03d}.sql")
                 self.execute_file(view_fn)
             logger.info("Database schema migrated to version %s", latest_ver)
         elif current_ver == latest_ver:
@@ -453,22 +453,22 @@ def main(dbname, action, instrument=None, date=None):
 
                 # Depends on the views above
                 "sem_beamtime_daily": False,
-
             }
         }
 
         with DatabaseManager(dbname) as db:
-            for mview, is_cagg in mviews[dbname].items():
-                db.drop_mview(mview)
-                db.create_mview(mview)
+            for view, is_cagg in mviews[dbname].items():
+                db.drop_mview(view)
                 if is_cagg:
-                    db.force_refresh_cagg(mview)
-                    db.schedule_cagg_refresh(mview)
-                    db.enable_rt_cagg(mview)
+                    db.create_mview(view, f"public/cagg/{view}.sql")
+                    db.force_refresh_cagg(view)
+                    db.schedule_cagg_refresh(view)
+                    db.enable_rt_cagg(view)
                 else:
-                    db.schedule_mview_refresh(mview)
-                db.run_query("GRANT SELECT ON public.{mview} TO grafana",
-                             {"mview": mview})
+                    db.create_mview(view, f"public/mviews/{view}.sql")
+                    db.schedule_mview_refresh(view)
+                db.run_query("GRANT SELECT ON public.{view} TO grafana",
+                             {"view": view})
 
     elif action == "clean-all":
         print(f"!!! WARNING: You are about to DELETE ALL DATA from database {dbname} !!!")

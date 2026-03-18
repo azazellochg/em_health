@@ -391,7 +391,7 @@ class TestPerformance:
             with DatabaseManager(db_name=DB_NAME, username=DB_USER, password=DB_PASS) as dbm:
                 logger.info("Creating public tables in the benchmark db")
                 dbm.execute_file(
-                    dbm.get_path("create_tables.sql", folder="public"),
+                    dbm.get_path("public/create_tables.sql"),
                     {
                         "var_data_chunk_size": table_chunk_size,
                         "var_data_compression": table_compression,
