@@ -88,10 +88,9 @@ CREATE TABLE pganalyze.stat_snapshots (
                                              tsdb.hypertable,
                                              tsdb.chunk_interval=:var_pgsnaps_chunk_size,
                                              tsdb.partition_column='collected_at',
-                                             tsdb.orderby='collected_at'
+                                             tsdb.orderby='collected_at DESC'
                                              );
 
-CALL add_columnstore_policy('pganalyze.stat_snapshots', after => INTERVAL :var_pgstats_compression);
 SELECT add_retention_policy('pganalyze.stat_snapshots', drop_after => INTERVAL :var_pgstats_retention);
 
 CREATE TABLE IF NOT EXISTS pganalyze.queries (
@@ -131,10 +130,9 @@ CREATE TABLE pganalyze.stat_statements (
                                              tsdb.chunk_interval=:var_pgstats_chunk_size,
                                              tsdb.partition_column='collected_at',
                                              tsdb.segmentby='queryid',
-                                             tsdb.orderby='collected_at'
+                                             tsdb.orderby='collected_at DESC'
                                              );
 
-CALL add_columnstore_policy('pganalyze.stat_statements', after => INTERVAL :var_pgstats_compression);
 SELECT add_retention_policy('pganalyze.stat_statements', drop_after => INTERVAL :var_pgstats_retention);
 
 CREATE TABLE pganalyze.stat_explains (

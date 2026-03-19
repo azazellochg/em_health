@@ -127,13 +127,11 @@ CREATE TABLE IF NOT EXISTS public.data (
                                              tsdb.chunk_interval=:var_data_chunk_size,
                                              tsdb.partition_column='time',
                                              tsdb.segmentby='instrument_id,param_id',
-                                             tsdb.orderby='time',
-                                             tsdb.create_default_indexes=false
+                                             tsdb.orderby='time DESC'
                                              );
 COMMENT ON TABLE public.data IS 'Main time series table with HM events';
 
 SELECT enable_chunk_skipping('public.data', 'param_id');
-CALL add_columnstore_policy('public.data', after => INTERVAL :var_data_compression);
 
 GRANT USAGE ON SCHEMA public TO grafana, emhealth;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO grafana;
