@@ -73,7 +73,7 @@ Description
 
 This command is usually run after you have imported a large batch of historical data. It will aggregate daily
 statistics like autoloader counters, EPU/Tomo sessions etc that is used by various dashboards. You only need to run this
-command once, the statistics will be refreshed automatically every 12h.
+command once, the statistics will be refreshed automatically.
 
 Syntax
 ^^^^^^

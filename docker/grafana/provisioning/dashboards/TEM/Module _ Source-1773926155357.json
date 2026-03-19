@@ -24,7 +24,7 @@
           "type": "grafana-postgresql-datasource",
           "uid": "${sourceTEM}"
         },
-        "enable": true,
+        "enable": false,
         "filter": {
           "exclude": false,
           "ids": [
@@ -72,7 +72,6 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 42,
   "links": [
     {
       "asDropdown": true,
@@ -180,7 +179,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -219,7 +218,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -289,7 +287,7 @@
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 100
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -328,7 +326,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -361,6 +358,7 @@
               "type": "linear"
             },
             "showPoints": "never",
+            "showValues": false,
             "spanNulls": true,
             "stacking": {
               "group": "A",
@@ -404,7 +402,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -483,7 +481,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -522,7 +520,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -555,6 +552,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": true,
             "stacking": {
               "group": "A",
@@ -598,7 +596,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -647,7 +645,7 @@
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "",
+            "axisLabel": "uA",
             "axisPlacement": "auto",
             "barAlignment": 0,
             "barWidthFactor": 0.6,
@@ -661,13 +659,17 @@
             },
             "insertNulls": false,
             "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
             "lineWidth": 1,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
+            "showValues": false,
+            "spanNulls": true,
             "stacking": {
               "group": "A",
               "mode": "none"
@@ -686,7 +688,7 @@
               }
             ]
           },
-          "unit": "amp"
+          "unit": "sci"
         },
         "overrides": []
       },
@@ -696,7 +698,7 @@
         "x": 13,
         "y": 9
       },
-      "id": 11,
+      "id": 27,
       "options": {
         "legend": {
           "calcs": [],
@@ -706,11 +708,11 @@
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "multi",
+          "mode": "single",
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -720,8 +722,36 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component IN ('IGP3', 'IGPf')\n    AND param_name IN ('IGP3Current', 'IGPfCurrent')\n),\n\nhourly_avg AS (\n  SELECT\n    time_bucket('1h', d.time) AS hour,\n    p.param_name,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n  GROUP BY hour, p.param_name\n)\n\nSELECT\n  hour AS time,\n  param_name,\n  avg_value AS \"1-hour average\",\n  AVG(avg_value) OVER (\n    PARTITION BY param_name\n    ORDER BY hour\n    ROWS BETWEEN 23 PRECEDING AND CURRENT ROW\n  ) AS \"24-hour average\"\nFROM hourly_avg\nORDER BY hour, param_name;\n",
-          "refId": "A",
+          "rawSql": "SELECT\n  hour AS time,\n  param_name,\n  mean_value*1e6 AS \"1-hour average\"\nFROM tem_pressure_hourly\nWHERE\n  instrument_id = $instrument\n  AND param_name IN ('IGP3Current', 'IGPfCurrent')\n  AND $__timeFilter(hour)\nORDER BY hour",
+          "refId": "hourly",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  day AS time,\n  param_name,\n  mean_value*1e6 AS \"24-hour average\"\nFROM tem_pressure_daily\nWHERE\n  instrument_id = $instrument\n  AND param_name IN ('IGP3Current', 'IGPfCurrent')\n  AND $__timeFilter(day)\nORDER BY day",
+          "refId": "daily",
           "sql": {
             "columns": [
               {
@@ -799,7 +829,7 @@
         "textMode": "value_and_name",
         "wideLayout": false
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -852,7 +882,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceTEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -885,6 +914,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": true,
             "stacking": {
               "group": "A",
@@ -928,7 +958,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -938,8 +968,36 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'IGPa'\n    AND param_name = 'IGPaPressure'\n),\n\nhourly_avg AS (\n  SELECT\n    time_bucket('1h', d.time) AS hour,\n    p.param_name,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n  GROUP BY hour, p.param_name\n)\n\nSELECT\n  hour AS time,\n  param_name,\n  avg_value AS \"1-hour average\",\n  AVG(avg_value) OVER (\n    PARTITION BY param_name\n    ORDER BY hour\n    ROWS BETWEEN 23 PRECEDING AND CURRENT ROW\n  ) AS \"24-hour average\"\nFROM hourly_avg\nORDER BY hour, param_name;\n",
-          "refId": "A",
+          "rawSql": "SELECT\n  hour AS time,\n  param_name,\n  mean_value AS \"1-hour average\"\nFROM tem_pressure_hourly\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'IGPaPressure'\n  AND $__timeFilter(hour)\nORDER BY hour",
+          "refId": "hourly",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  day AS time,\n  param_name,\n  mean_value AS \"24-hour average\"\nFROM tem_pressure_daily\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'IGPaPressure'\n  AND $__timeFilter(day)\nORDER BY day",
+          "refId": "daily",
           "sql": {
             "columns": [
               {
@@ -1318,7 +1376,6 @@
             "type": "grafana-postgresql-datasource",
             "uid": "${sourceTEM}"
           },
-          "description": "",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -1566,7 +1623,6 @@
             "type": "grafana-postgresql-datasource",
             "uid": "${sourceTEM}"
           },
-          "description": "",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -1766,7 +1822,7 @@
         "textMode": "value_and_name",
         "wideLayout": false
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1845,7 +1901,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1917,6 +1973,7 @@
               "type": "linear"
             },
             "showPoints": "never",
+            "showValues": false,
             "spanNulls": true,
             "stacking": {
               "group": "A",
@@ -1969,7 +2026,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1979,8 +2036,36 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'HTTank'\n    AND param_name = 'HTTankSF6Pressure'\n),\n\nhourly_avg AS (\n  SELECT\n    time_bucket('1h', d.time) AS hour,\n    p.param_name,\n    AVG(d.value_num)/100000.0 AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n  GROUP BY hour, p.param_name\n)\n\nSELECT\n  hour AS time,\n  param_name,\n  avg_value AS \"1-hour average\",\n  AVG(avg_value) OVER (\n    PARTITION BY param_name\n    ORDER BY hour\n    ROWS BETWEEN 23 PRECEDING AND CURRENT ROW\n  ) AS \"24-hour average\"\nFROM hourly_avg\nORDER BY hour, param_name;\n",
-          "refId": "A",
+          "rawSql": "SELECT\n  hour AS time,\n  param_name,\n  mean_value/100000.0 AS \"1-hour average\"\nFROM tem_pressure_hourly\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'HTTankSF6Pressure'\n  AND $__timeFilter(hour)\nORDER BY hour",
+          "refId": "hourly",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  day AS time,\n  param_name,\n  mean_value/100000.0 AS \"24-hour average\"\nFROM tem_pressure_daily\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'HTTankSF6Pressure'\n  AND $__timeFilter(day)\nORDER BY day",
+          "refId": "daily",
           "sql": {
             "columns": [
               {
@@ -2050,6 +2135,7 @@
               "type": "linear"
             },
             "showPoints": "never",
+            "showValues": false,
             "spanNulls": true,
             "stacking": {
               "group": "A",
@@ -2141,7 +2227,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -2238,7 +2324,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -2274,7 +2360,7 @@
     }
   ],
   "preload": false,
-  "schemaVersion": 41,
+  "schemaVersion": 42,
   "tags": [
     "module",
     "tem"
@@ -2298,8 +2384,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Krios 4 [Titan Krios G4] (4248)",
-          "value": "6"
+          "text": "Tundra [Tundra] (9955700)",
+          "value": "9"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -2311,6 +2397,7 @@
         "query": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
         "refresh": 1,
         "regex": "",
+        "regexApplyTo": "value",
         "sort": 1,
         "type": "query"
       }
@@ -2326,5 +2413,6 @@
   "timezone": "Europe/London",
   "title": "Module | Source",
   "uid": "4395e67b-0345-47fd-94a8-684004567800",
-  "version": 5
+  "version": 6,
+  "weekStart": ""
 }

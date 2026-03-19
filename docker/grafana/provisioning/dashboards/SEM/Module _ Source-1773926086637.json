@@ -68,7 +68,6 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 85,
   "links": [
     {
       "asDropdown": true,
@@ -176,7 +175,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -257,7 +256,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -331,7 +330,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -361,6 +359,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -413,7 +412,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -423,8 +422,36 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'E-Column'\n    AND param_name = 'E-Column.IGP1'\n),\n\nhourly_avg AS (\n  SELECT\n    time_bucket('1h', d.time) AS hour,\n    p.param_name,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    AND d.value_num > 0\n  GROUP BY hour, p.param_name\n)\n\nSELECT\n  hour AS time,\n  param_name,\n  avg_value AS \"1-hour average\",\n  AVG(avg_value) OVER (\n    PARTITION BY param_name\n    ORDER BY hour\n    ROWS BETWEEN 23 PRECEDING AND CURRENT ROW\n  ) AS \"24-hour average\"\nFROM hourly_avg\nORDER BY hour, param_name;\n",
-          "refId": "A",
+          "rawSql": "SELECT\n  hour AS time,\n  param_name,\n  mean_value AS \"1-hour average\"\nFROM sem_pressure_hourly\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'E-Column.IGP1'\n  AND $__timeFilter(hour)\nORDER BY hour",
+          "refId": "hourly",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  day AS time,\n  param_name,\n  mean_value AS \"24-hour average\"\nFROM sem_pressure_daily\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'E-Column.IGP1'\n  AND $__timeFilter(day)\nORDER BY day",
+          "refId": "daily",
           "sql": {
             "columns": [
               {
@@ -461,7 +488,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -531,7 +557,7 @@
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 100
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -570,7 +596,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -600,6 +625,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -620,7 +646,11 @@
               },
               {
                 "color": "#EAB839",
-                "value": 0.000002
+                "value": 0.00008
+              },
+              {
+                "color": "orange",
+                "value": 0.0001
               }
             ]
           },
@@ -634,7 +664,7 @@
         "x": 8,
         "y": 9
       },
-      "id": 28,
+      "id": 39,
       "options": {
         "legend": {
           "calcs": [],
@@ -648,7 +678,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -658,8 +688,36 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'E-Column'\n    AND param_name = 'E-Column.IGP2'\n),\n\nhourly_avg AS (\n  SELECT\n    time_bucket('1h', d.time) AS hour,\n    p.param_name,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    AND d.value_num > 0\n  GROUP BY hour, p.param_name\n)\n\nSELECT\n  hour AS time,\n  param_name,\n  avg_value AS \"1-hour average\",\n  AVG(avg_value) OVER (\n    PARTITION BY param_name\n    ORDER BY hour\n    ROWS BETWEEN 23 PRECEDING AND CURRENT ROW\n  ) AS \"24-hour average\"\nFROM hourly_avg\nORDER BY hour, param_name;\n",
-          "refId": "A",
+          "rawSql": "SELECT\n  hour AS time,\n  param_name,\n  mean_value AS \"1-hour average\"\nFROM sem_pressure_hourly\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'E-Column.IGP2'\n  AND $__timeFilter(hour)\nORDER BY hour",
+          "refId": "hourly",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  day AS time,\n  param_name,\n  mean_value AS \"24-hour average\"\nFROM sem_pressure_daily\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'E-Column.IGP2'\n  AND $__timeFilter(day)\nORDER BY day",
+          "refId": "daily",
           "sql": {
             "columns": [
               {
@@ -696,7 +754,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -730,6 +787,7 @@
               "type": "log"
             },
             "showPoints": "never",
+            "showValues": false,
             "spanNulls": true,
             "stacking": {
               "group": "A",
@@ -773,7 +831,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -867,7 +925,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -941,7 +999,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -971,6 +1028,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -1023,7 +1081,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1033,8 +1091,36 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'I-Column'\n    AND param_name IN ('IGP3Parameter', 'I-Column.IGP3')\n),\n\nhourly_avg AS (\n  SELECT\n    time_bucket('1h', d.time) AS hour,\n    p.param_name,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    AND d.value_num > 0\n  GROUP BY hour, p.param_name\n)\n\nSELECT\n  hour AS time,\n  param_name,\n  avg_value AS \"1-hour average\",\n  AVG(avg_value) OVER (\n    PARTITION BY param_name\n    ORDER BY hour\n    ROWS BETWEEN 23 PRECEDING AND CURRENT ROW\n  ) AS \"24-hour average\"\nFROM hourly_avg\nORDER BY hour, param_name;\n",
-          "refId": "A",
+          "rawSql": "SELECT\n  hour AS time,\n  param_name,\n  mean_value AS \"1-hour average\"\nFROM sem_pressure_hourly\nWHERE\n  instrument_id = $instrument\n  AND param_name IN ('IGP3Parameter', 'I-Column.IGP3')\n  AND $__timeFilter(hour)\nORDER BY hour",
+          "refId": "hourly",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  day AS time,\n  param_name,\n  mean_value AS \"24-hour average\"\nFROM sem_pressure_daily\nWHERE\n  instrument_id = $instrument\n  AND param_name IN ('IGP3Parameter', 'I-Column.IGP3')\n  AND $__timeFilter(day)\nORDER BY day",
+          "refId": "daily",
           "sql": {
             "columns": [
               {
@@ -1071,7 +1157,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1116,13 +1201,14 @@
           "fields": "",
           "values": true
         },
+        "sort": "desc",
         "tooltip": {
           "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1240,7 +1326,7 @@
         "textMode": "value_and_name",
         "wideLayout": false
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1320,7 +1406,7 @@
         "textMode": "value",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1359,7 +1445,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1393,6 +1478,7 @@
               "type": "log"
             },
             "showPoints": "never",
+            "showValues": false,
             "spanNulls": true,
             "stacking": {
               "group": "A",
@@ -1445,7 +1531,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1484,7 +1570,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1514,6 +1599,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -1552,7 +1638,7 @@
         "x": 8,
         "y": 26
       },
-      "id": 30,
+      "id": 40,
       "options": {
         "legend": {
           "calcs": [],
@@ -1566,7 +1652,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1576,8 +1662,36 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'I-Column'\n    AND param_name LIKE 'IGP4Parameter'\n),\n\nhourly_avg AS (\n  SELECT\n    time_bucket('1h', d.time) AS hour,\n    p.param_name,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    AND d.value_num > 0\n  GROUP BY hour, p.param_name\n)\n\nSELECT\n  hour AS time,\n  param_name,\n  avg_value AS \"1-hour average\",\n  AVG(avg_value) OVER (\n    PARTITION BY param_name\n    ORDER BY hour\n    ROWS BETWEEN 23 PRECEDING AND CURRENT ROW\n  ) AS \"24-hour average\"\nFROM hourly_avg\nORDER BY hour, param_name;\n",
-          "refId": "A",
+          "rawSql": "SELECT\n  hour AS time,\n  param_name,\n  mean_value AS \"1-hour average\"\nFROM sem_pressure_hourly\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'IGP4Parameter'\n  AND $__timeFilter(hour)\nORDER BY hour",
+          "refId": "hourly",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  day AS time,\n  param_name,\n  mean_value AS \"24-hour average\"\nFROM sem_pressure_daily\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'IGP4Parameter'\n  AND $__timeFilter(day)\nORDER BY day",
+          "refId": "daily",
           "sql": {
             "columns": [
               {
@@ -1602,7 +1716,7 @@
         {
           "id": "renameByRegex",
           "options": {
-            "regex": "(.*) IGP4Parameter",
+            "regex": "(.*)IGP4Parameter",
             "renamePattern": "$1"
           }
         }
@@ -1614,7 +1728,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1657,7 +1770,7 @@
         "textMode": "value",
         "wideLayout": false
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1745,7 +1858,7 @@
         "textMode": "value",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1781,7 +1894,7 @@
     }
   ],
   "preload": false,
-  "schemaVersion": 41,
+  "schemaVersion": 42,
   "tags": [
     "module",
     "sem"
@@ -1805,8 +1918,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Aquilos [Aquilos 2+] (9960381)",
-          "value": "7"
+          "text": "Arctis [Arctis] (9960963)",
+          "value": "2"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -1818,6 +1931,7 @@
         "query": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
         "refresh": 1,
         "regex": "",
+        "regexApplyTo": "value",
         "sort": 1,
         "type": "query"
       }
@@ -1833,5 +1947,6 @@
   "timezone": "Europe/London",
   "title": "Module | Source",
   "uid": "4395e67b-0345-47fd-94a8-684457567800",
-  "version": 6
+  "version": 6,
+  "weekStart": ""
 }
