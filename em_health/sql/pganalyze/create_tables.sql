@@ -44,7 +44,6 @@ CREATE TABLE pganalyze.index_stats (
                                        tup_fetch            BIGINT      NOT NULL,
                                        blks_read            BIGINT      NOT NULL,
                                        blks_hit             BIGINT      NOT NULL,
-                                       exclusively_locked   BOOLEAN     NOT NULL,
                                        PRIMARY KEY (indexrelid, collected_at)
 );
 

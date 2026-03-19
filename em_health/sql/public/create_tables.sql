@@ -126,6 +126,7 @@ CREATE TABLE IF NOT EXISTS public.data (
                                              tsdb.hypertable,
                                              tsdb.chunk_interval=:var_data_chunk_size,
                                              tsdb.partition_column='time',
+                                             tsdb.create_default_indexes=false,
                                              tsdb.segmentby='instrument_id,param_id',
                                              tsdb.orderby='time DESC'
                                              );

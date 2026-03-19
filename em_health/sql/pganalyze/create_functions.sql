@@ -85,13 +85,7 @@ BEGIN
         tup_read,
         tup_fetch,
         blks_read,
-        blks_hit,
-        exclusively_locked
-    )
-    WITH locked_relids AS (
-        SELECT DISTINCT relation indexrelid
-        FROM pg_catalog.pg_locks
-        WHERE mode = 'AccessExclusiveLock' AND relation IS NOT NULL AND locktype = 'relation'
+        blks_hit
     )
     SELECT
         now() AS collected_at,
@@ -102,32 +96,12 @@ BEGIN
         COALESCE(s.idx_tup_read, 0) AS tup_read,
         COALESCE(s.idx_tup_fetch, 0) AS tup_fetch,
         COALESCE(sio.idx_blks_read, 0) AS blks_read,
-        COALESCE(sio.idx_blks_hit, 0) AS blks_hit,
-        false AS exclusively_locked
+        COALESCE(sio.idx_blks_hit, 0) AS blks_hit
     FROM pg_catalog.pg_stat_user_indexes s
              LEFT JOIN pg_catalog.pg_statio_user_indexes sio USING (indexrelid)
-    WHERE NOT EXISTS (
-        SELECT 1
-        FROM locked_relids l
-        WHERE l.indexrelid = s.indexrelid
-    )
-      AND s.schemaname NOT LIKE '\_timescaledb%'
+    WHERE s.schemaname IN ('public', 'uec', 'pganalyze')
+       OR (s.schemaname = '_timescaledb_internal' AND s.relname LIKE '_hyper_%');
 
-    UNION ALL
-
-    SELECT
-        now() AS collected_at,
-        l.indexrelid,
-        c.relnamespace AS relid,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        true AS exclusively_locked
-    FROM locked_relids l
-             JOIN pg_class c ON c.oid = l.indexrelid;
 END;
 $$
 ;
@@ -307,11 +281,7 @@ BEGIN
         details
     )
     SELECT
-        regexp_replace(
-                substring(message FROM 'automatic vacuum of table "([^"]+)"'),
-                '^[^.]+\.',  -- remove leading "dbname."
-                ''
-        )::regclass::oid AS relid,
+        c.oid AS relid,
         log_time AS started_at,
         log_time + (substring(message FROM 'elapsed: ([0-9\.]+) s')::double precision * interval '1 second') AS finished_at,
         substring(message FROM 'index scans: (\d+)')::bigint AS index_scans,
@@ -320,12 +290,26 @@ BEGIN
         substring(message FROM 'tuples: \d+ removed, (\d+) remain')::int AS tuples_remain,
         (message LIKE '%to prevent wraparound%') AS wraparound,
         message AS details
-    FROM tmp_log
+    FROM (
+             SELECT *,
+                    regexp_replace(
+                            substring(message FROM 'automatic vacuum of table "([^"]+)"'),
+                            '^[^.]+\.',
+                            ''
+                    ) AS relname
+             FROM tmp_log
+         ) t
+             JOIN pg_class c
+                  ON c.oid = to_regclass(t.relname)
     WHERE error_severity = 'LOG'
       AND backend_type = 'autovacuum worker'
-      AND (message LIKE 'automatic vacuum of table "' || current_database() || '.public.%'
-        OR message LIKE 'automatic vacuum of table "' || current_database() || '.uec.%'
-        OR message LIKE 'automatic vacuum of table "' || current_database() || '.pganalyze.%')
+      AND (
+        message LIKE 'automatic vacuum of table "' || current_database() || '.public.%'
+            OR message LIKE 'automatic vacuum of table "' || current_database() || '.uec.%'
+            OR message LIKE 'automatic vacuum of table "' || current_database() || '.pganalyze.%'
+            OR message LIKE 'automatic vacuum of table "' || current_database() || '._timescaledb_internal._hyper_%'
+        )
+
     ON CONFLICT DO NOTHING;
 
     -- Insert parsed plans into stat_explains
