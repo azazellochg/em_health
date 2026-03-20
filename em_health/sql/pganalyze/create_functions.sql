@@ -269,6 +269,40 @@ BEGIN
     EXECUTE format('COPY tmp_log FROM %L WITH CSV', logfile);
 
     -- Insert parsed vacuums into vacuum_stats
+    WITH parsed AS (
+        SELECT
+            log_time,
+            message,
+            substring(message FROM 'automatic vacuum of table "([^"]+)"') AS fqname,
+            substring(message FROM 'elapsed: ([0-9\.]+) s')::double precision AS elapsed_s,
+            substring(message FROM 'index scans: (\d+)')::bigint AS index_scans,
+            substring(message FROM 'pages: (\d+) removed')::bigint AS pages_removed,
+            substring(message FROM 'tuples: (\d+) removed')::bigint AS tuples_removed,
+            substring(message FROM 'tuples: \d+ removed, (\d+) remain')::int AS tuples_remain,
+            (message LIKE '%to prevent wraparound%') AS wraparound
+        FROM tmp_log
+        WHERE error_severity = 'LOG'
+          AND backend_type = 'autovacuum worker'
+          AND message LIKE 'automatic vacuum of table "%'
+    ),
+         split AS (
+             SELECT *,
+                    split_part(fqname, '.', 1) AS dbname,
+                    split_part(fqname, '.', 2) AS schemaname,
+                    split_part(fqname, '.', 3) AS tablename
+             FROM parsed
+             WHERE fqname IS NOT NULL
+         ),
+         filtered AS (
+             SELECT *,
+                    schemaname || '.' || tablename AS relname
+             FROM split
+             WHERE dbname = current_database()
+               AND (
+                 schemaname IN ('public', 'uec', 'pganalyze')
+                     OR (schemaname = '_timescaledb_internal' AND tablename LIKE '_hyper_%_chunk')
+                 )
+         )
     INSERT INTO pganalyze.vacuum_stats (
         relid,
         started_at,
@@ -281,35 +315,17 @@ BEGIN
         details
     )
     SELECT
-        c.oid AS relid,
-        log_time AS started_at,
-        log_time + (substring(message FROM 'elapsed: ([0-9\.]+) s')::double precision * interval '1 second') AS finished_at,
-        substring(message FROM 'index scans: (\d+)')::bigint AS index_scans,
-        substring(message FROM 'pages: (\d+) removed')::bigint AS pages_removed,
-        substring(message FROM 'tuples: (\d+) removed')::bigint AS tuples_removed,
-        substring(message FROM 'tuples: \d+ removed, (\d+) remain')::int AS tuples_remain,
-        (message LIKE '%to prevent wraparound%') AS wraparound,
-        message AS details
-    FROM (
-             SELECT *,
-                    regexp_replace(
-                            substring(message FROM 'automatic vacuum of table "([^"]+)"'),
-                            '^[^.]+\.',
-                            ''
-                    ) AS relname
-             FROM tmp_log
-         ) t
-             JOIN pg_class c
-                  ON c.oid = to_regclass(t.relname)
-    WHERE error_severity = 'LOG'
-      AND backend_type = 'autovacuum worker'
-      AND (
-        message LIKE 'automatic vacuum of table "' || current_database() || '.public.%'
-            OR message LIKE 'automatic vacuum of table "' || current_database() || '.uec.%'
-            OR message LIKE 'automatic vacuum of table "' || current_database() || '.pganalyze.%'
-            OR message LIKE 'automatic vacuum of table "' || current_database() || '._timescaledb_internal._hyper_%'
-        )
-
+        c.oid,
+        log_time,
+        log_time + (elapsed_s * interval '1 second'),
+        index_scans,
+        pages_removed,
+        tuples_removed,
+        tuples_remain,
+        wraparound,
+        message
+    FROM filtered f
+             JOIN pg_class c ON c.oid = to_regclass(f.relname)::oid
     ON CONFLICT DO NOTHING;
 
     -- Insert parsed plans into stat_explains

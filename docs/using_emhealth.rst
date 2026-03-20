@@ -161,3 +161,5 @@ You have several options available here:
 2. To render PNG image of a panel, select `Share > Share link`. In the new window you can customize the image size, then Generate and Download image.
 
 .. image:: /_static/export-png.png
+
+3. To export a whole dashboard as a PNG image, select `Export > Export as image`.

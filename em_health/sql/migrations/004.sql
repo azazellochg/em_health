@@ -9,7 +9,7 @@ BEGIN
         -- 1. Remove deprecated mview
 
         -- 2. Remove unused column from index_stats
-        ALTER TABLE pganalyze.stat_statements DROP COLUMN exclusively_locked;
+        ALTER TABLE pganalyze.index_stats DROP COLUMN exclusively_locked;
 
         -- 3. Update schema version
         UPDATE public.schema_info SET version = 4;
