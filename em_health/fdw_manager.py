@@ -338,7 +338,7 @@ class FDWManager:
                 ept.warning_min,
                 ept.warning_max,
                 ept.critical_min,
-                ept.critical_max,
+                ept.critical_max
             FROM {schema}.event_property_type ept
             JOIN {schema}.parameter_type pt ON pt.parameter_type_id = ept.parameter_type_id
             JOIN {schema}.event_type et ON et.event_type_id = ept.event_type_id

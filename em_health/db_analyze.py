@@ -98,18 +98,6 @@ class DatabaseAnalyzer(DatabaseManager):
         self.execute_file(self.get_path("pganalyze/create_jobs.sql"))
         logger.info("Scheduled pganalyze jobs")
 
-    # FIXME: not used at the moment
-    def create_stats_cagg(self):
-        """ Create cagg for pganalyze.stat_statements."""
-        mview = "pganalyze.stat_statements_cagg"
-        self.drop_mview(mview, is_cagg=True)
-        self.create_mview(mview, "pganalyze/stat_statements_5min.sql")
-        self.force_refresh_cagg(mview)
-        self.schedule_cagg_refresh(mview,
-                                   start_offset="10 minutes",
-                                   end_offset="0 minutes",
-                                   interval="5 minutes")
-
 
 def main(dbname, action, force=False):
     if action == "create-perf-stats":
