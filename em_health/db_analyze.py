@@ -74,7 +74,7 @@ class DatabaseAnalyzer(DatabaseManager):
                           {
                               "var_pgsnaps_chunk_size": os.getenv("TBL_SNAPS_CHUNK_SIZE", "4 weeks"),
                               "var_pgstats_chunk_size": os.getenv("TBL_STATS_CHUNK_SIZE", "1 week"),
-                              "var_pgstats_retention": os.getenv("TBL_STATS_RETENTION", "6 months")
+                              "var_pgstats_retention": os.getenv("TBL_STATS_RETENTION", "3 months")
                           })
         logger.info("Created pganalyze tables")
 

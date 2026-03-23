@@ -394,7 +394,7 @@ $$
 
 -- Purge old data
 DROP FUNCTION IF EXISTS pganalyze.purge_stats
-; CREATE FUNCTION pganalyze.purge_stats(job_id int = NULL, config jsonb = '{"drop_after":"6 months"}') RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+; CREATE FUNCTION pganalyze.purge_stats(job_id int = NULL, config jsonb = '{"drop_after":"3 months"}') RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
     drop_after interval;
 BEGIN

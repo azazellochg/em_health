@@ -39,7 +39,7 @@ Performance statistics is inspired by `Pganalyze <https://pganalyze.com/>`_ and 
 * CPU and RAM host statistics (updated every 1 min)
 * auto-EXPLAIN plans (for queries longer than 500ms)
 
-Statistics retention time is 6 months.
+Statistics retention time is 3 months.
 
 SQL commands
 ^^^^^^^^^^^^
