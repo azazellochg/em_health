@@ -62,7 +62,6 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 89,
   "links": [
     {
       "asDropdown": true,
@@ -129,7 +128,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -177,13 +175,14 @@
           "fields": "",
           "values": true
         },
+        "sort": "desc",
         "tooltip": {
           "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "repeat": "instrument",
       "repeatDirection": "h",
       "targets": [
@@ -334,7 +333,7 @@
         "textMode": "value_and_name",
         "wideLayout": false
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "repeat": "instrument",
       "repeatDirection": "h",
       "targets": [
@@ -346,7 +345,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH counter_param AS (\n  SELECT instrument_id, param_id\n  FROM parameters\n  WHERE instrument_id IN ($instrument)\n    AND component = 'FIB'\n    AND param_name IN ('SourceAgeParameter', 'OperatingTimeFIBParameter')\n),\n\nfiltered AS (\n  SELECT\n    d.time,\n    d.value_num AS operate_time,\n    lag(d.value_num) OVER (ORDER BY time) AS prev_value\n  FROM data d\n  JOIN counter_param p USING (instrument_id, param_id)\n),\n\nlast_replacement AS (\n  SELECT time\n  FROM filtered\n  WHERE operate_time < prev_value   -- counter reset\n  ORDER BY time DESC\n  LIMIT 1\n),\n\nlast_value AS (\n  SELECT last(operate_time, time) AS source_age\n  FROM filtered\n)\n\nSELECT\n  lv.source_age / 3600 AS \"Source age\",\n  lr.time AS \"Last replacement\"\nFROM last_value lv\nLEFT JOIN last_replacement lr ON true\n",
+          "rawSql": "WITH counter_param AS (\n  SELECT instrument_id, param_id\n  FROM parameters\n  WHERE instrument_id IN ($instrument)\n    AND component = 'FIB'\n    AND param_name IN ('SourceAgeParameter', 'OperatingTimeFIBParameter')\n),\n\nlast_value AS (\n  SELECT last(d.value_num, d.time) AS source_age\n  FROM data d\n  JOIN counter_param p USING (instrument_id, param_id)\n),\n\nlast_replacement AS (\n  SELECT time\n  FROM (\n    SELECT time,\n           value_num,\n           lag(value_num) OVER (ORDER BY time DESC) AS next_value\n    FROM data d\n    JOIN counter_param p USING (instrument_id, param_id)\n  ) t\n  WHERE value_num > next_value   -- reset when going forward in time\n  ORDER BY time DESC\n  LIMIT 1\n)\n\nSELECT\n  lv.source_age / 3600 AS \"Source age\",\n  lr.time AS \"Last replacement\"\nFROM last_value lv\nLEFT JOIN last_replacement lr ON true;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -388,7 +387,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -454,7 +452,7 @@
         "textMode": "value_and_name",
         "wideLayout": false
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "repeat": "instrument",
       "repeatDirection": "h",
       "targets": [
@@ -493,7 +491,6 @@
           },
           "editorMode": "code",
           "format": "table",
-          "hide": false,
           "rawQuery": true,
           "rawSql": "WITH cryo_cycles AS (\n    SELECT\n        start_time,\n        end_time\n    FROM sem_cryocycle_noal_daily,\n    LATERAL state_periods(agg, 1) -- boolean state = 1 where value > 0\n    WHERE instrument_id = $instrument\n    ORDER BY start_time\n)\n\nSELECT CURRENT_DATE - start_time::date AS days_since_cryocycle_start\nFROM cryo_cycles\nORDER BY start_time DESC\nLIMIT 1\n",
           "refId": "Aquilos",
@@ -557,7 +554,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -600,7 +596,7 @@
         "textMode": "value_and_name",
         "wideLayout": false
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "repeat": "instrument",
       "repeatDirection": "h",
       "targets": [
@@ -687,6 +683,7 @@
               "type": "linear"
             },
             "showPoints": "always",
+            "showValues": false,
             "spanNulls": true,
             "stacking": {
               "group": "A",
@@ -731,7 +728,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -812,6 +809,7 @@
               "type": "linear"
             },
             "showPoints": "always",
+            "showValues": false,
             "spanNulls": true,
             "stacking": {
               "group": "A",
@@ -856,7 +854,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -901,7 +899,7 @@
     }
   ],
   "preload": false,
-  "schemaVersion": 41,
+  "schemaVersion": 42,
   "tags": [
     "overview",
     "sem"
@@ -928,6 +926,7 @@
         "query": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
         "refresh": 1,
         "regex": "",
+        "regexApplyTo": "value",
         "sort": 1,
         "type": "query"
       },
@@ -955,5 +954,6 @@
   "timezone": "Europe/London",
   "title": "Fleet overview",
   "uid": "4350492f-ef51-4e3f-a22b-14c66eee6a97",
-  "version": 3
+  "version": 2,
+  "weekStart": ""
 }

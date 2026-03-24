@@ -22,25 +22,28 @@
       {
         "datasource": {
           "type": "grafana-postgresql-datasource",
-          "uid": "${sourceSEM}"
+          "uid": "${sourceTEM}"
         },
-        "enable": true,
+        "enable": false,
         "filter": {
           "exclude": false,
           "ids": [
-            32,
+            14,
+            15,
             24,
-            27
+            12,
+            3,
+            2
           ]
         },
         "hide": false,
         "iconColor": "red",
-        "name": "SEM off",
+        "name": "TEM off",
         "target": {
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH target_instrument AS (\n  SELECT id, name\n  FROM instruments\n  WHERE id IN ($instrument)\n)\n\nSELECT\n  o.start_time AS time,\n  o.end_time AS timeEnd,\n  t.name || ' OFF' AS title,\n  'SEM server offline' AS text\nFROM em_off o\nJOIN target_instrument t\n  ON o.instrument_id = t.id\n",
+          "rawSql": "WITH target_instrument AS (\n  SELECT id, name\n  FROM instruments\n  WHERE id IN ($instrument)\n)\n\nSELECT\n  o.start_time AS time,\n  o.end_time AS timeEnd,\n  t.name || ' OFF' AS title,\n  'TEM server offline' AS text\nFROM em_off o\nJOIN target_instrument t\n  ON o.instrument_id = t.id\n",
           "refId": "Anno",
           "sql": {
             "columns": [
@@ -66,7 +69,6 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 130,
   "links": [
     {
       "asDropdown": true,
@@ -75,7 +77,7 @@
       "keepTime": true,
       "tags": [
         "overview",
-        "sem"
+        "tem"
       ],
       "targetBlank": false,
       "title": "Overviews",
@@ -90,7 +92,7 @@
       "keepTime": true,
       "tags": [
         "module",
-        "sem"
+        "tem"
       ],
       "targetBlank": false,
       "title": "Modules",
@@ -105,7 +107,7 @@
       "keepTime": true,
       "tags": [
         "dev",
-        "sem"
+        "tem"
       ],
       "targetBlank": true,
       "title": "",
@@ -116,38 +118,12 @@
   ],
   "panels": [
     {
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 2,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
-      "id": 38,
-      "options": {
-        "code": {
-          "language": "plaintext",
-          "showLineNumbers": false,
-          "showMiniMap": false
-        },
-        "content": "This dashboard is for Arctis only!",
-        "mode": "markdown"
-      },
-      "pluginVersion": "12.1.0",
-      "title": "",
-      "transparent": true,
-      "type": "text"
-    },
-    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 2
+        "y": 0
       },
       "id": 30,
       "panels": [],
@@ -157,7 +133,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
+        "uid": "${sourceTEM}"
       },
       "description": "Venting events (Vn2al open) are annotated",
       "fieldConfig": {
@@ -194,6 +170,7 @@
               "type": "log"
             },
             "showPoints": "never",
+            "showValues": false,
             "spanNulls": true,
             "stacking": {
               "group": "A",
@@ -222,7 +199,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 3
+        "y": 1
       },
       "id": 24,
       "options": {
@@ -242,17 +219,17 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
+            "uid": "${sourceTEM}"
           },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH matching_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Autoloader.PPal'\n    AND subsystem = 'Vacuum'\n    AND component = 'Autoloader'\n)\n\nSELECT\n  time,\n  value AS \"PPal pressure\"\nFROM unnest(\n  (\n    SELECT lttb(\n      time,\n      value_num,\n      2 * (($__to - $__from) / $__interval_ms)::int\n    )\n    FROM data\n    WHERE instrument_id = $instrument\n      AND param_id = (SELECT param_id FROM matching_param)\n      AND $__timeFilter(time)\n  )\n)\nORDER BY time;\n",
+          "rawSql": "WITH matching_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'PPal'\n    AND subsystem = 'Krios Parameters'\n    AND component = 'Vacuum'\n)\n\nSELECT\n  time,\n  value AS \"PPal pressure\"\nFROM unnest(\n  (\n    SELECT lttb(\n      time,\n      value_num,\n      2 * (($__to - $__from) / $__interval_ms)::int\n    )\n    FROM data\n    WHERE instrument_id = $instrument\n      AND param_id = (SELECT param_id FROM matching_param)\n      AND $__timeFilter(time)\n  )\n)\nORDER BY time;\n",
           "refId": "PPal pressure",
           "sql": {
             "columns": [
@@ -277,12 +254,143 @@
       "type": "timeseries"
     },
     {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${sourceTEM}"
+      },
+      "description": "Pa per 30 minutes",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#808080",
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Pa",
+            "axisPlacement": "left",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "log": 10,
+              "type": "log"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "decimals": 2,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "#EAB839",
+                "value": 0.015
+              },
+              {
+                "color": "red",
+                "value": 0.03
+              }
+            ]
+          },
+          "unit": "sci"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 1
+      },
+      "id": 31,
+      "options": {
+        "legend": {
+          "calcs": [
+            "min",
+            "max",
+            "median"
+          ],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceTEM}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH matching_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'VacuumLeakFactor'\n)\n\nSELECT\n  time,\n  value AS \"PPal pressure\"\nFROM unnest(\n  (\n    SELECT lttb(\n      time,\n      value_num,\n      2 * (($__to - $__from) / $__interval_ms)::int\n    )\n    FROM data\n    WHERE instrument_id = $instrument\n      AND param_id = (SELECT param_id FROM matching_param)\n      AND $__timeFilter(time)\n  )\n)\nORDER BY time;\n",
+          "refId": "PPal pressure",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Vacuum leak factor",
+      "type": "timeseries"
+    },
+    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 11
+        "y": 9
       },
       "id": 20,
       "panels": [],
@@ -292,9 +400,8 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
+        "uid": "${sourceTEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -306,6 +413,9 @@
               "mode": "lcd",
               "type": "gauge",
               "valueDisplayMode": "text"
+            },
+            "footer": {
+              "reducers": []
             },
             "inspect": false
           },
@@ -480,20 +590,12 @@
         "h": 4,
         "w": 12,
         "x": 0,
-        "y": 12
+        "y": 10
       },
       "id": 22,
       "options": {
         "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "enablePagination": false,
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
+        "enablePagination": false,
         "frameIndex": 0,
         "showHeader": true,
         "sortBy": [
@@ -503,18 +605,17 @@
           }
         ]
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
+            "uid": "${sourceTEM}"
           },
           "editorMode": "code",
           "format": "table",
-          "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT * FROM (VALUES\n    ('Autoloader', 'X', 'X.MaxControllerOut'),\n    ('Autoloader', 'X', 'X.SettlingDuration'),\n    ('Autoloader', 'X', 'X.MaxPositionError'),\n    ('Autoloader', 'X', 'X.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.MaxControllerOut', 'Max Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Motion Error'),\n    ('X.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.subsystem = t.subsystem\n   AND p.component = t.component\n   AND p.param_name = t.param_name\n  WHERE p.instrument_id = $instrument\n),\n\nraw_values AS (\n  SELECT\n    d.time,\n    p.param_name,\n    d.value_num\n  FROM data d\n  JOIN matching_params p ON d.param_id = p.param_id\n  WHERE d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE\n    WHEN av.param_name ~* 'Position' THEN\n      CASE\n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE\n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;\n",
+          "rawSql": "WITH params AS (\n  SELECT * FROM (VALUES\n    ('Autoloader', 'X', 'X.MaxControllerOut'),\n    ('Autoloader', 'X', 'X.SettlingDuration'),\n    ('Autoloader', 'X', 'X.MaxPositionError'),\n    ('Autoloader', 'X', 'X.PositionError'),\n    ('Autoloader', 'ALX', 'ALX_MoveStopped_MaxControllerOut'),\n    ('Autoloader', 'ALX', 'ALX_MoveStopped_SettlingTime'),\n    ('Autoloader', 'ALX', 'ALX_MoveStopped_MaxPositionError'),\n    ('Autoloader', 'ALX', 'ALX_MoveStopped_PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.MaxControllerOut', 'Max Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Motion Error'),\n    ('X.PositionError', 'Position Error'),\n    ('ALX_MoveStopped_MaxControllerOut', 'Max Controller Output'),\n    ('ALX_MoveStopped_SettlingTime', 'Settling Time'),\n    ('ALX_MoveStopped_MaxPositionError', 'Motion Error'),\n    ('ALX_MoveStopped_PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.subsystem = t.subsystem\n   AND p.component = t.component\n   AND p.param_name = t.param_name\n  WHERE p.instrument_id = $instrument\n),\n\nraw_values AS (\n  SELECT\n    d.time,\n    p.param_name,\n    d.value_num\n  FROM data d\n  JOIN matching_params p ON d.param_id = p.param_id\n  WHERE d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE\n    WHEN av.param_name ~* 'Position' THEN\n      CASE\n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE\n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -547,9 +648,8 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
+        "uid": "${sourceTEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -561,6 +661,9 @@
               "mode": "lcd",
               "type": "gauge",
               "valueDisplayMode": "text"
+            },
+            "footer": {
+              "reducers": []
             },
             "inspect": false
           },
@@ -735,20 +838,12 @@
         "h": 4,
         "w": 12,
         "x": 12,
-        "y": 12
+        "y": 10
       },
       "id": 23,
       "options": {
         "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "enablePagination": false,
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
+        "enablePagination": false,
         "frameIndex": 0,
         "showHeader": true,
         "sortBy": [
@@ -758,18 +853,17 @@
           }
         ]
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
+            "uid": "${sourceTEM}"
           },
           "editorMode": "code",
           "format": "table",
-          "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH params AS (\n  SELECT * FROM (VALUES\n    ('Autoloader', 'Z', 'Z.MaxControllerOut'),\n    ('Autoloader', 'Z', 'Z.SettlingDuration'),\n    ('Autoloader', 'Z', 'Z.MaxPositionError'),\n    ('Autoloader', 'Z', 'Z.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Z.MaxControllerOut', 'Max Controller Output'),\n    ('Z.SettlingDuration', 'Settling Duration'),\n    ('Z.MaxPositionError', 'Motion Error'),\n    ('Z.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.subsystem = t.subsystem\n   AND p.component = t.component\n   AND p.param_name = t.param_name\n  WHERE p.instrument_id = $instrument\n),\n\nraw_values AS (\n  SELECT\n    d.time,\n    p.param_name,\n    d.value_num\n  FROM data d\n  JOIN matching_params p ON d.param_id = p.param_id\n  WHERE d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE\n    WHEN av.param_name ~* 'Position' THEN\n      CASE\n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE\n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;\n",
+          "rawSql": "WITH params AS (\n  SELECT * FROM (VALUES\n    ('Autoloader', 'Z', 'Z.MaxControllerOut'),\n    ('Autoloader', 'Z', 'Z.SettlingDuration'),\n    ('Autoloader', 'Z', 'Z.MaxPositionError'),\n    ('Autoloader', 'Z', 'Z.PositionError'),\n    ('Autoloader', 'ALZ', 'ALZ_MoveStopped_MaxControllerOut'),\n    ('Autoloader', 'ALZ', 'ALZ_MoveStopped_SettlingTime'),\n    ('Autoloader', 'ALZ', 'ALZ_MoveStopped_MaxPositionError'),\n    ('Autoloader', 'ALZ', 'ALZ_MoveStopped_PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Z.MaxControllerOut', 'Max Controller Output'),\n    ('Z.SettlingDuration', 'Settling Duration'),\n    ('Z.MaxPositionError', 'Motion Error'),\n    ('Z.PositionError', 'Position Error'),\n    ('ALZ_MoveStopped_MaxControllerOut', 'Max Controller Output'),\n    ('ALZ_MoveStopped_SettlingTime', 'Settling Time'),\n    ('ALZ_MoveStopped_MaxPositionError', 'Motion Error'),\n    ('ALZ_MoveStopped_PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.subsystem = t.subsystem\n   AND p.component = t.component\n   AND p.param_name = t.param_name\n  WHERE p.instrument_id = $instrument\n),\n\nraw_values AS (\n  SELECT\n    d.time,\n    p.param_name,\n    d.value_num\n  FROM data d\n  JOIN matching_params p ON d.param_id = p.param_id\n  WHERE d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE\n    WHEN av.param_name ~* 'Position' THEN\n      CASE\n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE\n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -805,7 +899,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 16
+        "y": 14
       },
       "id": 26,
       "panels": [],
@@ -815,7 +909,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
+        "uid": "${sourceTEM}"
       },
       "fieldConfig": {
         "defaults": {
@@ -846,6 +940,7 @@
               "type": "linear"
             },
             "showPoints": "never",
+            "showValues": false,
             "spanNulls": true,
             "stacking": {
               "group": "A",
@@ -874,7 +969,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 17
+        "y": 15
       },
       "id": 27,
       "options": {
@@ -890,12 +985,12 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
+            "uid": "${sourceTEM}"
           },
           "editorMode": "code",
           "format": "time_series",
@@ -936,7 +1031,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
+        "uid": "${sourceTEM}"
       },
       "description": "Count any temperature outliers <70K or above 310K",
       "fieldConfig": {
@@ -986,7 +1081,7 @@
         "h": 5,
         "w": 4,
         "x": 12,
-        "y": 17
+        "y": 15
       },
       "id": 34,
       "options": {
@@ -1004,12 +1099,12 @@
         "textMode": "value_and_name",
         "wideLayout": false
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
+            "uid": "${sourceTEM}"
           },
           "editorMode": "code",
           "format": "table",
@@ -1041,7 +1136,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
+        "uid": "${sourceTEM}"
       },
       "description": "1) Max CRT temperature after cassette load. Time window is 3 min before cassette load counter event\n2) Avg temperature increase during load. Same time window\n3) Avg temperature recovery shows the difference between the CRT temperature 10 min after loading and the min temperature before loading. Values close to 0 indicate optimal recovery",
       "fieldConfig": {
@@ -1124,7 +1219,7 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 17
+        "y": 15
       },
       "id": 35,
       "options": {
@@ -1144,17 +1239,17 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
+            "uid": "${sourceTEM}"
           },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH \n-- Get parameter IDs\ncounter_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'LoadCassetteCounter'\n),\ntemperature_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Tcartridge'\n),\n\n-- Detect counter increments (cassette load events)\ncounter_events AS (\n  SELECT\n    d.time AS event_time,\n    d.value_num,\n    LAG(d.value_num) OVER (ORDER BY d.time) AS prev_value\n  FROM data d\n  JOIN counter_param p ON d.param_id = p.param_id\n  WHERE d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n),\n\n-- Keep only the last 10 increment events\nload_events AS (\n  SELECT event_time\n  FROM (\n    SELECT event_time\n    FROM counter_events\n    WHERE prev_value IS NOT NULL AND value_num > prev_value\n    ORDER BY event_time DESC\n    LIMIT 10\n  ) sub\n),\n\n-- Pre-event temperature data (-3min to 0min)\npre_window AS (\n  SELECT\n    l.event_time,\n    t.value_num AS temperature\n  FROM load_events l\n  JOIN data t ON t.instrument_id = $instrument\n  JOIN temperature_param tp ON t.param_id = tp.param_id\n  WHERE t.time BETWEEN l.event_time - INTERVAL '3 minutes' AND l.event_time\n),\n\n-- Final result per event (with post +10 min temp via LATERAL)\nevent_metrics AS (\n  SELECT\n    l.event_time,\n    MIN(p.temperature) AS temp_min_pre,\n    MAX(p.temperature) AS temp_max_pre,\n    MAX(p.temperature) - MIN(p.temperature) AS temp_diff_pre,\n    post.temperature_at_plus10,\n    post.temperature_at_plus10 - MIN(p.temperature) AS delta_temp_plus10_minus_min_pre\n  FROM load_events l\n  LEFT JOIN pre_window p ON l.event_time = p.event_time\n  LEFT JOIN LATERAL (\n    SELECT t.value_num AS temperature_at_plus10\n    FROM data t\n    JOIN temperature_param tp ON t.param_id = tp.param_id\n    WHERE t.instrument_id = $instrument\n      AND t.time >= l.event_time + INTERVAL '10 minutes'\n    ORDER BY t.time\n    LIMIT 1\n  ) post ON TRUE\n  GROUP BY l.event_time, post.temperature_at_plus10\n)\n\n-- Final aggregated summary\nSELECT\n  MAX(temp_max_pre) AS \"Max T after cassette load\",\n  AVG(temp_diff_pre) AS \"Avg T increase during load\",\n  AVG(delta_temp_plus10_minus_min_pre) AS \"Avg T recovery 10 min after load\"\nFROM event_metrics;\n",
+          "rawSql": "WITH \n-- Get parameter IDs\ncounter_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND param_name = 'LoadCassetteCounter'\n),\ntemperature_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND param_name = 'Tcartridge'\n),\n\n-- Last timestamp per counter value → last 10 increments\nload_events AS (\n  SELECT *\n  FROM (\n    SELECT DISTINCT ON (d.value_num)\n      d.value_num,\n      d.time AS event_time\n    FROM data d\n    JOIN counter_param p ON d.param_id = p.param_id\n    WHERE d.instrument_id = $instrument \n      AND $__timeFilter(d.time)\n    ORDER BY d.value_num ASC, d.time DESC\n  ) sub\n  ORDER BY event_time DESC\n  LIMIT 10\n),\n\n-- Compute pre-load temperature stats (-3 min)\nevent_metrics AS (\n  SELECT\n    l.event_time,\n\n    -- min/max/diff of temperature in -3 min window\n    (SELECT MIN(t.value_num)\n     FROM data t\n     JOIN temperature_param tp ON t.param_id = tp.param_id\n     WHERE t.instrument_id = $instrument \n       AND t.time BETWEEN l.event_time - INTERVAL '3 minutes' AND l.event_time\n    ) AS temp_min_pre,\n\n    (SELECT MAX(t.value_num)\n     FROM data t\n     JOIN temperature_param tp ON t.param_id = tp.param_id\n     WHERE t.instrument_id = $instrument \n       AND t.time BETWEEN l.event_time - INTERVAL '3 minutes' AND l.event_time\n    ) AS temp_max_pre,\n\n    -- temperature at +10 min\n    (SELECT t.value_num\n     FROM data t\n     JOIN temperature_param tp ON t.param_id = tp.param_id\n     WHERE t.instrument_id = $instrument \n       AND t.time >= l.event_time + INTERVAL '10 minutes'\n     ORDER BY t.time\n     LIMIT 1\n    ) AS temp_at_plus10\n\n  FROM load_events l\n)\n\n-- Final aggregated summary\nSELECT\n  MAX(temp_max_pre) AS \"Max T after cassette load\",\n  AVG(temp_max_pre - temp_min_pre) AS \"Avg T increase during load\",\n  AVG(temp_at_plus10 - temp_min_pre) AS \"Avg T recovery 10 min after load\"\nFROM event_metrics",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1181,15 +1276,46 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
+        "uid": "${sourceTEM}"
       },
       "fieldConfig": {
         "defaults": {
           "color": {
-            "fixedColor": "green",
-            "mode": "fixed"
+            "mode": "thresholds"
           },
-          "mappings": [],
+          "mappings": [
+            {
+              "options": {
+                "result": {
+                  "color": "green",
+                  "index": 0
+                },
+                "to": 129600
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 129600,
+                "result": {
+                  "color": "yellow",
+                  "index": 1
+                },
+                "to": 259200
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 259200,
+                "result": {
+                  "color": "orange",
+                  "index": 2
+                }
+              },
+              "type": "range"
+            }
+          ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1207,7 +1333,7 @@
         "h": 3,
         "w": 4,
         "x": 12,
-        "y": 22
+        "y": 20
       },
       "id": 29,
       "options": {
@@ -1227,18 +1353,18 @@
         "textMode": "value",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
+            "uid": "${sourceTEM}"
           },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "    SELECT\n        start_time,\n        end_time,\n        EXTRACT(EPOCH FROM(end_time - start_time)) AS total_duration\n    FROM sem_cryocycle_al_daily,\n        state_periods(agg, 1) -- boolean = 1 where value = CryoCycle\n    WHERE instrument_id = $instrument\n      AND param_name = 'Autoloader'\n      AND $__timeFilter(day)\n",
-          "refId": "A",
+          "rawSql": "    SELECT\n        start_time,\n        end_time,\n        EXTRACT(EPOCH FROM(end_time - start_time)) AS total_duration\n    FROM tem_cryocycle_daily,\n        state_periods(agg, 1) -- boolean = 1 where value = CryoCycle\n    WHERE instrument_id = $instrument\n      AND param_name = 'Autoloader'\n      AND $__timeFilter(day)\n",
+          "refId": "B",
           "sql": {
             "columns": [
               {
@@ -1264,7 +1390,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
+        "uid": "${sourceTEM}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1295,6 +1421,7 @@
               "type": "linear"
             },
             "showPoints": "never",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -1339,7 +1466,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 24
+        "y": 22
       },
       "id": 32,
       "options": {
@@ -1355,12 +1482,12 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
+            "uid": "${sourceTEM}"
           },
           "editorMode": "code",
           "format": "time_series",
@@ -1401,7 +1528,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
+        "uid": "${sourceTEM}"
       },
       "description": "1) Max docker temperature after cassette load. Time window is 3 min before cassette load counter event\n2) Avg temperature increase during load. Same time window\n3) Avg temperature recovery shows the difference between the docker temperature 10 min after loading and the min temperature before loading. Values close to 0 indicate optimal recovery",
       "fieldConfig": {
@@ -1484,7 +1611,7 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 24
+        "y": 22
       },
       "id": 36,
       "options": {
@@ -1504,17 +1631,17 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
+            "uid": "${sourceTEM}"
           },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH \n-- Get parameter IDs\ncounter_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'LoadCassetteCounter'\n),\ntemperature_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Tcartridge'\n),\n\n-- Detect counter increments (cassette load events)\ncounter_events AS (\n  SELECT\n    d.time AS event_time,\n    d.value_num,\n    LAG(d.value_num) OVER (ORDER BY d.time) AS prev_value\n  FROM data d\n  JOIN counter_param p ON d.param_id = p.param_id\n  WHERE d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n),\n\n-- Keep only the last 10 increment events\nload_events AS (\n  SELECT event_time\n  FROM (\n    SELECT event_time\n    FROM counter_events\n    WHERE prev_value IS NOT NULL AND value_num > prev_value\n    ORDER BY event_time DESC\n    LIMIT 10\n  ) sub\n),\n\n-- Pre-event temperature data (-3min to 0min)\npre_window AS (\n  SELECT\n    l.event_time,\n    t.value_num AS temperature\n  FROM load_events l\n  JOIN data t ON t.instrument_id = $instrument\n  JOIN temperature_param tp ON t.param_id = tp.param_id\n  WHERE t.time BETWEEN l.event_time - INTERVAL '3 minutes' AND l.event_time\n),\n\n-- Final result per event (with post +10 min temp via LATERAL)\nevent_metrics AS (\n  SELECT\n    l.event_time,\n    MIN(p.temperature) AS temp_min_pre,\n    MAX(p.temperature) AS temp_max_pre,\n    MAX(p.temperature) - MIN(p.temperature) AS temp_diff_pre,\n    post.temperature_at_plus10,\n    post.temperature_at_plus10 - MIN(p.temperature) AS delta_temp_plus10_minus_min_pre\n  FROM load_events l\n  LEFT JOIN pre_window p ON l.event_time = p.event_time\n  LEFT JOIN LATERAL (\n    SELECT t.value_num AS temperature_at_plus10\n    FROM data t\n    JOIN temperature_param tp ON t.param_id = tp.param_id\n    WHERE t.instrument_id = $instrument\n      AND t.time >= l.event_time + INTERVAL '10 minutes'\n    ORDER BY t.time\n    LIMIT 1\n  ) post ON TRUE\n  GROUP BY l.event_time, post.temperature_at_plus10\n)\n\n-- Final aggregated summary\nSELECT\n  MAX(temp_max_pre) AS \"Max T after cassette load\",\n  AVG(temp_diff_pre) AS \"Avg T increase during load\",\n  AVG(delta_temp_plus10_minus_min_pre) AS \"Avg T recovery 10 min after load\"\nFROM event_metrics;\n",
+          "rawSql": "WITH \n-- Get parameter IDs\ncounter_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND param_name = 'LoadCassetteCounter'\n),\ntemperature_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND param_name = 'Tdocker'\n),\n\n-- Last timestamp per counter value → last 10 increments\nload_events AS (\n  SELECT *\n  FROM (\n    SELECT DISTINCT ON (d.value_num)\n      d.value_num,\n      d.time AS event_time\n    FROM data d\n    JOIN counter_param p ON d.param_id = p.param_id\n    WHERE d.instrument_id = $instrument \n      AND $__timeFilter(d.time)\n    ORDER BY d.value_num ASC, d.time DESC\n  ) sub\n  ORDER BY event_time DESC\n  LIMIT 10\n),\n\n-- Compute pre-load temperature stats (-3 min)\nevent_metrics AS (\n  SELECT\n    l.event_time,\n\n    -- min/max/diff of temperature in -3 min window\n    (SELECT MIN(t.value_num)\n     FROM data t\n     JOIN temperature_param tp ON t.param_id = tp.param_id\n     WHERE t.instrument_id = $instrument \n       AND t.time BETWEEN l.event_time - INTERVAL '3 minutes' AND l.event_time\n    ) AS temp_min_pre,\n\n    (SELECT MAX(t.value_num)\n     FROM data t\n     JOIN temperature_param tp ON t.param_id = tp.param_id\n     WHERE t.instrument_id = $instrument \n       AND t.time BETWEEN l.event_time - INTERVAL '3 minutes' AND l.event_time\n    ) AS temp_max_pre,\n\n    -- temperature at +10 min\n    (SELECT t.value_num\n     FROM data t\n     JOIN temperature_param tp ON t.param_id = tp.param_id\n     WHERE t.instrument_id = $instrument \n       AND t.time >= l.event_time + INTERVAL '10 minutes'\n     ORDER BY t.time\n     LIMIT 1\n    ) AS temp_at_plus10\n\n  FROM load_events l\n)\n\n-- Final aggregated summary\nSELECT\n  MAX(temp_max_pre) AS \"Max T after cassette load\",\n  AVG(temp_max_pre - temp_min_pre) AS \"Avg T increase during load\",\n  AVG(temp_at_plus10 - temp_min_pre) AS \"Avg T recovery 10 min after load\"\nFROM event_metrics",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1541,7 +1668,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
+        "uid": "${sourceTEM}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1609,7 +1736,7 @@
         "h": 3,
         "w": 4,
         "x": 12,
-        "y": 25
+        "y": 23
       },
       "id": 33,
       "options": {
@@ -1629,12 +1756,12 @@
         "textMode": "value",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
+            "uid": "${sourceTEM}"
           },
           "editorMode": "code",
           "format": "table",
@@ -1666,7 +1793,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${sourceSEM}"
+        "uid": "${sourceTEM}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1694,7 +1821,7 @@
         "h": 3,
         "w": 4,
         "x": 12,
-        "y": 28
+        "y": 26
       },
       "id": 37,
       "options": {
@@ -1714,18 +1841,18 @@
         "textMode": "value",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${sourceSEM}"
+            "uid": "${sourceTEM}"
           },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH last_cryo AS (\n  SELECT\n    end_time\n  FROM\n    sem_cryocycle_al_daily,\n    state_periods(agg, 1) -- boolean = 1 where value = CryoCycle\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'Autoloader'\n  ORDER BY\n    end_time DESC\n  LIMIT\n    1\n)\nSELECT\n  COALESCE(SUM(lcd.daily_cassette_count), 0) AS cassette_loads_since_cryocycle\nFROM\n  load_counters_daily lcd\n  CROSS JOIN last_cryo lc\nWHERE\n  lcd.day > lc.end_time",
-          "refId": "A",
+          "rawSql": "WITH last_cryo AS (\n  SELECT\n    end_time\n  FROM\n    tem_cryocycle_daily,\n    state_periods(agg, 1) -- boolean = 1 where value>0\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'Autoloader'\n  ORDER BY\n    end_time DESC\n  LIMIT\n    1\n)\nSELECT\n  COALESCE(SUM(lcd.daily_cassette_count), 0) AS cassette_loads_since_cryocycle\nFROM\n  load_counters_daily lcd\n  CROSS JOIN last_cryo lc\nWHERE\n  lcd.day > lc.end_time",
+          "refId": "B",
           "sql": {
             "columns": [
               {
@@ -1750,36 +1877,36 @@
     }
   ],
   "preload": false,
-  "schemaVersion": 41,
+  "schemaVersion": 42,
   "tags": [
     "module",
-    "sem"
+    "tem"
   ],
   "templating": {
     "list": [
       {
         "allowCustomValue": false,
         "current": {
-          "text": "sem",
-          "value": "hm-sem"
+          "text": "tem",
+          "value": "hm-tem"
         },
         "hide": 2,
-        "name": "sourceSEM",
+        "name": "sourceTEM",
         "options": [],
         "query": "grafana-postgresql-datasource",
         "refresh": 1,
-        "regex": "/^sem$/",
+        "regex": "/^tem$/",
         "type": "datasource"
       },
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Aquilos [Aquilos 2+] (9960381)",
-          "value": "1"
+          "text": "Krios 4 [Titan Krios G4] (4248)",
+          "value": "4"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
-          "uid": "${sourceSEM}"
+          "uid": "${sourceTEM}"
         },
         "definition": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
         "name": "instrument",
@@ -1787,6 +1914,7 @@
         "query": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
         "refresh": 1,
         "regex": "",
+        "regexApplyTo": "value",
         "sort": 1,
         "type": "query"
       },
@@ -1799,30 +1927,10 @@
         "description": "Choose which values to show",
         "label": "Axis values",
         "name": "stat_type",
-        "options": [
-          {
-            "selected": true,
-            "text": "avg",
-            "value": "avg"
-          },
-          {
-            "selected": false,
-            "text": "min",
-            "value": "min"
-          },
-          {
-            "selected": false,
-            "text": "max",
-            "value": "max"
-          },
-          {
-            "selected": false,
-            "text": "stdev",
-            "value": "stdev"
-          }
-        ],
+        "options": [],
         "query": "avg, min,max,stdev",
-        "type": "custom"
+        "type": "custom",
+        "valuesFormat": "csv"
       }
     ]
   },
@@ -1835,6 +1943,7 @@
   },
   "timezone": "Europe/London",
   "title": "Module | Autoloader",
-  "uid": "4395e67b-0280-47fd-94a8-644503f10800",
-  "version": 4
+  "uid": "4395e67b-0280-47fd-94a8-655603f10800",
+  "version": 3,
+  "weekStart": ""
 }

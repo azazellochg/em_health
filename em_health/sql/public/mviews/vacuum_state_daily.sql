@@ -77,7 +77,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS vacuum_state_daily AS
     )
     SELECT
         instrument_id, state, day,
-        sum(extract ('epoch' FROM interval_end - interval_start)) AS seconds
+        sum(extract('epoch' FROM interval_end - interval_start))::int AS seconds
     FROM split_intervals
     GROUP BY instrument_id, state, day
     ORDER BY instrument_id, day, state
