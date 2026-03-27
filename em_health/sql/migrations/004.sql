@@ -10,7 +10,7 @@ BEGIN
         ALTER TABLE pganalyze.index_stats DROP COLUMN exclusively_locked;
 
         -- 2. Increase chunk size for main table
-        SELECT set_chunk_time_interval('public.data', INTERVAL '7 days');
+        PERFORM set_chunk_time_interval('public.data', INTERVAL '7 days');
 
         -- 3. Update schema version
         UPDATE public.schema_info SET version = 4;
