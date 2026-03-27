@@ -79,7 +79,7 @@
         "cellHeight": "sm",
         "showHeader": false
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -174,7 +174,7 @@
         "sizing": "auto",
         "valueMode": "text"
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -283,7 +283,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -394,7 +394,7 @@
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 100
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -474,7 +474,7 @@
         "textMode": "value_and_name",
         "wideLayout": false
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -578,7 +578,7 @@
         "enablePagination": true,
         "showHeader": true
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -683,7 +683,7 @@
         "enablePagination": true,
         "showHeader": true
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -817,7 +817,7 @@
         "enablePagination": true,
         "showHeader": true
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -930,7 +930,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -1042,7 +1042,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -1156,7 +1156,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -1260,7 +1260,7 @@
         "cellHeight": "sm",
         "showHeader": false
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -1437,7 +1437,7 @@
         "frameIndex": 0,
         "showHeader": true
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -1447,7 +1447,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  finished_at AS \"Finished at\",\n  finished_at-started_at AS \"Duration\",\n  tuples_removed AS \"Tuples removed\",\n  tuples_removed / (tuples_removed + tuples_remain) * 100.0 AS \"Effectiveness\",\n  wraparound AS \"Anti-wraparound?\",\n  '' AS \"Chunk\",\n  regexp_replace(\n    details,\n    '^automatic vacuum of table \"[^\"]+\": ',\n    ''\n) AS \"Details\"\nFROM pganalyze.vacuum_stats\nWHERE relid = format('%I.%I', '$schema', '$table')::regclass::oid\n  AND $__timeFilter(started_at)\nORDER BY finished_at DESC\n",
+          "rawSql": "SELECT\n  finished_at AS \"Finished at\",\n  finished_at-started_at AS \"Duration\",\n  tuples_removed AS \"Tuples removed\",\n  tuples_removed / NULLIF(tuples_removed + tuples_remain, 0) * 100.0 AS \"Effectiveness\",\n  wraparound AS \"Anti-wraparound?\",\n  '' AS \"Chunk\",\n  regexp_replace(\n    details,\n    '^automatic vacuum of table \"[^\"]+\": ',\n    ''\n) AS \"Details\"\nFROM pganalyze.vacuum_stats\nWHERE relid = format('%I.%I', '$schema', '$table')::regclass::oid\n  AND $__timeFilter(started_at)\nORDER BY finished_at DESC\n",
           "refId": "tables",
           "sql": {
             "columns": [
@@ -1476,7 +1476,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  finished_at AS \"Finished at\",\n  finished_at-started_at AS \"Duration\",\n  tuples_removed AS \"Tuples removed\",\n  tuples_removed / (tuples_removed + tuples_remain) * 100.0 AS \"Effectiveness\",\n  wraparound AS \"Anti-wraparound?\",\n  c.chunk_name AS \"Chunk\",\n  regexp_replace(\n    details,\n    '^automatic vacuum of table \"[^\"]+\": ',\n    ''\n) AS \"Details\"\nFROM pganalyze.vacuum_stats v\nJOIN timescaledb_information.chunks c\n  ON v.relid = (c.chunk_schema || '.' || c.chunk_name)::regclass::oid\nWHERE c.hypertable_schema = '$schema'\n  AND c.hypertable_name = '$table'\n  AND $__timeFilter(v.started_at)\nORDER BY finished_at DESC\n",
+          "rawSql": "SELECT\n  finished_at AS \"Finished at\",\n  finished_at-started_at AS \"Duration\",\n  tuples_removed AS \"Tuples removed\",\n  tuples_removed / NULLIF(tuples_removed + tuples_remain, 0) * 100.0 AS \"Effectiveness\",\n  wraparound AS \"Anti-wraparound?\",\n  c.chunk_name AS \"Chunk\",\n  regexp_replace(\n    details,\n    '^automatic vacuum of table \"[^\"]+\": ',\n    ''\n) AS \"Details\"\nFROM pganalyze.vacuum_stats v\nJOIN timescaledb_information.chunks c\n  ON v.relid = (c.chunk_schema || '.' || c.chunk_name)::regclass::oid\nWHERE c.hypertable_schema = '$schema'\n  AND c.hypertable_name = '$table'\n  AND $__timeFilter(v.started_at)\nORDER BY finished_at DESC\n",
           "refId": "chunks",
           "sql": {
             "columns": [
@@ -1606,7 +1606,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -1740,7 +1740,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -1799,8 +1799,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "stat_statements",
-          "value": "stat_statements"
+          "text": "data",
+          "value": "data"
         },
         "hide": 2,
         "name": "table",
@@ -1812,8 +1812,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "251533",
-          "value": "251533"
+          "text": "422402",
+          "value": "422402"
         },
         "hide": 2,
         "name": "index",
@@ -1825,8 +1825,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "stat_snapshots_pkey",
-          "value": "stat_snapshots_pkey"
+          "text": "parameters_enum_id_instrument_id_param_id_param_name_subsys_idx",
+          "value": "parameters_enum_id_instrument_id_param_id_param_name_subsys_idx"
         },
         "hide": 2,
         "name": "index_name",
@@ -1838,8 +1838,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "pganalyze",
-          "value": "pganalyze"
+          "text": "public",
+          "value": "public"
         },
         "includeAll": false,
         "name": "schema",
@@ -1867,6 +1867,6 @@
   "timezone": "Europe/London",
   "title": "Schema statistics",
   "uid": "46837677-7190-44c2-b9bb-db869089ba49",
-  "version": 6,
+  "version": 2,
   "weekStart": ""
 }
