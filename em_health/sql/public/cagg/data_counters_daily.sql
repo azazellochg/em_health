@@ -6,7 +6,7 @@ SELECT
     time_bucket('1 day', d.time) AS day,
     d.instrument_id,
     p.param_name,
-    delta(counter_agg(d.time, d.value_num))::int AS daily_terabytes
+    delta(counter_agg(d.time, d.value_num)) AS daily_terabytes
 FROM
     data d
         JOIN parameters p USING (instrument_id, param_id)
