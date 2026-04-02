@@ -90,15 +90,16 @@ Remove Old Data
 Description
 ^^^^^^^^^^^
 
-Erase data for a specific instrument. You must input the serial number that matches `instruments.json`
-configuration file. Optional `date` argument can be used to remove data older than **DD-MM-YYYY**.
+Data older than X days will be removed from a database.
+Due to the database `design <https://docs2.tigerdata.com/docs/reference/timescaledb/hypertables/drop_chunks>`_, only the data
+chunks that are fully within the specified time range will be removed.
 
 Syntax
 ^^^^^^
 
 .. code-block::
 
-    emhealth db -d tem clean-inst -i 3299 [--date DATE]
+    emhealth db -d tem prune --days 360
 
 
 Maintenance Tasks

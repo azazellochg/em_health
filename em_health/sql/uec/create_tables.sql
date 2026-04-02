@@ -50,10 +50,10 @@ CREATE TABLE IF NOT EXISTS uec.error_definitions (
 -- Creating uec.errors
 CREATE TABLE IF NOT EXISTS uec.errors (
     time timestamptz NOT NULL,
-    instrumentid int NOT NULL REFERENCES public.instruments (id) ON DELETE CASCADE,
+    instrument_id int NOT NULL REFERENCES public.instruments (id) ON DELETE CASCADE,
     errorid int NOT NULL REFERENCES uec.error_definitions (errordefinitionid) ON DELETE CASCADE,
     messagetext text,
-    UNIQUE (time, instrumentid, errorid)
+    UNIQUE (time, instrument_id, errorid)
 )
 ; GRANT usage ON SCHEMA uec TO grafana, emhealth
 ; GRANT select ON ALL TABLES IN SCHEMA uec TO grafana

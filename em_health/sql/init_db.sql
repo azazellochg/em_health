@@ -9,6 +9,7 @@ CREATE EXTENSION IF NOT EXISTS postgres_fdw;
 
 -- create schemas, tables and functions --
 \i /sql/public/create_tables.sql
+\i /sql/public/create_triggers.sql
 \i /sql/public/create_functions.sql
 
 \i /sql/uec/create_tables.sql

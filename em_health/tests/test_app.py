@@ -190,7 +190,7 @@ class TestEMHealth(unittest.TestCase):
             self.check_db2(dbm, instrument_id)
 
             # clean-up
-            dbm.clean_instrument_data(instrument_serial=9999)
+            dbm.run_query("DELETE FROM public.instruments WHERE id = 9999")
 
     def test_pgtap(self):
         """ Run database tests with pgTAP. """

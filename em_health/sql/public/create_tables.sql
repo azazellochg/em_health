@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS public.instruments (
                                                   name TEXT NOT NULL,
                                                   template TEXT NOT NULL,
                                                   server inet,
-                                                  ds_version TEXT
+                                                  ds_version TEXT,
+                                                  is_active BOOLEAN NOT NULL DEFAULT true
 );
 COMMENT ON TABLE public.instruments IS 'Main instruments table';
 

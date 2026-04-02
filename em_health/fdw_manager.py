@@ -201,7 +201,7 @@ class FDWManager:
                 ON CONFLICT (ErrorDefinitionID) DO NOTHING;
 
                 -- Error notifications
-                INSERT INTO uec.errors (Time, InstrumentID, ErrorID, MessageText)
+                INSERT INTO uec.errors (time, instrument_id, ErrorID, MessageText)
                 SELECT
                     en.ErrorDtm,
                     {self.instr_id},
@@ -210,10 +210,10 @@ class FDWManager:
                 FROM {self.fdw_schema}.error_notifications en
                 JOIN uec.error_definitions ed ON ed.ErrorDefinitionID = en.ErrorDefinitionID
                 WHERE en.ErrorDtm > COALESCE(
-                    (SELECT MAX(Time) FROM uec.errors WHERE InstrumentID = {self.instr_id}),
+                    (SELECT MAX(time) FROM uec.errors WHERE instrument_id = {self.instr_id}),
                     '1900-01-01'
                 )
-                ON CONFLICT (Time, InstrumentID, ErrorID) DO NOTHING;
+                ON CONFLICT (time, instrument_id, ErrorID) DO NOTHING;
             END;
             $$;
         """)

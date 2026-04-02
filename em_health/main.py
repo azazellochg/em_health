@@ -56,12 +56,9 @@ def db_cmd(args):
         from em_health.db_analyze import main as func
         func(dbname, action, getattr(args, "force", False))
 
-    elif action in ["create-stats", "clean-all",
-                    "clean-inst", "import-uec", "migrate"]:
+    elif action in ["create-stats", "erase", "prune", "import-uec", "migrate"]:
         from em_health.db_manager import main as func
-        func(dbname, action,
-             getattr(args, "instrument", None),
-             getattr(args, "date", None))
+        func(dbname, action, getattr(args, "days", None))
 
     elif action in ["backup", "restore"]:
         from em_health.utils.maintenance import main as func
@@ -149,14 +146,11 @@ def main():
     db_subparsers.add_parser("backup", help="Back up both TimescaleDB and Grafana databases")
     db_subparsers.add_parser("migrate", help="Migrate TimescaleDB to the latest schema")
     db_subparsers.add_parser("restore", help="Restore DB from backup")
-    db_subparsers.add_parser("clean-all", help="Erase ALL data in the database")
+    db_subparsers.add_parser("erase", help="Erase ALL data in the database")
 
-    clean_inst_parser = db_subparsers.add_parser("clean-inst",
-                                                 help="Erase data for a specific instrument")
-    clean_inst_parser.add_argument("-i", dest="instrument", type=int, required=True,
-                                   help="Instrument serial number (must be in instruments.json)")
-    clean_inst_parser.add_argument("--date", type=str,
-                                   help="Delete data older than this date (DD-MM-YYYY)")
+    clean_parser = db_subparsers.add_parser("prune", help="Prune old data in the database")
+    clean_parser.add_argument("--days", dest="days", type=int, required=True,
+                                   help="Retain data newer than X days for ALL instruments")
 
     db_subparsers.add_parser("import-uec", help="Import UEC data from microscope servers")
 

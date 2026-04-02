@@ -43,35 +43,6 @@ class DatabaseManager(PgClient):
         super().__init__(*args, **kwargs)
         self.instrument_name = None
 
-    def clean_instrument_data(self,
-                              instrument_serial: int,
-                              since: Optional[str] = None) -> None:
-        """ Erase data for a particular instrument. """
-        row = self.run_query("SELECT id FROM public.instruments WHERE serial = %s",
-                             values=(instrument_serial,),
-                             mode="fetchone")
-        instrument_id = row[0] if row else None
-
-        if instrument_id is None:
-            logger.error("No such instrument: %d", instrument_serial)
-            raise ValueError("Wrong serial number")
-
-        if since is None:
-            # cascade delete all data for the instrument
-            self.run_query("DELETE FROM public.instruments WHERE id = %s",
-                           values=(instrument_id,))
-            logger.info("Deleted instrument %s and all associated data", instrument_serial)
-        else:
-            from_date = datetime.strptime(since, "%d-%m-%Y").replace(tzinfo=timezone.utc)
-            self.run_query("DELETE FROM public.data WHERE instrument_id = %s AND time < %s",
-                           values=(instrument_id, from_date))
-            self.run_query("DELETE FROM uec.errors WHERE InstrumentId = %s AND Time < %s",
-                           values=(instrument_id, from_date))
-            logger.info("Deleted data older than %s for instrument %s",
-                        from_date, instrument_serial)
-
-        self.conn.commit()
-
     def add_instrument(self, instr_dict: dict) -> int:
         """ Populate the instrument metadata table.
         :param instr_dict: input dict with microscope metadata
@@ -412,8 +383,18 @@ class DatabaseManager(PgClient):
 
             logger.info("Scheduled UEC import job for instrument %s", instr_id)
 
+    def prune_data(self, days: int) -> None:
+        """ Prune old data from a database. """
+        chunks_dropped = self.run_query("SELECT purge_old_chunks('public.data', %s)",
+                                        values=(days,), mode='fetchone')
+        self.run_query("DELETE FROM uec.errors WHERE time < (current_timestamp - INTERVAL '{days} days')",
+                       strings={'days': days})
 
-def main(dbname, action, instrument=None, date=None):
+        self.conn.commit()
+        logger.debug("Removed %s chunks (%s rows)", chunks_dropped[0], self.cur.rowcount)
+
+
+def main(dbname, action, days=None):
     if action == "create-stats":
         logger.info("Running aggregation on database %s", dbname)
         mviews = {
@@ -484,7 +465,7 @@ def main(dbname, action, instrument=None, date=None):
                 db.run_query("GRANT SELECT ON public.{view} TO grafana",
                              {"view": view})
 
-    elif action == "clean-all":
+    elif action == "erase":
         print(f"!!! WARNING: You are about to DELETE ALL DATA from database {dbname} !!!")
         confirm = input("Type YES to continue: ")
         if confirm != "YES":
@@ -495,23 +476,10 @@ def main(dbname, action, instrument=None, date=None):
         from em_health.utils.maintenance import erase_db
         erase_db(dbname, do_init=True)
 
-    elif action == "clean-inst":
-        # verify args
-        if not instrument:
-            raise ValueError("-i is required for clean-inst")
-        if date:
-            try:
-                datetime.strptime(date, "%d-%m-%Y")
-            except ValueError:
-                raise ValueError("Invalid date format. Use DD-MM-YYYY (e.g., 23-03-2025).")
-
+    elif action == "prune":
         with DatabaseManager(dbname) as db:
-            if not date:
-                logger.info("Deleting data for instrument %s in %s", instrument, dbname)
-                db.clean_instrument_data(instrument)
-            else:
-                logger.info("Deleting data since %s for instrument %s in %s", date, instrument, dbname)
-                db.clean_instrument_data(instrument, since=date)
+            logger.info("Deleting data older than %d days from database %s", days, dbname)
+            db.prune_data(days)
 
     elif action == "migrate":
         latest_ver = int(os.getenv(f"{dbname.upper()}_SCHEMA_VERSION"))
