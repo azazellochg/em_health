@@ -20,7 +20,14 @@ BEGIN
         -- 4. Add a new column to instruments
         ALTER TABLE public.instruments ADD COLUMN is_active BOOLEAN DEFAULT true;
 
-        -- 5. Update schema version
+        -- 5. Add index to sys_stats
+        ALTER TABLE pganalyze.sys_stats ADD CONSTRAINT sys_stats_time_key UNIQUE (time);
+
+        -- 6. Reorder index to match the queries
+        ALTER TABLE pganalyze.stat_explains DROP CONSTRAINT stat_explains_pkey;
+        ALTER TABLE pganalyze.stat_explains ADD PRIMARY KEY (queryid, time);
+
+        -- 7. Update schema version
         UPDATE public.schema_info SET version = 4;
     END IF;
 END $$

@@ -61,7 +61,7 @@ CREATE TABLE pganalyze.vacuum_stats (
 );
 
 CREATE TABLE pganalyze.stat_snapshots (
-                                           collected_at            TIMESTAMPTZ DEFAULT now() PRIMARY KEY,
+                                           collected_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
                                            calls                   BIGINT      NOT NULL,
                                            total_plan_time         DOUBLE PRECISION NOT NULL,
                                            total_exec_time         DOUBLE PRECISION NOT NULL,
@@ -142,11 +142,11 @@ CREATE TABLE pganalyze.stat_explains (
                                          bytes_read     BIGINT      NOT NULL,
                                          io_read_time   DOUBLE PRECISION NOT NULL,
                                          plan           JSON        NOT NULL,
-                                         PRIMARY KEY (time, queryid)
+                                         PRIMARY KEY (queryid, time)
 );
 
 CREATE TABLE pganalyze.sys_stats (
-                                     time       TIMESTAMPTZ NOT NULL DEFAULT now(),
+                                     time       TIMESTAMPTZ NOT NULL DEFAULT now() UNIQUE,
                                      load1      DOUBLE PRECISION NOT NULL,
                                      load5      DOUBLE PRECISION NOT NULL,
                                      load15     DOUBLE PRECISION NOT NULL,

@@ -269,7 +269,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  time,\n  load1 / cpu_count * 100 AS \"CPU (total $cpu_count)\",\n  (mem_total - mem_avail) / mem_total::double precision * 100 AS \"RAM\"\n  FROM pganalyze.sys_stats\n  WHERE $__timeFilter(time)\nORDER BY time;\n",
+          "rawSql": "SELECT\n  time,\n  load15 / cpu_count * 100 AS \"CPU (total $cpu_count)\",\n  (mem_total - mem_avail) / mem_total::double precision * 100 AS \"RAM\"\n  FROM pganalyze.sys_stats\n  WHERE $__timeFilter(time)\nORDER BY time;\n",
           "refId": "A",
           "sql": {
             "columns": [
