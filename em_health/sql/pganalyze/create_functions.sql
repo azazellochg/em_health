@@ -345,7 +345,7 @@ BEGIN
         (substring(message FROM 'plan:\n(\{.*)')::json #>> '{Plan,Total Cost}')::double precision AS total_cost,
         (substring(message FROM 'plan:\n(\{.*)')::json #>> '{Plan,Shared Read Blocks}')::bigint * 8192 AS bytes_read,
         (substring(message FROM 'plan:\n(\{.*)')::json #>> '{Plan,Shared I/O Read Time}')::double precision AS io_read_time,
-        substring(message FROM 'plan:\n(\{.*)')::json
+        (substring(message FROM 'plan:\n(\{.*)')::json #>> '{Plan}')::json AS plan
     FROM tmp_log
     WHERE database_name = current_database()
       AND user_name = 'grafana'
