@@ -19,7 +19,8 @@ CREATE TABLE pganalyze.database_stats (
                                           blk_write_time  DOUBLE PRECISION NOT NULL,
                                           frozen_xid_age  BIGINT           NOT NULL,
                                           frozen_mxid_age BIGINT           NOT NULL,
-                                          db_size         BIGINT           NOT NULL
+                                          db_size         BIGINT           NOT NULL,
+                                          wal_lsn         pg_lsn           NOT NULL
 );
 
 CREATE TABLE pganalyze.table_stats (
@@ -81,7 +82,6 @@ CREATE TABLE pganalyze.stat_snapshots (
                                            wal_records             BIGINT      NOT NULL,
                                            wal_fpi                 BIGINT      NOT NULL,
                                            wal_bytes               NUMERIC     NOT NULL,
-                                           wal_position            BIGINT      NOT NULL,
                                            stats_reset             TIMESTAMPTZ NOT NULL
 ) WITH (
                                              tsdb.hypertable,

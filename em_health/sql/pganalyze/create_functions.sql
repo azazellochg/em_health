@@ -7,7 +7,7 @@ BEGIN
         xact_commit, xact_rollback, blks_read, blks_hit,
         tup_inserted, tup_updated, tup_deleted, tup_fetched, tup_returned,
         temp_files, temp_bytes, deadlocks, blk_read_time, blk_write_time,
-        frozen_xid_age, frozen_mxid_age, db_size
+        frozen_xid_age, frozen_mxid_age, db_size, wal_lsn
     )
     SELECT
         now() AS collected_at,
@@ -15,7 +15,8 @@ BEGIN
         s.tup_inserted, s.tup_updated, s.tup_deleted, s.tup_fetched, s.tup_returned,
         s.temp_files, s.temp_bytes, s.deadlocks, s.blk_read_time, s.blk_write_time,
         age(d.datfrozenxid) AS frozen_xid_age, mxid_age(d.datminmxid) AS frozen_mxid_age,
-        pg_database_size(current_database()) AS db_size
+        pg_database_size(current_database()) AS db_size,
+        pg_current_wal_lsn() AS wal_lsn
     FROM pg_catalog.pg_stat_database s
              JOIN pg_catalog.pg_database d ON s.datname = d.datname
     WHERE s.datname = current_database();
@@ -159,7 +160,6 @@ BEGIN
                      sum(wal_records) AS wal_records,
                      sum(wal_fpi) AS wal_fpi,
                      sum(wal_bytes) AS wal_bytes,
-                     pg_wal_lsn_diff(pg_current_wal_lsn(), '0/0') AS wal_position,
                      pg_postmaster_start_time() AS stats_reset
                  FROM
                      statements
@@ -190,7 +190,6 @@ BEGIN
                                    wal_records,
                                    wal_fpi,
                                    wal_bytes
-
     )
     SELECT
         snapshot_time,

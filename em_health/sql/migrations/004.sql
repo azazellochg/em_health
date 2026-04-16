@@ -27,7 +27,11 @@ BEGIN
         ALTER TABLE pganalyze.stat_explains DROP CONSTRAINT stat_explains_pkey;
         ALTER TABLE pganalyze.stat_explains ADD PRIMARY KEY (queryid, time);
 
-        -- 7. Update schema version
+        -- 7. Move wal_position column
+        ALTER TABLE pganalyze.stat_snapshots DROP COLUMN wal_position;
+        ALTER TABLE pganalyze.database_stats ADD COLUMN wal_lsn pg_lsn NOT NULL DEFAULT '0/0';
+
+        -- 8. Update schema version
         UPDATE public.schema_info SET version = 4;
     END IF;
 END $$
