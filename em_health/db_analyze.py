@@ -100,7 +100,7 @@ class DatabaseAnalyzer(DatabaseManager):
 
 
 def main(dbname, action, force=False):
-    if action == "create-perf-stats":
+    if action == "pganalyze":
         with DatabaseAnalyzer(dbname) as db:
             if force:  # erase all data
                 db.run_query("DROP SCHEMA IF EXISTS pganalyze CASCADE;")

@@ -52,7 +52,7 @@ def db_cmd(args):
     dbname = args.database
     action = args.action
 
-    if action in ["create-perf-stats", "run-query", "explain-query"]:
+    if action in ["pganalyze", "run-query", "explain-query"]:
         from em_health.db_analyze import main as func
         func(dbname, action, getattr(args, "force", False))
 
@@ -87,7 +87,8 @@ COMMAND_DISPATCH = {
     "watch": watch_cmd,
     "db": db_cmd,
     "update": update_cmd,
-    "test": test_cmd
+    "test": test_cmd,
+    "dev": db_cmd
 }
 
 
@@ -96,7 +97,6 @@ def main():
     if not env_path.exists():
         raise FileNotFoundError(f"Environment file {env_path} not found")
     load_dotenv(dotenv_path=env_path)
-    DEBUG = os.getenv("EMHEALTH_DEBUG", "false").lower() in ("true", "1", "yes")
 
     parser = argparse.ArgumentParser(
         prog="emhealth",
@@ -142,7 +142,7 @@ def main():
                            help="Database name (default: tem)")
     db_subparsers = db_parser.add_subparsers(dest="action", required=True)
 
-    db_subparsers.add_parser("create-stats", help="Create aggregated statistics")
+    db_subparsers.add_parser("create-stats", help="Create data statistics")
     db_subparsers.add_parser("backup", help="Back up both TimescaleDB and Grafana databases")
     db_subparsers.add_parser("migrate", help="Migrate TimescaleDB to the latest schema")
     db_subparsers.add_parser("restore", help="Restore DB from backup")
@@ -155,29 +155,33 @@ def main():
     db_subparsers.add_parser("import-uec", help="Import UEC data from microscope servers")
 
     # --- Developer tools ---
-    if DEBUG:
-        perf = db_subparsers.add_parser("create-perf-stats", help="Setup DB performance measurements [DEV]")
-        perf.add_argument("-f", "--force", dest="force", action="store_true",
-                          help="Erase existing pganalyze data and recreate tables")
+    dev_parser = subparsers.add_parser("dev", help="Developer tools")
+    dev_parser.add_argument("-d", dest="database", default="tem",
+                            help="Database name (default: tem)")
+    dev_subparsers = dev_parser.add_subparsers(dest="action", required=True)
 
-        db_subparsers.add_parser("run-query", help="Run a custom query [DEV]")
-        db_subparsers.add_parser("explain-query", help="EXPLAIN a custom query [DEV]")
+    perf = dev_subparsers.add_parser("pganalyze", help="Reset DB performance statistics")
+    perf.add_argument("-f", "--force", dest="force", action="store_true",
+                      help="Erase existing pganalyze data and recreate tables")
 
-        # helper function to add "batch" argument
-        def add_count_arg(p):
-            p.add_argument(
-                "batch",
-                type=int,
-                help="Batch/chunk/rows size"
-            )
-            return p
+    dev_subparsers.add_parser("run-query", help="Run a custom query")
+    dev_subparsers.add_parser("explain-query", help="EXPLAIN a custom query")
 
-        add_count_arg(db_subparsers.add_parser("test-data", help="Generate CSV with simulated data [DEV]"))
-        add_count_arg(db_subparsers.add_parser("test-copy", help="Benchmark COPY performance [DEV]"))
-        add_count_arg(db_subparsers.add_parser("test-execmany", help="Benchmark EXECUTEMANY performance [DEV]"))
-        add_count_arg(db_subparsers.add_parser("test-unnest", help="Benchmark INSERT UNNEST performance [DEV]"))
-        add_count_arg(db_subparsers.add_parser("test-import", help="Benchmark XML import performance [DEV]"))
-        add_count_arg(db_subparsers.add_parser("test-query", help="Benchmark query execution performance [DEV]"))
+    # helper function to add "batch" argument
+    def add_count_arg(p):
+        p.add_argument(
+            "batch",
+            type=int,
+            help="Batch/chunk/rows size"
+        )
+        return p
+
+    add_count_arg(dev_subparsers.add_parser("test-data", help="Generate CSV with simulated data"))
+    add_count_arg(dev_subparsers.add_parser("test-copy", help="Benchmark COPY performance"))
+    add_count_arg(dev_subparsers.add_parser("test-execmany", help="Benchmark EXECUTEMANY performance"))
+    add_count_arg(dev_subparsers.add_parser("test-unnest", help="Benchmark INSERT UNNEST performance"))
+    add_count_arg(dev_subparsers.add_parser("test-import", help="Benchmark XML import performance"))
+    add_count_arg(dev_subparsers.add_parser("test-query", help="Benchmark query execution performance"))
 
     args = parser.parse_args()
 

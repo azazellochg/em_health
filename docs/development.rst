@@ -229,3 +229,8 @@ Interpreting results
 - **EXECUTEMANY** is slower but more flexible when UPSERTs are required.
 - **UNNEST** can outperform EXECUTEMANY for medium batch sizes, since fewer query plans are created.
 - Always run with different batch sizes (1,000, 5,000, 10,000) and average results across trials for reliable benchmarks.
+
+Import HM data from PostgreSQL
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+On a MPC running Windows 10 and TEM server 7.2+, the health monitor data is stored in a PostgreSQL database and linked to MSSQL using foreign-data wrapper (DSPostgres)

@@ -134,9 +134,8 @@ Import Alarms
 
 .. note:: This functionality is currently under development
 
-Universal Error Codes (UECs) or Alarms from an instrument are stored in a database separate from Health Monitor events and
-can be typically displayed with UEC Viewer on the MPC. You could also install *FEI UEC Notifications Exporter* and save UECs to XML,
-but this is not supported by ``EMHealth``. If you have the credentials to access the MSSQL server on MPC,
+Universal Error Codes (UECs) or Alarms from an instrument are stored (from TEM server 6.2) in a database separate from Health Monitor events and
+can be typically displayed with UEC Viewer. If you have the credentials to access the MSSQL server on MPC,
 you can import UECs from MSSQL into ``EMHealth`` database. To make it work, MSSQL_USER and MSSQL_PASSWORD (in the `docker/.env`) have to be defined,
 as well as the *server* field for each instrument in the `instruments.json`.
 

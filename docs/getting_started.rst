@@ -132,6 +132,7 @@ Post-Import Steps
    .. code-block::
 
        emhealth db -d tem create-stats
+       emhealth db -d sem create-stats
 
 2. Access Grafana dashboards at http://localhost:3000
 

@@ -193,8 +193,8 @@ Syntax
 Developer Commands
 ------------------
 
-Create performance stats
-~~~~~~~~~~~~~~~~~~~~~~~~
+Reset performance stats
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Description
 ^^^^^^^^^^^
@@ -208,7 +208,7 @@ Syntax
 
 .. code-block::
 
-    emhealth db -d tem create-perf-stats [-f]
+    emhealth dev -d tem pganalyze [-f]
 
 Execute queries
 ~~~~~~~~~~~~~~~
@@ -223,5 +223,5 @@ Syntax
 
 .. code-block::
 
-    emhealth db run-query
-    emhealth db explain-query
+    emhealth dev run-query
+    emhealth dev explain-query
