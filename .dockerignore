@@ -1,0 +1,13 @@
+.dockerignore
+.git
+.github
+.idea
+.mypy_cache
+.readthedocs.yaml
+docker/build
+docker/.env
+docker/Dockerfile
+docs
+em_health/instruments.json
+*.egg-info
+emhealth.log
