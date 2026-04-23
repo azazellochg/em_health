@@ -73,7 +73,7 @@ FROM docker.io/library/postgres:18.3-trixie@sha256:059fa0289cc5a184034e05a1f4f6d
 LABEL org.opencontainers.image.title="Custom PostgreSQL image with TimescaleDB, Toolkit & TDS-FDW" \
       org.opencontainers.image.description='Postgres 18.3 + TimescaleDB 2.25.2 + Toolkit 1.22.0 + TDS-FDW 2.0.5' \
       org.opencontainers.image.version="0.1a5" \
-      org.opencontainers.image.authors="Grigory Sharov <gsharov@mrc-lmb.cam.ac.uk>" \
+      org.opencontainers.image.authors="Grigory Sharov <gsharov@mrclmb.ac.uk>" \
       org.opencontainers.image.licenses="GPL-3.0-or-later" \
       org.opencontainers.image.source="https://github.com/azazellochg/em_health"
 
