@@ -2,7 +2,7 @@ name: emhealth
 
 services:
   timescaledb:
-    image: ghcr.io/azazellochg/timescaledb:0.1a5
+    image: ghcr.io/azazellochg/timescaledb:0.1a5@sha256:06d5d9b180db1a623792b56b881956beb4ad5097fafd4359589aba8bd5ba994f
     container_name: timescaledb
     restart: unless-stopped
     env_file:
@@ -51,22 +51,30 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges=true
     networks:
       - emhealth-network
 
   renderer:
-    image: docker.io/grafana/grafana-image-renderer:v5.7.1
+    image: docker.io/grafana/grafana-image-renderer:v5.7.1@sha256:161cff1e0a37e9cc25c53e0230a70bfb6dc38961b4a574bc5aebd95ea1ccc572
     container_name: renderer
     restart: unless-stopped
     ports:
       - "8081"
     volumes:
       - ./image-renderer-config.json:/home/nonroot/config.json
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges=true
     networks:
       - emhealth-network
 
   grafana:
-    image: docker.io/grafana/grafana:12.4
+    image: docker.io/grafana/grafana:12.4@sha256:6b2185720c70337fdc8422944d88c44ca684ba013e34a4aa063257d6f912341b
     container_name: grafana
     restart: unless-stopped
     ports:
@@ -99,6 +107,10 @@ services:
       - ${BACKUP_DIR}:/backups
     tmpfs:
       - /var/lib/grafana/plugins   # keeps plugins in container only
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges=true
     networks:
       - emhealth-network
 

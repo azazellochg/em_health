@@ -2,8 +2,9 @@
 set -eu
 
 # Create pgBackRest stanza
-pgbackrest --stanza=main stanza-create
-pgbackrest --stanza=main check
+rm -rf /backups/*
+pgbackrest --stanza=main stanza-create || exit 1
+pgbackrest --stanza=main check || exit 1
 
 psql -v ON_ERROR_STOP=1 <<EOSQL
     CREATE DATABASE tem;
