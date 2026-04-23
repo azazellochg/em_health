@@ -1,5 +1,5 @@
 # ---------- Builder stage ----------
-FROM docker.io/library/postgres:18-trixie AS builder
+FROM docker.io/library/postgres:18.3-trixie@sha256:059fa0289cc5a184034e05a1f4f6d6fd79f69dc718b8b04ab60b6b469eed411e AS builder
 
 ENV TS_VERSIONS="2.25.2" \
     TLK_VERSION=1.22.0 \
@@ -67,7 +67,7 @@ RUN git clone --branch $TDS_VERSION https://github.com/tds-fdw/tds_fdw.git /buil
 # https://github.com/tds-fdw/tds_fdw/issues/271#issuecomment-731581415
 
 # ---------- Runtime stage ----------
-FROM docker.io/library/postgres:18-trixie AS release
+FROM docker.io/library/postgres:18.3-trixie@sha256:059fa0289cc5a184034e05a1f4f6d6fd79f69dc718b8b04ab60b6b469eed411e AS release
 
 # --------- Metadata ----------
 LABEL org.opencontainers.image.title="Custom PostgreSQL image with TimescaleDB, Toolkit & TDS-FDW" \
