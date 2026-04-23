@@ -56,17 +56,6 @@ Below are some frequently used commands for **psql** database client:
 
 For more examples refer to the command line `cheetsheet <https://gist.github.com/Kartones/dd3ff5ec5ea238d4c546>`_
 
-Using Grafana API
-^^^^^^^^^^^^^^^^^
-
-Grafana provides HTTP API that can be used once you create a `service admin account <http://localhost:3000/org/serviceaccounts/create>`_
-with an API token and save it to **GRAFANA_API_TOKEN** in the `docker/.env`. A simple Python client inside ``EMHealth`` can then access the API.
-At the moment the client can only change the default organization preferences by running:
-
-.. code-block::
-
-    python em_health/grafana_client.py
-
 Logs
 ^^^^
 
