@@ -14,20 +14,20 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libsybdb5 \
-    freetds-dev \
-    freetds-common \
-    postgresql-server-dev-${PG_MAJOR} \
-    gcc \
-    cmake \
-    make \
-    git \
-    curl \
     ca-certificates \
     clang \
-    llvm \
+    cmake \
+    curl \
+    freetds-common \
+    freetds-dev \
+    gcc \
+    git \
     libssl-dev \
+    libsybdb5 \
+    llvm \
+    make \
     pkg-config \
+    postgresql-server-dev-${PG_MAJOR} \
     && mkdir -p $PGRX_HOME \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal -c clippy,rustfmt \
     && cargo install cargo-pgrx --version '=0.16.1' \
@@ -86,13 +86,13 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 # freetds runtime deps, timescaledb tools, pgBackRest
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libsybdb5 \
-    freetds-common \
-    curl \
     ca-certificates \
-    postgresql-${PG_MAJOR}-pgtap \
-    pgbackrest \
+    curl \
+    freetds-common \
+    libsybdb5 \
     libtap-parser-sourcehandler-pgtap-perl \
+    pgbackrest \
+    postgresql-${PG_MAJOR}-pgtap \
     && curl -L -o /tmp/timescaledb-tools.deb "https://packagecloud.io/timescale/timescaledb/packages/debian/trixie/timescaledb-tools_0.18.1~debian13_amd64.deb/download.deb?distro_version_id=221" \
     && dpkg -i /tmp/timescaledb-tools.deb \
     && rm -f /tmp/timescaledb-tools.deb \
