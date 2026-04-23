@@ -186,6 +186,7 @@ def update() -> None:
 
     for cmd in [
         f"{mgr_cmd} -f {DOCKER_COMPOSE_FILE} down",
+        f'{MANAGER} run --rm -it -v emhealth_pgdata:/var/lib/postgresql/data {PG_CONTAINER}:{__version__} bash -c "pg_checksums -D /var/lib/postgresql/data -e -P"',
         f"{mgr_cmd} -f {DOCKER_COMPOSE_FILE} pull",
         f"{mgr_cmd} -f {DOCKER_COMPOSE_FILE} up -d",
         f"{MANAGER} image prune -f",
