@@ -24,7 +24,6 @@
 # *
 # **************************************************************************
 
-import os
 import argparse
 from dotenv import load_dotenv
 from pathlib import Path
@@ -70,7 +69,7 @@ def db_cmd(args):
 
     elif action in ["backup", "restore"]:
         from em_health.utils.maintenance import main as func
-        func(action)
+        func(action, dbname)
 
 
 def dev_cmd(args):
@@ -152,11 +151,11 @@ def main():
     db_subparsers = db_parser.add_subparsers(dest="action", required=True)
 
     db_subparsers.add_parser("create-stats", help="Create data statistics")
-    db_subparsers.add_parser("backup", help="Back up ALL databases (-d is ignored)")
-    db_subparsers.add_parser("restore", help="Restore DB from backup (-d is ignored)")
-    db_subparsers.add_parser("erase", help="Erase ALL data in the TEM or SEM database")
+    db_subparsers.add_parser("backup", help="Back up the database")
+    db_subparsers.add_parser("restore", help="Restore database from backup")
+    db_subparsers.add_parser("erase", help="Erase ALL data in the database")
 
-    clean_parser = db_subparsers.add_parser("prune", help="Prune old data in the TEM or SEM database")
+    clean_parser = db_subparsers.add_parser("prune", help="Prune old data in the database")
     clean_parser.add_argument("--days", dest="days", type=int, required=True,
                                    help="Retain data newer than X days for ALL instruments")
 

@@ -44,7 +44,7 @@ which can be used to restore the database between different PostgreSQL versions.
 
 .. code-block::
 
-    emhealth db backup
+    emhealth db -d tem backup
 
 ----
 
@@ -55,7 +55,7 @@ You can restore either TimescaleDB or Grafana database from a backup file.
 
 .. code-block::
 
-    emhealth db restore
+    emhealth db -d tem restore
 
 Updating
 --------

@@ -65,8 +65,44 @@ Syntax
 
 ----
 
-Create Aggregated Statistics
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Update EMHealth
+~~~~~~~~~~~~~~~
+
+Description
+^^^^^^^^^^^
+
+Make sure to run `pip install -U em_health` before running this command. The update script will migrate the databases schema to the latest
+version and update container images.
+
+Syntax
+^^^^^^
+
+.. code-block::
+
+    emhealth update
+
+----
+
+Run tests
+~~~~~~~~~
+
+Description
+^^^^^^^^^^^
+
+Run unit tests to check the XML import parser and import functions. Also executes `pgTAP <https://pgtap.org/>`_ tests on the database.
+
+Syntax
+^^^^^^
+
+.. code-block::
+
+    emhealth test
+
+Database Operations
+-------------------
+
+Create Data Statistics
+~~~~~~~~~~~~~~~~~~~~~~
 
 Description
 ^^^^^^^^^^^
@@ -81,6 +117,57 @@ Syntax
 .. code-block::
 
     emhealth db -d tem create-stats
+
+----
+
+Backup
+~~~~~~
+
+Description
+^^^^^^^^^^^
+
+Perform a logical backup of TimescaleDB (both TEM and SEM) and a physical backup of Grafana databases. The backups are saved into `BACKUP_DIR` folder.
+
+Syntax
+^^^^^^
+
+.. code-block::
+
+    emhealth db -d tem backup
+
+----
+
+Restore
+~~~~~~~
+
+Description
+^^^^^^^^^^^
+
+Restore either TimescaleDB or Grafana database from a backup file.
+
+Syntax
+^^^^^^
+
+.. code-block::
+
+    emhealth db -d tem restore
+
+----
+
+Erase database
+~~~~~~~~~~~~~~
+
+Description
+^^^^^^^^^^^
+
+ALL data will be removed from a specified database! Empty tables will be re-initialized.
+
+Syntax
+^^^^^^
+
+.. code-block::
+
+    emhealth db -d tem erase
 
 ----
 
@@ -102,79 +189,8 @@ Syntax
     emhealth db -d tem prune --days 360
 
 
-Maintenance Tasks
------------------
-
-Update EMHealth
-~~~~~~~~~~~~~~~
-
-Description
-^^^^^^^^^^^
-
-Make sure to run `pip install -U em_health` before running this command. The update script will migrate the databases schema to the latest
-version and update container images.
-
-Syntax
-^^^^^^
-
-.. code-block::
-
-    emhealth update
-
-----
-
-Backup
-~~~~~~
-
-Description
-^^^^^^^^^^^
-
-Perform a logical backup of TimescaleDB and a physical backup of Grafana database. The backups are saved into `BACKUP_DIR` folder.
-
-Syntax
-^^^^^^
-
-.. code-block::
-
-    emhealth db backup
-
-----
-
-Restore
-~~~~~~~
-
-Description
-^^^^^^^^^^^
-
-Restore either TimescaleDB or Grafana database from a backup.
-
-Syntax
-^^^^^^
-
-.. code-block::
-
-    emhealth db restore
-
-----
-
-Run Tests
-~~~~~~~~~
-
-Description
-^^^^^^^^^^^
-
-Run unit tests to check the parser and import functions. This will create a temporary dummy instrument record and verify
-whether everything works correctly.
-
-Syntax
-^^^^^^
-
-.. code-block::
-
-    emhealth test
-
-Developer Commands
-------------------
+Developer Tools
+---------------
 
 Reset performance stats
 ~~~~~~~~~~~~~~~~~~~~~~~

@@ -92,20 +92,19 @@ psql -d {dbname} -c \\"CREATE EXTENSION IF NOT EXISTS timescaledb{version_clause
         run_command(f'{MANAGER} exec {PG_CONTAINER} /docker-entrypoint-initdb.d/init_db.sh')
 
 
-def backup() -> list[Path]:
+def backup(dbname: str = "tem") -> list[Path]:
     """Backup TimescaleDB and Grafana."""
     outputs = []
     timestamp = datetime.now().strftime("%d%m%Y_%H%M%S")
     pg_version = get_pg_version()
 
     # TimescaleDB backup
-    for dbname in ["tem", "sem"]:
-        ts_version = get_ts_version(dbname)
-        pg_backup = Path("/backups") / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
-        pg_host_backup = BACKUP_HOST_PATH / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
-        logger.info("Backing up TimescaleDB '%s' to %s", dbname, pg_host_backup.resolve())
-        run_command(f"{MANAGER} exec {PG_CONTAINER} pg_dump -Fc -d {dbname} -f {pg_backup}")
-        outputs.append(pg_backup)
+    ts_version = get_ts_version(dbname)
+    pg_backup = Path("/backups") / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
+    pg_host_backup = BACKUP_HOST_PATH / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
+    logger.info("Backing up TimescaleDB '%s' to %s", dbname, pg_host_backup.resolve())
+    run_command(f"{MANAGER} exec {PG_CONTAINER} pg_dump -Fc -d {dbname} -f {pg_backup}")
+    outputs.append(pg_backup)
 
     # Grafana backup
     grafana_backup = BACKUP_HOST_PATH / f"grafana_{timestamp}.db"
@@ -123,7 +122,7 @@ def list_backups() -> list[Path]:
     return [f for f in BACKUP_HOST_PATH.iterdir() if f.suffix in (".db", ".dump")]
 
 
-def restore(backup_file: Path, update: bool = False) -> None:
+def restore(backup_file: Path, target_db: str, update: bool = False) -> None:
     """Restore TimescaleDB or Grafana from a backup file."""
     if backup_file.suffix == ".db":
         # Grafana restore
@@ -144,6 +143,8 @@ def restore(backup_file: Path, update: bool = False) -> None:
     else:
         # TimescaleDB restore
         dbname = backup_file.name.split("_")[1]
+        if target_db != dbname:
+            raise ValueError(f"Target database name ({target_db}) does not match selected backup file: {backup_file.name}")
         check_versions(dbname, backup_file)
         ts_version = backup_file.name.split("_")[3]
         logger.info("Restoring TimescaleDB %s '%s' from %s", ts_version, dbname, backup_file)
@@ -172,7 +173,8 @@ def update() -> None:
     db_manager("sem", "migrate")
 
     # backup db
-    pg_backup_tem, pg_backup_sem, grafana_backup = backup()
+    pg_backup_tem, grafana_backup = backup("tem")
+    pg_backup_sem, grafana_backup = backup("sem")
 
     # update containers
     chdir_docker_dir()
@@ -191,8 +193,8 @@ def update() -> None:
         run_command(cmd)
 
     # restore backups
-    restore(pg_backup_tem)
-    restore(pg_backup_sem)
+    restore(pg_backup_tem, "tem")
+    restore(pg_backup_sem, "sem")
     # update extensions if possible
     for dbname in ["tem", "sem"]:
         run_command(
@@ -201,21 +203,21 @@ def update() -> None:
             'ALTER EXTENSION tds_fdw UPDATE;"'
         )
 
-    restore(grafana_backup, update=True)
+    restore(grafana_backup, "tem", update=True)
 
     logger.info("Finished updating")
 
 
-def main(action: str) -> None:
+def main(action: str, dbname: str = "tem") -> None:
     """Run update/backup/restore interactively."""
     if action == "update":
         update()
 
     elif action == "backup":
-        backup()
+        backup(dbname)
 
     elif action == "restore":
-        confirm = input("Restoring will DELETE existing database.\nType YES to continue: ")
+        confirm = input(f"Restoring will DELETE existing {dbname} database.\nType YES to continue: ")
         if confirm != "YES":
             print("Restore aborted by user.")
             return
@@ -234,4 +236,4 @@ def main(action: str) -> None:
             print("Invalid backup choice.")
             return
 
-        restore(backups[int(choice) - 1])
+        restore(backups[int(choice) - 1], dbname)
