@@ -123,23 +123,6 @@ Syntax
 
 ----
 
-Migrate database
-~~~~~~~~~~~~~~~~
-
-Description
-^^^^^^^^^^^
-
-Migrate TimescaleDB schema to the latest version (if required).
-
-Syntax
-^^^^^^
-
-.. code-block::
-
-    emhealth db -d tem migrate
-
-----
-
 Backup
 ~~~~~~
 
@@ -202,13 +185,47 @@ Description
 The periodic database statistics collection is enabled by default. Below command can be used if you
 modify the pganalyze tables or functions and want to update the jobs. The output is used in dashboards under *DB performance* folder.
 
-
 Syntax
 ^^^^^^
 
 .. code-block::
 
     emhealth dev -d tem pganalyze [-f]
+
+----
+
+Migrate database
+~~~~~~~~~~~~~~~~
+
+Description
+^^^^^^^^^^^
+
+Migrate TimescaleDB schema to the latest version (if required).
+
+Syntax
+^^^^^^
+
+.. code-block::
+
+    emhealth dev -d tem migrate
+
+----
+
+Import Alarms
+~~~~~~~~~~~~~
+
+.. note:: This functionality is currently under development
+
+Universal Error Codes (UECs) or Alarms from an instrument are stored (from TEM server 6.2) in a database separate from Health Monitor events and
+can be typically displayed with UEC Viewer. If you have the credentials to access the MSSQL server on MPC,
+you can import UECs from MSSQL into ``EMHealth`` database. To make it work, MSSQL_USER and MSSQL_PASSWORD (in the `docker/.env`) have to be defined,
+as well as the *server* field for each instrument in the `instruments.json`.
+
+.. code-block::
+
+    emhealth dev -d tem import-uec
+
+----
 
 Execute queries
 ~~~~~~~~~~~~~~~
@@ -223,5 +240,5 @@ Syntax
 
 .. code-block::
 
-    emhealth dev run-query
-    emhealth dev explain-query
+    emhealth dev -d tem run-query
+    emhealth dev -d tem explain-query

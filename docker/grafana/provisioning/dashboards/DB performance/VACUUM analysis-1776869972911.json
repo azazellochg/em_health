@@ -105,7 +105,7 @@
         "cellHeight": "sm",
         "showHeader": false
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -185,7 +185,7 @@
         "textMode": "value_and_name",
         "wideLayout": false
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -289,7 +289,7 @@
         "enablePagination": true,
         "showHeader": true
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "dataset": "tem",
@@ -300,7 +300,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n    COALESCE(\n        ch.hypertable_schema || '.' || ch.hypertable_name,\n        n.nspname || '.' || c.relname\n    ) AS \"Table\",\n    COUNT(*) AS \"Count\",\n    SUM(v.tuples_removed) || ' (' || \n        ROUND(\n            SUM(v.tuples_removed) / NULLIF(SUM(v.tuples_removed + v.tuples_remain), 0) * 100.0,\n            2\n        ) || '%)' AS \"Tuples removed\",\n    SUM(v.index_scans) AS \"Index scans\",\n    SUM(v.pages_removed) AS \"Pages removed\",\n    MAX(v.finished_at - v.started_at) AS \"Max duration\",\n    MAX(v.finished_at) AS \"Last vacuum\"\nFROM pganalyze.vacuum_stats v\nJOIN pg_class c ON c.oid = v.relid\nJOIN pg_namespace n ON n.oid = c.relnamespace\n\nLEFT JOIN timescaledb_information.chunks ch\n       ON ch.chunk_schema = n.nspname\n      AND ch.chunk_name   = c.relname\n\nWHERE $__timeFilter(v.started_at)\n\nGROUP BY\n    COALESCE(\n        ch.hypertable_schema || '.' || ch.hypertable_name,\n        n.nspname || '.' || c.relname\n    )\n\nORDER BY SUM(v.tuples_removed) DESC",
+          "rawSql": "SELECT\n    COALESCE(\n        cag.view_schema || '.' || cag.view_name,\n        ch.hypertable_schema || '.' || ch.hypertable_name,\n        n.nspname || '.' || c.relname\n    ) AS \"Table\",\n    COUNT(*) AS \"Count\",\n    SUM(v.tuples_removed) || ' (' || \n        ROUND(\n            SUM(v.tuples_removed) / NULLIF(SUM(v.tuples_removed + v.tuples_remain), 0) * 100.0,\n            2\n        ) || '%)' AS \"Tuples removed\",\n    SUM(v.index_scans) AS \"Index scans\",\n    SUM(v.pages_removed) AS \"Pages removed\",\n    MAX(v.finished_at - v.started_at) AS \"Max duration\",\n    MAX(v.finished_at) AS \"Last vacuum\"\nFROM pganalyze.vacuum_stats v\nJOIN pg_class c ON c.oid = v.relid\nJOIN pg_namespace n ON n.oid = c.relnamespace\n\nLEFT JOIN timescaledb_information.chunks ch\n       ON ch.chunk_schema = n.nspname\n      AND ch.chunk_name   = c.relname\n\nLEFT JOIN timescaledb_information.continuous_aggregates cag\n  ON cag.materialization_hypertable_schema = ch.hypertable_schema\n AND cag.materialization_hypertable_name   = ch.hypertable_name\n\nWHERE $__timeFilter(v.started_at)\n\nGROUP BY\n    COALESCE(\n        cag.view_schema || '.' || cag.view_name,\n        ch.hypertable_schema || '.' || ch.hypertable_name,\n        n.nspname || '.' || c.relname\n    )\n\nORDER BY SUM(v.tuples_removed) DESC",
           "refId": "A",
           "sql": {
             "columns": [
@@ -372,7 +372,7 @@
         "textMode": "value",
         "wideLayout": false
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -454,7 +454,7 @@
         "textMode": "value",
         "wideLayout": false
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -536,7 +536,7 @@
         "textMode": "value",
         "wideLayout": false
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -655,7 +655,7 @@
         "textMode": "value",
         "wideLayout": true
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -735,7 +735,7 @@
         "textMode": "value",
         "wideLayout": true
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -816,7 +816,7 @@
         "textMode": "value",
         "wideLayout": true
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -934,12 +934,12 @@
         "showHeader": true,
         "sortBy": [
           {
-            "desc": false,
-            "displayName": "Schema"
+            "desc": true,
+            "displayName": "Last vacuumed"
           }
         ]
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -1034,7 +1034,7 @@
         "textMode": "value",
         "wideLayout": false
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -1169,7 +1169,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -1304,7 +1304,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -1390,7 +1390,7 @@
         "textMode": "value",
         "wideLayout": false
       },
-      "pluginVersion": "12.4.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -1435,8 +1435,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "tem",
-          "value": "hm-tem"
+          "text": "sem",
+          "value": "hm-sem"
         },
         "label": "Database",
         "name": "source",
@@ -1465,6 +1465,6 @@
   "timezone": "Europe/London",
   "title": "VACUUM analysis",
   "uid": "d0e487ca-67bd-4aa2-93fa-02b2afc1e2e3",
-  "version": 3,
+  "version": 2,
   "weekStart": ""
 }

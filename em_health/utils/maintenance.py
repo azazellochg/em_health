@@ -163,10 +163,8 @@ psql -d {dbname} -c \\"SELECT timescaledb_post_restore(); ANALYZE;\\""
 def update() -> None:
     """Update everything."""
     from em_health import __version__
-    if (Version(__version__) >= Version("0.1a5") and
-            get_pg_version().startswith("17") and
-            get_ts_version("tem") != "2.25.2"):
-        raise ValueError("EMHealth 0.1a5+ does not support PostgreSQL 17. Check updating documentation at https://em-health.readthedocs.io")
+    if (Version(__version__) >= Version("0.1a5")) and get_pg_version().startswith("17"):
+        raise ValueError("EMHealth 0.1a5+ does not support PostgreSQL 17. Check documentation at https://em-health.readthedocs.io/latest/maintenance.html#updating-postgresql-from-v17-to-v18")
 
     # migrate db schema
     from em_health.db_manager import main as db_manager
@@ -186,7 +184,6 @@ def update() -> None:
 
     for cmd in [
         f"{mgr_cmd} -f {DOCKER_COMPOSE_FILE} down",
-        f'{MANAGER} run --rm -it -v emhealth_pgdata:/var/lib/postgresql/data {PG_CONTAINER}:{__version__} bash -c "pg_checksums -D /var/lib/postgresql/data -e -P"',
         f"{mgr_cmd} -f {DOCKER_COMPOSE_FILE} pull",
         f"{mgr_cmd} -f {DOCKER_COMPOSE_FILE} up -d",
         f"{MANAGER} image prune -f",

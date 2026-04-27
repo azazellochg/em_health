@@ -48,27 +48,6 @@ def watch_cmd(args):
     func(args.input, args.settings, args.interval)
 
 
-def db_cmd(args):
-    dbname = args.database
-    action = args.action
-
-    if action in ["pganalyze", "run-query", "explain-query"]:
-        from em_health.db_analyze import main as func
-        func(dbname, action, getattr(args, "force", False))
-
-    elif action in ["create-stats", "erase", "prune", "import-uec", "migrate"]:
-        from em_health.db_manager import main as func
-        func(dbname, action, getattr(args, "days", None))
-
-    elif action in ["backup", "restore"]:
-        from em_health.utils.maintenance import main as func
-        func(action)
-
-    elif action.startswith("test-"):
-        from em_health.tests.test_performance import TestPerformance
-        TestPerformance(action, args.batch).run()
-
-
 def update_cmd(args):
     from em_health.utils.maintenance import main as func
     func("update")
@@ -81,14 +60,44 @@ def test_cmd(args):
     unittest.TextTestRunner(verbosity=2).run(suite)
 
 
+def db_cmd(args):
+    dbname = args.database
+    action = args.action
+
+    if action in ["create-stats", "erase", "prune"]:
+        from em_health.db_manager import main as func
+        func(dbname, action, getattr(args, "days", None))
+
+    elif action in ["backup", "restore"]:
+        from em_health.utils.maintenance import main as func
+        func(action)
+
+
+def dev_cmd(args):
+    dbname = args.database
+    action = args.action
+
+    if action in ["pganalyze", "run-query", "explain-query"]:
+        from em_health.db_analyze import main as func
+        func(dbname, action, getattr(args, "force", False))
+
+    elif action in ["import-uec", "migrate"]:
+        from em_health.db_manager import main as func
+        func(dbname, action)
+
+    elif action.startswith("test-"):
+        from em_health.tests.test_performance import TestPerformance
+        TestPerformance(action, args.batch).run()
+
+
 COMMAND_DISPATCH = {
     "import": import_cmd,
     "create-task": create_task_cmd,
     "watch": watch_cmd,
-    "db": db_cmd,
     "update": update_cmd,
     "test": test_cmd,
-    "dev": db_cmd
+    "db": db_cmd,
+    "dev": dev_cmd
 }
 
 
@@ -134,25 +143,22 @@ def main():
                               help="Polling time interval in seconds (default: 300)")
 
     subparsers.add_parser("update", help="Update EMHealth to the latest version")
-    subparsers.add_parser("test", help="Run unit tests to check XML parser and import functions")
+    subparsers.add_parser("test", help="Run unit tests to check the parser and import functions")
 
-    # --- Database maintenance commands ---
+    # --- Database commands ---
     db_parser = subparsers.add_parser("db", help="Database operations")
     db_parser.add_argument("-d", dest="database", default="tem",
                            help="Database name (default: tem)")
     db_subparsers = db_parser.add_subparsers(dest="action", required=True)
 
     db_subparsers.add_parser("create-stats", help="Create data statistics")
-    db_subparsers.add_parser("backup", help="Back up both TimescaleDB and Grafana databases")
-    db_subparsers.add_parser("migrate", help="Migrate TimescaleDB to the latest schema")
-    db_subparsers.add_parser("restore", help="Restore DB from backup")
-    db_subparsers.add_parser("erase", help="Erase ALL data in the database")
+    db_subparsers.add_parser("backup", help="Back up ALL databases (-d is ignored)")
+    db_subparsers.add_parser("restore", help="Restore DB from backup (-d is ignored)")
+    db_subparsers.add_parser("erase", help="Erase ALL data in the TEM or SEM database")
 
-    clean_parser = db_subparsers.add_parser("prune", help="Prune old data in the database")
+    clean_parser = db_subparsers.add_parser("prune", help="Prune old data in the TEM or SEM database")
     clean_parser.add_argument("--days", dest="days", type=int, required=True,
                                    help="Retain data newer than X days for ALL instruments")
-
-    db_subparsers.add_parser("import-uec", help="Import UEC data from microscope servers")
 
     # --- Developer tools ---
     dev_parser = subparsers.add_parser("dev", help="Developer tools")
@@ -164,6 +170,8 @@ def main():
     perf.add_argument("-f", "--force", dest="force", action="store_true",
                       help="Erase existing pganalyze data and recreate tables")
 
+    dev_subparsers.add_parser("migrate", help="Migrate TimescaleDB to the latest schema")
+    dev_subparsers.add_parser("import-uec", help="Import UEC data from microscope servers")
     dev_subparsers.add_parser("run-query", help="Run a custom query")
     dev_subparsers.add_parser("explain-query", help="EXPLAIN a custom query")
 
