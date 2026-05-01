@@ -77,6 +77,56 @@ $$
 DROP FUNCTION IF EXISTS pganalyze.get_index_stats
 ; CREATE FUNCTION pganalyze.get_index_stats(job_id int = NULL, config jsonb = NULL) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
+
+    WITH regular_indexes AS (
+        SELECT
+            s.indexrelid,
+            s.relid,
+            s.schemaname,
+            s.relname,
+            pg_relation_size(s.indexrelid) AS size_bytes,
+            COALESCE(s.idx_scan, 0) AS idx_scan,
+            COALESCE(s.idx_tup_read, 0) AS idx_tup_read,
+            COALESCE(s.idx_tup_fetch, 0) AS idx_tup_fetch,
+            COALESCE(io.idx_blks_read, 0) AS idx_blks_read,
+            COALESCE(io.idx_blks_hit, 0) AS idx_blks_hit
+        FROM pg_stat_user_indexes s
+                 LEFT JOIN pg_statio_user_indexes io USING (indexrelid)
+        WHERE s.schemaname IN ('public', 'uec', 'pganalyze')
+    ),
+
+         chunk_indexes AS (
+             SELECT
+                 s.indexrelid,
+                 s.relid,
+                 ch.hypertable_schema,
+                 ch.hypertable_name,
+                 pg_relation_size(s.indexrelid) AS size_bytes,
+                 COALESCE(s.idx_scan, 0) AS idx_scan,
+                 COALESCE(s.idx_tup_read, 0) AS idx_tup_read,
+                 COALESCE(s.idx_tup_fetch, 0) AS idx_tup_fetch,
+                 COALESCE(io.idx_blks_read, 0) AS idx_blks_read,
+                 COALESCE(io.idx_blks_hit, 0) AS idx_blks_hit
+             FROM pg_stat_user_indexes s
+                      JOIN timescaledb_information.chunks ch ON ch.chunk_schema = s.schemaname AND ch.chunk_name = s.relname
+                      LEFT JOIN pg_statio_user_indexes io USING (indexrelid)
+             WHERE s.schemaname = '_timescaledb_internal' AND s.relname LIKE '_hyper_%'
+         ),
+
+         chunk_sums AS (
+             SELECT
+                 ch.hypertable_schema AS schemaname,
+                 ch.hypertable_name AS relname,
+                 SUM(ch.size_bytes) AS size_bytes,
+                 SUM(ch.idx_scan) AS idx_scan,
+                 SUM(ch.idx_tup_read) AS idx_tup_read,
+                 SUM(ch.idx_tup_fetch) AS idx_tup_fetch,
+                 SUM(ch.idx_blks_read) AS idx_blks_read,
+                 SUM(ch.idx_blks_hit) AS idx_blks_hit
+             FROM chunk_indexes ch
+             GROUP BY ch.hypertable_schema, ch.hypertable_name
+         )
+
     INSERT INTO pganalyze.index_stats (
         collected_at,
         indexrelid,
@@ -88,20 +138,19 @@ BEGIN
         blks_read,
         blks_hit
     )
+
     SELECT
         now() AS collected_at,
-        s.indexrelid,
-        s.relid,
-        COALESCE(pg_catalog.pg_relation_size(s.indexrelid), 0) AS size_bytes,
-        COALESCE(s.idx_scan, 0) AS scan,
-        COALESCE(s.idx_tup_read, 0) AS tup_read,
-        COALESCE(s.idx_tup_fetch, 0) AS tup_fetch,
-        COALESCE(sio.idx_blks_read, 0) AS blks_read,
-        COALESCE(sio.idx_blks_hit, 0) AS blks_hit
-    FROM pg_catalog.pg_stat_user_indexes s
-             LEFT JOIN pg_catalog.pg_statio_user_indexes sio USING (indexrelid)
-    WHERE s.schemaname IN ('public', 'uec', 'pganalyze')
-       OR (s.schemaname = '_timescaledb_internal' AND s.relname LIKE '_hyper_%');
+        r.indexrelid,
+        r.relid,
+        r.size_bytes + COALESCE(ch.size_bytes, 0) AS size_bytes,
+        r.idx_scan + COALESCE(ch.idx_scan, 0) AS idx_scan,
+        r.idx_tup_read + COALESCE(ch.idx_tup_read, 0) AS idx_tup_read,
+        r.idx_tup_fetch + COALESCE(ch.idx_tup_fetch, 0) AS idx_tup_fetch,
+        r.idx_blks_read + COALESCE(ch.idx_blks_read, 0) AS idx_blks_read,
+        r.idx_blks_hit + COALESCE(ch.idx_blks_hit, 0) AS idx_blks_hit
+    FROM regular_indexes r
+             LEFT JOIN chunk_sums ch USING (schemaname, relname);
 
 END;
 $$
