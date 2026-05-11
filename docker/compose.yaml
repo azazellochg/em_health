@@ -80,7 +80,7 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      emhealth-db:
+      timescaledb:
         condition: service_healthy
     environment:
       POSTGRES_GRAFANA_PASSWORD: ${POSTGRES_GRAFANA_PASSWORD}
