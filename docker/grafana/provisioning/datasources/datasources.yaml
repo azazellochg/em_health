@@ -6,7 +6,7 @@ datasources:
     uid: hm-tem
     access: proxy
     isDefault: true
-    url: "timescaledb:5432"
+    url: "emhealth-db:5432"
     user: "grafana"
     secureJsonData:
       password: "$POSTGRES_GRAFANA_PASSWORD"
@@ -21,7 +21,7 @@ datasources:
     uid: hm-sem
     access: proxy
     isDefault: false
-    url: "timescaledb:5432"
+    url: "emhealth-db:5432"
     user: "grafana"
     secureJsonData:
       password: "$POSTGRES_GRAFANA_PASSWORD"

@@ -63,7 +63,7 @@ All ``EMHealth`` application actions are saved into `emhealth.log`. PostgreSQL l
 
 .. code-block::
 
-    docker exec -it timescaledb bash
+    docker exec -it emhealth-db bash
     cd /var/lib/postgresql/data/log
     cat *.csv
 
@@ -71,7 +71,7 @@ Grafana logs are accessible via:
 
 .. code-block::
 
-    docker logs grafana
+    docker logs emhealth-grafana
 
 Database structure
 ^^^^^^^^^^^^^^^^^^

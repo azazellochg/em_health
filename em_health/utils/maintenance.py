@@ -33,8 +33,8 @@ from em_health.utils.tools import logger, run_command
 
 MANAGER = os.getenv("MANAGER_TYPE")
 DOCKER_COMPOSE_FILE = "compose.yaml"
-PG_CONTAINER = "timescaledb"
-GRAFANA_CONTAINER = "grafana"
+PG_CONTAINER = "emhealth-db"
+GRAFANA_CONTAINER = "emhealth-grafana"
 BACKUP_HOST_PATH = Path(os.getenv("BACKUP_DIR"))
 
 

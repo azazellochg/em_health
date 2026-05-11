@@ -218,7 +218,7 @@ class Benchmark:
     @staticmethod
     def create_test_db() -> None:
         cmd = fr"""
-            {MANAGER} exec timescaledb bash -c "\
+            {MANAGER} exec emhealth-db bash -c "\
             psql -d postgres -c \"DROP DATABASE IF EXISTS benchmark;\" && \
             psql -d postgres -c \"CREATE DATABASE benchmark;\" && \
             psql -d benchmark -c \"CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;\" && \

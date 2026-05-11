@@ -195,7 +195,7 @@ class TestEMHealth(unittest.TestCase):
     def test_pgtap(self):
         """ Run database tests with pgTAP. """
         MANAGER = os.getenv("MANAGER_TYPE")
-        run_command(f'{MANAGER} exec timescaledb bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/*.sql"')
+        run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/*.sql"')
 
 if __name__ == '__main__':
     unittest.main()

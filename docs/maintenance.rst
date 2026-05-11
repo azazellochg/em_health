@@ -14,7 +14,7 @@ The default pgBackRest stanza name is *main*. We leave physical backups for the 
 
 .. code-block::
 
-    docker exec -it timescaledb bash
+    docker exec -it emhealth-db bash
     pgbackrest --stanza=main info
     pgbackrest --stanza=main backup
     ...
@@ -26,13 +26,13 @@ To restore the latest physical backup + replay most recent WAL:
 
 .. code-block::
 
-    docker stop timescaledb
+    docker stop emhealth-db
     docker volume rm pgdata
     docker volume create pgdata
     docker run --rm -v pgdata:/var/lib/postgresql/data \
         -v ${BACKUP_DIR}:/backups \
         -v ./docker/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro \
-        --entrypoint pgbackrest timescaledb:latest \
+        --entrypoint pgbackrest emhealth-db:latest \
         --stanza=main --type=default --target=latest restore
 
 
