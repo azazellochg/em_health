@@ -25,8 +25,8 @@ jobs:
       - name: Set env vars
         run: |
           echo "IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/timescaledb" >> $GITHUB_ENV
-          echo "VERSION=0.1a5" >> $GITHUB_ENV
-          echo "DESC=Postgres 18.3 + TimescaleDB 2.25.2 + Toolkit 1.22.0 + TDS-FDW 2.0.5" >> $GITHUB_ENV
+          echo "VERSION=0.1a6" >> $GITHUB_ENV
+          echo "DESC=Postgres 18.4 + TimescaleDB 2.27.1 + Toolkit 1.22.0 + TDS-FDW 2.0.5" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4

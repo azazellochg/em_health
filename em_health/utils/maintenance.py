@@ -32,10 +32,10 @@ from packaging.version import Version
 from em_health.utils.tools import logger, run_command
 
 MANAGER = os.getenv("MANAGER_TYPE")
-DOCKER_COMPOSE_FILE = "compose.yaml"
+COMPOSE_FILE = "compose.yaml"
 PG_CONTAINER = "emhealth-db"
 GRAFANA_CONTAINER = "emhealth-grafana"
-BACKUP_HOST_PATH = Path(os.getenv("BACKUP_DIR"))
+BACKUP_HOST_PATH = Path(os.getenv("BACKUP_DIR", "/backups"))
 
 
 def chdir_docker_dir() -> None:
@@ -79,42 +79,30 @@ def check_versions(dbname: str, fn: Path):
 def erase_db(dbname: str, ts_version: str | None = None, do_init: bool = False) -> None:
     """Erase existing DB and optionally re-initialize it."""
     version_clause = f" VERSION '{ts_version}'" if ts_version else ""
-    cmd = f"""
-{MANAGER} exec {PG_CONTAINER} bash -c "\
-psql -d postgres -c \\"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{dbname}';\\" && \
-psql -d postgres -c \\"DROP DATABASE IF EXISTS {dbname};\\" && \
-psql -d postgres -c \\"CREATE DATABASE {dbname};\\" && \
-psql -d {dbname} -c \\"CREATE EXTENSION IF NOT EXISTS timescaledb{version_clause} CASCADE; CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit CASCADE;\\""
-"""
-    run_command(cmd)
-
-    if do_init:
-        run_command(f'{MANAGER} exec {PG_CONTAINER} /docker-entrypoint-initdb.d/init_db.sh')
+    run_command(f'{MANAGER} exec {PG_CONTAINER} /usr/local/bin/reset-db.sh {dbname} {int(do_init)} "{version_clause}"')
 
 
-def backup(dbname: str = "tem") -> list[Path]:
-    """Backup TimescaleDB and Grafana."""
-    outputs = []
+def backup(dbname: str = "tem") -> Path:
+    """Backup TimescaleDB or Grafana."""
     timestamp = datetime.now().strftime("%d%m%Y_%H%M%S")
-    pg_version = get_pg_version()
 
-    # TimescaleDB backup
-    ts_version = get_ts_version(dbname)
-    pg_backup = Path("/backups") / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
-    pg_host_backup = BACKUP_HOST_PATH / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
-    logger.info("Backing up TimescaleDB '%s' to %s", dbname, pg_host_backup.resolve())
-    run_command(f"{MANAGER} exec {PG_CONTAINER} pg_dump -Fc -d {dbname} -f {pg_backup}")
-    outputs.append(pg_backup)
-
-    # Grafana backup
-    grafana_backup = BACKUP_HOST_PATH / f"grafana_{timestamp}.db"
-    logger.info("Backing up Grafana DB to %s", grafana_backup.resolve())
-    run_command(f"{MANAGER} stop {GRAFANA_CONTAINER}")
-    run_command(f"{MANAGER} cp {GRAFANA_CONTAINER}:/var/lib/grafana/grafana.db {grafana_backup}")
-    run_command(f"{MANAGER} start {GRAFANA_CONTAINER}")
-    outputs.append(grafana_backup)
-
-    return outputs
+    if dbname == "grafana":
+        grafana_backup = BACKUP_HOST_PATH / f"grafana_{timestamp}.db"
+        logger.info("Backing up Grafana DB to %s", grafana_backup.resolve())
+        run_command(f"{MANAGER} stop {GRAFANA_CONTAINER}")
+        run_command(f"{MANAGER} cp {GRAFANA_CONTAINER}:/var/lib/grafana/grafana.db {grafana_backup}")
+        run_command(f"{MANAGER} start {GRAFANA_CONTAINER}")
+        return grafana_backup
+    elif dbname in ["tem", "sem"]:
+        pg_version = get_pg_version()
+        ts_version = get_ts_version(dbname)
+        pg_backup = Path("/backups") / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
+        pg_host_backup = BACKUP_HOST_PATH / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
+        logger.info("Backing up TimescaleDB '%s' to %s", dbname, pg_host_backup.resolve())
+        run_command(f"{MANAGER} exec {PG_CONTAINER} pg_dump -Fc -d {dbname} -f {pg_backup}")
+        return pg_backup
+    else:
+        raise ValueError(f"Unknown database: {dbname}")
 
 
 def list_backups() -> list[Path]:
@@ -124,7 +112,7 @@ def list_backups() -> list[Path]:
 
 def restore(backup_file: Path, target_db: str, update: bool = False) -> None:
     """Restore TimescaleDB or Grafana from a backup file."""
-    if backup_file.suffix == ".db":
+    if target_db == "grafana" and backup_file.suffix == ".db":
         # Grafana restore
         logger.info("Restoring Grafana DB from %s", backup_file)
         commands = [
@@ -140,7 +128,7 @@ def restore(backup_file: Path, target_db: str, update: bool = False) -> None:
         for cmd in commands:
             run_command(cmd)
 
-    else:
+    elif target_db in ["tem", "sem"]:
         # TimescaleDB restore
         dbname = backup_file.name.split("_")[1]
         if target_db != dbname:
@@ -158,6 +146,9 @@ psql -d {dbname} -c \\"SELECT timescaledb_post_restore(); ANALYZE;\\""
 """
         run_command(restore_cmd)
 
+    else:
+        raise ValueError(f"Unknown target database: {target_db}")
+
     logger.info("Restore completed")
 
 
@@ -165,7 +156,8 @@ def update() -> None:
     """Update everything."""
     from em_health import __version__
     if (Version(__version__) >= Version("0.1a5")) and get_pg_version().startswith("17"):
-        raise ValueError("EMHealth 0.1a5+ does not support PostgreSQL 17. Check documentation at https://em-health.readthedocs.io/latest/maintenance.html#updating-postgresql-from-v17-to-v18")
+        raise ValueError("EMHealth 0.1a5+ does not support PostgreSQL 17. "
+                         "Check documentation at https://em-health.readthedocs.io/latest/maintenance.html#updating-postgresql-from-v17-to-v18")
 
     # migrate db schema
     from em_health.db_manager import main as db_manager
@@ -173,8 +165,9 @@ def update() -> None:
     db_manager("sem", "migrate")
 
     # backup db
-    pg_backup_tem, grafana_backup = backup("tem")
-    pg_backup_sem, grafana_backup = backup("sem")
+    pg_backup_tem = backup("tem")
+    pg_backup_sem = backup("sem")
+    grafana_backup = backup("grafana")
 
     # update containers
     chdir_docker_dir()
@@ -185,9 +178,9 @@ def update() -> None:
         mgr_cmd = f"docker compose"
 
     for cmd in [
-        f"{mgr_cmd} -f {DOCKER_COMPOSE_FILE} down",
-        f"{mgr_cmd} -f {DOCKER_COMPOSE_FILE} pull",
-        f"{mgr_cmd} -f {DOCKER_COMPOSE_FILE} up -d",
+        f"{mgr_cmd} -f {COMPOSE_FILE} down",
+        f"{mgr_cmd} -f {COMPOSE_FILE} pull",
+        f"{mgr_cmd} -f {COMPOSE_FILE} up -d",
         f"{MANAGER} image prune -f",
     ]:
         run_command(cmd)
@@ -203,7 +196,7 @@ def update() -> None:
             'ALTER EXTENSION tds_fdw UPDATE;"'
         )
 
-    restore(grafana_backup, "tem", update=True)
+    restore(grafana_backup, "grafana", update=True)
 
     logger.info("Finished updating")
 

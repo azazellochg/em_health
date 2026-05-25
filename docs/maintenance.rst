@@ -39,12 +39,13 @@ To restore the latest physical backup + replay most recent WAL:
 Logical backup
 --------------
 
-By default, all TimescaleDB and Grafana databases are backed up. For Timescale, we perform a full logical backup with `pg_dump`
+Both TimescaleDB and Grafana databases can be backed up. For Timescale, we perform a full logical backup with `pg_dump`
 which can be used to restore the database between different PostgreSQL versions. For Grafana, we simply backup its SQLite database file.
 
 .. code-block::
 
     emhealth db -d tem backup
+    emhealth db -d grafana backup
 
 ----
 
