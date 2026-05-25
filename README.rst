@@ -1,12 +1,12 @@
-.. image:: https://img.shields.io/pypi/v/em_health.svg
+.. image:: https://img.shields.io/pypi/v/em_health
         :target: https://pypi.python.org/pypi/em_health
         :alt: PyPI release
 
-.. image:: https://img.shields.io/pypi/l/em_health.svg
+.. image:: https://img.shields.io/pypi/l/em_health
         :target: https://pypi.python.org/pypi/em_health
         :alt: License
 
-.. image:: https://img.shields.io/pypi/pyversions/em_health.svg
+.. image:: https://img.shields.io/pypi/pyversions/em_health
         :target: https://pypi.python.org/pypi/em_health
         :alt: Supported Python versions
 

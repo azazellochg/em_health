@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools >= 77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -12,11 +12,10 @@ requires-python = "<3.13"
 keywords = ["microscope", "health monitoring", "TEM", "SEM"]
 classifiers=[
     'Development Status :: 4 - Beta',
-    'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
     'Programming Language :: Python :: 3',
     'Operating System :: POSIX :: Linux',
 ]
-license = {file = "LICENSE"}
+license = "GPL-3.0-or-later"
 dependencies = [
     'psycopg[binary]',
     'watchdog',
