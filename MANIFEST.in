@@ -5,6 +5,7 @@ include README.rst
 include LICENSE
 
 recursive-include docker *
+exclude docker/.env
 
 graft docs
 prune docs/_build
