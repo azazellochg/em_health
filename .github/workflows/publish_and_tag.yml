@@ -1,5 +1,4 @@
-# Workflow to send master to pypi
-name: master to pypi with comments and tag
+name: master to pypi
 on:
   push:
     branches: [ master ]

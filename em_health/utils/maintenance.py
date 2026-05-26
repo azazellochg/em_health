@@ -155,8 +155,8 @@ psql -d {dbname} -c \\"SELECT timescaledb_post_restore(); ANALYZE;\\""
 def update() -> None:
     """Update everything."""
     from em_health import __version__
-    if (Version(__version__) >= Version("0.1a5")) and get_pg_version().startswith("17"):
-        raise ValueError("EMHealth 0.1a5+ does not support PostgreSQL 17. "
+    if (Version(__version__) >= Version("0.1a6")) and get_pg_version().startswith("17"):
+        raise ValueError("EMHealth 0.1a6+ does not support PostgreSQL 17. "
                          "Check documentation at https://em-health.readthedocs.io/latest/maintenance.html#updating-postgresql-from-v17-to-v18")
 
     # migrate db schema

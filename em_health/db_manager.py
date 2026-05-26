@@ -26,8 +26,8 @@
 
 import os
 import time
-from datetime import datetime, timezone
-from typing import Iterable, Optional, Any
+from datetime import datetime
+from typing import Iterable, Any
 
 from em_health.db_client import PgClient
 from em_health.utils.tools import logger, profile
@@ -412,6 +412,7 @@ def main(dbname, action, days=None):
                 "tem_cryocycle_daily": True,
                 "tem_pressure_hourly": True,
                 "tem_pressure_daily": True, # depends on tem_pressure_hourly
+                #"tem_feg_counter_daily": True,
 
                 # Depends on em_off
                 "vacuum_state_daily": False,
@@ -442,6 +443,8 @@ def main(dbname, action, days=None):
                 "sem_chamber_state_daily": True,
                 "sem_pressure_hourly": True,
                 "sem_pressure_daily": True, # depends on sem_pressure_hourly
+                #"sem_source_counter_daily": True,
+                #"fibsem_apertures_daily": True,
 
                 # Depends on the views above
                 "sem_beamtime_daily": False,
@@ -482,9 +485,12 @@ def main(dbname, action, days=None):
             db.prune_data(days)
 
     elif action == "migrate":
-        latest_ver = int(os.getenv(f"{dbname.upper()}_SCHEMA_VERSION"))
-        with DatabaseManager(dbname) as db:
-            db.migrate_db(latest_ver)
+        latest_ver = os.getenv(f"{dbname.upper()}_SCHEMA_VERSION")
+        if latest_ver is not None:
+            with DatabaseManager(dbname) as db:
+                db.migrate_db(int(latest_ver))
+        else:
+            raise ValueError("Could not get latest schema version")
 
     elif action == "import-uec":
         with DatabaseManager(dbname) as db:
