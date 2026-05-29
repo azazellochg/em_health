@@ -64,7 +64,7 @@ Installation
        cd em_health
        pip install -e .
 
-2. Copy `docker/.env_example` into `docker/.env` and edit the configuration variables. Make sure **BACKUP_DIR** exists and has 777 permissions, since the containers need to write into this host folder. Detailed information can be found `here <advanced_setup.html#security-configuration>`_.
+2. Copy `docker/.env_example` into `docker/.env` and set secure passwords and tokens. Make sure **BACKUP_DIR** exists and has 777 permissions, since the containers need to write into this host folder. Detailed information can be found `here <advanced_setup.html#security-configuration>`_.
 3. Launch containers:
 
    .. code-block::
