@@ -85,4 +85,5 @@ Starting from EMHealth 0.1a6 we have migrated PostgreSQL from v17 to v18. Major 
     - enable checksums for PG cluster: `docker run --rm -it -v emhealth_pgdata:/var/lib/postgresql/data timescaledb:0.1a4 bash -c "pg_checksums -D /var/lib/postgresql/data -e -P"`
     - restart containers: `docker compose -f docker/compose.yaml up`
     - upgrade EMHealth to 0.1a6 or later: `pip install -U em_health`
+    - rename old containers: `docker rename timescaledb emhealth-db; docker rename renderer emhealth-renderer; docker rename grafana emhealth-grafana`
     - update again: `emhealth update`

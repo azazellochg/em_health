@@ -156,8 +156,8 @@ def update() -> None:
     """Update everything."""
     from em_health import __version__
     if (Version(__version__) >= Version("0.1a6")) and get_pg_version().startswith("17"):
-        raise ValueError("EMHealth 0.1a6+ does not support PostgreSQL 17. "
-                         "Check documentation at https://em-health.readthedocs.io/latest/maintenance.html#updating-postgresql-from-v17-to-v18")
+        print("EMHealth 0.1a6+ does not support PostgreSQL 17. "
+              "Check documentation at https://em-health.readthedocs.io/latest/maintenance.html#updating-postgresql-from-v17-to-v18")
 
     # migrate db schema
     from em_health.db_manager import main as db_manager
@@ -178,7 +178,7 @@ def update() -> None:
         mgr_cmd = f"docker compose"
 
     for cmd in [
-        f"{mgr_cmd} -f {COMPOSE_FILE} down",
+        f"{mgr_cmd} -f {COMPOSE_FILE} down -v",
         f"{mgr_cmd} -f {COMPOSE_FILE} pull",
         f"{mgr_cmd} -f {COMPOSE_FILE} up -d",
         f"{MANAGER} image prune -f",
