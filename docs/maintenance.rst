@@ -79,11 +79,24 @@ Updating PostgreSQL from v17 to v18
 
 Starting from EMHealth 0.1a6 we have migrated PostgreSQL from v17 to v18. Major server version upgrades are not automated, so please follow the steps below:
 
-    - install the latest package that still support PG17: `pip install em_health==0.1a4`
-    - update everything except PG17 to the latest version: `emhealth update`
-    - stop all containers: `docker compose -f docker/compose.yaml down`
-    - enable checksums for PG cluster: `docker run --rm -it -v emhealth_pgdata:/var/lib/postgresql/data timescaledb:0.1a4 bash -c "pg_checksums -D /var/lib/postgresql/data -e -P"`
-    - restart containers: `docker compose -f docker/compose.yaml up`
-    - upgrade EMHealth to 0.1a6 or later: `pip install -U em_health`
-    - rename old containers: `docker rename timescaledb emhealth-db; docker rename renderer emhealth-renderer; docker rename grafana emhealth-grafana`
-    - update again: `emhealth update`
+.. code-block:: bash
+
+    pip install em_health==0.1a4
+    emhealth update
+    docker compose -f docker/compose.yaml down
+    docker run --rm -it -v emhealth_pgdata:/var/lib/postgresql/data timescaledb:0.1a4 bash -c "pg_checksums -D /var/lib/postgresql/data -e -P"
+    docker compose -f docker/compose.yaml up
+    pip install -U em_health
+    docker rename timescaledb emhealth-db; docker rename renderer emhealth-renderer; docker rename grafana emhealth-grafana
+    emhealth update
+
+The general idea above is to:
+
+a) update extensions to the latest version on PG17,
+b) enable checksums on the old cluster,
+c) update EMHealth code,
+d) rename containers to a new convention,
+e) make backups,
+f) start new PG18 and other containers and empty volumes
+g) restore old logical backups
+h) update extensions on PG18
