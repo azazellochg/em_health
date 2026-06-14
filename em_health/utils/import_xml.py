@@ -192,16 +192,6 @@ class ImportXML:
 
                 elem.clear()  # Clear after handling <ValueData> and its children
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """ Close input XML file on exit. """
-        if self.file:
-            self.file.close()
-            self.file = None
-            self.context = None
-
     @staticmethod
     def __match(elem, name) -> bool:
         """ Strip namespace and match XML tag. """
@@ -283,6 +273,9 @@ def main(xml_fn, json_fn, nocopy):
             dbm.add_parameters(instrument_id, xmlparser.params, enum_ids)
             datapoints = xmlparser.parse_values(instrument_id, xmlparser.params)
             dbm.write_data(datapoints, nocopy=nocopy)
+
+        xmlparser.file.close()
+        xmlparser.context = None
     else:
         logger.error("File %s has wrong format", xml_fn)
         sys.exit(1)

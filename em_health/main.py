@@ -88,6 +88,10 @@ def dev_cmd(args):
         from em_health.tests.test_performance import TestPerformance
         TestPerformance(action, args.batch).run()
 
+    elif action.startswith("import-csv"):
+        from em_health.utils.import_csv import main as func
+        func(args.input, args.settings, getattr(args, "nocopy", False))
+
 
 COMMAND_DISPATCH = {
     "import": import_cmd,
@@ -173,6 +177,14 @@ def main():
     dev_subparsers.add_parser("import-uec", help="Import UEC data from microscope servers")
     dev_subparsers.add_parser("run-query", help="Run a custom query")
     dev_subparsers.add_parser("explain-query", help="EXPLAIN a custom query")
+
+    dev_csv_parser = dev_subparsers.add_parser("import-csv", help="Import DM/GMS log from CSV file")
+    dev_csv_parser.add_argument("-i", dest="input", required=True,
+                               help="Path to CSV file (.log or .log.gz)")
+    dev_csv_parser.add_argument("-s", dest="settings", required=True,
+                               help="Path to instruments.json with metadata")
+    dev_csv_parser.add_argument("--skip-duplicates", dest="nocopy", action="store_true",
+                               help="Ignore duplicated datapoints (useful for small overlapping imports)")
 
     # helper function to add "batch" argument
     def add_count_arg(p):
