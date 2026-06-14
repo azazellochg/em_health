@@ -39,7 +39,7 @@ jobs:
           tags: |
               ${{ env.IMAGE_NAME }}:latest
               ${{ env.IMAGE_NAME }}:${{ env.VERSION }}
-          annotations: |
+          labels: |
             org.opencontainers.image.title=Custom PostgreSQL image with TimescaleDB, Toolkit & TDS-FDW
             org.opencontainers.image.description=${{ env.DESC }}
             org.opencontainers.image.version=${{ env.VERSION }}
