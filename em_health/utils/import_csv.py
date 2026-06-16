@@ -49,11 +49,12 @@ class ImportCSV:
         self.microscope = None
         self.instrument_name = None
         self.db_name = None
+        self.params: dict[int, dict] = {}
 
-        if self.path.endswith('.log.gz'):
-            self.file = gzip.open(self.path, 'rt')
+        if self.path.endswith(".log.gz"):
+            self.file = gzip.open(self.path, "rt")
         else:
-            self.file = open(self.path, 'rt')
+            self.file = open(self.path, "rt")
 
         self.set_microscope()
 
@@ -77,39 +78,200 @@ class ImportCSV:
                 self.db_name = m.get("type")
                 if self.db_name not in ["tem", "sem"]:
                     raise ValueError(f"Database name {self.db_name} is not recognized")
-                break
-        if self.microscope is None:
-            raise ValueError(f"Instrument {serial} not found in instruments.json")
+                return
 
-    def parse_values(self,
-                     instr_id: int) -> Iterable[tuple]:
-        """ Parse parameters values from CSV.
-        :param instr_id: instrument id from the instrument table
-        :return an Iterator of tuples
-        """
+        raise ValueError(f"Instrument {serial} not found in instruments.json")
+
+    @staticmethod
+    def _parse_timestamp(line: str) -> datetime:
+        return (
+            datetime.strptime(line[:24], "%a %b %d %H:%M:%S %Y")
+            .astimezone(timezone.utc)
+        )
+
+    @staticmethod
+    def _parse_temperature_line(line: str):
+        camera_name = (
+            line.split("INFO", 1)[1]
+            .split("Temperature", 1)[0]
+            .strip()
+            .replace(" ", "")
+        )
+
+        camera_temp = float(
+            line.split("Temperature:", 1)[1]
+            .split("C", 1)[0]
+            .strip()
+        )
+
+        fan_speed = int(
+            line.split("FS:", 1)[1]
+            .split(None, 1)[0]
+        )
+
+        proc_temps = [
+            float(x)
+            for x in (
+                line.split("Proc Temperatures:", 1)[1]
+                .rsplit(" C", 1)[0]
+                .split()
+            )
+        ]
+
+        return camera_name, camera_temp, fan_speed, proc_temps
+
+    def parse_parameters(self):
+        """ Parse the first line with temperatures to get parameter names. """
+        camera_name = "GatanCamera"
+        proc_count = 0
+
         for line in self.file:
-            if " ERROR " in line:
-                level = "ERROR"
-                pos = line.index("ERROR")
-
-            elif " INFO " in line and "Temperature:" in line:
-                level = "INFO"
-                pos = line.index("INFO")
-
-            else:
+            if "Camera Temperature:" not in line:
                 continue
 
-            # Example:
-            # Sun Jun 14 00:02:24 2026
-            ts_str = line[:24]
-            timestamp = (
-                datetime.strptime(ts_str, "%a %b %d %H:%M:%S %Y")
-                .astimezone(timezone.utc)
+            camera_name, _, _, proc_temps = (
+                self._parse_temperature_line(line)
             )
-            message = line[pos + len(level):].strip()
+            proc_count = len(proc_temps)
+            break
 
-            point = (timestamp, instr_id, level, message)
-            yield point
+        self.file.seek(0)
+
+        next_id = 10000
+
+        for proc_id in range(1, proc_count + 1):
+            self.params[next_id] = {
+                "subsystem": "AcquisitionServer",
+                "component": camera_name,
+                "param_name": f"Processor{proc_id}Temperature",
+                "enum_name": None,
+                "display_name": f"Processor {proc_id} temperature",
+                "display_unit": "°C",
+                "storage_unit": "°C",
+                "value_type": "float",
+                "event_id": 0,
+                "event_name": "ProcTemperatureChangedEvent",
+                "abs_min": -50.0,
+                "abs_max": 180.0,
+            }
+            next_id += 1
+
+        self.params[next_id] = {
+            "subsystem": "AcquisitionServer",
+            "component": camera_name,
+            "param_name": "CameraTemperature",
+            "enum_name": None,
+            "display_name": "Camera temperature",
+            "display_unit": "°C",
+            "storage_unit": "°C",
+            "value_type": "float",
+            "event_id": 0,
+            "event_name": "CameraTemperatureChangedEvent",
+            "abs_min": -50.0,
+            "abs_max": 180.0,
+        }
+
+        self.params[next_id + 1] = {
+            "subsystem": "AcquisitionServer",
+            "component": camera_name,
+            "param_name": "FanSpeed",
+            "enum_name": None,
+            "display_name": "Server fan speed",
+            "display_unit": None,
+            "storage_unit": None,
+            "value_type": "int",
+            "event_id": 0,
+            "event_name": "FanSpeedChangedEvent",
+            "abs_min": 0,
+            "abs_max": 10,
+        }
+
+        self.params[next_id + 2] = {
+            "subsystem": "AcquisitionServer",
+            "component": camera_name,
+            "param_name": "CameraError",
+            "enum_name": None,
+            "display_name": "Camera error message",
+            "display_unit": None,
+            "storage_unit": None,
+            "value_type": "str",
+            "event_id": 0,
+            "event_name": "CameraErrorEvent",
+            "abs_min": None,
+            "abs_max": None,
+        }
+
+    def parse_values(self,
+                     instr_id: int,
+                     param_ids: dict) -> Iterable[tuple]:
+        """ Parse parameters values from XML.
+        :param instr_id: instrument id from the instrument table
+        :param param_ids: input parameters dict
+        :return an Iterator of tuples
+        """
+        camera_param_id = param_ids["CameraTemperature"]
+        fan_param_id = param_ids["FanSpeed"]
+        error_param_id = param_ids["CameraError"]
+
+        proc_param_ids = [
+            param_ids[f"Processor{i}Temperature"]
+            for i in range(
+                1,
+                len([
+                    p for p in self.params.values()
+                    if p["param_name"].startswith("Processor")
+                ]) + 1
+            )
+        ]
+
+        for line in self.file:
+            if " ERROR " in line:
+                timestamp = self._parse_timestamp(line)
+
+                pos = line.index("ERROR")
+
+                yield (
+                    timestamp,
+                    instr_id,
+                    error_param_id,
+                    None,
+                    line[pos + 5:].strip()
+                )
+
+            elif "Camera Temperature:" in line:
+                timestamp = self._parse_timestamp(line)
+
+                (
+                    _,
+                    camera_temp,
+                    fan_speed,
+                    proc_temps
+                ) = self._parse_temperature_line(line)
+
+                yield (
+                    timestamp,
+                    instr_id,
+                    camera_param_id,
+                    camera_temp,
+                    None
+                )
+
+                yield (
+                    timestamp,
+                    instr_id,
+                    fan_param_id,
+                    fan_speed,
+                    None
+                )
+
+                for param_id, temp in zip(proc_param_ids, proc_temps):
+                    yield (
+                        timestamp,
+                        instr_id,
+                        param_id,
+                        temp,
+                        None
+                    )
 
 
 def main(csv_fn, json_fn, nocopy):
@@ -145,15 +307,23 @@ def main(csv_fn, json_fn, nocopy):
 
         csvparser = ImportCSV(csv_fn, json_info)
         instr_dict = csvparser.get_microscope_dict()
+        csvparser.parse_parameters()
+        param_ids = {
+            v["param_name"]: k
+            for k, v in csvparser.params.items()
+        }
 
         with DatabaseManager(csvparser.db_name,
                              username="emhealth",
                              password="POSTGRES_EMHEALTH_PASSWORD") as dbm:
             instrument_id = dbm.add_instrument(instr_dict)
-            datapoints = csvparser.parse_values(instrument_id)
+            dbm.add_parameters(instrument_id, csvparser.params, {})
+            csvparser.file.seek(0)
+            datapoints = csvparser.parse_values(instrument_id, param_ids)
+
             for p in datapoints:
                 print(p)
-            #dbm.write_logs(datapoints, nocopy=nocopy)
+            #dbm.write_data(datapoints, nocopy=nocopy)
 
         csvparser.file.close()
     else:
