@@ -40,10 +40,9 @@ TEMP_LINE_PATTERN = re.compile(
     r"""
     ^(?P<timestamp>.{24})\s+.*?\bINFO\b\s+
     (?P<camera>.+?)
-    .+?\s+Camera\ Temperature:\s*
+    \s+Camera\ Temperature:\s*
     (?P<camera_temp>-?\d+(?:\.\d+)?)
-    \s*C\s+
-    FS:\s*(?P<fan_speed>\d+)\s+
+    \s*C.*
     Proc\ Temperatures:\s*
     (?P<proc_temps>.+?)
     \s+C\s*$
@@ -124,8 +123,7 @@ class ImportCSV:
         return (
             cls._parse_timestamp(match.group("timestamp")),
             float(match.group("camera_temp")),
-            int(match.group("fan_speed")),
-            [float(x) for x in match.group("proc_temps").split()]
+            map(float, match.group("proc_temps").split())
         )
 
     @classmethod
@@ -138,14 +136,12 @@ class ImportCSV:
     def parse_parameters(self):
         """ Parse the first line with temperatures to get parameter names. """
         for line in self.file:
-            match = TEMP_LINE_PATTERN.match(line)
-            if not match:
-                continue
-
-            self.camera_name = match.group("camera").strip().replace(" ", "")
-            self.proc_count = len(match.group("proc_temps").split())
-
-            break
+            if 'Camera Temperature' in line:
+                logger.debug("Parsing line: %s", line)
+                match = TEMP_LINE_PATTERN.match(line)
+                self.camera_name = match.group("camera").strip().replace(" ", "")
+                self.proc_count = len(match.group("proc_temps").split())
+                break
 
         self.file.seek(0)
 
@@ -186,21 +182,6 @@ class ImportCSV:
         self.params[next_id + 1] = {
             "subsystem": "AcquisitionServer",
             "component": self.camera_name,
-            "param_name": "FanSpeed",
-            "enum_name": None,
-            "display_name": "Server fan speed",
-            "display_unit": None,
-            "storage_unit": None,
-            "value_type": "int",
-            "event_id": 0,
-            "event_name": "FanSpeedChangedEvent",
-            "abs_min": 0,
-            "abs_max": 10,
-        }
-
-        self.params[next_id + 2] = {
-            "subsystem": "AcquisitionServer",
-            "component": self.camera_name,
             "param_name": "CameraError",
             "enum_name": None,
             "display_name": "Camera error message",
@@ -231,7 +212,6 @@ class ImportCSV:
         :return an Iterator of tuples
         """
         camera_param_id = param_ids["CameraTemperature"]
-        fan_param_id = param_ids["FanSpeed"]
         error_param_id = param_ids["CameraError"]
 
         proc_param_ids = [
@@ -240,56 +220,47 @@ class ImportCSV:
         ]
 
         for line in self.file:
-            match = TEMP_LINE_PATTERN.match(line)
-            if match:
-                (
-                    timestamp,
-                    camera_temp,
-                    fan_speed,
-                    proc_temps,
-                ) = self._parse_temperature_match(match)
-
-                yield (
-                    timestamp,
-                    instr_id,
-                    camera_param_id,
-                    camera_temp,
-                    None,
-                )
-
-                yield (
-                    timestamp,
-                    instr_id,
-                    fan_param_id,
-                    fan_speed,
-                    None,
-                )
-
-                yield from (
+            if "Camera Temperature" in line:
+                match = TEMP_LINE_PATTERN.match(line)
+                if match:
                     (
                         timestamp,
+                        camera_temp,
+                        proc_temps,
+                    ) = self._parse_temperature_match(match)
+
+                    yield (
+                        timestamp,
                         instr_id,
-                        param_id,
-                        temp,
+                        camera_param_id,
+                        camera_temp,
                         None,
                     )
-                    for param_id, temp
-                    in zip(proc_param_ids, proc_temps)
-                )
 
-                continue
+                    yield from (
+                        (
+                            timestamp,
+                            instr_id,
+                            param_id,
+                            temp,
+                            None,
+                        )
+                        for param_id, temp
+                        in zip(proc_param_ids, proc_temps)
+                    )
 
-            match = ERROR_LINE_PATTERN.match(line)
+            elif "ERROR" in line:
+                match = ERROR_LINE_PATTERN.match(line)
 
-            if match:
-                timestamp, message = self._parse_error_match(match)
-                yield (
-                    timestamp,
-                    instr_id,
-                    error_param_id,
-                    None,
-                    message,
-                )
+                if match:
+                    timestamp, message = self._parse_error_match(match)
+                    yield (
+                        timestamp,
+                        instr_id,
+                        error_param_id,
+                        None,
+                        message,
+                    )
 
 
 def main(csv_fn, json_fn, nocopy):
@@ -327,9 +298,6 @@ def main(csv_fn, json_fn, nocopy):
         instr_dict = csvparser.get_microscope_dict()
         csvparser.parse_parameters()
 
-        #for k,v in csvparser.params.items():
-        #    print(k,v)
-
         param_ids = {
             v["param_name"]: k
             for k, v in csvparser.params.items()
@@ -338,13 +306,11 @@ def main(csv_fn, json_fn, nocopy):
         with DatabaseManager(csvparser.db_name,
                              username="emhealth",
                              password="POSTGRES_EMHEALTH_PASSWORD") as dbm:
+
             instrument_id = dbm.add_instrument(instr_dict)
             dbm.add_parameters(instrument_id, csvparser.params, {})
             datapoints = csvparser.parse_values(instrument_id, param_ids)
-
-            for p in datapoints:
-                print(p)
-            #dbm.write_data(datapoints, nocopy=nocopy)
+            dbm.write_data(datapoints, nocopy=nocopy)
 
         csvparser.file.close()
     else:
