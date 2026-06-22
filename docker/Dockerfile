@@ -56,7 +56,6 @@ RUN set -ex && \
     && cargo pgrx install --release \
     && cargo run --release --manifest-path ../tools/post-install/Cargo.toml -- pg_config \
     && rm -rf /build/timescaledb-toolkit
-# Override release profile settings from https://github.com/timescale/timescaledb-toolkit/blob/main/Cargo.toml
 
 # ---------- Build TDS-FDW ----------
 RUN git clone --branch $TDS_VERSION https://github.com/tds-fdw/tds_fdw.git /build/tds_fdw \
@@ -107,7 +106,7 @@ STOPSIGNAL SIGINT
 
 # Drop privileges
 USER postgres
-WORKDIR /var/lib/postgresql
+WORKDIR /var/lib/postgresql/${PG_MAJOR}/docker
 
 # Keep the original entrypoint
 EXPOSE 5432

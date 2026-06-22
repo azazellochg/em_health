@@ -21,6 +21,7 @@ dependencies = [
     'watchdog',
     'python-dotenv',
     'requests',
+    'packaging',
     'podman-compose'
 ]
 
