@@ -50,15 +50,6 @@ TEMP_LINE_PATTERN = re.compile(
     re.VERBOSE
 )
 
-ERROR_LINE_PATTERN = re.compile(
-    r"""
-    ^(?P<timestamp>.{24})\s+.*?\bERROR\b\s+
-    (?P<message>.*)
-    \s*$
-    """,
-    re.VERBOSE
-)
-
 
 class ImportCSV:
     def __init__(self,
@@ -126,13 +117,6 @@ class ImportCSV:
             map(float, match.group("proc_temps").split())
         )
 
-    @classmethod
-    def _parse_error_match(cls, match):
-        return (
-            cls._parse_timestamp(match.group("timestamp")),
-            match.group("message")
-        )
-
     def parse_parameters(self):
         """ Parse the first line with temperatures to get parameter names. """
         for line in self.file:
@@ -194,11 +178,6 @@ class ImportCSV:
             "abs_max": None,
         }
 
-        self.processor_param_names = [
-            f"Processor{i}Temperature"
-            for i in range(1, self.proc_count + 1)
-        ]
-
         logger.info("Found %d parameters", len(self.params), extra={"prefix": self.instrument_name})
         logger.debug("Parsed parameters:", extra={"prefix": self.instrument_name})
         logger.debug(json.dumps(self.params, sort_keys=True, indent=2))
@@ -250,17 +229,16 @@ class ImportCSV:
                     )
 
             elif "ERROR" in line:
-                match = ERROR_LINE_PATTERN.match(line)
-
-                if match:
-                    timestamp, message = self._parse_error_match(match)
-                    yield (
-                        timestamp,
-                        instr_id,
-                        error_param_id,
-                        None,
-                        message,
-                    )
+                timestamp = self._parse_timestamp(line[:24])
+                _, _, message = line.partition("ERROR")
+                message = message.strip()
+                yield (
+                    timestamp,
+                    instr_id,
+                    error_param_id,
+                    None,
+                    message,
+                )
 
 
 def main(csv_fn, json_fn, nocopy):
