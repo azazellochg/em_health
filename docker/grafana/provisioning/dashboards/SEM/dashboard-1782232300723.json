@@ -1,0 +1,972 @@
+{
+  "apiVersion": "dashboard.grafana.app/v2",
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "4395e67b-0330-47fd-94a8-6796b3f44893",
+    "generation": 2,
+    "creationTimestamp": "2026-03-03T16:57:25Z",
+    "labels": {},
+    "annotations": {}
+  },
+  "spec": {
+    "annotations": [
+      {
+        "kind": "AnnotationQuery",
+        "spec": {
+          "query": {
+            "kind": "DataQuery",
+            "group": "grafana",
+            "version": "v0",
+            "spec": {
+              "limit": 100,
+              "matchAny": false,
+              "tags": [],
+              "type": "dashboard"
+            },
+            "labels": {
+              "grafana.app/export-label": "grafana-1"
+            }
+          },
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "builtIn": true,
+          "legacyOptions": {
+            "type": "dashboard"
+          }
+        }
+      }
+    ],
+    "cursorSync": "Off",
+    "editable": true,
+    "elements": {
+      "panel-1": {
+        "kind": "Panel",
+        "spec": {
+          "id": 1,
+          "title": "Module alerts",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "alertlist",
+            "version": "12.1.0",
+            "spec": {
+              "options": {
+                "alertInstanceLabelFilter": "",
+                "alertName": "",
+                "dashboardAlerts": true,
+                "datasource": "-- Grafana --",
+                "folder": {
+                  "title": "SEM",
+                  "uid": "af3ejx79rtog0b"
+                },
+                "groupBy": [],
+                "groupMode": "default",
+                "maxItems": 20,
+                "showInactiveAlerts": false,
+                "sortOrder": 1,
+                "stateFilter": {
+                  "error": true,
+                  "firing": true,
+                  "noData": false,
+                  "normal": false,
+                  "pending": false,
+                  "recovering": false
+                },
+                "viewMode": "list"
+              },
+              "fieldConfig": {
+                "defaults": {},
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-26": {
+        "kind": "Panel",
+        "spec": {
+          "id": 26,
+          "title": "",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${sourceSEM}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH instrument_times AS (\n  SELECT\n    (SELECT time FROM data WHERE instrument_id = $instrument ORDER BY time ASC LIMIT 1) AS oldest_data,\n    (SELECT time FROM data WHERE instrument_id = $instrument ORDER BY time DESC LIMIT 1) AS latest_data\n)\n\nSELECT i.name AS \"Name\",\n       i.serial AS \"D-number\",\n       i.model AS \"Model\",\n       i.server AS \"Server IP\",\n       i.ds_version AS \"Data services\",\n       it.oldest_data AS \"Oldest data\",\n       it.latest_data AS \"Latest data\" \nFROM instruments i \nLEFT JOIN instrument_times it ON TRUE\nWHERE i.id = $instrument\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "table",
+            "version": "12.1.0",
+            "spec": {
+              "options": {
+                "cellHeight": "sm",
+                "footer": {
+                  "countRows": false,
+                  "fields": "",
+                  "reducer": [
+                    "sum"
+                  ],
+                  "show": false
+                },
+                "showHeader": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "custom": {
+                    "align": "center",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "inspect": false
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-27": {
+        "kind": "Panel",
+        "spec": {
+          "id": 27,
+          "title": "Module status ",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${sourceSEM}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  'xT server' AS name,\n  CASE value_num\n    WHEN 1 THEN 'Up'\n    WHEN 0 THEN 'Down'\n  END AS value_num,\n  time\nFROM\n  data\nWHERE\n  instrument_id = $instrument\n  AND param_id = $param_id_server\n  AND $__timeFilter(time)\nORDER BY\n  time DESC\nLIMIT\n  1\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "SEM server",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${sourceSEM}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH target_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument AND param_id = $param_id_water\n)\n\n\nSELECT\n  'Water cooling' AS name,\n  ev.member_name AS value_num,\n  d.time\nFROM\n  data d\nJOIN target_param tp ON tp.param_id = d.param_id\nJOIN enum_values ev ON ev.enum_id = tp.enum_id\nWHERE\n  d.instrument_id = $instrument\n  AND d.param_id = $param_id_water\n  AND $__timeFilter(d.time)\n  AND d.value_num = ev.value\nORDER BY\n  d.time DESC\nLIMIT\n  1",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "Water",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${sourceSEM}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH target_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument AND param_id = $param_id_air\n)\n\n\nSELECT\n  'Compressed air' AS name,\n  ev.member_name AS value_num,\n  d.time\nFROM\n  data d\nJOIN target_param tp ON tp.param_id = d.param_id\nJOIN enum_values ev ON ev.enum_id = tp.enum_id\nWHERE\n  d.instrument_id = $instrument\n  AND d.param_id = $param_id_air\n  AND $__timeFilter(d.time)\n  AND d.value_num = ev.value\nORDER BY\n  d.time DESC\nLIMIT\n  1",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "Air",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${sourceSEM}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH target_params AS (\n  SELECT \n    substring(param_name FROM 's\\.(.+)$') AS component,\n    param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'SystemStatus'\n    AND (param_name LIKE 'Detectors.%' OR param_name LIKE 'Imaging_devices.%')\n),\nlatest_data AS (\n  SELECT DISTINCT ON (param_id) *\n  FROM data\n  WHERE instrument_id = $instrument\n    AND param_id IN (SELECT param_id FROM target_params)\n    AND $__timeFilter(time)\n  ORDER BY param_id, time DESC\n)\nSELECT\n  'Detector: ' || tp.component AS name,\n  ev.member_name AS value_num,\n  ld.time\nFROM target_params tp\nJOIN latest_data ld\n  ON ld.param_id = tp.param_id\nJOIN enum_values ev\n  ON ev.enum_id = tp.enum_id\n  AND ld.value_num = ev.value\nORDER BY ld.time DESC;\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "Detectors",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${sourceSEM}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH target_params AS (\n  SELECT \n    substring(param_name FROM 'Stages\\.(.+)$') AS component,\n    param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'SystemStatus'\n    AND param_name LIKE 'Stages.%'\n),\nlatest_data AS (\n  SELECT DISTINCT ON (param_id) *\n  FROM data\n  WHERE instrument_id = $instrument\n    AND param_id IN (SELECT param_id FROM target_params)\n    AND $__timeFilter(time)\n  ORDER BY param_id, time DESC\n)\nSELECT\n  'Stage: ' || tp.component AS name,\n  ev.member_name AS value_num,\n  ld.time\nFROM target_params tp\nJOIN latest_data ld\n  ON ld.param_id = tp.param_id\nJOIN enum_values ev\n  ON ev.enum_id = tp.enum_id\n  AND ld.value_num = ev.value\nORDER BY ld.time DESC;\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "Stage",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${sourceSEM}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH target_params AS (\n  SELECT \n    substring(param_name FROM 'Electron_Column\\.(.+)$') AS component,\n    param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'SystemStatus'\n    AND param_name LIKE 'Electron_Column.%'\n),\nlatest_data AS (\n  SELECT DISTINCT ON (param_id) *\n  FROM data\n  WHERE instrument_id = $instrument\n    AND param_id IN (SELECT param_id FROM target_params)\n    AND $__timeFilter(time)\n  ORDER BY param_id, time DESC\n)\nSELECT\n  'E-Column: ' || tp.component AS name,\n  ev.member_name AS value_num,\n  ld.time\nFROM target_params tp\nJOIN latest_data ld\n  ON ld.param_id = tp.param_id\nJOIN enum_values ev\n  ON ev.enum_id = tp.enum_id\n  AND ld.value_num = ev.value\nORDER BY ld.time DESC;\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "E-column",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${sourceSEM}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH target_params AS (\n  SELECT \n    substring(param_name FROM 'Ion_Column\\.(.+)$') AS component,\n    param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'SystemStatus'\n    AND param_name LIKE 'Ion_Column.%'\n),\nlatest_data AS (\n  SELECT DISTINCT ON (param_id) *\n  FROM data\n  WHERE instrument_id = $instrument\n    AND param_id IN (SELECT param_id FROM target_params)\n    AND $__timeFilter(time)\n  ORDER BY param_id, time DESC\n)\nSELECT\n  'I-Column: ' || tp.component AS name,\n  ev.member_name AS value_num,\n  ld.time\nFROM target_params tp\nJOIN latest_data ld\n  ON ld.param_id = tp.param_id\nJOIN enum_values ev\n  ON ev.enum_id = tp.enum_id\n  AND ld.value_num = ev.value\nORDER BY ld.time DESC;\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "I-column",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${sourceSEM}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH target_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument AND param_id = $param_id_vacuum\n)\n\nSELECT\n  'Vacuum' AS name,\n  ev.member_name AS value_num,\n  d.time\nFROM\n  data d\nJOIN target_param tp ON tp.param_id = d.param_id\nJOIN enum_values ev ON ev.enum_id = tp.enum_id\nWHERE\n  d.instrument_id = $instrument\n  AND d.param_id = $param_id_vacuum\n  AND $__timeFilter(d.time)\n  AND d.value_num = ev.value\nORDER BY\n  d.time DESC\nLIMIT\n  1",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "Vacuum",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${sourceSEM}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH target_params AS (\n  SELECT \n    substring(param_name FROM 'Insertable_Devices\\.(.+)$') AS component,\n    param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'SystemStatus'\n    AND param_name LIKE 'Insertable_Devices.%'\n),\nlatest_data AS (\n  SELECT DISTINCT ON (param_id) *\n  FROM data\n  WHERE instrument_id = $instrument\n    AND param_id IN (SELECT param_id FROM target_params)\n    AND $__timeFilter(time)\n  ORDER BY param_id, time DESC\n)\nSELECT\n  'Insertable Devices: ' || tp.component AS name,\n  ev.member_name AS value_num,\n  ld.time\nFROM target_params tp\nJOIN latest_data ld\n  ON ld.param_id = tp.param_id\nJOIN enum_values ev\n  ON ev.enum_id = tp.enum_id\n  AND ld.value_num = ev.value\nORDER BY ld.time DESC;\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "Ins",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "merge",
+                  "spec": {
+                    "options": {}
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "sortBy",
+                  "spec": {
+                    "options": {
+                      "fields": {},
+                      "sort": [
+                        {
+                          "field": "name"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "organize",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {},
+                      "includeByName": {},
+                      "indexByName": {},
+                      "renameByName": {
+                        "name": "Module",
+                        "time": "Last updated",
+                        "value_num": "State"
+                      }
+                    }
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "table",
+            "version": "12.1.0",
+            "spec": {
+              "options": {
+                "cellHeight": "sm",
+                "footer": {
+                  "countRows": false,
+                  "fields": "",
+                  "reducer": [
+                    "sum"
+                  ],
+                  "show": false
+                },
+                "frameIndex": 8,
+                "showHeader": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "mappings": [
+                    {
+                      "type": "regex",
+                      "options": {
+                        "pattern": "/^(Up|Operate|On|Enabled|Available)$/i",
+                        "result": {
+                          "color": "green",
+                          "index": 0
+                        }
+                      }
+                    },
+                    {
+                      "type": "regex",
+                      "options": {
+                        "pattern": "/.*/",
+                        "result": {
+                          "color": "red",
+                          "index": 1
+                        }
+                      }
+                    }
+                  ],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "custom": {
+                    "align": "left",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "inspect": false
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "value_num"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.cellOptions",
+                        "value": {
+                          "type": "color-background"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "layout": {
+      "kind": "GridLayout",
+      "spec": {
+        "items": [
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 0,
+              "y": 0,
+              "width": 24,
+              "height": 4,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-26"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 0,
+              "y": 4,
+              "width": 11,
+              "height": 17,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-27"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 11,
+              "y": 4,
+              "width": 9,
+              "height": 17,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-1"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "links": [
+      {
+        "title": "Overviews",
+        "type": "dashboards",
+        "icon": "external link",
+        "tooltip": "",
+        "url": "",
+        "tags": [
+          "overview",
+          "sem"
+        ],
+        "asDropdown": true,
+        "targetBlank": false,
+        "includeVars": false,
+        "keepTime": true
+      },
+      {
+        "title": "System modules",
+        "type": "dashboards",
+        "icon": "external link",
+        "tooltip": "",
+        "url": "",
+        "tags": [
+          "module",
+          "sem"
+        ],
+        "asDropdown": true,
+        "targetBlank": false,
+        "includeVars": false,
+        "keepTime": true
+      },
+      {
+        "title": "",
+        "type": "dashboards",
+        "icon": "external link",
+        "tooltip": "",
+        "url": "",
+        "tags": [
+          "dev",
+          "sem"
+        ],
+        "asDropdown": false,
+        "targetBlank": true,
+        "includeVars": false,
+        "keepTime": true
+      }
+    ],
+    "liveNow": false,
+    "preload": false,
+    "tags": [
+      "overview",
+      "sem"
+    ],
+    "timeSettings": {
+      "timezone": "Europe/London",
+      "from": "now-30d",
+      "to": "now",
+      "autoRefresh": "",
+      "autoRefreshIntervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ],
+      "hideTimepicker": false,
+      "fiscalYearStartMonth": 0
+    },
+    "title": "Alerts",
+    "variables": [
+      {
+        "kind": "DatasourceVariable",
+        "spec": {
+          "name": "sourceSEM",
+          "pluginId": "grafana-postgresql-datasource",
+          "refresh": "onDashboardLoad",
+          "regex": "/^sem$/",
+          "current": {
+            "text": "",
+            "value": ""
+          },
+          "options": [],
+          "multi": false,
+          "includeAll": false,
+          "hide": "hideVariable",
+          "skipUrlSync": false,
+          "allowCustomValue": false
+        }
+      },
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "name": "instrument",
+          "current": {
+            "text": "",
+            "value": ""
+          },
+          "hide": "dontHide",
+          "refresh": "onDashboardLoad",
+          "skipUrlSync": false,
+          "query": {
+            "kind": "DataQuery",
+            "group": "grafana-postgresql-datasource",
+            "version": "v0",
+            "datasource": {
+              "name": "${sourceSEM}"
+            },
+            "spec": {
+              "__legacyStringValue": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nWHERE is_active IS TRUE\nORDER BY name;\n"
+            }
+          },
+          "regex": "",
+          "sort": "alphabeticalAsc",
+          "definition": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nWHERE is_active IS TRUE\nORDER BY name;\n",
+          "options": [],
+          "multi": false,
+          "includeAll": false,
+          "allowCustomValue": false
+        }
+      },
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "name": "param_id_air",
+          "current": {
+            "text": "",
+            "value": ""
+          },
+          "hide": "hideVariable",
+          "refresh": "onDashboardLoad",
+          "skipUrlSync": false,
+          "query": {
+            "kind": "DataQuery",
+            "group": "grafana-postgresql-datasource",
+            "version": "v0",
+            "datasource": {
+              "name": "${sourceSEM}"
+            },
+            "spec": {
+              "__legacyStringValue": "  SELECT COALESCE((\nSELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Console.Compressed_Air'\n    AND component = 'SystemStatus'\n), 0)"
+            }
+          },
+          "regex": "",
+          "sort": "disabled",
+          "definition": "  SELECT COALESCE((\nSELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Console.Compressed_Air'\n    AND component = 'SystemStatus'\n), 0)",
+          "options": [],
+          "multi": false,
+          "includeAll": false,
+          "allowCustomValue": false
+        }
+      },
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "name": "param_id_server",
+          "current": {
+            "text": "",
+            "value": ""
+          },
+          "hide": "hideVariable",
+          "refresh": "onDashboardLoad",
+          "skipUrlSync": false,
+          "query": {
+            "kind": "DataQuery",
+            "group": "grafana-postgresql-datasource",
+            "version": "v0",
+            "datasource": {
+              "name": "${sourceSEM}"
+            },
+            "spec": {
+              "__legacyStringValue": "SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Value'\n    AND component = 'Server'"
+            }
+          },
+          "regex": "",
+          "sort": "disabled",
+          "definition": "SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Value'\n    AND component = 'Server'",
+          "options": [],
+          "multi": false,
+          "includeAll": false,
+          "allowCustomValue": false
+        }
+      },
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "name": "param_id_water",
+          "current": {
+            "text": "",
+            "value": ""
+          },
+          "hide": "hideVariable",
+          "refresh": "onDashboardLoad",
+          "skipUrlSync": false,
+          "query": {
+            "kind": "DataQuery",
+            "group": "grafana-postgresql-datasource",
+            "version": "v0",
+            "datasource": {
+              "name": "${sourceSEM}"
+            },
+            "spec": {
+              "__legacyStringValue": "SELECT\n  param_id\nFROM\n  parameters\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'Console.Cooling_Water'\n      AND component = 'SystemStatus'"
+            }
+          },
+          "regex": "",
+          "sort": "disabled",
+          "definition": "SELECT\n  param_id\nFROM\n  parameters\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'Console.Cooling_Water'\n      AND component = 'SystemStatus'",
+          "options": [],
+          "multi": false,
+          "includeAll": false,
+          "allowCustomValue": false
+        }
+      },
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "name": "param_id_vacuum",
+          "current": {
+            "text": "",
+            "value": ""
+          },
+          "hide": "hideVariable",
+          "refresh": "onDashboardLoad",
+          "skipUrlSync": false,
+          "query": {
+            "kind": "DataQuery",
+            "group": "grafana-postgresql-datasource",
+            "version": "v0",
+            "datasource": {
+              "name": "${sourceSEM}"
+            },
+            "spec": {
+              "__legacyStringValue": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Vacuum.Vacuum Board'\nAND component = 'SystemStatus'"
+            }
+          },
+          "regex": "",
+          "sort": "disabled",
+          "definition": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Vacuum.Vacuum Board'\nAND component = 'SystemStatus'",
+          "options": [],
+          "multi": false,
+          "includeAll": false,
+          "allowCustomValue": false
+        }
+      }
+    ]
+  }
+}

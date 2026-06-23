@@ -12,8 +12,8 @@ through Health Monitor (HM). The HM client is installed on MPC and optionally on
 
 The ``EMHealth`` package provides functionality to:
 
-- Parse and import XML data into a `TimescaleDB <https://docs.tigerdata.com/#TimescaleDB>`_ database
-- Visualize and analyze data using `Grafana <https://grafana.com/grafana/>`_
+- Parse and import XML data into a `TimescaleDB <https://www.tigerdata.com/docs/get-started>`_ database
+- Visualize and analyze data using `Grafana <https://grafana.com/oss/grafana/>`_
 
 Typical Setup
 ^^^^^^^^^^^^^
@@ -46,7 +46,7 @@ Supported systems:
 Requirements for ``EMHealth`` package:
 
 - `docker <https://docs.docker.com/compose/install/>`_ or `podman <https://podman.io/docs/installation>`_
-- `psql <https://www.timescale.com/blog/how-to-install-psql-on-mac-ubuntu-debian-windows>`_
+- `psql <https://www.tigerdata.com/blog/how-to-install-psql-on-mac-ubuntu-debian-windows>`_
 
 The rest is managed by Docker/Podman and Conda environment. It's recommended to
 manage Docker as a non-root user, see `details <https://docs.docker.com/engine/install/linux-postinstall/>`_.

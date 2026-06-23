@@ -11,15 +11,15 @@ However, if you then update the provisioned dashboards (e.g. via `pip install -U
 `here <https://grafana.com/docs/grafana/latest/administration/provisioning/#make-changes-to-a-provisioned-dashboard>`_. The workaround is the following:
 
 1. Make changes to a dashboard via Grafana UI.
-2. Save and export dashboard to JSON using `Export > Export as code` (DO NOT toggle `Export for sharing externally`).
+2. Save and export dashboard to JSON using `Export > Export as code`, toggle `Share dashboard with another instance`.
 3. Overwrite existing dashboard file (they are in `docker/grafana/provisioning/dashboards/`) with the saved json file.
 
 Any file changes in the provisioning folder are immediately picked up by Grafana. There's no need to restart it.
 
 There are a few limitations:
 
-* You cannot create nested folders for dashboards. Only single level depth is supported.
-* You should not rename dashboards or folders via GUI as this will conflict with provisioned files. Do it directly on the files if really needed.
+* You can create nested folders for dashboards. `Max level depth is 4 <https://grafana.com/docs/grafana/latest/administration/provisioning/#provision-folders-structure-from-filesystem-to-grafana>`_.
+* You should not rename dashboards or folders via GUI as this will conflict with provisioned files. Do it directly in the files if really needed.
 * Some provisioned resources (alerts, contact points, datasources) cannot be modified from the GUI. You can create new ones though.
 
 
