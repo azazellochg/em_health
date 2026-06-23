@@ -68,7 +68,6 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 31,
   "links": [
     {
       "asDropdown": true,
@@ -204,7 +203,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -322,7 +321,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -419,7 +418,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -508,7 +507,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -598,6 +597,7 @@
               "type": "log"
             },
             "showPoints": "never",
+            "showValues": false,
             "spanNulls": true,
             "stacking": {
               "group": "A",
@@ -609,8 +609,7 @@
           },
           "decimals": 2,
           "mappings": [],
-          "max": 0.05,
-          "min": 0.00005,
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -648,7 +647,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -717,6 +716,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": true,
             "stacking": {
               "group": "A",
@@ -726,8 +726,9 @@
               "mode": "off"
             }
           },
-          "decimals": 1,
+          "decimals": 2,
           "mappings": [],
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -737,7 +738,7 @@
               }
             ]
           },
-          "unit": "amp"
+          "unit": "nA"
         },
         "overrides": []
       },
@@ -764,7 +765,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -774,7 +775,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH matching_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem = 'MdlFluScreenBrick'\n    AND param_name = 'ScreenCurrent'\n)\n\nSELECT\n  time,\n  value AS current\nFROM unnest((\n  SELECT lttb(\n    time,\n    value_num,\n    2 * (($__to - $__from) / $__interval_ms)::int\n  )\n  FROM data\n  WHERE instrument_id = $instrument\n    AND param_id = (SELECT param_id FROM matching_param)\n    AND $__timeFilter(time)\n))\nORDER BY 1;\n",
+          "rawSql": "WITH matching_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND subsystem = 'MdlFluScreenBrick'\n    AND param_name = 'ScreenCurrent'\n)\n\nSELECT\n  time,\n  value*1e9 AS current\nFROM unnest((\n  SELECT lttb(\n    time,\n    value_num,\n    2 * (($__to - $__from) / $__interval_ms)::int\n  )\n  FROM data\n  WHERE instrument_id = $instrument\n    AND param_id = (SELECT param_id FROM matching_param)\n    AND $__timeFilter(time)\n))\nORDER BY 1;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -833,6 +834,7 @@
               "type": "linear"
             },
             "showPoints": "never",
+            "showValues": false,
             "spanNulls": true,
             "stacking": {
               "group": "A",
@@ -881,7 +883,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -926,7 +928,7 @@
     }
   ],
   "preload": false,
-  "schemaVersion": 41,
+  "schemaVersion": 42,
   "tags": [
     "module",
     "tem"
@@ -950,19 +952,20 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Tundra [Tundra] (9955700)",
-          "value": "14311"
+          "text": "Krios 4 [Titan Krios G4] (4248)",
+          "value": "6"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
           "uid": "${sourceTEM}"
         },
-        "definition": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
+        "definition": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nWHERE is_active IS TRUE\nORDER BY name;\n",
         "name": "instrument",
         "options": [],
-        "query": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
+        "query": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nWHERE is_active IS TRUE\nORDER BY name;\n",
         "refresh": 1,
         "regex": "",
+        "regexApplyTo": "value",
         "sort": 1,
         "type": "query"
       }
@@ -978,5 +981,6 @@
   "timezone": "Europe/London",
   "title": "Module | Detectors",
   "uid": "4395e67b-0280-47fd-94a8-648553f10800",
-  "version": 2
+  "version": 3,
+  "weekStart": ""
 }

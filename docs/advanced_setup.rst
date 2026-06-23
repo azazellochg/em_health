@@ -20,7 +20,7 @@ Instruments Configuration
 
 .. image:: /_static/HM_settings.png
 
-.. important:: An instrument can have several associated DataSources (for HM, APM, AutoCTF, AutoStar, ToolReadiness, Velox etc). You need to select one that has `Software->Server` parameter.
+.. important:: An instrument can have several associated DataSources (for HM, APM, AutoCTF, AutoStar, ToolReadiness, Velox etc). You need to select the one that has `Software->Server` parameter.
 
 - **instrument**: this field has to match the instrument in the Health Monitor. The format is `"serial number, model name"`. Model name can be found in the Health Monitor, it's the text inside [] brackets (#3 on the screenshot above).
 - **serial**: serial number of the instrument. Digits only (#2 on the screenshot above).
@@ -33,7 +33,7 @@ Instruments Configuration
 Security Configuration
 ^^^^^^^^^^^^^^^^^^^^^^
 
-See `docker/.env` for default values.
+.. important:: While we provided example placeholder passwords and keys in the `docker/.env_example` file, you should NEVER start EMHealth using these defaults.
 
 - DB accounts:
 
@@ -46,6 +46,21 @@ See `docker/.env` for default values.
 - Grafana accounts:
 
   - *admin* - administrator account, password: GRAFANA_ADMIN_PASSWORD
+
+- GRAFANA_RENDER_TOKEN is required for secure connection between the image renderer service and Grafana.
+
+We provide a couple of scripts to simplify credentials configuration. The one below generates secure passwords and secrets and can update `docker/.env` values:
+
+.. code-block:: bash
+
+    sh em_health/utils/generate-keys.sh
+
+If you already have a running EMHealth installation and would like to use the new values from `docker/.env`, run:
+
+.. code-block:: bash
+
+    sh em_health/utils/update-passwd.sh
+
 
 Creating a Windows Task
 ^^^^^^^^^^^^^^^^^^^^^^^

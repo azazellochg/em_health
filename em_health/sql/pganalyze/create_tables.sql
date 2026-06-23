@@ -19,7 +19,8 @@ CREATE TABLE pganalyze.database_stats (
                                           blk_write_time  DOUBLE PRECISION NOT NULL,
                                           frozen_xid_age  BIGINT           NOT NULL,
                                           frozen_mxid_age BIGINT           NOT NULL,
-                                          db_size         BIGINT           NOT NULL
+                                          db_size         BIGINT           NOT NULL,
+                                          wal_lsn         pg_lsn           NOT NULL
 );
 
 CREATE TABLE pganalyze.table_stats (
@@ -44,7 +45,6 @@ CREATE TABLE pganalyze.index_stats (
                                        tup_fetch            BIGINT      NOT NULL,
                                        blks_read            BIGINT      NOT NULL,
                                        blks_hit             BIGINT      NOT NULL,
-                                       exclusively_locked   BOOLEAN     NOT NULL,
                                        PRIMARY KEY (indexrelid, collected_at)
 );
 
@@ -62,7 +62,7 @@ CREATE TABLE pganalyze.vacuum_stats (
 );
 
 CREATE TABLE pganalyze.stat_snapshots (
-                                           collected_at            TIMESTAMPTZ DEFAULT now() PRIMARY KEY,
+                                           collected_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
                                            calls                   BIGINT      NOT NULL,
                                            total_plan_time         DOUBLE PRECISION NOT NULL,
                                            total_exec_time         DOUBLE PRECISION NOT NULL,
@@ -82,16 +82,14 @@ CREATE TABLE pganalyze.stat_snapshots (
                                            wal_records             BIGINT      NOT NULL,
                                            wal_fpi                 BIGINT      NOT NULL,
                                            wal_bytes               NUMERIC     NOT NULL,
-                                           wal_position            BIGINT      NOT NULL,
                                            stats_reset             TIMESTAMPTZ NOT NULL
 ) WITH (
                                              tsdb.hypertable,
                                              tsdb.chunk_interval=:var_pgsnaps_chunk_size,
                                              tsdb.partition_column='collected_at',
-                                             tsdb.orderby='collected_at'
+                                             tsdb.orderby='collected_at DESC'
                                              );
 
-CALL add_columnstore_policy('pganalyze.stat_snapshots', after => INTERVAL :var_pgstats_compression);
 SELECT add_retention_policy('pganalyze.stat_snapshots', drop_after => INTERVAL :var_pgstats_retention);
 
 CREATE TABLE IF NOT EXISTS pganalyze.queries (
@@ -131,10 +129,9 @@ CREATE TABLE pganalyze.stat_statements (
                                              tsdb.chunk_interval=:var_pgstats_chunk_size,
                                              tsdb.partition_column='collected_at',
                                              tsdb.segmentby='queryid',
-                                             tsdb.orderby='collected_at'
+                                             tsdb.orderby='collected_at DESC'
                                              );
 
-CALL add_columnstore_policy('pganalyze.stat_statements', after => INTERVAL :var_pgstats_compression);
 SELECT add_retention_policy('pganalyze.stat_statements', drop_after => INTERVAL :var_pgstats_retention);
 
 CREATE TABLE pganalyze.stat_explains (
@@ -145,11 +142,11 @@ CREATE TABLE pganalyze.stat_explains (
                                          bytes_read     BIGINT      NOT NULL,
                                          io_read_time   DOUBLE PRECISION NOT NULL,
                                          plan           JSON        NOT NULL,
-                                         PRIMARY KEY (time, queryid)
+                                         PRIMARY KEY (queryid, time)
 );
 
 CREATE TABLE pganalyze.sys_stats (
-                                     time       TIMESTAMPTZ NOT NULL DEFAULT now(),
+                                     time       TIMESTAMPTZ NOT NULL DEFAULT now() UNIQUE,
                                      load1      DOUBLE PRECISION NOT NULL,
                                      load5      DOUBLE PRECISION NOT NULL,
                                      load15     DOUBLE PRECISION NOT NULL,

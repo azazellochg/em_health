@@ -70,7 +70,6 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 84,
   "links": [
     {
       "asDropdown": true,
@@ -168,7 +167,7 @@
         "textMode": "value",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -177,7 +176,6 @@
           },
           "editorMode": "code",
           "format": "table",
-          "hide": false,
           "rawQuery": true,
           "rawSql": "    SELECT\n        start_time,\n        end_time,\n        EXTRACT(EPOCH FROM(end_time - start_time)) AS total_duration\n    FROM sem_cryocycle_al_daily,\n        state_periods(agg, 1) -- boolean = 1 where value = CryoCycle\n    WHERE instrument_id = $instrument\n      AND param_name = 'Column'\n      AND $__timeFilter(day)\n",
           "refId": "Arctis",
@@ -206,7 +204,6 @@
           },
           "editorMode": "code",
           "format": "table",
-          "hide": false,
           "rawQuery": true,
           "rawSql": "    SELECT\n        start_time,\n        end_time,\n        EXTRACT(EPOCH FROM(end_time - start_time)) AS total_duration\n    FROM sem_cryocycle_noal_daily,\n        state_periods(agg, 1) -- boolean = 1 where value > 0\n    WHERE instrument_id = $instrument\n      AND $__timeFilter(day)\n",
           "refId": "Aquilos",
@@ -267,6 +264,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -315,7 +313,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -324,7 +322,6 @@
           },
           "editorMode": "code",
           "format": "table",
-          "hide": false,
           "rawQuery": true,
           "rawSql": "WITH chamber_state_param AS (\n    SELECT param_id, enum_id\n    FROM parameters\n    WHERE \n        instrument_id = $instrument\n        AND subsystem = 'Vacuum'\n        AND component = 'Chamber'\n        AND param_name = 'Chamber.StateSC'\n),\npumped_value AS (\n    SELECT \n        e.value AS pumped_value_num,\n        p.param_id\n    FROM chamber_state_param p\n    JOIN enum_values e ON e.enum_id = p.enum_id\n    WHERE e.member_name = 'Pumped'\n),\nraw_states AS (\n    SELECT state_agg(v.time, v.value_num::bigint) AS agg\n    FROM data v\n    JOIN chamber_state_param p ON p.param_id = v.param_id\n    WHERE v.instrument_id = $instrument\n      AND $__timeFilter(v.time)\n),\npumped_states AS (\n    SELECT start_time, end_time\n    FROM state_periods(\n        (SELECT agg FROM raw_states),\n        (SELECT pumped_value_num FROM pumped_value)::bigint\n        )\n),\npressure_param AS (\n    SELECT param_id\n    FROM parameters\n    WHERE \n      instrument_id = $instrument\n      AND component = 'Chamber'\n      AND param_name = 'Chamber.HVG'\n),\npressure_values AS (\n    SELECT \n        v.time,\n        v.value_num AS pressure_value\n    FROM data v\n    JOIN pressure_param p ON p.param_id = v.param_id\n    JOIN pumped_states r \n        ON v.time >= r.start_time \n        AND v.time <= r.end_time\n    WHERE \n        v.instrument_id = $instrument\n)\nSELECT\n    time,\n    approx_percentile(\n        0.5,\n        percentile_agg(pressure_value)\n            OVER (\n                ORDER BY time\n                RANGE BETWEEN INTERVAL '24 hours' PRECEDING AND CURRENT ROW\n            )\n    ) AS \"Rolling 24-hour median HVG pressure\"\nFROM pressure_values\nORDER BY time;",
           "refId": "A",
@@ -364,6 +361,9 @@
             "align": "center",
             "cellOptions": {
               "type": "auto"
+            },
+            "footer": {
+              "reducers": []
             },
             "inspect": false
           },
@@ -436,17 +436,9 @@
       "id": 57,
       "options": {
         "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
         "showHeader": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -529,7 +521,7 @@
         "textMode": "value",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -638,7 +630,7 @@
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 100
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -717,7 +709,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -766,7 +758,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -839,7 +830,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -919,7 +910,7 @@
         "textMode": "value",
         "wideLayout": false
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -971,7 +962,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1001,6 +991,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -1045,7 +1036,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1055,8 +1046,36 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'Quickloader'\n    AND param_name = 'Quickloader.QLG'\n),\n\nhourly_avg AS (\n  SELECT\n    time_bucket('1 hour', d.time) AS hour,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN param_ids p ON p.param_id = d.param_id\n  WHERE\n    d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n    --AND d.value_num < 10000\n  GROUP BY hour\n)\n\nSELECT\n  hour AS time,\n  avg_value AS \"1-hour average\",\n  AVG(avg_value) OVER (\n    ORDER BY hour\n    RANGE BETWEEN INTERVAL '24 hours' PRECEDING AND CURRENT ROW\n    ) AS \"24-hour average\"\nFROM hourly_avg\nORDER BY hour\n",
-          "refId": "A",
+          "rawSql": "SELECT\n  hour AS time,\n  param_name,\n  mean_value AS \"1-hour average\"\nFROM sem_pressure_hourly\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'Quickloader.QLG'\n  AND $__timeFilter(hour)\nORDER BY hour",
+          "refId": "hourly",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${sourceSEM}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  day AS time,\n  param_name,\n  mean_value AS \"24-hour average\"\nFROM sem_pressure_daily\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'Quickloader.QLG'\n  AND $__timeFilter(day)\nORDER BY day",
+          "refId": "daily",
           "sql": {
             "columns": [
               {
@@ -1077,6 +1096,15 @@
         }
       ],
       "title": "QuickLoader pressure",
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "(.*)Quickloader.QLG",
+            "renamePattern": "$1"
+          }
+        }
+      ],
       "type": "timeseries"
     },
     {
@@ -1084,7 +1112,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1154,7 +1181,7 @@
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 100
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1163,7 +1190,6 @@
           },
           "editorMode": "code",
           "format": "table",
-          "hide": false,
           "rawQuery": true,
           "rawSql": "WITH cagg AS (\n  SELECT\n    p.enum_id,\n    state_agg(d.time, d.value_num :: int) AS agg\n  FROM\n    data d\n    JOIN parameters p USING (instrument_id, param_id)\n  WHERE\n    d.instrument_id = $instrument \n    AND $__timeFilter(d.time)\n    AND p.component = 'Chamber'\n    AND p.param_name = 'Chamber.Mode'\n  GROUP BY\n    p.enum_id\n)\n\nSELECT\n  ev.member_name AS state,\n  COUNT(*) AS \"Count\"\nFROM\n  cagg\n  CROSS JOIN LATERAL state_int_timeline(agg) s\n  JOIN enum_values ev ON ev.enum_id = cagg.enum_id AND ev.value = s.state\nGROUP BY ev.member_name\nORDER BY \"Count\" DESC",
           "refId": "B",
@@ -1194,7 +1220,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1224,6 +1249,7 @@
               "type": "linear"
             },
             "showPoints": "never",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -1280,7 +1306,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1328,7 +1354,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${sourceSEM}"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1398,7 +1423,7 @@
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 100
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1434,7 +1459,7 @@
     }
   ],
   "preload": false,
-  "schemaVersion": 41,
+  "schemaVersion": 42,
   "tags": [
     "module",
     "sem"
@@ -1458,19 +1483,20 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "Aquilos [Aquilos 2+] (9960381)",
-          "value": "7"
+          "text": "Arctis [Arctis] (9960963)",
+          "value": "2"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
           "uid": "${sourceSEM}"
         },
-        "definition": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
+        "definition": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nWHERE is_active IS TRUE\nORDER BY name;\n",
         "name": "instrument",
         "options": [],
-        "query": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nORDER BY name;\n",
+        "query": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nWHERE is_active IS TRUE\nORDER BY name;\n",
         "refresh": 1,
         "regex": "",
+        "regexApplyTo": "value",
         "sort": 1,
         "type": "query"
       }
@@ -1486,5 +1512,6 @@
   "timezone": "Europe/London",
   "title": "Module | Column",
   "uid": "4395e67b-0345-47fd-94a8-683653567800",
-  "version": 3
+  "version": 2,
+  "weekStart": ""
 }

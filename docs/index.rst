@@ -11,15 +11,15 @@ interactive Grafana dashboards, it helps you easily analyze and understand your 
 
 .. important:: The package is still in active development, not recommended for production use.
 
-.. image:: https://img.shields.io/pypi/v/em_health.svg
+.. image:: https://img.shields.io/pypi/v/em_health
         :target: https://pypi.python.org/pypi/em_health
         :alt: PyPI release
 
-.. image:: https://img.shields.io/pypi/l/em_health.svg
+.. image:: https://img.shields.io/pypi/l/em_health
         :target: https://pypi.python.org/pypi/em_health
         :alt: License
 
-.. image:: https://img.shields.io/pypi/pyversions/em_health.svg
+.. image:: https://img.shields.io/pypi/pyversions/em_health
         :target: https://pypi.python.org/pypi/em_health
         :alt: Supported Python versions
 

@@ -129,20 +129,6 @@ Mostly used for visualizing raw data from the database
 
 .. image:: /_static/dash-browser.png
 
-Import Alarms
--------------
-
-.. note:: This functionality is currently under development
-
-Universal Error Codes (UECs) or Alarms from an instrument are stored in a database separate from Health Monitor events and
-can be typically displayed with UEC Viewer on the MPC. You could also install *FEI UEC Notifications Exporter* and save UECs to XML,
-but this is not supported by ``EMHealth``. If you have the credentials to access the MSSQL server on MPC,
-you can import UECs from MSSQL into ``EMHealth`` database. To make it work, MSSQL_USER and MSSQL_PASSWORD (in the `docker/.env`) have to be defined,
-as well as the *server* field for each instrument in the `instruments.json`.
-
-.. code-block::
-
-    emhealth db -d tem import-uec
 
 Alerting
 --------
@@ -161,3 +147,5 @@ You have several options available here:
 2. To render PNG image of a panel, select `Share > Share link`. In the new window you can customize the image size, then Generate and Download image.
 
 .. image:: /_static/export-png.png
+
+3. To export a whole dashboard as a PNG image, select `Export > Export as image`.

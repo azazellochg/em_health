@@ -1,6 +1,6 @@
 # **************************************************************************
 # *
-# * Authors:     Grigory Sharov (gsharov@mrc-lmb.cam.ac.uk) [1]
+# * Authors:     Grigory Sharov (gsharov@mrclmb.ac.uk) [1]
 # *
 # * [1] MRC Laboratory of Molecular Biology (MRC-LMB)
 # *
@@ -20,7 +20,7 @@
 # * 02111-1307  USA
 # *
 # *  All comments concerning this program package may be sent to the
-# *  e-mail address 'gsharov@mrc-lmb.cam.ac.uk'
+# *  e-mail address 'gsharov@mrclmb.ac.uk'
 # *
 # **************************************************************************
 
@@ -201,7 +201,7 @@ class FDWManager:
                 ON CONFLICT (ErrorDefinitionID) DO NOTHING;
 
                 -- Error notifications
-                INSERT INTO uec.errors (Time, InstrumentID, ErrorID, MessageText)
+                INSERT INTO uec.errors (time, instrument_id, ErrorID, MessageText)
                 SELECT
                     en.ErrorDtm,
                     {self.instr_id},
@@ -210,10 +210,10 @@ class FDWManager:
                 FROM {self.fdw_schema}.error_notifications en
                 JOIN uec.error_definitions ed ON ed.ErrorDefinitionID = en.ErrorDefinitionID
                 WHERE en.ErrorDtm > COALESCE(
-                    (SELECT MAX(Time) FROM uec.errors WHERE InstrumentID = {self.instr_id}),
+                    (SELECT MAX(time) FROM uec.errors WHERE instrument_id = {self.instr_id}),
                     '1900-01-01'
                 )
-                ON CONFLICT (Time, InstrumentID, ErrorID) DO NOTHING;
+                ON CONFLICT (time, instrument_id, ErrorID) DO NOTHING;
             END;
             $$;
         """)
@@ -338,7 +338,7 @@ class FDWManager:
                 ept.warning_min,
                 ept.warning_max,
                 ept.critical_min,
-                ept.critical_max,
+                ept.critical_max
             FROM {schema}.event_property_type ept
             JOIN {schema}.parameter_type pt ON pt.parameter_type_id = ept.parameter_type_id
             JOIN {schema}.event_type et ON et.event_type_id = ept.event_type_id

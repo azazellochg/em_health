@@ -1,6 +1,6 @@
 # **************************************************************************
 # *
-# * Authors:     Grigory Sharov (gsharov@mrc-lmb.cam.ac.uk) [1]
+# * Authors:     Grigory Sharov (gsharov@mrclmb.ac.uk) [1]
 # *
 # * [1] MRC Laboratory of Molecular Biology (MRC-LMB)
 # *
@@ -20,7 +20,7 @@
 # * 02111-1307  USA
 # *
 # *  All comments concerning this program package may be sent to the
-# *  e-mail address 'gsharov@mrc-lmb.cam.ac.uk'
+# *  e-mail address 'gsharov@mrclmb.ac.uk'
 # *
 # **************************************************************************
 
@@ -70,18 +70,17 @@ class DatabaseAnalyzer(DatabaseManager):
     """
     def create_metric_tables(self) -> None:
         """ Create tables to store metrics data. """
-        self.execute_file(self.get_path("create_tables.sql", folder="pganalyze"),
+        self.execute_file(self.get_path("pganalyze/create_tables.sql"),
                           {
                               "var_pgsnaps_chunk_size": os.getenv("TBL_SNAPS_CHUNK_SIZE", "4 weeks"),
                               "var_pgstats_chunk_size": os.getenv("TBL_STATS_CHUNK_SIZE", "1 week"),
-                              "var_pgstats_compression": os.getenv("TBL_STATS_COMPRESSION", "7 days"),
-                              "var_pgstats_retention": os.getenv("TBL_STATS_RETENTION", "6 months")
+                              "var_pgstats_retention": os.getenv("TBL_STATS_RETENTION", "3 months")
                           })
         logger.info("Created pganalyze tables")
 
     def create_metric_collectors(self) -> None:
         """ Create functions to collect statistics. """
-        self.execute_file(self.get_path("create_functions.sql", folder="pganalyze"))
+        self.execute_file(self.get_path("pganalyze/create_functions.sql"))
         logger.info("Created pganalyze procedures")
 
     def cleanup_jobs(self) -> None:
@@ -96,24 +95,12 @@ class DatabaseAnalyzer(DatabaseManager):
 
     def schedule_metric_jobs(self) -> None:
         """ Schedule functions as TimescaleDB jobs. """
-        self.execute_file(self.get_path("create_jobs.sql", folder="pganalyze"))
+        self.execute_file(self.get_path("pganalyze/create_jobs.sql"))
         logger.info("Scheduled pganalyze jobs")
-
-    # FIXME: not used at the moment
-    def create_stats_cagg(self):
-        """ Create cagg for pganalyze.stat_statements."""
-        mview = "pganalyze.stat_statements_cagg"
-        self.drop_mview(mview, is_cagg=True)
-        self.create_mview(mview)
-        self.force_refresh_cagg(mview)
-        self.schedule_cagg_refresh(mview,
-                                   start_offset="10 minutes",
-                                   end_offset="0 minutes",
-                                   interval="5 minutes")
 
 
 def main(dbname, action, force=False):
-    if action == "create-perf-stats":
+    if action == "pganalyze":
         with DatabaseAnalyzer(dbname) as db:
             if force:  # erase all data
                 db.run_query("DROP SCHEMA IF EXISTS pganalyze CASCADE;")

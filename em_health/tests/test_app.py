@@ -1,6 +1,6 @@
 # **************************************************************************
 # *
-# * Authors:     Grigory Sharov (gsharov@mrc-lmb.cam.ac.uk) [1]
+# * Authors:     Grigory Sharov (gsharov@mrclmb.ac.uk) [1]
 # *
 # * [1] MRC Laboratory of Molecular Biology (MRC-LMB)
 # *
@@ -20,7 +20,7 @@
 # * 02111-1307  USA
 # *
 # *  All comments concerning this program package may be sent to the
-# *  e-mail address 'gsharov@mrc-lmb.cam.ac.uk'
+# *  e-mail address 'gsharov@mrclmb.ac.uk'
 # *
 # **************************************************************************
 
@@ -190,12 +190,12 @@ class TestEMHealth(unittest.TestCase):
             self.check_db2(dbm, instrument_id)
 
             # clean-up
-            dbm.clean_instrument_data(instrument_serial=9999)
+            dbm.run_query("DELETE FROM public.instruments WHERE id = 9999")
 
     def test_pgtap(self):
         """ Run database tests with pgTAP. """
         MANAGER = os.getenv("MANAGER_TYPE")
-        run_command(f'{MANAGER} exec timescaledb bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/*.sql"')
+        run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/*.sql"')
 
 if __name__ == '__main__':
     unittest.main()

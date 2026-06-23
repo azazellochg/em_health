@@ -172,7 +172,7 @@ VALUES (
 SELECT results_eq(
                $$SELECT COUNT(*)::int
 FROM uec.errors e
-JOIN public.instruments i ON i.id = e.instrumentid
+JOIN public.instruments i ON i.id = e.instrument_id
 WHERE i.instrument='instY'$$,
                ARRAY[1],
                'Inserted one error with FK relations intact'
@@ -185,7 +185,7 @@ WHERE ErrorDefinitionID = 42;
 SELECT is_empty(
                $$SELECT e.*
 FROM uec.errors e
-JOIN public.instruments i ON i.id = e.instrumentid
+JOIN public.instruments i ON i.id = e.instrument_id
 WHERE i.instrument='instY'$$,
                'errors cascade delete works'
        );

@@ -11,7 +11,7 @@ However, if you then update the provisioned dashboards (e.g. via `pip install -U
 `here <https://grafana.com/docs/grafana/latest/administration/provisioning/#make-changes-to-a-provisioned-dashboard>`_. The workaround is the following:
 
 1. Make changes to a dashboard via Grafana UI.
-2. Save and export dashboard to JSON (DO NOT check `Export the dashboard to use in another instance`).
+2. Save and export dashboard to JSON using `Export > Export as code` (DO NOT toggle `Export for sharing externally`).
 3. Overwrite existing dashboard file (they are in `docker/grafana/provisioning/dashboards/`) with the saved json file.
 
 Any file changes in the provisioning folder are immediately picked up by Grafana. There's no need to restart it.
@@ -39,7 +39,7 @@ Performance statistics is inspired by `Pganalyze <https://pganalyze.com/>`_ and 
 * CPU and RAM host statistics (updated every 1 min)
 * auto-EXPLAIN plans (for queries longer than 500ms)
 
-Statistics retention time is 6 months.
+Statistics retention time is 3 months.
 
 SQL commands
 ^^^^^^^^^^^^
@@ -56,17 +56,6 @@ Below are some frequently used commands for **psql** database client:
 
 For more examples refer to the command line `cheetsheet <https://gist.github.com/Kartones/dd3ff5ec5ea238d4c546>`_
 
-Using Grafana API
-^^^^^^^^^^^^^^^^^
-
-Grafana provides HTTP API that can be used once you create a `service admin account <http://localhost:3000/org/serviceaccounts/create>`_
-with an API token and save it to **GRAFANA_API_TOKEN** in the `docker/.env`. A simple Python client inside ``EMHealth`` can then access the API.
-At the moment the client can only change the default organization preferences by running:
-
-.. code-block::
-
-    python em_health/grafana_client.py
-
 Logs
 ^^^^
 
@@ -74,7 +63,7 @@ All ``EMHealth`` application actions are saved into `emhealth.log`. PostgreSQL l
 
 .. code-block::
 
-    docker exec -it timescaledb bash
+    docker exec -it emhealth-db bash
     cd /var/lib/postgresql/data/log
     cat *.csv
 
@@ -82,7 +71,7 @@ Grafana logs are accessible via:
 
 .. code-block::
 
-    docker logs grafana
+    docker logs emhealth-grafana
 
 Database structure
 ^^^^^^^^^^^^^^^^^^
@@ -229,3 +218,8 @@ Interpreting results
 - **EXECUTEMANY** is slower but more flexible when UPSERTs are required.
 - **UNNEST** can outperform EXECUTEMANY for medium batch sizes, since fewer query plans are created.
 - Always run with different batch sizes (1,000, 5,000, 10,000) and average results across trials for reliable benchmarks.
+
+Import HM data from PostgreSQL
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+On a MPC running Windows 10 and TEM server 7.2+, the health monitor data is stored in a PostgreSQL database and linked to MSSQL using foreign-data wrapper (DSPostgres)

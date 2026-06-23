@@ -1,6 +1,6 @@
 # **************************************************************************
 # *
-# * Authors:     Grigory Sharov (gsharov@mrc-lmb.cam.ac.uk) [1]
+# * Authors:     Grigory Sharov (gsharov@mrclmb.ac.uk) [1]
 # *
 # * [1] MRC Laboratory of Molecular Biology (MRC-LMB)
 # *
@@ -20,7 +20,7 @@
 # * 02111-1307  USA
 # *
 # *  All comments concerning this program package may be sent to the
-# *  e-mail address 'gsharov@mrc-lmb.cam.ac.uk'
+# *  e-mail address 'gsharov@mrclmb.ac.uk'
 # *
 # **************************************************************************
 
@@ -82,16 +82,15 @@ class BaseDBClient(ABC):
         ...
 
     @staticmethod
-    def get_path(target: str, folder: Optional[str] = None) -> Path:
-        """ Build a full path starting from the em_health/sql directory.
-        :param target: Target file name.
-        :param folder: Optional subfolder name.
+    def get_path(target: str) -> Path:
+        """Build a full path starting from the em_health/sql directory.
+        :param target: Relative path to the target file (e.g. "folder1/folder2/file.sql").
         :return: Absolute Path object.
         """
         base_dir = Path(__file__).parent / "sql"
-        if folder:
-            return (base_dir / folder / target).resolve()
-        return (base_dir / target).resolve()
+        target_path = Path(target)
+
+        return (base_dir / target_path).resolve()
 
 
 class PgClient(BaseDBClient):

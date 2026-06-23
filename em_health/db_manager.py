@@ -1,6 +1,6 @@
 # **************************************************************************
 # *
-# * Authors:     Grigory Sharov (gsharov@mrc-lmb.cam.ac.uk) [1]
+# * Authors:     Grigory Sharov (gsharov@mrclmb.ac.uk) [1]
 # *
 # * [1] MRC Laboratory of Molecular Biology (MRC-LMB)
 # *
@@ -20,14 +20,14 @@
 # * 02111-1307  USA
 # *
 # *  All comments concerning this program package may be sent to the
-# *  e-mail address 'gsharov@mrc-lmb.cam.ac.uk'
+# *  e-mail address 'gsharov@mrclmb.ac.uk'
 # *
 # **************************************************************************
 
 import os
 import time
-from datetime import datetime, timezone
-from typing import Iterable, Optional, Any
+from datetime import datetime
+from typing import Iterable, Any
 
 from em_health.db_client import PgClient
 from em_health.utils.tools import logger, profile
@@ -42,35 +42,6 @@ class DatabaseManager(PgClient):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.instrument_name = None
-
-    def clean_instrument_data(self,
-                              instrument_serial: int,
-                              since: Optional[str] = None) -> None:
-        """ Erase data for a particular instrument. """
-        row = self.run_query("SELECT id FROM public.instruments WHERE serial = %s",
-                             values=(instrument_serial,),
-                             mode="fetchone")
-        instrument_id = row[0] if row else None
-
-        if instrument_id is None:
-            logger.error("No such instrument: %d", instrument_serial)
-            raise ValueError("Wrong serial number")
-
-        if since is None:
-            # cascade delete all data for the instrument
-            self.run_query("DELETE FROM public.instruments WHERE id = %s",
-                           values=(instrument_id,))
-            logger.info("Deleted instrument %s and all associated data", instrument_serial)
-        else:
-            from_date = datetime.strptime(since, "%d-%m-%Y").replace(tzinfo=timezone.utc)
-            self.run_query("DELETE FROM public.data WHERE instrument_id = %s AND time < %s",
-                           values=(instrument_id, from_date))
-            self.run_query("DELETE FROM uec.errors WHERE InstrumentId = %s AND Time < %s",
-                           values=(instrument_id, from_date))
-            logger.info("Deleted data older than %s for instrument %s",
-                        from_date, instrument_serial)
-
-        self.conn.commit()
 
     def add_instrument(self, instr_dict: dict) -> int:
         """ Populate the instrument metadata table.
@@ -263,6 +234,16 @@ class DatabaseManager(PgClient):
         logger.info("Updated public.data table (%d rows)", self.cur.rowcount,
                     extra={"prefix": self.instrument_name})
 
+    @staticmethod
+    def get_fullname(name: str) -> str:
+        """ Return fully qualified name. """
+        if "." in name:
+            schema, name = name.split(".", 1)
+        else:
+            schema = "public"
+
+        return f"{schema}.{name}"
+
     def drop_mview(self, name: str, is_cagg: bool = False) -> None:
         """ Delete a materialized view. """
         self.run_query("DROP MATERIALIZED VIEW IF EXISTS {name} CASCADE",
@@ -277,12 +258,12 @@ class DatabaseManager(PgClient):
             """, strings={"proc": proc})
 
             self.run_query("DROP PROCEDURE IF EXISTS {name}", {"name": name})
-        logger.info("Dropped materialized view %s", name)
 
-    def schedule_mview_refresh(self, name: str) -> None:
+        logger.info("Dropped materialized view %s", self.get_fullname(name))
+
+    def schedule_mview_refresh(self, name: str, interval: str = "12 hours") -> None:
         """ Schedule a materialized view refresh. """
         proc = f"refresh_{name}"
-        period = os.getenv("CAGG_REFRESH_INTERVAL", "12 hours")
 
         self.run_query("""
             CREATE OR REPLACE PROCEDURE {proc}(
@@ -296,15 +277,19 @@ class DatabaseManager(PgClient):
         """, {"proc": proc, "name": name})
 
         self.run_query("SELECT add_job({proc}, {period})",
-                       strings={"proc": proc, "period": period})
-        logger.info("Scheduled refresh for %s every %s", name, period)
+                       strings={"proc": proc, "period": interval})
+        logger.info("Scheduled refresh for %s every %s", self.get_fullname(name), interval)
 
     def schedule_cagg_refresh(self,
                               name: str,
-                              start_offset: Optional[str] = None,
-                              end_offset: Optional[str] = None,
-                              interval: Optional[str] = None) -> None:
+                              start_offset: str = "4 days",
+                              end_offset: str = "1 day",
+                              interval: str = "12 hours") -> None:
         """ Schedule a cont. aggregate refresh.
+        :param name:
+        :param start_offset: data before start offset will not be recalculated
+        :param end_offset: data after end offset is not included
+        :param interval: refresh interval
         Notes:
         1) The difference between start_offset and end_offset must be ≥ 2x bucket size.
         2) Our buckets are 1-day wide.
@@ -317,13 +302,6 @@ class DatabaseManager(PgClient):
         Here we decided to cover 3 full buckets: D-4, D-3, D-2.
         We refresh every 12h since we want minimal latency before yesterday's stats are available
         """
-        if start_offset is None:
-            start_offset = os.getenv("CAGG_START_OFFSET", "4 days")
-        if end_offset is None:
-            end_offset = os.getenv("CAGG_END_OFFSET", "1 day")
-        if interval is None:
-            interval = os.getenv("CAGG_REFRESH_INTERVAL", "12 hours")
-
         self.run_query("""
             SELECT add_continuous_aggregate_policy({name},
             start_offset => INTERVAL {start_offset},
@@ -335,7 +313,7 @@ class DatabaseManager(PgClient):
             "end_offset": end_offset,
             "schedule_interval": interval
         })
-        logger.info("Scheduled continuous aggregate refresh for %s", name)
+        logger.info("Scheduled continuous aggregate refresh for %s", self.get_fullname(name))
 
     def force_refresh_cagg(self, name: str) -> None:
         """ Force a cont. aggregate refresh.
@@ -347,7 +325,7 @@ class DatabaseManager(PgClient):
         self.run_query("CALL refresh_continuous_aggregate({name}, NULL, NULL)",
                        strings={"name": name})
         self.conn.autocommit = False
-        logger.info("Forced continuous aggregate refresh for %s", name)
+        logger.info("Forced continuous aggregate refresh for %s", self.get_fullname(name))
 
     def enable_rt_cagg(self, name: str) -> None:
         """ Real-time aggregates automatically add the most recent data when
@@ -355,14 +333,14 @@ class DatabaseManager(PgClient):
         self.run_query("ALTER MATERIALIZED VIEW {name} set (timescaledb.materialized_only = false)",
                        {"name": name})
 
-    def create_mview(self, name: str) -> None:
+    def create_mview(self, name: str, target: str) -> None:
         """ Create a new materialized view or a continuous aggregate. """
         if "." in name:
             schema, name = name.split(".", 1)
         else:
             schema = "public"
 
-        view_fn = self.get_path(target=name+".sql", folder=schema)
+        view_fn = self.get_path(target)
         self.execute_file(view_fn)
         logger.info("Created materialized view %s.%s", schema, name)
 
@@ -374,7 +352,7 @@ class DatabaseManager(PgClient):
 
         if current_ver < latest_ver:
             for v in range(current_ver + 1, latest_ver + 1):
-                view_fn = self.get_path(target=f"{v:03d}.sql", folder="migrations")
+                view_fn = self.get_path(target=f"migrations/{v:03d}.sql")
                 self.execute_file(view_fn)
             logger.info("Database schema migrated to version %s", latest_ver)
         elif current_ver == latest_ver:
@@ -405,8 +383,18 @@ class DatabaseManager(PgClient):
 
             logger.info("Scheduled UEC import job for instrument %s", instr_id)
 
+    def prune_data(self, days: int) -> None:
+        """ Prune old data from a database. """
+        chunks_dropped = self.run_query("SELECT purge_old_chunks('public.data', %s)",
+                                        values=(days,), mode='fetchone')
+        self.run_query("DELETE FROM uec.errors WHERE time < (current_timestamp - INTERVAL '{days} days')",
+                       strings={'days': days})
 
-def main(dbname, action, instrument=None, date=None):
+        self.conn.commit()
+        logger.debug("Removed %s chunks (%s rows)", chunks_dropped[0], self.cur.rowcount)
+
+
+def main(dbname, action, days=None):
     if action == "create-stats":
         logger.info("Running aggregation on database %s", dbname)
         mviews = {
@@ -422,6 +410,9 @@ def main(dbname, action, instrument=None, date=None):
                 "epu_state_daily": True,
                 "tomo_state_daily": True,
                 "tem_cryocycle_daily": True,
+                "tem_pressure_hourly": True,
+                "tem_pressure_daily": True, # depends on tem_pressure_hourly
+                #"tem_feg_counter_daily": True,
 
                 # Depends on em_off
                 "vacuum_state_daily": False,
@@ -450,27 +441,34 @@ def main(dbname, action, instrument=None, date=None):
                 "sem_cryocycle_al_daily": True,
                 "sem_cryocycle_noal_daily": True,
                 "sem_chamber_state_daily": True,
+                "sem_pressure_hourly": True,
+                "sem_pressure_daily": True, # depends on sem_pressure_hourly
+                #"sem_source_counter_daily": True,
+                #"fibsem_apertures_daily": True,
 
                 # Depends on the views above
                 "sem_beamtime_daily": False,
-
             }
         }
 
         with DatabaseManager(dbname) as db:
-            for mview, is_cagg in mviews[dbname].items():
-                db.drop_mview(mview)
-                db.create_mview(mview)
+            for view, is_cagg in mviews[dbname].items():
+                db.drop_mview(view)
                 if is_cagg:
-                    db.force_refresh_cagg(mview)
-                    db.schedule_cagg_refresh(mview)
-                    db.enable_rt_cagg(mview)
+                    db.create_mview(view, f"public/cagg/{view}.sql")
+                    db.force_refresh_cagg(view)
+                    if view.endswith("hourly"):
+                        db.schedule_cagg_refresh(view, start_offset="6 hours", end_offset="1 hour", interval="1 hour")
+                    elif view.endswith("daily"):
+                        db.schedule_cagg_refresh(view, start_offset="4 days",  end_offset="1 day", interval="12 hours")
+                    db.enable_rt_cagg(view)
                 else:
-                    db.schedule_mview_refresh(mview)
-                db.run_query("GRANT SELECT ON public.{mview} TO grafana",
-                             {"mview": mview})
+                    db.create_mview(view, f"public/mviews/{view}.sql")
+                    db.schedule_mview_refresh(view)
+                db.run_query("GRANT SELECT ON public.{view} TO grafana",
+                             {"view": view})
 
-    elif action == "clean-all":
+    elif action == "erase":
         print(f"!!! WARNING: You are about to DELETE ALL DATA from database {dbname} !!!")
         confirm = input("Type YES to continue: ")
         if confirm != "YES":
@@ -481,28 +479,18 @@ def main(dbname, action, instrument=None, date=None):
         from em_health.utils.maintenance import erase_db
         erase_db(dbname, do_init=True)
 
-    elif action == "clean-inst":
-        # verify args
-        if not instrument:
-            raise ValueError("-i is required for clean-inst")
-        if date:
-            try:
-                datetime.strptime(date, "%d-%m-%Y")
-            except ValueError:
-                raise ValueError("Invalid date format. Use DD-MM-YYYY (e.g., 23-03-2025).")
-
+    elif action == "prune":
         with DatabaseManager(dbname) as db:
-            if not date:
-                logger.info("Deleting data for instrument %s in %s", instrument, dbname)
-                db.clean_instrument_data(instrument)
-            else:
-                logger.info("Deleting data since %s for instrument %s in %s", date, instrument, dbname)
-                db.clean_instrument_data(instrument, since=date)
+            logger.info("Deleting data older than %d days from database %s", days, dbname)
+            db.prune_data(days)
 
     elif action == "migrate":
-        latest_ver = int(os.getenv(f"{dbname.upper()}_SCHEMA_VERSION"))
-        with DatabaseManager(dbname) as db:
-            db.migrate_db(latest_ver)
+        latest_ver = os.getenv(f"{dbname.upper()}_SCHEMA_VERSION")
+        if latest_ver is not None:
+            with DatabaseManager(dbname) as db:
+                db.migrate_db(int(latest_ver))
+        else:
+            raise ValueError("Could not get latest schema version")
 
     elif action == "import-uec":
         with DatabaseManager(dbname) as db:

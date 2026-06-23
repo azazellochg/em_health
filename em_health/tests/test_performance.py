@@ -1,6 +1,6 @@
 # **************************************************************************
 # *
-# * Authors:     Grigory Sharov (gsharov@mrc-lmb.cam.ac.uk) [1]
+# * Authors:     Grigory Sharov (gsharov@mrclmb.ac.uk) [1]
 # *
 # * [1] MRC Laboratory of Molecular Biology (MRC-LMB)
 # *
@@ -20,7 +20,7 @@
 # * 02111-1307  USA
 # *
 # *  All comments concerning this program package may be sent to the
-# *  e-mail address 'gsharov@mrc-lmb.cam.ac.uk'
+# *  e-mail address 'gsharov@mrclmb.ac.uk'
 # *
 # **************************************************************************
 
@@ -218,7 +218,7 @@ class Benchmark:
     @staticmethod
     def create_test_db() -> None:
         cmd = fr"""
-            {MANAGER} exec timescaledb bash -c "\
+            {MANAGER} exec emhealth-db bash -c "\
             psql -d postgres -c \"DROP DATABASE IF EXISTS benchmark;\" && \
             psql -d postgres -c \"CREATE DATABASE benchmark;\" && \
             psql -d benchmark -c \"CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;\" && \
@@ -391,7 +391,7 @@ class TestPerformance:
             with DatabaseManager(db_name=DB_NAME, username=DB_USER, password=DB_PASS) as dbm:
                 logger.info("Creating public tables in the benchmark db")
                 dbm.execute_file(
-                    dbm.get_path("create_tables.sql", folder="public"),
+                    dbm.get_path("public/create_tables.sql"),
                     {
                         "var_data_chunk_size": table_chunk_size,
                         "var_data_compression": table_compression,

@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS public.instruments (
                                                   name TEXT NOT NULL,
                                                   template TEXT NOT NULL,
                                                   server inet,
-                                                  ds_version TEXT
+                                                  ds_version TEXT,
+                                                  is_active BOOLEAN NOT NULL DEFAULT true
 );
 COMMENT ON TABLE public.instruments IS 'Main instruments table';
 
@@ -126,14 +127,13 @@ CREATE TABLE IF NOT EXISTS public.data (
                                              tsdb.hypertable,
                                              tsdb.chunk_interval=:var_data_chunk_size,
                                              tsdb.partition_column='time',
+                                             tsdb.create_default_indexes=false,
                                              tsdb.segmentby='instrument_id,param_id',
-                                             tsdb.orderby='time',
-                                             tsdb.create_default_indexes=false
+                                             tsdb.orderby='time DESC'
                                              );
 COMMENT ON TABLE public.data IS 'Main time series table with HM events';
 
 SELECT enable_chunk_skipping('public.data', 'param_id');
-CALL add_columnstore_policy('public.data', after => INTERVAL :var_data_compression);
 
 GRANT USAGE ON SCHEMA public TO grafana, emhealth;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO grafana;

@@ -64,7 +64,7 @@ Installation
        cd em_health
        pip install -e .
 
-2. Edit the configuration variables in `docker/.env`. Make sure **BACKUP_DIR** exists and has 777 permissions, since the containers need to write into this host folder. Detailed information can be found `here <advanced_setup.html#security-configuration>`_.
+2. Copy `docker/.env_example` into `docker/.env` and set secure passwords and tokens. Make sure **BACKUP_DIR** exists and has 777 permissions, since the containers need to write into this host folder. Detailed information can be found `here <advanced_setup.html#security-configuration>`_.
 3. Launch containers:
 
    .. code-block::
@@ -132,6 +132,7 @@ Post-Import Steps
    .. code-block::
 
        emhealth db -d tem create-stats
+       emhealth db -d sem create-stats
 
 2. Access Grafana dashboards at http://localhost:3000
 

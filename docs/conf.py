@@ -11,7 +11,7 @@ copyright = '2023-2026, Grigory Sharov'
 author = 'Grigory Sharov'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1a4'
+release = '0.1a6'
 
 # -- General configuration ---------------------------------------------------
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -43,3 +43,10 @@ pygments_style = 'sphinx'
 html_static_path = ['_static']
 html_theme = 'sphinx_rtd_theme'
 html_theme_options = {'sticky_navigation': False, 'collapse_navigation': False, 'navigation_depth': 2}
+html_context = {
+    "display_github": True,
+    "github_user": "azazellochg",
+    "github_repo": "em_health",
+    "github_version": "master",
+    "conf_py_path": "/docs/"
+}

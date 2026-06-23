@@ -7,7 +7,7 @@ BEGIN
         xact_commit, xact_rollback, blks_read, blks_hit,
         tup_inserted, tup_updated, tup_deleted, tup_fetched, tup_returned,
         temp_files, temp_bytes, deadlocks, blk_read_time, blk_write_time,
-        frozen_xid_age, frozen_mxid_age, db_size
+        frozen_xid_age, frozen_mxid_age, db_size, wal_lsn
     )
     SELECT
         now() AS collected_at,
@@ -15,7 +15,8 @@ BEGIN
         s.tup_inserted, s.tup_updated, s.tup_deleted, s.tup_fetched, s.tup_returned,
         s.temp_files, s.temp_bytes, s.deadlocks, s.blk_read_time, s.blk_write_time,
         age(d.datfrozenxid) AS frozen_xid_age, mxid_age(d.datminmxid) AS frozen_mxid_age,
-        pg_database_size(current_database()) AS db_size
+        pg_database_size(current_database()) AS db_size,
+        pg_current_wal_lsn() AS wal_lsn
     FROM pg_catalog.pg_stat_database s
              JOIN pg_catalog.pg_database d ON s.datname = d.datname
     WHERE s.datname = current_database();
@@ -76,6 +77,56 @@ $$
 DROP FUNCTION IF EXISTS pganalyze.get_index_stats
 ; CREATE FUNCTION pganalyze.get_index_stats(job_id int = NULL, config jsonb = NULL) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
+
+    WITH regular_indexes AS (
+        SELECT
+            s.indexrelid,
+            s.relid,
+            s.schemaname,
+            s.relname,
+            pg_relation_size(s.indexrelid) AS size_bytes,
+            COALESCE(s.idx_scan, 0) AS idx_scan,
+            COALESCE(s.idx_tup_read, 0) AS idx_tup_read,
+            COALESCE(s.idx_tup_fetch, 0) AS idx_tup_fetch,
+            COALESCE(io.idx_blks_read, 0) AS idx_blks_read,
+            COALESCE(io.idx_blks_hit, 0) AS idx_blks_hit
+        FROM pg_stat_user_indexes s
+                 LEFT JOIN pg_statio_user_indexes io USING (indexrelid)
+        WHERE s.schemaname IN ('public', 'uec', 'pganalyze')
+    ),
+
+         chunk_indexes AS (
+             SELECT
+                 s.indexrelid,
+                 s.relid,
+                 ch.hypertable_schema,
+                 ch.hypertable_name,
+                 pg_relation_size(s.indexrelid) AS size_bytes,
+                 COALESCE(s.idx_scan, 0) AS idx_scan,
+                 COALESCE(s.idx_tup_read, 0) AS idx_tup_read,
+                 COALESCE(s.idx_tup_fetch, 0) AS idx_tup_fetch,
+                 COALESCE(io.idx_blks_read, 0) AS idx_blks_read,
+                 COALESCE(io.idx_blks_hit, 0) AS idx_blks_hit
+             FROM pg_stat_user_indexes s
+                      JOIN timescaledb_information.chunks ch ON ch.chunk_schema = s.schemaname AND ch.chunk_name = s.relname
+                      LEFT JOIN pg_statio_user_indexes io USING (indexrelid)
+             WHERE s.schemaname = '_timescaledb_internal' AND s.relname LIKE '_hyper_%'
+         ),
+
+         chunk_sums AS (
+             SELECT
+                 ch.hypertable_schema AS schemaname,
+                 ch.hypertable_name AS relname,
+                 SUM(ch.size_bytes) AS size_bytes,
+                 SUM(ch.idx_scan) AS idx_scan,
+                 SUM(ch.idx_tup_read) AS idx_tup_read,
+                 SUM(ch.idx_tup_fetch) AS idx_tup_fetch,
+                 SUM(ch.idx_blks_read) AS idx_blks_read,
+                 SUM(ch.idx_blks_hit) AS idx_blks_hit
+             FROM chunk_indexes ch
+             GROUP BY ch.hypertable_schema, ch.hypertable_name
+         )
+
     INSERT INTO pganalyze.index_stats (
         collected_at,
         indexrelid,
@@ -85,49 +136,22 @@ BEGIN
         tup_read,
         tup_fetch,
         blks_read,
-        blks_hit,
-        exclusively_locked
+        blks_hit
     )
-    WITH locked_relids AS (
-        SELECT DISTINCT relation indexrelid
-        FROM pg_catalog.pg_locks
-        WHERE mode = 'AccessExclusiveLock' AND relation IS NOT NULL AND locktype = 'relation'
-    )
-    SELECT
-        now() AS collected_at,
-        s.indexrelid,
-        s.relid,
-        COALESCE(pg_catalog.pg_relation_size(s.indexrelid), 0) AS size_bytes,
-        COALESCE(s.idx_scan, 0) AS scan,
-        COALESCE(s.idx_tup_read, 0) AS tup_read,
-        COALESCE(s.idx_tup_fetch, 0) AS tup_fetch,
-        COALESCE(sio.idx_blks_read, 0) AS blks_read,
-        COALESCE(sio.idx_blks_hit, 0) AS blks_hit,
-        false AS exclusively_locked
-    FROM pg_catalog.pg_stat_user_indexes s
-             LEFT JOIN pg_catalog.pg_statio_user_indexes sio USING (indexrelid)
-    WHERE NOT EXISTS (
-        SELECT 1
-        FROM locked_relids l
-        WHERE l.indexrelid = s.indexrelid
-    )
-      AND s.schemaname NOT LIKE '\_timescaledb%'
-
-    UNION ALL
 
     SELECT
         now() AS collected_at,
-        l.indexrelid,
-        c.relnamespace AS relid,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        true AS exclusively_locked
-    FROM locked_relids l
-             JOIN pg_class c ON c.oid = l.indexrelid;
+        r.indexrelid,
+        r.relid,
+        r.size_bytes + COALESCE(ch.size_bytes, 0) AS size_bytes,
+        r.idx_scan + COALESCE(ch.idx_scan, 0) AS idx_scan,
+        r.idx_tup_read + COALESCE(ch.idx_tup_read, 0) AS idx_tup_read,
+        r.idx_tup_fetch + COALESCE(ch.idx_tup_fetch, 0) AS idx_tup_fetch,
+        r.idx_blks_read + COALESCE(ch.idx_blks_read, 0) AS idx_blks_read,
+        r.idx_blks_hit + COALESCE(ch.idx_blks_hit, 0) AS idx_blks_hit
+    FROM regular_indexes r
+             LEFT JOIN chunk_sums ch USING (schemaname, relname);
+
 END;
 $$
 ;
@@ -185,7 +209,6 @@ BEGIN
                      sum(wal_records) AS wal_records,
                      sum(wal_fpi) AS wal_fpi,
                      sum(wal_bytes) AS wal_bytes,
-                     pg_wal_lsn_diff(pg_current_wal_lsn(), '0/0') AS wal_position,
                      pg_postmaster_start_time() AS stats_reset
                  FROM
                      statements
@@ -216,7 +239,6 @@ BEGIN
                                    wal_records,
                                    wal_fpi,
                                    wal_bytes
-
     )
     SELECT
         snapshot_time,
@@ -295,6 +317,40 @@ BEGIN
     EXECUTE format('COPY tmp_log FROM %L WITH CSV', logfile);
 
     -- Insert parsed vacuums into vacuum_stats
+    WITH parsed AS (
+        SELECT
+            log_time,
+            message,
+            substring(message FROM 'automatic vacuum of table "([^"]+)"') AS fqname,
+            substring(message FROM 'elapsed: ([0-9\.]+) s')::double precision AS elapsed_s,
+            substring(message FROM 'index scans: (\d+)')::bigint AS index_scans,
+            substring(message FROM 'pages: (\d+) removed')::bigint AS pages_removed,
+            substring(message FROM 'tuples: (\d+) removed')::bigint AS tuples_removed,
+            substring(message FROM 'tuples: \d+ removed, (\d+) remain')::int AS tuples_remain,
+            (message LIKE '%to prevent wraparound%') AS wraparound
+        FROM tmp_log
+        WHERE error_severity = 'LOG'
+          AND backend_type = 'autovacuum worker'
+          AND message LIKE 'automatic vacuum of table "%'
+    ),
+         split AS (
+             SELECT *,
+                    split_part(fqname, '.', 1) AS dbname,
+                    split_part(fqname, '.', 2) AS schemaname,
+                    split_part(fqname, '.', 3) AS tablename
+             FROM parsed
+             WHERE fqname IS NOT NULL
+         ),
+         filtered AS (
+             SELECT *,
+                    schemaname || '.' || tablename AS relname
+             FROM split
+             WHERE dbname = current_database()
+               AND (
+                 schemaname IN ('public', 'uec', 'pganalyze')
+                     OR (schemaname = '_timescaledb_internal' AND tablename LIKE '_hyper_%_chunk')
+                 )
+         )
     INSERT INTO pganalyze.vacuum_stats (
         relid,
         started_at,
@@ -307,25 +363,17 @@ BEGIN
         details
     )
     SELECT
-        regexp_replace(
-                substring(message FROM 'automatic vacuum of table "([^"]+)"'),
-                '^[^.]+\.',  -- remove leading "dbname."
-                ''
-        )::regclass::oid AS relid,
-        log_time AS started_at,
-        log_time + (substring(message FROM 'elapsed: ([0-9\.]+) s')::double precision * interval '1 second') AS finished_at,
-        substring(message FROM 'index scans: (\d+)')::bigint AS index_scans,
-        substring(message FROM 'pages: (\d+) removed')::bigint AS pages_removed,
-        substring(message FROM 'tuples: (\d+) removed')::bigint AS tuples_removed,
-        substring(message FROM 'tuples: \d+ removed, (\d+) remain')::int AS tuples_remain,
-        (message LIKE '%to prevent wraparound%') AS wraparound,
-        message AS details
-    FROM tmp_log
-    WHERE error_severity = 'LOG'
-      AND backend_type = 'autovacuum worker'
-      AND (message LIKE 'automatic vacuum of table "' || current_database() || '.public.%'
-        OR message LIKE 'automatic vacuum of table "' || current_database() || '.uec.%'
-        OR message LIKE 'automatic vacuum of table "' || current_database() || '.pganalyze.%')
+        c.oid,
+        log_time,
+        log_time + (elapsed_s * interval '1 second'),
+        index_scans,
+        pages_removed,
+        tuples_removed,
+        tuples_remain,
+        wraparound,
+        message
+    FROM filtered f
+             JOIN pg_class c ON c.oid = to_regclass(f.relname)::oid
     ON CONFLICT DO NOTHING;
 
     -- Insert parsed plans into stat_explains
@@ -345,7 +393,7 @@ BEGIN
         (substring(message FROM 'plan:\n(\{.*)')::json #>> '{Plan,Total Cost}')::double precision AS total_cost,
         (substring(message FROM 'plan:\n(\{.*)')::json #>> '{Plan,Shared Read Blocks}')::bigint * 8192 AS bytes_read,
         (substring(message FROM 'plan:\n(\{.*)')::json #>> '{Plan,Shared I/O Read Time}')::double precision AS io_read_time,
-        substring(message FROM 'plan:\n(\{.*)')::json
+        (substring(message FROM 'plan:\n(\{.*)')::json #>> '{Plan}')::json AS plan
     FROM tmp_log
     WHERE database_name = current_database()
       AND user_name = 'grafana'
@@ -394,7 +442,7 @@ $$
 
 -- Purge old data
 DROP FUNCTION IF EXISTS pganalyze.purge_stats
-; CREATE FUNCTION pganalyze.purge_stats(job_id int = NULL, config jsonb = '{"drop_after":"6 months"}') RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+; CREATE FUNCTION pganalyze.purge_stats(job_id int = NULL, config jsonb = '{"drop_after":"3 months"}') RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
     drop_after interval;
 BEGIN

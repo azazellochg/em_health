@@ -3,27 +3,29 @@ name: Build & Publish Docker Image
 on:
   workflow_dispatch:
 
+env:
+  IMAGE_NAME: ghcr.io/${{ github.actor }}/timescaledb
+  VERSION: 0.1a6
+  DESC: Postgres 18.4 + TimescaleDB 2.27.1 + Toolkit 1.22.0 + TDS-FDW 2.0.5
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
     permissions:
       contents: read
-      packages: write   # needed to push to GHCR
+      packages: write   # elevate from default read-only in repo settings; needed to push to GHCR
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Log in to GitHub Container Registry
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN }}
-
-      - name: Set image name
-        run: echo "IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/timescaledb" >> $GITHUB_ENV
+          password: ${{ github.token }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -35,8 +37,15 @@ jobs:
           file: docker/Dockerfile
           push: true
           tags: |
-            ${{ env.IMAGE_NAME }}:latest
-            ${{ env.IMAGE_NAME }}:0.1a4
+              ${{ env.IMAGE_NAME }}:latest
+              ${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+          labels: |
+            org.opencontainers.image.title=Custom PostgreSQL image with TimescaleDB, Toolkit & TDS-FDW
+            org.opencontainers.image.description=${{ env.DESC }}
+            org.opencontainers.image.version=${{ env.VERSION }}
+            org.opencontainers.image.authors=Grigory Sharov <gsharov@mrclmb.ac.uk>
+            org.opencontainers.image.licenses=GPL-3.0-or-later
+            org.opencontainers.image.source=https://github.com/azazellochg/em_health
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max

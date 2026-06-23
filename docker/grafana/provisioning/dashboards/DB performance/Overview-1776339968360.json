@@ -18,7 +18,6 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 15,
   "links": [
     {
       "asDropdown": false,
@@ -93,7 +92,7 @@
         "textMode": "name",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "editorMode": "code",
@@ -171,7 +170,7 @@
         "textMode": "value_and_name",
         "wideLayout": false
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -260,7 +259,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -270,7 +269,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  time,\n  load1 / cpu_count * 100 AS \"CPU (total $cpu_count)\",\n  (mem_total - mem_avail) / mem_total::double precision * 100 AS \"RAM\"\n  FROM pganalyze.sys_stats\n  WHERE $__timeFilter(time)\nORDER BY time;\n",
+          "rawSql": "SELECT\n  time,\n  load15 / cpu_count * 100 AS \"CPU (total $cpu_count)\",\n  (mem_total - mem_avail) / mem_total::double precision * 100 AS \"RAM\"\n  FROM pganalyze.sys_stats\n  WHERE $__timeFilter(time)\nORDER BY time;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -369,7 +368,7 @@
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 100
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -451,7 +450,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -560,7 +559,7 @@
         "textMode": "value",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -640,7 +639,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -722,6 +721,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": true,
             "stacking": {
               "group": "A",
@@ -779,7 +779,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -865,7 +865,7 @@
         "textMode": "value",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -934,6 +934,7 @@
               "type": "linear"
             },
             "showPoints": "never",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -984,7 +985,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1053,6 +1054,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -1103,7 +1105,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1189,7 +1191,7 @@
         "textMode": "value",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1275,7 +1277,7 @@
         "textMode": "value",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1314,13 +1316,13 @@
         "type": "grafana-postgresql-datasource",
         "uid": "${source}"
       },
+      "description": "Global for all databases",
       "fieldConfig": {
         "defaults": {
           "color": {
             "fixedColor": "#1f78c1",
             "mode": "fixed"
           },
-          "decimals": 0,
           "fieldMinMax": false,
           "mappings": [],
           "thresholds": {
@@ -1331,17 +1333,19 @@
                 "value": 0
               }
             ]
-          }
+          },
+          "unit": "decbytes"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 3,
+        "h": 4,
         "w": 4,
         "x": 0,
         "y": 29
       },
-      "id": 36,
+      "id": 43,
+      "interval": "20m",
       "options": {
         "colorMode": "none",
         "graphMode": "area",
@@ -1349,15 +1353,17 @@
         "orientation": "horizontal",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [],
-          "fields": "/^total_locks$/",
-          "values": true
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^wal_bytes$/",
+          "values": false
         },
-        "showPercentChange": false,
+        "showPercentChange": true,
         "textMode": "value",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1365,9 +1371,9 @@
             "uid": "${source}"
           },
           "editorMode": "code",
-          "format": "table",
+          "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT COUNT(*) AS total_locks\nFROM pg_locks\nWHERE database = (SELECT oid FROM pg_database WHERE datname = current_database())",
+          "rawSql": "SELECT\n  collected_at AS time,\n  pg_wal_lsn_diff(\n    wal_lsn,\n    LAG(wal_lsn) OVER (ORDER BY collected_at)\n  ) AS wal_bytes\nFROM pganalyze.database_stats\nWHERE $__timeFilter(collected_at)\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1388,7 +1394,7 @@
           }
         }
       ],
-      "title": "Total locks",
+      "title": "WAL size",
       "type": "stat"
     },
     {
@@ -1426,6 +1432,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -1452,7 +1459,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 6,
+        "h": 7,
         "w": 20,
         "x": 4,
         "y": 29
@@ -1476,7 +1483,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1538,9 +1545,91 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 4,
+        "w": 2,
         "x": 0,
-        "y": 32
+        "y": 33
+      },
+      "id": 36,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "/^total_locks$/",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${source}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS total_locks\nFROM pg_locks\nWHERE database = (SELECT oid FROM pg_database WHERE datname = current_database())",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Total locks",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#1f78c1",
+            "mode": "fixed"
+          },
+          "decimals": 0,
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 2,
+        "x": 2,
+        "y": 33
       },
       "id": 27,
       "options": {
@@ -1560,7 +1649,7 @@
         "textMode": "value",
         "wideLayout": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1596,7 +1685,7 @@
     }
   ],
   "preload": false,
-  "schemaVersion": 41,
+  "schemaVersion": 42,
   "tags": [
     "perf"
   ],
@@ -1619,8 +1708,8 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "16",
-          "value": "16"
+          "text": "12",
+          "value": "12"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -1633,12 +1722,13 @@
         "query": "SELECT\n  cpu_count\nFROM pganalyze.sys_stats\nORDER BY time DESC LIMIT 1",
         "refresh": 1,
         "regex": "",
+        "regexApplyTo": "value",
         "type": "query"
       }
     ]
   },
   "time": {
-    "from": "now-3h",
+    "from": "now-24h",
     "to": "now"
   },
   "timepicker": {
@@ -1654,5 +1744,6 @@
   "timezone": "Europe/London",
   "title": "Overview",
   "uid": "ee46beab-c046-45a5-b547-23990e2ec0f3",
-  "version": 3
+  "version": 5,
+  "weekStart": ""
 }

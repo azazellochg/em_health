@@ -18,7 +18,6 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 56,
   "links": [
     {
       "asDropdown": false,
@@ -84,6 +83,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": true,
             "stacking": {
               "group": "A",
@@ -128,18 +128,19 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
+          "dataset": "tem",
           "datasource": {
             "type": "grafana-postgresql-datasource",
             "uid": "${source}"
           },
           "editorMode": "code",
-          "format": "time_series",
+          "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH deltas AS (\n    SELECT\n        collected_at,\n        queryid,\n        calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_calls,\n        total_plan_time - LAG(total_plan_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_plan_time,\n        total_exec_time - LAG(total_exec_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_exec_time,\n        blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_read_time,\n        blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_write_time\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(collected_at) \n),\nweighted_exec AS (\n    SELECT\n        collected_at,\n        queryid,\n        delta_calls,\n        (delta_plan_time + delta_exec_time) / NULLIF(delta_calls,0) AS weighted_exec_time,\n        (delta_blk_read_time + delta_blk_write_time) AS total_io_time\n    FROM deltas\n)\nSELECT\n    time_bucket(INTERVAL '$__interval', collected_at) AS time,\n    COALESCE(approx_percentile(0.5, percentile_agg(weighted_exec_time)), 0) AS \"Median time\",\n    COALESCE(approx_percentile(0.95, percentile_agg(weighted_exec_time)), 0) AS \"P95 time\",\n    COALESCE(SUM(total_io_time) / NULLIF(SUM(delta_calls),0), 0) AS \"Avg I/O time\"\nFROM weighted_exec\nGROUP BY time\nORDER BY time;\n",
-          "refId": "A",
+          "rawSql": "WITH bucketed AS (\n    SELECT\n        time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n        delta(counter_agg(collected_at, calls)) AS delta_calls,\n        delta(counter_agg(collected_at, total_plan_time)) +\n        delta(counter_agg(collected_at, total_exec_time)) AS delta_total_time,\n        delta(counter_agg(collected_at, blk_read_time)) +\n        delta(counter_agg(collected_at, blk_write_time)) AS delta_total_io\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(collected_at)\n    GROUP BY bucket, queryid\n)\nSELECT\n    bucket AS time,\n    approx_percentile(0.5, percentile_agg(delta_total_time / NULLIF(delta_calls,0))) AS \"Median time\",\n    approx_percentile(0.95, percentile_agg(delta_total_time / NULLIF(delta_calls,0))) AS \"P95 time\",\n    SUM(delta_total_io) / NULLIF(SUM(delta_calls),0) AS \"Avg I/O time\"\nFROM bucketed\nWHERE delta_calls > 0\nGROUP BY bucket\nORDER BY bucket\n",
+          "refId": "B",
           "sql": {
             "columns": [
               {
@@ -178,6 +179,9 @@
               "type": "auto"
             },
             "filterable": false,
+            "footer": {
+              "reducers": []
+            },
             "inspect": false
           },
           "mappings": [],
@@ -288,7 +292,7 @@
             },
             "properties": [
               {
-                "id": "custom.hidden",
+                "id": "custom.hideFrom.viz",
                 "value": true
               }
             ]
@@ -317,26 +321,19 @@
       "interval": "5m",
       "options": {
         "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "enablePagination": true,
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
+        "enablePagination": true,
         "showHeader": true,
         "sortBy": [
           {
             "desc": true,
-            "displayName": "% of all runtime"
+            "displayName": "Avg time"
           }
         ]
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
+          "dataset": "tem",
           "datasource": {
             "type": "grafana-postgresql-datasource",
             "uid": "${source}"
@@ -344,8 +341,8 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH deltas AS (\n    SELECT\n        userid,\n        queryid,\n        calls - LAG(calls) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_calls,\n        total_plan_time - LAG(total_plan_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_plan_time,\n        total_exec_time - LAG(total_exec_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_exec_time,\n        blk_read_time - LAG(blk_read_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_read_time,\n        blk_write_time - LAG(blk_write_time) OVER (PARTITION BY queryid ORDER BY collected_at) AS delta_blk_write_time\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(collected_at)\n),\nagg AS (\n    SELECT\n        userid,\n        queryid,\n        SUM(delta_calls) AS total_calls,\n        SUM(delta_plan_time + delta_exec_time) AS total_exec_time,\n        COALESCE(SUM(delta_blk_read_time + delta_blk_write_time), 0) AS total_io\n    FROM deltas\n    WHERE delta_calls > 0\n    GROUP BY queryid, userid\n)\nSELECT\n    a.queryid::text,\n    q.query AS \"Query\",\n    (a.total_exec_time / NULLIF(a.total_calls,0)) AS \"Avg time\",\n    (a.total_calls / NULLIF((($__to - $__from) / 1000) / 60, 0)) AS \"Calls/min\",\n    (a.total_exec_time / NULLIF(SUM(a.total_exec_time) OVER (),0) * 100) AS \"% of all runtime\",\n    (a.total_io / NULLIF(SUM(a.total_io) OVER (),0) * 100) AS \"% of all I/O\",\n    r.rolname AS \"User\"\nFROM agg a\nJOIN pganalyze.queries q ON q.queryid = a.queryid\nJOIN pg_roles r ON r.oid = a.userid\nORDER BY \"Avg time\" DESC;\n",
-          "refId": "A",
+          "rawSql": "WITH agg AS (\n    SELECT\n        userid,\n        queryid,\n        delta(counter_agg(collected_at, calls)) AS total_calls,\n        delta(counter_agg(collected_at, total_plan_time)) AS total_plan_time,\n        delta(counter_agg(collected_at, total_exec_time)) AS total_exec_time,\n        delta(counter_agg(collected_at, blk_read_time)) AS total_blk_read_time,\n        delta(counter_agg(collected_at, blk_write_time)) AS total_blk_write_time\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(collected_at)\n    GROUP BY queryid, userid\n)\nSELECT\n    a.queryid::text,\n    q.query AS \"Query\",\n    ((a.total_plan_time + a.total_exec_time) / NULLIF(a.total_calls, 0)) AS \"Avg time\",\n    (a.total_calls / NULLIF((($__to - $__from) / 1000) / 60, 0)) AS \"Calls/min\",\n    ((a.total_plan_time + a.total_exec_time) / NULLIF(SUM(a.total_plan_time + a.total_exec_time) OVER (), 0) * 100) AS \"% of all runtime\",\n    ((a.total_blk_read_time + a.total_blk_write_time) / NULLIF(SUM(a.total_blk_read_time + a.total_blk_write_time) OVER (), 0) * 100) AS \"% of all I/O\",\n    r.rolname AS \"User\"\nFROM agg a\nJOIN pganalyze.queries q ON q.queryid = a.queryid\nJOIN pg_roles r ON r.oid = a.userid\nWHERE a.total_calls > 0\nORDER BY \"Avg time\" DESC;",
+          "refId": "B",
           "sql": {
             "columns": [
               {
@@ -395,6 +392,9 @@
             "align": "center",
             "cellOptions": {
               "type": "auto"
+            },
+            "footer": {
+              "reducers": []
             },
             "inspect": false
           },
@@ -446,17 +446,9 @@
       "id": 12,
       "options": {
         "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
         "showHeader": true
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -524,6 +516,7 @@
               "type": "linear"
             },
             "showPoints": "always",
+            "showValues": false,
             "spanNulls": true,
             "stacking": {
               "group": "A",
@@ -581,7 +574,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -650,6 +643,7 @@
               "type": "linear"
             },
             "showPoints": "always",
+            "showValues": false,
             "spanNulls": true,
             "stacking": {
               "group": "A",
@@ -707,7 +701,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -775,12 +769,12 @@
         "content": "${query:raw}",
         "mode": "code"
       },
-      "pluginVersion": "12.1.0",
+      "pluginVersion": "12.4.2",
       "title": "",
       "type": "text"
     },
     {
-      "collapsed": true,
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -788,230 +782,122 @@
         "y": 46
       },
       "id": 10,
-      "panels": [
+      "panels": [],
+      "title": "EXPLAINs: #$queryid [only if duration > 500ms]",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${source}"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Executed at"
+            },
+            "properties": []
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Runtime"
+            },
+            "properties": []
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "I/O read time"
+            },
+            "properties": []
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "I/O read time %"
+            },
+            "properties": []
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Read from disk"
+            },
+            "properties": []
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "queryid"
+            },
+            "properties": []
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 23,
+        "w": 24,
+        "x": 0,
+        "y": 47
+      },
+      "id": 13,
+      "options": {
+        "dedupStrategy": "none",
+        "detailsMode": "inline",
+        "enableInfiniteScrolling": false,
+        "enableLogDetails": true,
+        "fontSize": "default",
+        "prettifyLogMessage": true,
+        "showControls": true,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "syntaxHighlighting": false,
+        "timestampResolution": "ms",
+        "unwrappedColumns": false,
+        "wrapLogMessage": true
+      },
+      "pluginVersion": "12.4.2",
+      "targets": [
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
             "uid": "${source}"
           },
-          "description": "",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "custom": {
-                "align": "center",
-                "cellOptions": {
-                  "type": "auto"
-                },
-                "inspect": false
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  }
-                ]
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  time AS \"Executed at\",\n  'See details',\n  queryid::text,\n  total_cost AS \"Est. cost\",\n  duration AS \"Runtime\",\n  io_read_time AS \"I/O read time\",\n  io_read_time / duration * 100.0 AS \"I/O read time %\",\n  bytes_read AS \"Read from disk\",\n  plan\nFROM\n  pganalyze.stat_explains\nWHERE\n  queryid = $queryid\nORDER BY\n  time DESC",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
               }
-            },
-            "overrides": [
+            ],
+            "groupBy": [
               {
-                "matcher": {
-                  "id": "byName",
-                  "options": "plan"
+                "property": {
+                  "type": "string"
                 },
-                "properties": [
-                  {
-                    "id": "custom.hidden",
-                    "value": true
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Executed at"
-                },
-                "properties": [
-                  {
-                    "id": "links",
-                    "value": [
-                      {
-                        "title": "Show json plan",
-                        "url": "/d/${__dashboard.uid}/${__dashboard}?var-queryid=${__data.fields.queryid}&var-plan=${__data.fields.plan}"
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Runtime"
-                },
-                "properties": [
-                  {
-                    "id": "unit",
-                    "value": "ms"
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "I/O read time"
-                },
-                "properties": [
-                  {
-                    "id": "unit",
-                    "value": "ms"
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "I/O read time %"
-                },
-                "properties": [
-                  {
-                    "id": "unit",
-                    "value": "percent"
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Read from disk"
-                },
-                "properties": [
-                  {
-                    "id": "unit",
-                    "value": "decbytes"
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "queryid"
-                },
-                "properties": [
-                  {
-                    "id": "custom.hidden",
-                    "value": true
-                  }
-                ]
+                "type": "groupBy"
               }
-            ]
-          },
-          "gridPos": {
-            "h": 7,
-            "w": 24,
-            "x": 0,
-            "y": 47
-          },
-          "id": 8,
-          "options": {
-            "cellHeight": "sm",
-            "footer": {
-              "countRows": false,
-              "fields": "",
-              "reducer": [
-                "sum"
-              ],
-              "show": false
-            },
-            "showHeader": true
-          },
-          "pluginVersion": "12.1.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "grafana-postgresql-datasource",
-                "uid": "${source}"
-              },
-              "editorMode": "code",
-              "format": "table",
-              "rawQuery": true,
-              "rawSql": "SELECT\n  time AS \"Executed at\",\n  total_cost AS \"Est. cost\",\n  duration AS \"Runtime\",\n  io_read_time AS \"I/O read time\",\n  io_read_time / duration * 100.0 AS \"I/O read time %\",\n  bytes_read AS \"Read from disk\",\n  queryid::text,\n  plan\nFROM\n  pganalyze.stat_explains\nWHERE\n  queryid = $queryid\nORDER BY\n  time DESC",
-              "refId": "A",
-              "sql": {
-                "columns": [
-                  {
-                    "parameters": [],
-                    "type": "function"
-                  }
-                ],
-                "groupBy": [
-                  {
-                    "property": {
-                      "type": "string"
-                    },
-                    "type": "groupBy"
-                  }
-                ],
-                "limit": 50
-              }
-            }
-          ],
-          "title": "EXPLAIN plans",
-          "type": "table"
-        },
-        {
-          "fieldConfig": {
-            "defaults": {},
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 15,
-            "w": 13,
-            "x": 0,
-            "y": 54
-          },
-          "id": 11,
-          "links": [
-            {
-              "targetBlank": true,
-              "title": "Analyze EXPLAIN in Depesz",
-              "url": "https://explain.depesz.com/"
-            },
-            {
-              "targetBlank": true,
-              "title": "Analyze EXPLAIN in Dalibo",
-              "url": "https://explain.dalibo.com/"
-            },
-            {
-              "targetBlank": true,
-              "title": "Index Advisor (pganalyze)",
-              "url": "https://pganalyze.com/index-advisor"
-            }
-          ],
-          "options": {
-            "code": {
-              "language": "json",
-              "showLineNumbers": false,
-              "showMiniMap": false
-            },
-            "content": "$plan",
-            "mode": "code"
-          },
-          "pluginVersion": "12.1.0",
-          "title": "Plan",
-          "type": "text"
+            ],
+            "limit": 50
+          }
         }
       ],
-      "title": "EXPLAINs: #$queryid [only if duration > 500ms]",
-      "type": "row"
+      "title": "EXPLAIN plans",
+      "type": "logs"
     }
   ],
   "preload": false,
-  "schemaVersion": 41,
+  "schemaVersion": 42,
   "tags": [
     "perf"
   ],
@@ -1033,53 +919,36 @@
       },
       {
         "current": {
-          "text": "-1730381090015229010",
-          "value": "-1730381090015229010"
+          "text": "4372641507196789939",
+          "value": "4372641507196789939"
         },
         "hide": 2,
         "name": "queryid",
         "options": [
           {
             "selected": true,
-            "text": "-1730381090015229010",
-            "value": "-1730381090015229010"
+            "text": "4372641507196789939",
+            "value": "4372641507196789939"
           }
         ],
-        "query": "-1730381090015229010",
+        "query": "4372641507196789939",
         "type": "textbox"
       },
       {
         "current": {
-          "text": "INSERT INTO public.data (time, instrument_id, param_id, value_num, value_text)\n                VALUES ($1, $2, $3, $4, $5)\n                ON CONFLICT DO NOTHING",
-          "value": "INSERT INTO public.data (time, instrument_id, param_id, value_num, value_text)\n                VALUES ($1, $2, $3, $4, $5)\n                ON CONFLICT DO NOTHING"
+          "text": "WITH bucketed AS (\n    SELECT\n        time_bucket(INTERVAL $1, collected_at) AS bucket,\n        delta(counter_agg(collected_at, calls)) AS delta_calls,\n        delta(counter_agg(collected_at, total_plan_time))  \n        delta(counter_agg(collected_at, total_exec_time)) AS delta_total_time,\n        delta(counter_agg(collected_at, blk_read_time))  \n        delta(counter_agg(collected_at, blk_write_time)) AS delta_total_io\n    FROM pganalyze.stat_statements\n    WHERE collected_at BETWEEN $2 AND $3\n    GROUP BY bucket, queryid\n)\nSELECT\n    bucket AS time,\n    approx_percentile($4, percentile_agg(delta_total_time / NULLIF(delta_calls,$5))) AS \"Median time\",\n    approx_percentile($6, percentile_agg(delta_total_time / NULLIF(delta_calls,$7))) AS \"P95 time\",\n    SUM(delta_total_io) / NULLIF(SUM(delta_calls),$8) AS \"Avg I/O time\"\nFROM bucketed\nWHERE delta_calls > $9\nGROUP BY bucket\nORDER BY bucket",
+          "value": "WITH bucketed AS (\n    SELECT\n        time_bucket(INTERVAL $1, collected_at) AS bucket,\n        delta(counter_agg(collected_at, calls)) AS delta_calls,\n        delta(counter_agg(collected_at, total_plan_time))  \n        delta(counter_agg(collected_at, total_exec_time)) AS delta_total_time,\n        delta(counter_agg(collected_at, blk_read_time))  \n        delta(counter_agg(collected_at, blk_write_time)) AS delta_total_io\n    FROM pganalyze.stat_statements\n    WHERE collected_at BETWEEN $2 AND $3\n    GROUP BY bucket, queryid\n)\nSELECT\n    bucket AS time,\n    approx_percentile($4, percentile_agg(delta_total_time / NULLIF(delta_calls,$5))) AS \"Median time\",\n    approx_percentile($6, percentile_agg(delta_total_time / NULLIF(delta_calls,$7))) AS \"P95 time\",\n    SUM(delta_total_io) / NULLIF(SUM(delta_calls),$8) AS \"Avg I/O time\"\nFROM bucketed\nWHERE delta_calls > $9\nGROUP BY bucket\nORDER BY bucket"
         },
         "hide": 2,
         "name": "query",
         "options": [
           {
             "selected": true,
-            "text": "INSERT INTO public.data (time, instrument_id, param_id, value_num, value_text)\n                VALUES ($1, $2, $3, $4, $5)\n                ON CONFLICT DO NOTHING",
-            "value": "INSERT INTO public.data (time, instrument_id, param_id, value_num, value_text)\n                VALUES ($1, $2, $3, $4, $5)\n                ON CONFLICT DO NOTHING"
+            "text": "WITH bucketed AS (\n    SELECT\n        time_bucket(INTERVAL $1, collected_at) AS bucket,\n        delta(counter_agg(collected_at, calls)) AS delta_calls,\n        delta(counter_agg(collected_at, total_plan_time))  \n        delta(counter_agg(collected_at, total_exec_time)) AS delta_total_time,\n        delta(counter_agg(collected_at, blk_read_time))  \n        delta(counter_agg(collected_at, blk_write_time)) AS delta_total_io\n    FROM pganalyze.stat_statements\n    WHERE collected_at BETWEEN $2 AND $3\n    GROUP BY bucket, queryid\n)\nSELECT\n    bucket AS time,\n    approx_percentile($4, percentile_agg(delta_total_time / NULLIF(delta_calls,$5))) AS \"Median time\",\n    approx_percentile($6, percentile_agg(delta_total_time / NULLIF(delta_calls,$7))) AS \"P95 time\",\n    SUM(delta_total_io) / NULLIF(SUM(delta_calls),$8) AS \"Avg I/O time\"\nFROM bucketed\nWHERE delta_calls > $9\nGROUP BY bucket\nORDER BY bucket",
+            "value": "WITH bucketed AS (\n    SELECT\n        time_bucket(INTERVAL $1, collected_at) AS bucket,\n        delta(counter_agg(collected_at, calls)) AS delta_calls,\n        delta(counter_agg(collected_at, total_plan_time))  \n        delta(counter_agg(collected_at, total_exec_time)) AS delta_total_time,\n        delta(counter_agg(collected_at, blk_read_time))  \n        delta(counter_agg(collected_at, blk_write_time)) AS delta_total_io\n    FROM pganalyze.stat_statements\n    WHERE collected_at BETWEEN $2 AND $3\n    GROUP BY bucket, queryid\n)\nSELECT\n    bucket AS time,\n    approx_percentile($4, percentile_agg(delta_total_time / NULLIF(delta_calls,$5))) AS \"Median time\",\n    approx_percentile($6, percentile_agg(delta_total_time / NULLIF(delta_calls,$7))) AS \"P95 time\",\n    SUM(delta_total_io) / NULLIF(SUM(delta_calls),$8) AS \"Avg I/O time\"\nFROM bucketed\nWHERE delta_calls > $9\nGROUP BY bucket\nORDER BY bucket"
           }
         ],
-        "query": "INSERT INTO public.data (time, instrument_id, param_id, value_num, value_text)\n                VALUES ($1, $2, $3, $4, $5)\n                ON CONFLICT DO NOTHING",
-        "type": "textbox"
-      },
-      {
-        "current": {
-          "text": "",
-          "value": ""
-        },
-        "hide": 2,
-        "name": "plan",
-        "options": [
-          {
-            "selected": true,
-            "text": "",
-            "value": ""
-          }
-        ],
-        "query": "",
+        "query": "WITH bucketed AS (\n    SELECT\n        time_bucket(INTERVAL $1, collected_at) AS bucket,\n        delta(counter_agg(collected_at, calls)) AS delta_calls,\n        delta(counter_agg(collected_at, total_plan_time))  \n        delta(counter_agg(collected_at, total_exec_time)) AS delta_total_time,\n        delta(counter_agg(collected_at, blk_read_time))  \n        delta(counter_agg(collected_at, blk_write_time)) AS delta_total_io\n    FROM pganalyze.stat_statements\n    WHERE collected_at BETWEEN $2 AND $3\n    GROUP BY bucket, queryid\n)\nSELECT\n    bucket AS time,\n    approx_percentile($4, percentile_agg(delta_total_time / NULLIF(delta_calls,$5))) AS \"Median time\",\n    approx_percentile($6, percentile_agg(delta_total_time / NULLIF(delta_calls,$7))) AS \"P95 time\",\n    SUM(delta_total_io) / NULLIF(SUM(delta_calls),$8) AS \"Avg I/O time\"\nFROM bucketed\nWHERE delta_calls > $9\nGROUP BY bucket\nORDER BY bucket",
         "type": "textbox"
       }
     ]
@@ -1102,5 +971,6 @@
   "timezone": "Europe/London",
   "title": "Queries",
   "uid": "f5f755f6-d55b-4f89-bfd7-36281dc0eec7",
-  "version": 2
+  "version": 67,
+  "weekStart": ""
 }

@@ -65,45 +65,6 @@ Syntax
 
 ----
 
-Create Aggregated Statistics
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Description
-^^^^^^^^^^^
-
-This command is usually run after you have imported a large batch of historical data. It will aggregate daily
-statistics like autoloader counters, EPU/Tomo sessions etc that is used by various dashboards. You only need to run this
-command once, the statistics will be refreshed automatically every 12h.
-
-Syntax
-^^^^^^
-
-.. code-block::
-
-    emhealth db -d tem create-stats
-
-----
-
-Remove Old Data
-~~~~~~~~~~~~~~~
-
-Description
-^^^^^^^^^^^
-
-Erase data for a specific instrument. You must input the serial number that matches `instruments.json`
-configuration file. Optional `date` argument can be used to remove data older than **DD-MM-YYYY**.
-
-Syntax
-^^^^^^
-
-.. code-block::
-
-    emhealth db -d tem clean-inst -i 3299 [--date DATE]
-
-
-Maintenance Tasks
------------------
-
 Update EMHealth
 ~~~~~~~~~~~~~~~
 
@@ -122,6 +83,133 @@ Syntax
 
 ----
 
+Run tests
+~~~~~~~~~
+
+Description
+^^^^^^^^^^^
+
+Run unit tests to check the XML import parser and import functions. Also executes `pgTAP <https://pgtap.org/>`_ tests on the database.
+
+Syntax
+^^^^^^
+
+.. code-block::
+
+    emhealth test
+
+Database Operations
+-------------------
+
+Create Data Statistics
+~~~~~~~~~~~~~~~~~~~~~~
+
+Description
+^^^^^^^^^^^
+
+This command is usually run after you have imported a large batch of historical data. It will aggregate daily
+statistics like autoloader counters, EPU/Tomo sessions etc that is used by various dashboards. You only need to run this
+command once, the statistics will be refreshed automatically.
+
+Syntax
+^^^^^^
+
+.. code-block::
+
+    emhealth db -d tem create-stats
+
+----
+
+Backup
+~~~~~~
+
+Description
+^^^^^^^^^^^
+
+Perform a logical backup of TimescaleDB (both TEM and SEM) and a physical backup of Grafana databases. The backups are saved into `BACKUP_DIR` folder.
+
+Syntax
+^^^^^^
+
+.. code-block::
+
+    emhealth db -d tem backup
+
+----
+
+Restore
+~~~~~~~
+
+Description
+^^^^^^^^^^^
+
+Restore either TimescaleDB or Grafana database from a backup file.
+
+Syntax
+^^^^^^
+
+.. code-block::
+
+    emhealth db -d tem restore
+
+----
+
+Erase database
+~~~~~~~~~~~~~~
+
+Description
+^^^^^^^^^^^
+
+ALL data will be removed from a specified database! Empty tables will be re-initialized.
+
+Syntax
+^^^^^^
+
+.. code-block::
+
+    emhealth db -d tem erase
+
+----
+
+Remove Old Data
+~~~~~~~~~~~~~~~
+
+Description
+^^^^^^^^^^^
+
+Data older than X days will be removed from a database.
+Due to the database `design <https://docs2.tigerdata.com/docs/reference/timescaledb/hypertables/drop_chunks>`_, only the data
+chunks that are fully within the specified time range will be removed.
+
+Syntax
+^^^^^^
+
+.. code-block::
+
+    emhealth db -d tem prune --days 360
+
+
+Developer Tools
+---------------
+
+Reset performance stats
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Description
+^^^^^^^^^^^
+
+The periodic database statistics collection is enabled by default. Below command can be used if you
+modify the pganalyze tables or functions and want to update the jobs. The output is used in dashboards under *DB performance* folder.
+
+Syntax
+^^^^^^
+
+.. code-block::
+
+    emhealth dev -d tem pganalyze [-f]
+
+----
+
 Migrate database
 ~~~~~~~~~~~~~~~~
 
@@ -135,79 +223,25 @@ Syntax
 
 .. code-block::
 
-    emhealth db -d tem migrate
+    emhealth dev -d tem migrate
 
 ----
 
-Backup
-~~~~~~
+Import Alarms
+~~~~~~~~~~~~~
 
-Description
-^^^^^^^^^^^
+.. note:: This functionality is currently under development
 
-Perform a logical backup of TimescaleDB and a physical backup of Grafana database. The backups are saved into `BACKUP_DIR` folder.
-
-Syntax
-^^^^^^
+Universal Error Codes (UECs) or Alarms from an instrument are stored (from TEM server 6.2) in a database separate from Health Monitor events and
+can be typically displayed with UEC Viewer. If you have the credentials to access the MSSQL server on MPC,
+you can import UECs from MSSQL into ``EMHealth`` database. To make it work, MSSQL_USER and MSSQL_PASSWORD (in the `docker/.env`) have to be defined,
+as well as the *server* field for each instrument in the `instruments.json`.
 
 .. code-block::
 
-    emhealth db backup
+    emhealth dev -d tem import-uec
 
 ----
-
-Restore
-~~~~~~~
-
-Description
-^^^^^^^^^^^
-
-Restore either TimescaleDB or Grafana database from a backup.
-
-Syntax
-^^^^^^
-
-.. code-block::
-
-    emhealth db restore
-
-----
-
-Run Tests
-~~~~~~~~~
-
-Description
-^^^^^^^^^^^
-
-Run unit tests to check the parser and import functions. This will create a temporary dummy instrument record and verify
-whether everything works correctly.
-
-Syntax
-^^^^^^
-
-.. code-block::
-
-    emhealth test
-
-Developer Commands
-------------------
-
-Create performance stats
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-Description
-^^^^^^^^^^^
-
-The periodic database statistics collection is enabled by default. Below command can be used if you
-modify the pganalyze tables or functions and want to update the jobs. The output is used in dashboards under *DB performance* folder.
-
-
-Syntax
-^^^^^^
-
-.. code-block::
-
-    emhealth db -d tem create-perf-stats [-f]
 
 Execute queries
 ~~~~~~~~~~~~~~~
@@ -222,5 +256,5 @@ Syntax
 
 .. code-block::
 
-    emhealth db run-query
-    emhealth db explain-query
+    emhealth dev -d tem run-query
+    emhealth dev -d tem explain-query

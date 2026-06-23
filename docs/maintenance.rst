@@ -14,7 +14,7 @@ The default pgBackRest stanza name is *main*. We leave physical backups for the 
 
 .. code-block::
 
-    docker exec -it timescaledb bash
+    docker exec -it emhealth-db bash
     pgbackrest --stanza=main info
     pgbackrest --stanza=main backup
     ...
@@ -26,25 +26,26 @@ To restore the latest physical backup + replay most recent WAL:
 
 .. code-block::
 
-    docker stop timescaledb
+    docker stop emhealth-db
     docker volume rm pgdata
     docker volume create pgdata
     docker run --rm -v pgdata:/var/lib/postgresql/data \
         -v ${BACKUP_DIR}:/backups \
         -v ./docker/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro \
-        --entrypoint pgbackrest timescaledb:latest \
+        --entrypoint pgbackrest emhealth-db:latest \
         --stanza=main --type=default --target=latest restore
 
 
 Logical backup
 --------------
 
-By default, all TimescaleDB and Grafana databases are backed up. For Timescale, we perform a full logical backup with `pg_dump`
+Both TimescaleDB and Grafana databases can be backed up. For Timescale, we perform a full logical backup with `pg_dump`
 which can be used to restore the database between different PostgreSQL versions. For Grafana, we simply backup its SQLite database file.
 
 .. code-block::
 
-    emhealth db backup
+    emhealth db -d tem backup
+    emhealth db -d grafana backup
 
 ----
 
@@ -55,7 +56,7 @@ You can restore either TimescaleDB or Grafana database from a backup file.
 
 .. code-block::
 
-    emhealth db restore
+    emhealth db -d tem restore
 
 Updating
 --------
@@ -76,9 +77,26 @@ Due to Timescale extension, updating the database might get complicated, we reco
 Updating PostgreSQL from v17 to v18
 -----------------------------------
 
-Starting from EMHealth 0.1a5 we have migrated PostgreSQL from v17 to v18. Major server version upgrades are not automated, so please follow the steps below:
+Starting from EMHealth 0.1a6 we have migrated PostgreSQL from v17 to v18. Major server version upgrades are not automated, so please follow the steps below:
 
-    - install the latest package that still support PG17: `pip install em_health==0.1a4`
-    - update everything except PG17 to the latest version: `emhealth update`
-    - upgrade EMHealth to 0.1a5 or later: `pip install -U em_health`
-    - update again: `emhealth update`
+.. code-block:: bash
+
+    pip install em_health==0.1a4
+    emhealth update
+    docker compose -f docker/compose.yaml down
+    docker run --rm -it -v emhealth_pgdata:/var/lib/postgresql/data ghcr.io/azazellochg/timescaledb:0.1a4 bash -c "pg_checksums -D /var/lib/postgresql/data -e -P"
+    docker compose -f docker/compose.yaml up -d
+    pip install -U em_health
+    docker rename timescaledb emhealth-db; docker rename renderer emhealth-renderer; docker rename grafana emhealth-grafana
+    emhealth update
+
+The general idea above is to:
+
+a) update extensions to the latest version on PG17,
+b) enable checksums on the old cluster,
+c) update EMHealth code,
+d) rename containers to a new convention,
+e) make backups,
+f) start new PG18 and other containers and empty volumes
+g) restore old logical backups
+h) update extensions on PG18

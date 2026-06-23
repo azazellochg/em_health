@@ -2,7 +2,7 @@
 set -eu
 
 # Create pgBackRest stanza
-pgbackrest --stanza=main stanza-create
+pgbackrest --stanza=main stanza-create || pgbackrest --stanza=main stanza-upgrade
 pgbackrest --stanza=main check
 
 psql -v ON_ERROR_STOP=1 <<EOSQL
@@ -20,16 +20,14 @@ for db in tem sem; do
   echo "Creating initial db structure for: $db"
   psql -v ON_ERROR_STOP=1 \
   -v var_data_chunk_size="'${TBL_DATA_CHUNK_SIZE}'" \
-  -v var_data_compression="'${TBL_DATA_COMPRESSION}'" \
   -v var_pgsnaps_chunk_size="'${TBL_SNAPS_CHUNK_SIZE}'" \
   -v var_pgstats_chunk_size="'${TBL_STATS_CHUNK_SIZE}'" \
-  -v var_pgstats_compression="'${TBL_STATS_COMPRESSION}'" \
   -v var_pgstats_retention="'${TBL_STATS_RETENTION}'" \
   --dbname="$db" -f /sql/init_db.sql
 done
 
 for db in tem sem; do
-  echo "Scheduling jobs as pganalyze user for db: $db"
+  echo "Scheduling jobs as pganalyze user for: $db"
   PGPASSWORD="${POSTGRES_PGANALYZE_PASSWORD}" \
   psql -v ON_ERROR_STOP=1 \
   -U pganalyze \

@@ -1,6 +1,6 @@
 # **************************************************************************
 # *
-# * Authors:     Grigory Sharov (gsharov@mrc-lmb.cam.ac.uk) [1]
+# * Authors:     Grigory Sharov (gsharov@mrclmb.ac.uk) [1]
 # *
 # * [1] MRC Laboratory of Molecular Biology (MRC-LMB)
 # *
@@ -20,11 +20,10 @@
 # * 02111-1307  USA
 # *
 # *  All comments concerning this program package may be sent to the
-# *  e-mail address 'gsharov@mrc-lmb.cam.ac.uk'
+# *  e-mail address 'gsharov@mrclmb.ac.uk'
 # *
 # **************************************************************************
 
-import os
 import argparse
 from dotenv import load_dotenv
 from pathlib import Path
@@ -48,30 +47,6 @@ def watch_cmd(args):
     func(args.input, args.settings, args.interval)
 
 
-def db_cmd(args):
-    dbname = args.database
-    action = args.action
-
-    if action in ["create-perf-stats", "run-query", "explain-query"]:
-        from em_health.db_analyze import main as func
-        func(dbname, action, getattr(args, "force", False))
-
-    elif action in ["create-stats", "clean-all",
-                    "clean-inst", "import-uec", "migrate"]:
-        from em_health.db_manager import main as func
-        func(dbname, action,
-             getattr(args, "instrument", None),
-             getattr(args, "date", None))
-
-    elif action in ["backup", "restore"]:
-        from em_health.utils.maintenance import main as func
-        func(action)
-
-    elif action.startswith("test-"):
-        from em_health.tests.test_performance import TestPerformance
-        TestPerformance(action, args.batch).run()
-
-
 def update_cmd(args):
     from em_health.utils.maintenance import main as func
     func("update")
@@ -84,13 +59,44 @@ def test_cmd(args):
     unittest.TextTestRunner(verbosity=2).run(suite)
 
 
+def db_cmd(args):
+    dbname = args.database
+    action = args.action
+
+    if action in ["create-stats", "erase", "prune"]:
+        from em_health.db_manager import main as func
+        func(dbname, action, getattr(args, "days", None))
+
+    elif action in ["backup", "restore"]:
+        from em_health.utils.maintenance import main as func
+        func(action, dbname)
+
+
+def dev_cmd(args):
+    dbname = args.database
+    action = args.action
+
+    if action in ["pganalyze", "run-query", "explain-query"]:
+        from em_health.db_analyze import main as func
+        func(dbname, action, getattr(args, "force", False))
+
+    elif action in ["import-uec", "migrate"]:
+        from em_health.db_manager import main as func
+        func(dbname, action)
+
+    elif action.startswith("test-"):
+        from em_health.tests.test_performance import TestPerformance
+        TestPerformance(action, args.batch).run()
+
+
 COMMAND_DISPATCH = {
     "import": import_cmd,
     "create-task": create_task_cmd,
     "watch": watch_cmd,
-    "db": db_cmd,
     "update": update_cmd,
-    "test": test_cmd
+    "test": test_cmd,
+    "db": db_cmd,
+    "dev": dev_cmd
 }
 
 
@@ -99,7 +105,6 @@ def main():
     if not env_path.exists():
         raise FileNotFoundError(f"Environment file {env_path} not found")
     load_dotenv(dotenv_path=env_path)
-    DEBUG = os.getenv("EMHEALTH_DEBUG", "false").lower() in ("true", "1", "yes")
 
     parser = argparse.ArgumentParser(
         prog="emhealth",
@@ -137,53 +142,53 @@ def main():
                               help="Polling time interval in seconds (default: 300)")
 
     subparsers.add_parser("update", help="Update EMHealth to the latest version")
-    subparsers.add_parser("test", help="Run unit tests to check XML parser and import functions")
+    subparsers.add_parser("test", help="Run unit tests to check the parser and import functions")
 
-    # --- Database maintenance commands ---
+    # --- Database commands ---
     db_parser = subparsers.add_parser("db", help="Database operations")
     db_parser.add_argument("-d", dest="database", default="tem",
                            help="Database name (default: tem)")
     db_subparsers = db_parser.add_subparsers(dest="action", required=True)
 
-    db_subparsers.add_parser("create-stats", help="Create aggregated statistics")
-    db_subparsers.add_parser("backup", help="Back up both TimescaleDB and Grafana databases")
-    db_subparsers.add_parser("migrate", help="Migrate TimescaleDB to the latest schema")
-    db_subparsers.add_parser("restore", help="Restore DB from backup")
-    db_subparsers.add_parser("clean-all", help="Erase ALL data in the database")
+    db_subparsers.add_parser("create-stats", help="Create data statistics")
+    db_subparsers.add_parser("backup", help="Back up the database")
+    db_subparsers.add_parser("restore", help="Restore database from backup")
+    db_subparsers.add_parser("erase", help="Erase ALL data in the database")
 
-    clean_inst_parser = db_subparsers.add_parser("clean-inst",
-                                                 help="Erase data for a specific instrument")
-    clean_inst_parser.add_argument("-i", dest="instrument", type=int, required=True,
-                                   help="Instrument serial number (must be in instruments.json)")
-    clean_inst_parser.add_argument("--date", type=str,
-                                   help="Delete data older than this date (DD-MM-YYYY)")
-
-    db_subparsers.add_parser("import-uec", help="Import UEC data from microscope servers")
+    clean_parser = db_subparsers.add_parser("prune", help="Prune old data in the database")
+    clean_parser.add_argument("--days", dest="days", type=int, required=True,
+                                   help="Retain data newer than X days for ALL instruments")
 
     # --- Developer tools ---
-    if DEBUG:
-        perf = db_subparsers.add_parser("create-perf-stats", help="Setup DB performance measurements [DEV]")
-        perf.add_argument("-f", "--force", dest="force", action="store_true",
-                          help="Erase existing pganalyze data and recreate tables")
+    dev_parser = subparsers.add_parser("dev", help="Developer tools")
+    dev_parser.add_argument("-d", dest="database", default="tem",
+                            help="Database name (default: tem)")
+    dev_subparsers = dev_parser.add_subparsers(dest="action", required=True)
 
-        db_subparsers.add_parser("run-query", help="Run a custom query [DEV]")
-        db_subparsers.add_parser("explain-query", help="EXPLAIN a custom query [DEV]")
+    perf = dev_subparsers.add_parser("pganalyze", help="Reset DB performance statistics")
+    perf.add_argument("-f", "--force", dest="force", action="store_true",
+                      help="Erase existing pganalyze data and recreate tables")
 
-        # helper function to add "batch" argument
-        def add_count_arg(p):
-            p.add_argument(
-                "batch",
-                type=int,
-                help="Batch/chunk/rows size"
-            )
-            return p
+    dev_subparsers.add_parser("migrate", help="Migrate TimescaleDB to the latest schema")
+    dev_subparsers.add_parser("import-uec", help="Import UEC data from microscope servers")
+    dev_subparsers.add_parser("run-query", help="Run a custom query")
+    dev_subparsers.add_parser("explain-query", help="EXPLAIN a custom query")
 
-        add_count_arg(db_subparsers.add_parser("test-data", help="Generate CSV with simulated data [DEV]"))
-        add_count_arg(db_subparsers.add_parser("test-copy", help="Benchmark COPY performance [DEV]"))
-        add_count_arg(db_subparsers.add_parser("test-execmany", help="Benchmark EXECUTEMANY performance [DEV]"))
-        add_count_arg(db_subparsers.add_parser("test-unnest", help="Benchmark INSERT UNNEST performance [DEV]"))
-        add_count_arg(db_subparsers.add_parser("test-import", help="Benchmark XML import performance [DEV]"))
-        add_count_arg(db_subparsers.add_parser("test-query", help="Benchmark query execution performance [DEV]"))
+    # helper function to add "batch" argument
+    def add_count_arg(p):
+        p.add_argument(
+            "batch",
+            type=int,
+            help="Batch/chunk/rows size"
+        )
+        return p
+
+    add_count_arg(dev_subparsers.add_parser("test-data", help="Generate CSV with simulated data"))
+    add_count_arg(dev_subparsers.add_parser("test-copy", help="Benchmark COPY performance"))
+    add_count_arg(dev_subparsers.add_parser("test-execmany", help="Benchmark EXECUTEMANY performance"))
+    add_count_arg(dev_subparsers.add_parser("test-unnest", help="Benchmark INSERT UNNEST performance"))
+    add_count_arg(dev_subparsers.add_parser("test-import", help="Benchmark XML import performance"))
+    add_count_arg(dev_subparsers.add_parser("test-query", help="Benchmark query execution performance"))
 
     args = parser.parse_args()
 
