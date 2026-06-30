@@ -82,7 +82,7 @@ services:
         condition: service_healthy
     environment:
       POSTGRES_GRAFANA_PASSWORD: ${POSTGRES_GRAFANA_PASSWORD}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD} # for datasource provisioning
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD} # initial password, used only on first startup
       GF_SECURITY_DISABLE_GRAVATAR: true
       GF_AUTH_ANONYMOUS_HIDE_VERSION: true
       GF_LIVE_MAX_CONNECTIONS: 0

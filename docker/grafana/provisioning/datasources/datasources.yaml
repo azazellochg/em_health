@@ -7,7 +7,6 @@ datasources:
   - name: tem
     type: postgres
     uid: hm-tem
-    access: proxy
     isDefault: true
     url: "emhealth-db:5432"
     user: "grafana"
@@ -22,7 +21,6 @@ datasources:
   - name: sem
     type: postgres
     uid: hm-sem
-    access: proxy
     isDefault: false
     url: "emhealth-db:5432"
     user: "grafana"
