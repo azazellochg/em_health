@@ -112,6 +112,8 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
+    parser.add_argument("-v", "--version", action="version", version=f"EMHealth v{__version__}")
+
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # --- Import command ---

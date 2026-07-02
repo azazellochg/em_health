@@ -7,7 +7,7 @@ Changing Dashboards
 ^^^^^^^^^^^^^^^^^^^
 
 By default, the provisioned dashboards are read-only. If you set **EMHEALTH_DEBUG=true** in the `docker/.env`, you can modify and save changes via the Grafana UI.
-However, if you then update the provisioned dashboards (e.g. via `pip install -U em_health`), the changes made via UI will be lost. See details
+However, if you then update the provisioned dashboards (e.g. via `git pull`), the changes made via UI will be lost. See details
 `here <https://grafana.com/docs/grafana/latest/administration/provisioning/#make-changes-to-a-provisioned-dashboard>`_. The workaround is the following:
 
 1. Make changes to a dashboard via Grafana UI.
@@ -222,4 +222,7 @@ Interpreting results
 Import HM data from PostgreSQL
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-On a MPC running Windows 10 and TEM server 7.2+, the health monitor data is stored in a PostgreSQL database and linked to MSSQL using foreign-data wrapper (DSPostgres)
+.. note:: This functionality is currently under development
+
+On a MPC running Windows 10 and TEM server 7.2+, the health monitor data (not UEC) is stored in a PostgreSQL
+database and linked to MSSQL using foreign-data wrapper (DSPostgres). The client to import this data directly from MPC is under development.

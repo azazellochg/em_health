@@ -3,7 +3,7 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "6b926c0e-9894-4124-9c6e-75cf6d9d898a",
-    "generation": 2,
+    "generation": 5,
     "creationTimestamp": "2026-01-21T14:53:25Z",
     "labels": {},
     "annotations": {}
@@ -26,10 +26,7 @@
           "hide": true,
           "iconColor": "rgba(0, 211, 255, 1)",
           "name": "Annotations & Alerts",
-          "builtIn": true,
-          "legacyOptions": {
-            "type": "dashboard"
-          }
+          "builtIn": true
         }
       }
     ],
@@ -93,7 +90,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "barchart",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "barRadius": 0,
@@ -243,7 +240,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "none",
@@ -373,7 +370,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "none",
@@ -481,7 +478,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "barchart",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "barRadius": 0,
@@ -705,7 +702,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "none",
@@ -839,7 +836,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "none",
@@ -979,7 +976,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "none",
@@ -1101,7 +1098,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "barchart",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "barRadius": 0,
@@ -1176,7 +1173,7 @@
                         "id": "custom.hideFrom",
                         "value": {
                           "legend": false,
-                          "tooltip": true,
+                          "tooltip": false,
                           "viz": true
                         }
                       }
@@ -1192,7 +1189,7 @@
                         "id": "custom.hideFrom",
                         "value": {
                           "legend": false,
-                          "tooltip": true,
+                          "tooltip": false,
                           "viz": true
                         }
                       }
@@ -1208,7 +1205,7 @@
                         "id": "custom.hideFrom",
                         "value": {
                           "legend": false,
-                          "tooltip": true,
+                          "tooltip": false,
                           "viz": true
                         }
                       }
@@ -1224,7 +1221,7 @@
                         "id": "custom.hideFrom",
                         "value": {
                           "legend": false,
-                          "tooltip": true,
+                          "tooltip": false,
                           "viz": true
                         }
                       }
@@ -1240,7 +1237,7 @@
                         "id": "custom.hideFrom",
                         "value": {
                           "legend": false,
-                          "tooltip": true,
+                          "tooltip": false,
                           "viz": true
                         }
                       }
@@ -1335,7 +1332,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "barchart",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "barRadius": 0,
@@ -1422,7 +1419,7 @@
                         "id": "custom.hideFrom",
                         "value": {
                           "legend": false,
-                          "tooltip": true,
+                          "tooltip": false,
                           "viz": true
                         }
                       }
@@ -1438,7 +1435,7 @@
                         "id": "custom.hideFrom",
                         "value": {
                           "legend": false,
-                          "tooltip": true,
+                          "tooltip": false,
                           "viz": true
                         }
                       }
@@ -1454,7 +1451,7 @@
                         "id": "custom.hideFrom",
                         "value": {
                           "legend": false,
-                          "tooltip": true,
+                          "tooltip": false,
                           "viz": true
                         }
                       }
@@ -1470,7 +1467,7 @@
                         "id": "custom.hideFrom",
                         "value": {
                           "legend": false,
-                          "tooltip": true,
+                          "tooltip": false,
                           "viz": true
                         }
                       }
@@ -1486,7 +1483,7 @@
                         "id": "custom.hideFrom",
                         "value": {
                           "legend": false,
-                          "tooltip": true,
+                          "tooltip": false,
                           "viz": true
                         }
                       }
@@ -1721,6 +1718,7 @@
             }
           },
           "regex": "",
+          "regexApplyTo": "value",
           "sort": "alphabeticalAsc",
           "definition": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nWHERE is_active IS TRUE\nORDER BY name;\n",
           "options": [],

@@ -6,9 +6,9 @@ build-backend = "setuptools.build_meta"
 name = "em_health"
 dynamic = ["version"]
 authors = [{name = "Grigory Sharov", email = "gsharov@mrclmb.ac.uk"}]
-description = "EMHealth is a Python package designed for continuous remote monitoring of the performance and health metrics of Thermo Fisher Scientific electron microscopes."
+description = "EMHealth is a Python package designed for continuous monitoring of the performance and health metrics of Thermo Fisher Scientific electron microscopes."
 readme = {file = "README.rst", content-type = "text/x-rst"}
-requires-python = "<3.13"
+requires-python = ">=3.10,<3.13"
 keywords = ["microscope", "health monitoring", "TEM", "SEM"]
 classifiers=[
     'Development Status :: 4 - Beta',
@@ -26,7 +26,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["mypy", "memory-profiler", "pandas"]
+dev = ["mypy", "memory-profiler", "pandas", "numpy"]
 
 [project.urls]
 Homepage = "https://github.com/azazellochg/em_health"

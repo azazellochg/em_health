@@ -1,13 +1,14 @@
 Home
 ----
 
-``EMHealth`` is a Python package designed for continuous remote monitoring of
-the performance and health metrics of Thermo Fisher Scientific electron microscopes.
-It offers flexible options to import Health Monitor data - either manually or
-automatically - and provides tools to query, visualize, and set up alerts. With integrated
-interactive Grafana dashboards, it helps you easily analyze and understand your system metrics.
+``EMHealth`` provides continuous monitoring of system utilization,
+consumable status, and health trends for individual microscope components to
+help predict maintenance needs and reduce unplanned downtime of Thermo Fisher
+Scientific electron microscopes. With integrated interactive Grafana dashboards,
+it provides tools to query and visualize health monitoring data and to set up
+alerts across your instrument fleet.
 
-.. image:: /_static/dash-overview.png
+.. image:: /_static/tem/dash-overview.png
 
 .. important:: The package is still in active development, not recommended for production use.
 
@@ -37,6 +38,9 @@ Documentation
    getting_started
    advanced_setup
    using_emhealth
+   tem_dashboards
+   sem_dashboards
+   db_dashboards
    maintenance
    cli
    development
