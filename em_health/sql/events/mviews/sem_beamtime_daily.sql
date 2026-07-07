@@ -2,14 +2,14 @@
    First, for the AL systems we need to merge overlapping cryocycles of the AL and column. Then union results with non-AL systems
    Note: if a system is warm / cryocycling and any beam is used, the total usage may be > 100%
  */
-CREATE MATERIALIZED VIEW IF NOT EXISTS sem_beamtime_daily AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS events.sem_beamtime_daily AS
 WITH cryocycles_al_intervals AS (
     SELECT
         instrument_id,
         day,
         start_time,
         end_time
-    FROM sem_cryocycle_al_daily,
+    FROM events.sem_cryocycle_al_daily,
         state_periods(agg, 1) -- boolean = 1 where value = CryoCycle
 ),
 
@@ -72,7 +72,7 @@ WITH cryocycles_al_intervals AS (
              day,
              'cryocycle' AS state,
              duration_in(agg, 1) AS total_duration -- boolean = 1 where value > 0
-         FROM sem_cryocycle_noal_daily
+         FROM events.sem_cryocycle_noal_daily
      ),
 
      ebeam AS (
@@ -80,7 +80,7 @@ WITH cryocycles_al_intervals AS (
                 day,
                 'ebeam' AS state,
                 toolkit_experimental.duration_in(agg, 0) AS total_duration -- state where value = 0 (unblanked)
-         FROM sem_beam_daily
+         FROM events.sem_beam_daily
      ),
 
      ibeam AS (
@@ -88,7 +88,7 @@ WITH cryocycles_al_intervals AS (
                 day,
                 'ibeam' AS state,
                 toolkit_experimental.duration_in(agg, 0) AS total_duration -- state where value = 0 (unblanked)
-         FROM fib_beam_daily
+         FROM events.fib_beam_daily
      ),
 
      flm AS (
@@ -96,7 +96,7 @@ WITH cryocycles_al_intervals AS (
                 day,
                 'flm' AS state,
                 toolkit_experimental.duration_in(agg, 1) AS total_duration -- boolean = 1 where value = Running
-         FROM flm_beam_daily
+         FROM events.flm_beam_daily
      ),
 
      chamber AS (
@@ -104,7 +104,7 @@ WITH cryocycles_al_intervals AS (
                 day,
                 'chamber' AS state,
                 toolkit_experimental.duration_in(agg, 1) AS total_duration -- boolean = 1 where value != Pumped
-         FROM sem_chamber_state_daily
+         FROM events.sem_chamber_state_daily
      ),
 
      sem_off AS (
@@ -112,7 +112,7 @@ WITH cryocycles_al_intervals AS (
                 day,
                 'off' AS state,
                 duration_in(agg, 1) AS total_duration -- boolean = 1 where value = 0 (off)
-         FROM em_off_daily
+         FROM events.em_off_daily
      ),
 
      all_states AS (

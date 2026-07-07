@@ -4,13 +4,13 @@
    We assign the start time if the ID changes to any non-zero value.
    It appears that the sessionIDs are not unique so we can have duplicated IDs
 */
-CREATE MATERIALIZED VIEW IF NOT EXISTS epu_sessions AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS events.epu_sessions AS
 WITH cagg AS (
     SELECT
         d.instrument_id,
         state_agg(d.time, d.value_num::bigint) AS agg
-    FROM data d
-             JOIN parameters p USING (instrument_id, param_id)
+    FROM events.data d
+             JOIN events.parameters p USING (instrument_id, param_id)
     WHERE p.param_name = 'EpuSessionID'
       AND p.subsystem = 'EPU'
     GROUP BY d.instrument_id

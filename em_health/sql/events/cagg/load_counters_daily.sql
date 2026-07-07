@@ -1,5 +1,5 @@
 -- Create a CAGG of autoloader counters
-CREATE MATERIALIZED VIEW load_counters_daily
+CREATE MATERIALIZED VIEW events.load_counters_daily
             WITH (timescaledb.continuous) AS
 SELECT
     time_bucket('1 day', d.time) AS day,
@@ -15,8 +15,8 @@ SELECT
                     FILTER (WHERE p.param_name = 'LoadCassetteCounter')
     )::int AS daily_cassette_count
 
-FROM data d
-         JOIN parameters p USING (param_id, instrument_id)
+FROM events.data d
+         JOIN events.parameters p USING (param_id, instrument_id)
 WHERE p.param_name IN (
                        'LoadCartridgeCounter',
                        'LoadCassetteCounter',

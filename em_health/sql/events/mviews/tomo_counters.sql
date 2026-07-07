@@ -8,22 +8,22 @@
 
       Depends on tomo_sessions view
 */
-CREATE MATERIALIZED VIEW IF NOT EXISTS tomo_counters AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS events.tomo_counters AS
     WITH image_counter_param AS (
         SELECT instrument_id, param_id AS image_counter_param_id
-        FROM parameters
+        FROM events.parameters
         WHERE
             param_name = 'TemImageCount'
             AND subsystem = 'Tomography'
     ), ts_counter_param AS (
         SELECT instrument_id, param_id AS ts_counter_param_id
-        FROM parameters
+        FROM events.parameters
         WHERE
             param_name = 'TiltSeriesNumberOfPositions'
             AND subsystem = 'Tomography'
     ), sm_counter_param AS (
         SELECT instrument_id, param_id AS sm_counter_param_id
-        FROM parameters
+        FROM events.parameters
         WHERE
             param_name = 'SearchMapsPerJob'
             AND subsystem = 'Tomography'
@@ -33,7 +33,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS tomo_counters AS
         img_agg.total_image_counter::int, ts_agg.total_ts_counter::int,
         sm_agg.total_sm_counter::int
     FROM
-        tomo_sessions seg
+        events.tomo_sessions seg
         JOIN image_counter_param ic ON ic.instrument_id = seg.instrument_id
         LEFT JOIN ts_counter_param ts ON ts.instrument_id = seg.instrument_id
         LEFT JOIN sm_counter_param sm ON sm.instrument_id = seg.instrument_id
@@ -47,7 +47,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS tomo_counters AS
                     lead(d.value_num) OVER (
                         ORDER BY d.time
                     ) AS next_value
-                FROM data d
+                FROM events.data d
                 WHERE
                     d.instrument_id = seg.instrument_id
                     AND d.param_id = ic.image_counter_param_id
@@ -76,7 +76,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS tomo_counters AS
                     lag(d.value_num) OVER (
                         ORDER BY d.time
                     ) AS prev_value
-                FROM data d
+                FROM events.data d
                 WHERE
                     d.instrument_id = seg.instrument_id
                     AND d.param_id = ts.ts_counter_param_id
@@ -99,7 +99,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS tomo_counters AS
                     lag(d.value_num) OVER (
                         ORDER BY d.time
                     ) AS prev_value
-                FROM data d
+                FROM events.data d
                 WHERE
                     d.instrument_id = seg.instrument_id
                     AND d.param_id = sm.sm_counter_param_id

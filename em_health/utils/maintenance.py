@@ -35,6 +35,7 @@ MANAGER = os.getenv("MANAGER_TYPE")
 COMPOSE_FILE = "compose.yaml"
 PG_CONTAINER = "emhealth-db"
 GRAFANA_CONTAINER = "emhealth-grafana"
+PG_EXEC = f"{MANAGER} exec {PG_CONTAINER}"
 BACKUP_HOST_PATH = Path(os.getenv("BACKUP_DIR", "/backups"))
 
 
@@ -47,7 +48,7 @@ def chdir_docker_dir() -> None:
 def get_ts_version(dbname: str) -> str:
     """Retrieve TimescaleDB extension version from a running container."""
     result = run_command(
-        f"{MANAGER} exec {PG_CONTAINER} psql -d {dbname} -t -c "
+        f"{PG_EXEC} psql -d {dbname} -t -c "
         "\"SELECT extversion FROM pg_extension WHERE extname='timescaledb';\"",
         capture_output=True)
     return result.stdout.strip()
@@ -56,7 +57,7 @@ def get_ts_version(dbname: str) -> str:
 def get_pg_version() -> str:
     """Retrieve Postgres version from a running container."""
     result = run_command(
-        f"{MANAGER} exec {PG_CONTAINER} psql -d tem -t -c "
+        f"{PG_EXEC} psql -d tem -t -c "
         "\"SELECT current_setting('server_version_num');\"",
         capture_output=True)
     return result.stdout.strip()
@@ -79,7 +80,7 @@ def check_versions(dbname: str, fn: Path):
 def erase_db(dbname: str, ts_version: str | None = None, do_init: bool = False) -> None:
     """Erase existing DB and optionally re-initialize it."""
     version_clause = f" VERSION '{ts_version}'" if ts_version else ""
-    run_command(f'{MANAGER} exec {PG_CONTAINER} /usr/local/bin/reset-db.sh {dbname} {int(do_init)} "{version_clause}"')
+    run_command(f'{PG_EXEC} /usr/local/bin/reset-db.sh {dbname} {int(do_init)} "{version_clause}"')
 
 
 def backup(dbname: str = "tem") -> Path:
@@ -99,7 +100,7 @@ def backup(dbname: str = "tem") -> Path:
         pg_backup = Path("/backups") / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
         pg_host_backup = BACKUP_HOST_PATH / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
         logger.info("Backing up TimescaleDB '%s' to %s", dbname, pg_host_backup.resolve())
-        run_command(f"{MANAGER} exec {PG_CONTAINER} pg_dump -Fc -d {dbname} -f {pg_backup}")
+        run_command(f"{PG_EXEC} pg_dump -Fc -d {dbname} -f {pg_backup}")
         return pg_backup
     else:
         raise ValueError(f"Unknown database: {dbname}")
@@ -139,7 +140,7 @@ def restore(backup_file: Path, target_db: str, update: bool = False) -> None:
         erase_db(dbname, ts_version, do_init=False)
 
         restore_cmd = f"""
-{MANAGER} exec {PG_CONTAINER} bash -c "\
+{PG_EXEC} bash -c "\
 psql -d {dbname} -c \\"SELECT timescaledb_pre_restore();\\" && \
 pg_restore -Fc -d {dbname} /backups/{backup_file.name} && \
 psql -d {dbname} -c \\"SELECT timescaledb_post_restore(); ANALYZE;\\""
@@ -191,7 +192,7 @@ def update() -> None:
     # update extensions if possible
     for dbname in ["tem", "sem"]:
         run_command(
-            f'{MANAGER} exec {PG_CONTAINER} psql -X -d {dbname} -c "ALTER EXTENSION timescaledb UPDATE;'
+            f'{PG_EXEC} psql -X -d {dbname} -c "ALTER EXTENSION timescaledb UPDATE;'
             'ALTER EXTENSION timescaledb_toolkit UPDATE;'
             'ALTER EXTENSION tds_fdw UPDATE;"'
         )

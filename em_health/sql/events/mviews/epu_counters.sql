@@ -3,16 +3,16 @@
    Counter does not necessarily start from 0.
    Depends on epu_sessions view
 */
-CREATE MATERIALIZED VIEW IF NOT EXISTS epu_counters AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS events.epu_counters AS
     WITH image_counter_param AS (
         SELECT instrument_id, param_id AS image_counter_param_id
-        FROM parameters
+        FROM events.parameters
         WHERE
             param_name = 'CompletedExposuresCount'
             AND subsystem = 'EPU'
     ), skip_counter_param AS (
         SELECT instrument_id, param_id AS skip_counter_param_id
-        FROM parameters
+        FROM events.parameters
         WHERE
             param_name = 'SkippedExposuresCount'
             AND subsystem = 'EPU'
@@ -21,7 +21,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS epu_counters AS
         seg.instrument_id, seg.session_id, seg.start_time,
         agg.total_image_counter::int, agg.skip_image_counter::int
     FROM
-        epu_sessions seg
+        events.epu_sessions seg
         JOIN image_counter_param ic ON ic.instrument_id = seg.instrument_id
         JOIN skip_counter_param sc ON sc.instrument_id = seg.instrument_id
         JOIN LATERAL (
@@ -34,7 +34,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS epu_counters AS
                 COALESCE(max(CASE
                     WHEN d.param_id = sc.skip_counter_param_id THEN d.value_num
                 END), 0) AS skip_image_counter
-            FROM data d
+            FROM events.data d
             WHERE
                 d.instrument_id = seg.instrument_id
                 AND d.param_id IN (ic.image_counter_param_id, sc.skip_counter_param_id)

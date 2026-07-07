@@ -6,13 +6,13 @@ NOTES:
    during its time course.
 - It appears that the sessionIDs are not unique so we can have duplicated IDs
 */
-CREATE MATERIALIZED VIEW IF NOT EXISTS tomo_sessions AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS events.tomo_sessions AS
 WITH cagg AS (
     SELECT
         d.instrument_id,
         state_agg(d.time, d.value_num::bigint) AS agg
-    FROM data d
-             JOIN parameters p USING (instrument_id, param_id)
+    FROM events.data d
+             JOIN events.parameters p USING (instrument_id, param_id)
     WHERE p.param_name = 'SessionId'
       AND p.subsystem = 'Tomography'
     GROUP BY d.instrument_id

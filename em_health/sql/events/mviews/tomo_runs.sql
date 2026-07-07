@@ -4,10 +4,10 @@
    FYI the old 5.x tomo does not have Terminated state.
    Depends on tomo_sessions view
 */
-CREATE MATERIALIZED VIEW IF NOT EXISTS tomo_runs AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS events.tomo_runs AS
     WITH state_param AS (
         SELECT instrument_id, param_id, enum_id
-        FROM parameters
+        FROM events.parameters
         WHERE
             param_name IN ('Tomo5TiltSeriesState', 'TiltSeries')
             AND subsystem = 'Tomography'
@@ -18,7 +18,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS tomo_runs AS
             COALESCE(max(e.value) FILTER (WHERE e.member_name = 'Terminated'), -1) AS terminated_value
         FROM
             state_param p
-            JOIN enum_values e ON e.enum_id = p.enum_id
+            JOIN events.enum_values e ON e.enum_id = p.enum_id
         WHERE e.member_name IN ('Running', 'Acquiring', 'Terminated')
         GROUP BY p.instrument_id, p.param_id
     ), runs AS (
@@ -31,7 +31,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS tomo_runs AS
             END) AS running_duration,
             bool_or(v.state = se.terminated_value) AS has_terminated
         FROM
-            tomo_sessions seg
+            events.tomo_sessions seg
             JOIN state_enum se USING (instrument_id)
             JOIN state_param sp ON se.instrument_id = sp.instrument_id
             AND se.param_id = sp.param_id
@@ -40,7 +40,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS tomo_runs AS
                 FROM
                     toolkit_experimental.into_int_values((
                         SELECT toolkit_experimental.compact_state_agg(d.time, d.value_num::bigint)
-                        FROM data d
+                        FROM events.data d
                         WHERE
                             d.instrument_id = sp.instrument_id
                             AND d.param_id = sp.param_id

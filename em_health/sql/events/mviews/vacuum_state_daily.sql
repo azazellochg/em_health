@@ -1,8 +1,8 @@
 -- Create a materialized view of vacuum states
-CREATE MATERIALIZED VIEW IF NOT EXISTS vacuum_state_daily AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS events.vacuum_state_daily AS
     WITH vacuum_param AS (
         SELECT instrument_id, param_id, enum_id
-        FROM parameters
+        FROM events.parameters
         WHERE param_name = 'VacuumState'
     ),
 
@@ -17,7 +17,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS vacuum_state_daily AS
                 ELSE 'unknown'
             END AS state
         FROM
-            enum_values e
+            events.enum_values e
             JOIN vacuum_param vp ON e.enum_id = vp.enum_id
     ),
 
@@ -31,7 +31,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS vacuum_state_daily AS
             ) AS end_time,
             es.state
         FROM
-            data d
+            events.data d
             JOIN enum_states es ON d.value_num = es.enum_value
             AND d.instrument_id = es.instrument_id
         WHERE
@@ -47,7 +47,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS vacuum_state_daily AS
         SELECT ve.instrument_id, ve.start_time, ve.end_time, ve.state
         FROM
             vacuum_events ve
-            LEFT JOIN em_off o ON ve.instrument_id = o.instrument_id
+            LEFT JOIN events.em_off o ON ve.instrument_id = o.instrument_id
             AND ve.start_time < o.end_time
             AND ve.end_time > o.start_time
         WHERE
@@ -61,7 +61,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS vacuum_state_daily AS
         FROM cleaned_vacuum
         UNION ALL
         SELECT instrument_id, start_time, end_time, 'off' AS state
-        FROM em_off
+        FROM events.em_off
     ),
 
     -- map intervals onto days
