@@ -1,5 +1,3 @@
-CREATE SCHEMA IF NOT EXISTS uec;
-
 -- Creating uec.device_type
 CREATE TABLE IF NOT EXISTS uec.device_type (
     devicetypeid int PRIMARY KEY,
@@ -44,14 +42,8 @@ CREATE TABLE IF NOT EXISTS uec.error_definitions (
 -- Creating uec.errors
 CREATE TABLE IF NOT EXISTS uec.errors (
     time timestamptz NOT NULL,
-    instrument_id int NOT NULL REFERENCES public.instruments (id) ON DELETE CASCADE,
+    instrument_id int NOT NULL REFERENCES events.instruments (id) ON DELETE CASCADE,
     errorid int NOT NULL REFERENCES uec.error_definitions (errordefinitionid) ON DELETE CASCADE,
     messagetext text,
     UNIQUE (time, instrument_id, errorid)
 );
-
-GRANT USAGE ON SCHEMA uec TO grafana, emhealth;
-GRANT SELECT ON ALL TABLES IN SCHEMA uec TO grafana;
-ALTER DEFAULT PRIVILEGES IN SCHEMA uec GRANT SELECT ON TABLES TO grafana;
-GRANT SELECT, DELETE ON ALL TABLES IN SCHEMA uec TO emhealth;
-ALTER DEFAULT PRIVILEGES IN SCHEMA uec GRANT SELECT, DELETE ON TABLES TO emhealth;

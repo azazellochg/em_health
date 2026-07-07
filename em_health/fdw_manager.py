@@ -234,7 +234,7 @@ class FDWManager:
                 value_string AS value_text
             FROM {schema}.event_property
             WHERE event_dtm > COALESCE(
-                (SELECT MAX(time) FROM public.data WHERE instrument_id = {instr_id}),
+                (SELECT MAX(time) FROM events.data WHERE instrument_id = {instr_id}),
                 '1900-01-01'
             )
         """,{"schema": self.fdw_schema},

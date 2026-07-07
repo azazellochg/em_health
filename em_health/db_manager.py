@@ -50,7 +50,7 @@ class DatabaseManager(PgClient):
         """
         self.instrument_name = instr_dict["name"]
         instrument_id = self.run_query("""
-            INSERT INTO instruments (instrument, serial, model, name, template, server)
+            INSERT INTO events.instruments (instrument, serial, model, name, template, server)
             VALUES (%s, %s, %s, %s, %s, %s)
             ON CONFLICT (instrument) DO UPDATE SET instrument = EXCLUDED.instrument
             RETURNING id;
@@ -63,7 +63,7 @@ class DatabaseManager(PgClient):
             instr_dict["server"]
         ), mode="fetchone")[0]
 
-        logger.info("Updated public.instruments table", extra={"prefix": self.instrument_name})
+        logger.info("Updated events.instruments table", extra={"prefix": self.instrument_name})
 
         return instrument_id
 
@@ -78,25 +78,25 @@ class DatabaseManager(PgClient):
         """
         # Batch insert enum_types
         self.cur.executemany("""
-            INSERT INTO public.enum_types (instrument_id, name)
+            INSERT INTO events.enum_types (instrument_id, name)
             VALUES (%s, %s)
             ON CONFLICT DO NOTHING
         """, (
             (instrument_id, enum_name)
             for enum_name in enums_dict.keys()
         ))
-        logger.info("Updated public.enum_types table (%d rows)", self.cur.rowcount,
+        logger.info("Updated events.enum_types table (%d rows)", self.cur.rowcount,
                     extra={"prefix": self.instrument_name})
 
         # Fetch IDs for ALL enums
-        rows = self.run_query("SELECT id, name FROM public.enum_types WHERE instrument_id = %s",
+        rows = self.run_query("SELECT id, name FROM events.enum_types WHERE instrument_id = %s",
                               values=(instrument_id,),
                               mode="fetchall")
         enum_name_to_id = {name: eid for eid, name in rows}
 
         # Batch insert enum_values
         self.cur.executemany("""
-            INSERT INTO public.enum_values (enum_id, member_name, value)
+            INSERT INTO events.enum_values (enum_id, member_name, value)
             VALUES (%s, %s, %s)
         """, (
             (enum_name_to_id[enum_name], member_name, value)
@@ -104,7 +104,7 @@ class DatabaseManager(PgClient):
             for member_name, value in data.items()
         ))
 
-        logger.info("Updated public.enum_values table (%d rows)", self.cur.rowcount,
+        logger.info("Updated events.enum_values table (%d rows)", self.cur.rowcount,
                     extra={"prefix": self.instrument_name})
 
         self.conn.commit()
@@ -121,7 +121,7 @@ class DatabaseManager(PgClient):
         :param enums_ids: input enums dict
         """
         insert_sql = """
-            INSERT INTO public.parameters (
+            INSERT INTO events.parameters (
                 instrument_id, param_id,
                 subsystem, component, param_name, display_name,
                 display_unit, storage_unit, enum_id, value_type,
@@ -152,7 +152,7 @@ class DatabaseManager(PgClient):
 
         self.cur.executemany(insert_sql, data_to_insert)
         self.conn.commit()
-        logger.info("Updated public.parameters table (%d rows)", self.cur.rowcount,
+        logger.info("Updated events.parameters table (%d rows)", self.cur.rowcount,
                     extra={"prefix": self.instrument_name})
 
     #@profile
@@ -171,7 +171,7 @@ class DatabaseManager(PgClient):
         """
         if nocopy:
             query = """
-                INSERT INTO public.data (time, instrument_id, param_id, value_num, value_text)
+                INSERT INTO events.data (time, instrument_id, param_id, value_num, value_text)
                 VALUES (%s, %s, %s, %s, %s)
                 ON CONFLICT DO NOTHING
             """
@@ -181,7 +181,7 @@ class DatabaseManager(PgClient):
         else:
             # staging table can have duplicate rows, they will be omitted later
             query = """
-                COPY public.data_staging (time, instrument_id, param_id, value_num, value_text)
+                COPY events.data_staging (time, instrument_id, param_id, value_num, value_text)
                 FROM STDIN WITH (FORMAT text)
             """
 
@@ -215,23 +215,23 @@ class DatabaseManager(PgClient):
                 for chunk in stream_chunks(rows, max_size):
                     copy.write(chunk)
             t1 = time.perf_counter()
-            logger.debug(f"COPY to public.data_staging done in: {t1-t0:.4f} s")
+            logger.debug(f"COPY to events.data_staging done in: {t1-t0:.4f} s")
 
             # order by time before inserting to minimize Timescale switches between chunks
             query = """
-                        INSERT INTO public.data(time, instrument_id, param_id, value_num, value_text)
+                        INSERT INTO events.data(time, instrument_id, param_id, value_num, value_text)
                         SELECT time, instrument_id, param_id, value_num, value_text
-                        FROM data_staging
+                        FROM events.data_staging
                         ORDER BY time
                         ON CONFLICT DO NOTHING;
-                        TRUNCATE TABLE data_staging;
+                        TRUNCATE TABLE events.data_staging;
                     """
             self.cur.execute(query)
             self.conn.commit()
             t2 = time.perf_counter()
-            logger.debug(f"INSERT into public.data done in: {t2-t1:.4f} s")
+            logger.debug(f"INSERT into events.data done in: {t2-t1:.4f} s")
 
-        logger.info("Updated public.data table (%d rows)", self.cur.rowcount,
+        logger.info("Updated events.data table (%d rows)", self.cur.rowcount,
                     extra={"prefix": self.instrument_name})
 
     @staticmethod
@@ -240,7 +240,7 @@ class DatabaseManager(PgClient):
         if "." in name:
             schema, name = name.split(".", 1)
         else:
-            schema = "public"
+            schema = "events"
 
         return f"{schema}.{name}"
 
@@ -338,7 +338,7 @@ class DatabaseManager(PgClient):
         if "." in name:
             schema, name = name.split(".", 1)
         else:
-            schema = "public"
+            schema = "events"
 
         view_fn = self.get_path(target)
         self.execute_file(view_fn)
@@ -366,12 +366,12 @@ class DatabaseManager(PgClient):
             exit(0)
 
         servers = self.run_query("""
-            SELECT id, server FROM public.instruments
+            SELECT id, server FROM events.instruments
             WHERE server IS NOT NULL
         """, mode="fetchall")
 
         if not servers:
-            raise ValueError("No servers found in the public.instrument table")
+            raise ValueError("No servers found in the events.instrument table")
 
         from em_health.fdw_manager import FDWManager
 
@@ -385,7 +385,7 @@ class DatabaseManager(PgClient):
 
     def prune_data(self, days: int) -> None:
         """ Prune old data from a database. """
-        chunks_dropped = self.run_query("SELECT purge_old_chunks('public.data', %s)",
+        chunks_dropped = self.run_query("SELECT purge_old_chunks('events.data', %s)",
                                         values=(days,), mode='fetchone')
         self.run_query("DELETE FROM uec.errors WHERE time < (current_timestamp - INTERVAL '{days} days')",
                        strings={'days': days})
@@ -455,7 +455,7 @@ def main(dbname, action, days=None):
             for view, is_cagg in mviews[dbname].items():
                 db.drop_mview(view)
                 if is_cagg:
-                    db.create_mview(view, f"public/cagg/{view}.sql")
+                    db.create_mview(view, f"events/cagg/{view}.sql")
                     db.force_refresh_cagg(view)
                     if view.endswith("hourly"):
                         db.schedule_cagg_refresh(view, start_offset="6 hours", end_offset="1 hour", interval="1 hour")
@@ -463,9 +463,9 @@ def main(dbname, action, days=None):
                         db.schedule_cagg_refresh(view, start_offset="4 days",  end_offset="1 day", interval="12 hours")
                     db.enable_rt_cagg(view)
                 else:
-                    db.create_mview(view, f"public/mviews/{view}.sql")
+                    db.create_mview(view, f"events/mviews/{view}.sql")
                     db.schedule_mview_refresh(view)
-                db.run_query("GRANT SELECT ON public.{view} TO grafana",
+                db.run_query("GRANT SELECT ON events.{view} TO grafana",
                              {"view": view})
 
     elif action == "erase":
@@ -487,11 +487,11 @@ def main(dbname, action, days=None):
     elif action == "migrate":
         latest_ver = os.getenv(f"{dbname.upper()}_SCHEMA_VERSION")
         if latest_ver is not None:
-            with DatabaseManager(dbname) as db:
+            with DatabaseManager(dbname, username="postgres", password="POSTGRES_PASSWORD") as db:
                 db.migrate_db(int(latest_ver))
         else:
             raise ValueError("Could not get latest schema version")
 
     elif action == "import-uec":
-        with DatabaseManager(dbname) as db:
+        with DatabaseManager(dbname, username="postgres", password="POSTGRES_PASSWORD") as db:
             db.import_uec()

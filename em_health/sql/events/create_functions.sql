@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION purge_old_chunks(
+CREATE OR REPLACE FUNCTION events.purge_old_chunks(
     p_hypertable_name text,
     p_retain_days int,
     OUT chunks_dropped int

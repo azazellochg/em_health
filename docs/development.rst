@@ -78,9 +78,12 @@ Database structure
 
 We have two databases: *tem* and *sem*, both have the same structure at the moment. Each database has several schemas:
 
-* public - default schema for storing HM events data
+* public - default schema
 
     * schema_info - table to store the current schema version
+
+* events - schema for storing HM events data
+
     * instruments - global metadata for each microscope
     * enum_types - enumeration names for each instrument
     * enum_values - enumeration values for each enum

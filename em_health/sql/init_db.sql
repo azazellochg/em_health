@@ -7,18 +7,39 @@ CREATE EXTENSION IF NOT EXISTS pgtap;
 CREATE EXTENSION IF NOT EXISTS tds_fdw;
 CREATE EXTENSION IF NOT EXISTS postgres_fdw;
 
--- create schemas, tables and functions --
-\i /sql/public/create_tables.sql
-\i /sql/public/create_triggers.sql
-\i /sql/public/create_functions.sql
+-- public schema
+CREATE TABLE IF NOT EXISTS public.schema_info (version int PRIMARY KEY,
+                                               updated TIMESTAMPTZ NOT NULL DEFAULT NOW());
+COMMENT ON TABLE public.schema_info IS 'Global schema version';
 
+-- events schema
+CREATE SCHEMA IF NOT EXISTS events AUTHORIZATION emhealth;
+COMMENT ON SCHEMA events IS 'HM events';
+\i /sql/events/create_tables.sql
+\i /sql/events/create_triggers.sql
+\i /sql/events/create_functions.sql
+GRANT USAGE ON SCHEMA events TO grafana;
+GRANT SELECT ON ALL TABLES IN SCHEMA events TO grafana;
+ALTER DEFAULT PRIVILEGES IN SCHEMA events GRANT SELECT ON TABLES TO grafana;
+
+-- uec schema
+CREATE SCHEMA IF NOT EXISTS uec AUTHORIZATION emhealth;
+COMMENT ON SCHEMA uec IS 'Error codes';
 \i /sql/uec/create_tables.sql
+GRANT USAGE ON SCHEMA uec TO grafana;
+GRANT SELECT ON ALL TABLES IN SCHEMA uec TO grafana;
+ALTER DEFAULT PRIVILEGES IN SCHEMA uec GRANT SELECT ON TABLES TO grafana;
 
-CREATE SCHEMA IF NOT EXISTS pganalyze;
-ALTER SCHEMA pganalyze OWNER TO pganalyze;
-ALTER ROLE pganalyze SET search_path = pganalyze,public;
+-- pganalyze schema
+CREATE SCHEMA IF NOT EXISTS pganalyze AUTHORIZATION pganalyze;
+COMMENT ON SCHEMA pganalyze IS 'DB performance statistics';
 \i /sql/pganalyze/create_tables.sql
 \i /sql/pganalyze/create_functions.sql
 
+-- update search path for users
+ALTER ROLE emhealth SET search_path = events,uec,public;
+ALTER ROLE pganalyze SET search_path = pganalyze,public;
+ALTER ROLE grafana SET search_path = events,uec,pganalyze,public;
+
 -- set current schema version --
-INSERT INTO public.schema_info (version) VALUES (4);
+INSERT INTO public.schema_info (version) VALUES (5);

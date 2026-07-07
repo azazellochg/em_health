@@ -2367,10 +2367,10 @@
         "kind": "CustomVariable",
         "spec": {
           "name": "schema",
-          "query": "public,uec,pganalyze",
+          "query": "events,uec,pganalyze",
           "current": {
-            "text": "public",
-            "value": "public"
+            "text": "events",
+            "value": "events"
           },
           "options": [],
           "multi": false,

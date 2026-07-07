@@ -652,10 +652,10 @@
         "spec": {
           "name": "viewname",
           "current": {
-            "text": "public.em_off",
-            "value": "public.em_off"
+            "text": "events.em_off",
+            "value": "events.em_off"
           },
-          "query": "public.em_off",
+          "query": "events.em_off",
           "hide": "hideVariable",
           "skipUrlSync": false
         }
