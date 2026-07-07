@@ -1,6 +1,7 @@
 DO $$
 DECLARE
     current_version INTEGER;
+    purge_func_exists BOOLEAN;
 BEGIN
     -- Get current schema version
     SELECT MAX(version) INTO current_version FROM public.schema_info;
@@ -37,7 +38,7 @@ BEGIN
         GRANT SELECT ON ALL TABLES IN SCHEMA events TO grafana;
         ALTER DEFAULT PRIVILEGES IN SCHEMA events GRANT SELECT ON TABLES TO grafana;
 
-        -- move tables
+        -- move tables (triggers move automatically)
         ALTER TABLE public.instruments SET SCHEMA events;
         ALTER TABLE public.enum_types SET SCHEMA events;
         ALTER TABLE public.enum_values SET SCHEMA events;
@@ -60,8 +61,26 @@ BEGIN
         ALTER TABLE uec.errors DROP CONSTRAINT errors_instrument_id_fkey;
         ALTER TABLE uec.errors ADD CONSTRAINT errors_instrument_id_fkey FOREIGN KEY (instrument_id) REFERENCES events.instruments(id) ON DELETE CASCADE;
 
+        -- update functions
+        SELECT EXISTS (
+            SELECT 1
+            FROM pg_proc p
+                     JOIN pg_namespace n ON n.oid = p.pronamespace
+            WHERE n.nspname = 'public'
+              AND p.proname = 'purge_old_chunks'
+              AND pg_get_function_identity_arguments(p.oid) = ''
+        ) INTO purge_func_exists;
+
+        IF purge_func_exists THEN
+            ALTER FUNCTION public.purge_old_chunks(text, integer, integer) SET SCHEMA events;
+        END IF;
+
+        ALTER FUNCTION public.enum_values_upsert_before_insert() SET SCHEMA events;
+        ALTER FUNCTION public.parameters_upsert_before_insert() SET SCHEMA events;
+        ALTER FUNCTION public.enum_values_log_after_update() SET SCHEMA events;
+        ALTER FUNCTION public.parameters_log_after_update() SET SCHEMA events;
+
         -- change owner
-        ALTER SCHEMA events OWNER TO emhealth;
         ALTER TABLE events.instruments OWNER TO emhealth;
         ALTER TABLE events.enum_types OWNER TO emhealth;
         ALTER TABLE events.enum_values OWNER TO emhealth;

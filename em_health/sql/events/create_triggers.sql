@@ -19,7 +19,7 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql
-; CREATE TRIGGER enum_values_upsert_before_insert BEFORE INSERT ON events.enum_values FOR EACH ROW EXECUTE FUNCTION enum_values_upsert_before_insert()
+; CREATE TRIGGER enum_values_upsert_before_insert BEFORE INSERT ON events.enum_values FOR EACH ROW EXECUTE FUNCTION events.enum_values_upsert_before_insert()
 ;
 
 
@@ -54,7 +54,7 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql
-; CREATE TRIGGER parameters_upsert_before_insert BEFORE INSERT ON events.parameters FOR EACH ROW EXECUTE FUNCTION parameters_upsert_before_insert()
+; CREATE TRIGGER parameters_upsert_before_insert BEFORE INSERT ON events.parameters FOR EACH ROW EXECUTE FUNCTION events.parameters_upsert_before_insert()
 ;
 
 
@@ -72,7 +72,7 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql
-; CREATE TRIGGER enum_values_log_after_update AFTER UPDATE ON events.enum_values FOR EACH ROW EXECUTE FUNCTION enum_values_log_after_update()
+; CREATE TRIGGER enum_values_log_after_update AFTER UPDATE ON events.enum_values FOR EACH ROW EXECUTE FUNCTION events.enum_values_log_after_update()
 ;
 
 
@@ -97,4 +97,4 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql
-; CREATE TRIGGER parameters_log_after_update AFTER UPDATE ON events.parameters FOR EACH ROW EXECUTE FUNCTION parameters_log_after_update()
+; CREATE TRIGGER parameters_log_after_update AFTER UPDATE ON events.parameters FOR EACH ROW EXECUTE FUNCTION events.parameters_log_after_update()
