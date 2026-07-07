@@ -76,7 +76,7 @@ def dev_cmd(args):
     dbname = args.database
     action = args.action
 
-    if action in ["pganalyze", "run-query", "explain-query"]:
+    if action == "pganalyze":
         from em_health.db_analyze import main as func
         func(dbname, action, getattr(args, "force", False))
 
@@ -173,8 +173,6 @@ def main():
 
     dev_subparsers.add_parser("migrate", help="Migrate TimescaleDB to the latest schema")
     dev_subparsers.add_parser("import-uec", help="Import UEC data from microscope servers")
-    dev_subparsers.add_parser("run-query", help="Run a custom query")
-    dev_subparsers.add_parser("explain-query", help="EXPLAIN a custom query")
 
     # helper function to add "batch" argument
     def add_count_arg(p):

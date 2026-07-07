@@ -68,7 +68,7 @@ class DatabaseAnalyzer(DatabaseManager):
     analyze database performance. Metrics are based on
     https://github.com/pganalyze/collector
     """
-    def create_metric_tables(self) -> None:
+    def create_tables(self) -> None:
         """ Create tables to store metrics data. """
         self.execute_file(self.get_path("pganalyze/create_tables.sql"),
                           {
@@ -78,12 +78,12 @@ class DatabaseAnalyzer(DatabaseManager):
                           })
         logger.info("Created pganalyze tables")
 
-    def create_metric_collectors(self) -> None:
+    def create_funcs(self) -> None:
         """ Create functions to collect statistics. """
         self.execute_file(self.get_path("pganalyze/create_functions.sql"))
         logger.info("Created pganalyze procedures")
 
-    def cleanup_jobs(self) -> None:
+    def delete_jobs(self) -> None:
         """ Delete existing jobs. """
         jobs = self.run_query(
             "SELECT job_id FROM timescaledb_information.jobs WHERE proc_schema = 'pganalyze'",
@@ -93,7 +93,7 @@ class DatabaseAnalyzer(DatabaseManager):
             self.cur.executemany("SELECT delete_job(%s)", jobs)
             self.conn.commit()
 
-    def schedule_metric_jobs(self) -> None:
+    def schedule_jobs(self) -> None:
         """ Schedule functions as TimescaleDB jobs. """
         self.execute_file(self.get_path("pganalyze/create_jobs.sql"))
         logger.info("Scheduled pganalyze jobs")
@@ -101,29 +101,22 @@ class DatabaseAnalyzer(DatabaseManager):
 
 def main(dbname, action, force=False):
     if action == "pganalyze":
-        with DatabaseAnalyzer(dbname) as db:
-            if force:  # erase all data
-                db.run_query("DROP SCHEMA IF EXISTS pganalyze CASCADE;")
-                db.create_metric_tables()
-            else:
-                # keep the tables, only update jobs
-                db.cleanup_jobs()
-
-            db.create_metric_collectors()
-
         with DatabaseAnalyzer(dbname, username="pganalyze", password="POSTGRES_PGANALYZE_PASSWORD") as db:
-            db.schedule_metric_jobs()
+            db.delete_jobs()
 
-    elif action in ["run-query", "explain-query"]:
-        custom_query = """
-            -- paste your query below
-            select * from pg_stat_statements limit 1
-        """
+            if force:  # erase all data
+                db.run_query("""
+                    DROP TABLE IF EXISTS pganalyze.database_stats CASCADE;
+                    DROP TABLE IF EXISTS pganalyze.table_stats CASCADE;
+                    DROP TABLE IF EXISTS pganalyze.index_stats CASCADE;
+                    DROP TABLE IF EXISTS pganalyze.vacuum_stats CASCADE;
+                    DROP TABLE IF EXISTS pganalyze.stat_snapshots CASCADE;
+                    DROP TABLE IF EXISTS pganalyze.queries CASCADE;
+                    DROP TABLE IF EXISTS pganalyze.stat_statements CASCADE;
+                    DROP TABLE IF EXISTS pganalyze.stat_explains CASCADE;
+                    DROP TABLE IF EXISTS pganalyze.sys_stats CASCADE;
+                """)
+                db.create_tables()
 
-        if action == "explain-query":
-            custom_query = "EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) " + custom_query
-
-        with DatabaseAnalyzer(dbname) as db:
-            result = db.run_query(custom_query, mode="fetchall")
-            formatted_output = "\n".join(row[0] for row in result)
-            print(formatted_output)
+            db.create_funcs()
+            db.schedule_jobs()

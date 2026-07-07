@@ -14,6 +14,9 @@ CREATE EXTENSION IF NOT EXISTS postgres_fdw;
 
 \i /sql/uec/create_tables.sql
 
+CREATE SCHEMA IF NOT EXISTS pganalyze;
+ALTER SCHEMA pganalyze OWNER TO pganalyze;
+ALTER ROLE pganalyze SET search_path = pganalyze,public;
 \i /sql/pganalyze/create_tables.sql
 \i /sql/pganalyze/create_functions.sql
 

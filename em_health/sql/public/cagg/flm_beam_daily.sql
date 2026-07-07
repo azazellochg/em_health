@@ -1,4 +1,4 @@
-/* Create a CAGG of iFLM running state. Currently Arctis only */
+/* Create a CAGG of iFLM running state. Currently, Arctis only */
 CREATE MATERIALIZED VIEW flm_beam_daily WITH (timescaledb.continuous) AS
 SELECT
     d.instrument_id,

@@ -242,21 +242,3 @@ as well as the *server* field with IP address for each instrument in the `instru
 .. code-block::
 
     emhealth dev -d tem import-uec
-
-----
-
-Execute queries
-~~~~~~~~~~~~~~~
-
-Description
-^^^^^^^^^^^
-
-If you have a long query and/or too lazy to use the `psql` client, you can edit **db_analyze.py** and then use the commands below.
-
-Syntax
-^^^^^^
-
-.. code-block::
-
-    emhealth dev -d tem run-query
-    emhealth dev -d tem explain-query

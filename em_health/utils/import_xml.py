@@ -82,7 +82,7 @@ class ImportXML:
             raise ValueError(f"Instrument '{instr_name}' not found in instruments.json")
 
     def parse_enumerations(self) -> None:
-        """ Parse enumerations from xml. """
+        """ Parse enumerations from XML. """
         get_instrument = True
         for event, elem in self.context:
             if self.__match(elem, "Enumerations"):
@@ -107,7 +107,7 @@ class ImportXML:
         logger.debug(json.dumps(self.enum_values, sort_keys=True, indent=2))
 
     def parse_parameters(self) -> None:
-        """ Parse parameters from xml. """
+        """ Parse parameters from XML. """
         known_types = {
             'Int': 'int',
             'Float': 'float',
@@ -275,9 +275,7 @@ def main(xml_fn, json_fn, nocopy):
         xmlparser.parse_parameters()
         instr_dict = xmlparser.get_microscope_dict()
 
-        with DatabaseManager(xmlparser.db_name,
-                             username="emhealth",
-                             password="POSTGRES_EMHEALTH_PASSWORD") as dbm:
+        with DatabaseManager(xmlparser.db_name) as dbm:
             instrument_id = dbm.add_instrument(instr_dict)
             enum_ids = dbm.add_enumerations(instrument_id, xmlparser.enum_values)
             dbm.add_parameters(instrument_id, xmlparser.params, enum_ids)

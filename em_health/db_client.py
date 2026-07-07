@@ -45,8 +45,8 @@ class BaseDBClient(ABC):
             self.username = kwargs["username"]
             self.password = os.getenv(kwargs["password"])
         else:
-            self.username = "postgres"
-            self.password = os.getenv("POSTGRES_PASSWORD")
+            self.username = "emhealth"
+            self.password = os.getenv("POSTGRES_EMHEALTH_PASSWORD")
         self.port = default_port
         self.conn = None
         self.cur = None
