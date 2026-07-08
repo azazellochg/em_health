@@ -143,8 +143,8 @@ BEGIN
             ALTER PROCEDURE public.refresh_epud_runs SET SCHEMA events;
             ALTER PROCEDURE events.refresh_epud_runs OWNER TO emhealth;
 
-            ALTER PROCEDURE public.tomo_runs SET SCHEMA events;
-            ALTER PROCEDURE events.tomo_runs OWNER TO emhealth;
+            ALTER PROCEDURE public.refresh_tomo_runs SET SCHEMA events;
+            ALTER PROCEDURE events.refresh_tomo_runs OWNER TO emhealth;
 
             ALTER PROCEDURE public.refresh_epu_counters SET SCHEMA events;
             ALTER PROCEDURE events.refresh_epu_counters OWNER TO emhealth;

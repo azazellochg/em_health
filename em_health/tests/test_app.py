@@ -43,6 +43,7 @@ JSON_INFO = [{
     "template": "krios",
     "server": "127.0.0.1"
 }]
+MANAGER = os.getenv("MANAGER_TYPE")
 
 
 class TestEMHealth(unittest.TestCase):
@@ -188,12 +189,16 @@ class TestEMHealth(unittest.TestCase):
             self.check_db2(dbm, instrument_id)
 
             # clean-up
-            dbm.run_query("DELETE FROM events.instruments WHERE id = 9999")
+            dbm.run_query("DELETE FROM events.instruments WHERE serial = 9999")
 
-    def test_pgtap(self):
+    def test_pgtap_tem(self):
         """ Run database tests with pgTAP. """
-        MANAGER = os.getenv("MANAGER_TYPE")
         run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/*.sql"')
+
+    def test_pgtap_sem(self):
+        """ Run database tests with pgTAP. """
+        run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d sem -U postgres /sql/tests/pgtap/*.sql"')
+
 
 if __name__ == '__main__':
     unittest.main()
