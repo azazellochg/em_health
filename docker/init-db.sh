@@ -13,7 +13,8 @@ psql -v ON_ERROR_STOP=1 <<EOSQL
     CREATE ROLE pganalyze WITH LOGIN PASSWORD '${POSTGRES_PGANALYZE_PASSWORD}' CONNECTION LIMIT 5;
     GRANT pg_stat_scan_tables TO grafana;
     GRANT pg_read_all_stats TO grafana;
-    GRANT pg_monitor TO pganalyze;
+    GRANT pg_monitor, pg_read_server_files TO pganalyze;
+    GRANT EXECUTE ON FUNCTION pg_read_file(text, bigint, bigint) TO pganalyze;
 EOSQL
 
 for db in tem sem; do

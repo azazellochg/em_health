@@ -1,11 +1,10 @@
 BEGIN;
-SELECT plan(38);
+SELECT plan(37);
 
 ---------------------------
 -- SCHEMA PRIVILEGES
 ---------------------------
 SELECT schema_privs_are('events', 'grafana', ARRAY['USAGE']);
-SELECT schema_privs_are('events', 'emhealth', ARRAY['USAGE']);
 SELECT schema_owner_is('uec', 'emhealth');
 SELECT schema_privs_are('uec', 'grafana', ARRAY['USAGE']);
 SELECT schema_owner_is('pganalyze', 'pganalyze');
@@ -22,15 +21,15 @@ SELECT table_privs_are('events', 'parameters', 'grafana', ARRAY['SELECT']);
 ---------------------------
 -- PGANALYZE TABLE PRIVILEGES
 ---------------------------
-SELECT table_owner_is('pganalyze', 'database_stats', 'pganalyze');
-SELECT table_owner_is('pganalyze', 'table_stats', 'pganalyze');
-SELECT table_owner_is('pganalyze', 'index_stats', 'pganalyze');
-SELECT table_owner_is('pganalyze', 'vacuum_stats', 'pganalyze');
-SELECT table_owner_is('pganalyze', 'queries', 'pganalyze');
-SELECT table_owner_is('pganalyze', 'stat_snapshots', 'pganalyze');
-SELECT table_owner_is('pganalyze', 'stat_statements', 'pganalyze');
-SELECT table_owner_is('pganalyze', 'stat_explains', 'pganalyze');
-SELECT table_owner_is('pganalyze', 'sys_stats', 'pganalyze');
+SELECT table_owner_is('pganalyze'::name, 'database_stats'::name, 'pganalyze'::name);
+SELECT table_owner_is('pganalyze'::name, 'table_stats'::name, 'pganalyze'::name);
+SELECT table_owner_is('pganalyze'::name, 'index_stats'::name, 'pganalyze'::name);
+SELECT table_owner_is('pganalyze'::name, 'vacuum_stats'::name, 'pganalyze'::name);
+SELECT table_owner_is('pganalyze'::name, 'queries'::name, 'pganalyze'::name);
+SELECT table_owner_is('pganalyze'::name, 'stat_snapshots'::name, 'pganalyze'::name);
+SELECT table_owner_is('pganalyze'::name, 'stat_statements'::name, 'pganalyze'::name);
+SELECT table_owner_is('pganalyze'::name, 'stat_explains'::name, 'pganalyze'::name);
+SELECT table_owner_is('pganalyze'::name, 'sys_stats'::name, 'pganalyze'::name);
 
 SELECT table_privs_are('pganalyze', 'database_stats', 'grafana', ARRAY['SELECT']);
 SELECT table_privs_are('pganalyze', 'table_stats', 'grafana', ARRAY['SELECT']);

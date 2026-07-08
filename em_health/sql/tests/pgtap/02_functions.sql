@@ -12,10 +12,10 @@ SELECT has_function('events', 'parameters_log_after_update', ARRAY[]::text[]);
 ---------------------------
 -- EVENTS TRIGGERS
 ---------------------------
-SELECT has_trigger('events', 'enum_values', 'enum_values_upsert_before_insert');
-SELECT has_trigger('events', 'parameters', 'parameters_upsert_before_insert');
-SELECT has_trigger('events', 'enum_values', 'enum_values_log_after_update');
-SELECT has_trigger('events', 'parameters', 'parameters_log_after_update');
+SELECT has_trigger('events'::name, 'enum_values'::name, 'enum_values_upsert_before_insert'::name);
+SELECT has_trigger('events'::name, 'parameters'::name, 'parameters_upsert_before_insert'::name);
+SELECT has_trigger('events'::name, 'enum_values'::name, 'enum_values_log_after_update'::name);
+SELECT has_trigger('events'::name, 'parameters'::name, 'parameters_log_after_update'::name);
 
 ---------------------------
 -- PGANALYZE FUNCTIONS

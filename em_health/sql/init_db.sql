@@ -18,23 +18,28 @@ COMMENT ON SCHEMA events IS 'HM events';
 \i /sql/events/create_tables.sql
 \i /sql/events/create_triggers.sql
 \i /sql/events/create_functions.sql
-GRANT USAGE ON SCHEMA events TO grafana;
-GRANT SELECT ON ALL TABLES IN SCHEMA events TO grafana;
-ALTER DEFAULT PRIVILEGES IN SCHEMA events GRANT SELECT ON TABLES TO grafana;
 
 -- uec schema
 CREATE SCHEMA IF NOT EXISTS uec AUTHORIZATION emhealth;
 COMMENT ON SCHEMA uec IS 'Error codes';
 \i /sql/uec/create_tables.sql
-GRANT USAGE ON SCHEMA uec TO grafana;
-GRANT SELECT ON ALL TABLES IN SCHEMA uec TO grafana;
-ALTER DEFAULT PRIVILEGES IN SCHEMA uec GRANT SELECT ON TABLES TO grafana;
 
 -- pganalyze schema
 CREATE SCHEMA IF NOT EXISTS pganalyze AUTHORIZATION pganalyze;
 COMMENT ON SCHEMA pganalyze IS 'DB performance statistics';
 \i /sql/pganalyze/create_tables.sql
 \i /sql/pganalyze/create_functions.sql
+
+-- pganalyze role privileges
+GRANT USAGE ON SCHEMA events, uec TO pganalyze;
+GRANT SELECT ON ALL TABLES IN SCHEMA events, uec TO pganalyze;
+ALTER DEFAULT PRIVILEGES FOR ROLE emhealth IN SCHEMA events, uec GRANT SELECT ON TABLES TO pganalyze;
+
+-- grafana role privileges
+GRANT USAGE ON SCHEMA events, uec, pganalyze TO grafana;
+GRANT SELECT ON ALL TABLES IN SCHEMA events, uec, pganalyze TO grafana;
+ALTER DEFAULT PRIVILEGES FOR ROLE emhealth IN SCHEMA events, uec GRANT SELECT ON TABLES TO grafana;
+ALTER DEFAULT PRIVILEGES FOR ROLE pganalyze IN SCHEMA pganalyze GRANT SELECT ON TABLES TO grafana;
 
 -- update search path for users
 ALTER ROLE emhealth SET search_path = events,uec,public;

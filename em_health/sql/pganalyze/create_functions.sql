@@ -274,7 +274,7 @@ $$
 
 -- parse_logs
 DROP FUNCTION IF EXISTS pganalyze.parse_logs;
-CREATE FUNCTION pganalyze.parse_logs(job_id int = NULL, config jsonb = NULL) RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+CREATE FUNCTION pganalyze.parse_logs(job_id int = NULL, config jsonb = NULL) RETURNS void LANGUAGE plpgsql AS $$
 DECLARE
     logfile TEXT;
 BEGIN
@@ -347,7 +347,7 @@ BEGIN
              FROM split
              WHERE dbname = current_database()
                AND (
-                 schemaname IN ('public', 'uec', 'pganalyze')
+                 schemaname IN ('events', 'uec', 'pganalyze')
                      OR (schemaname = '_timescaledb_internal' AND tablename LIKE '_hyper_%_chunk')
                  )
          )
@@ -406,7 +406,7 @@ $$
 
 -- parse sysinfo
 DROP FUNCTION IF EXISTS pganalyze.parse_sysinfo;
-CREATE FUNCTION pganalyze.parse_sysinfo(job_id int = NULL, config jsonb = NULL) RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+CREATE FUNCTION pganalyze.parse_sysinfo(job_id int = NULL, config jsonb = NULL) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
     INSERT INTO pganalyze.sys_stats (load1, load5, load15, cpu_count, mem_total, mem_free, mem_avail)
     WITH loadavg AS (
@@ -442,7 +442,7 @@ $$
 
 -- Purge old data
 DROP FUNCTION IF EXISTS pganalyze.purge_stats;
-CREATE FUNCTION pganalyze.purge_stats(job_id int = NULL, config jsonb = '{"drop_after":"3 months"}') RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+CREATE FUNCTION pganalyze.purge_stats(job_id int = NULL, config jsonb = '{"drop_after":"3 months"}') RETURNS void LANGUAGE plpgsql AS $$
 DECLARE
     drop_after interval;
 BEGIN
@@ -472,7 +472,3 @@ BEGIN
     WHERE time < NOW() - drop_after;
 END;
 $$;
-
-GRANT USAGE ON SCHEMA pganalyze TO grafana;
-GRANT SELECT ON ALL TABLES IN SCHEMA pganalyze TO grafana;
-ALTER DEFAULT PRIVILEGES IN SCHEMA pganalyze GRANT SELECT ON TABLES TO grafana;

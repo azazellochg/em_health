@@ -22,42 +22,42 @@ SELECT has_schema('pganalyze');
 ---------------------------
 -- EVENTS SCHEMA TABLES
 ---------------------------
-SELECT has_table('public', 'schema_info');
-SELECT has_table('events', 'instruments');
-SELECT has_table('events', 'enum_types');
-SELECT has_table('events', 'enum_values');
-SELECT has_table('events', 'enum_values_history');
-SELECT has_table('events', 'parameters');
-SELECT has_table('events', 'parameters_history');
-SELECT has_table('events', 'data_staging');
-SELECT has_table('events', 'data');
+SELECT has_table('public'::name, 'schema_info'::name);
+SELECT has_table('events'::name, 'instruments'::name);
+SELECT has_table('events'::name, 'enum_types'::name);
+SELECT has_table('events'::name, 'enum_values'::name);
+SELECT has_table('events'::name, 'enum_values_history'::name);
+SELECT has_table('events'::name, 'parameters'::name);
+SELECT has_table('events'::name, 'parameters_history'::name);
+SELECT has_table('events'::name, 'data_staging'::name);
+SELECT has_table('events'::name, 'data'::name);
 
 -- EVENTS INDEXES
-SELECT has_index('events', 'enum_values', 'enum_values_member_name_enum_id_idx');
-SELECT has_index('events', 'parameters', 'parameters_enum_id_instrument_id_param_id_param_name_subsys_idx');
+SELECT has_index('events'::name, 'enum_values'::name, 'enum_values_member_name_enum_id_idx'::name);
+SELECT has_index('events'::name, 'parameters'::name, 'parameters_enum_id_instrument_id_param_id_param_name_subsys_idx'::name);
 
 ---------------------------
 -- UEC SCHEMA TABLES
 ---------------------------
-SELECT has_table('uec', 'device_type');
-SELECT has_table('uec', 'device_instance');
-SELECT has_table('uec', 'error_code');
-SELECT has_table('uec', 'subsystem');
-SELECT has_table('uec', 'error_definitions');
-SELECT has_table('uec', 'errors');
+SELECT has_table('uec'::name, 'device_type'::name);
+SELECT has_table('uec'::name, 'device_instance'::name);
+SELECT has_table('uec'::name, 'error_code'::name);
+SELECT has_table('uec'::name, 'subsystem'::name);
+SELECT has_table('uec'::name, 'error_definitions'::name);
+SELECT has_table('uec'::name, 'errors'::name);
 
 ---------------------------
 -- PGANALYZE SCHEMA TABLES
 ---------------------------
-SELECT has_table('pganalyze', 'database_stats');
-SELECT has_table('pganalyze', 'table_stats');
-SELECT has_table('pganalyze', 'index_stats');
-SELECT has_table('pganalyze', 'vacuum_stats');
-SELECT has_table('pganalyze', 'queries');
-SELECT has_table('pganalyze', 'stat_snapshots');
-SELECT has_table('pganalyze', 'stat_statements');
-SELECT has_table('pganalyze', 'stat_explains');
-SELECT has_table('pganalyze', 'sys_stats');
+SELECT has_table('pganalyze'::name, 'database_stats'::name);
+SELECT has_table('pganalyze'::name, 'table_stats'::name);
+SELECT has_table('pganalyze'::name, 'index_stats'::name);
+SELECT has_table('pganalyze'::name, 'vacuum_stats'::name);
+SELECT has_table('pganalyze'::name, 'queries'::name);
+SELECT has_table('pganalyze'::name, 'stat_snapshots'::name);
+SELECT has_table('pganalyze'::name, 'stat_statements'::name);
+SELECT has_table('pganalyze'::name, 'stat_explains'::name);
+SELECT has_table('pganalyze'::name, 'sys_stats'::name);
 
 ---------------------------
 -- FINISH
