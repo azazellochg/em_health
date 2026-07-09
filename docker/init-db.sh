@@ -1,8 +1,9 @@
 #!/bin/sh
 set -eu
 
-# Create pgBackRest stanza
-pgbackrest --stanza=main stanza-create || pgbackrest --stanza=main stanza-upgrade
+echo "Create or upgrade pgBackRest stanza..."
+pgbackrest --stanza=main stanza-create || :
+pgbackrest --stanza=main stanza-upgrade
 pgbackrest --stanza=main check
 
 psql -v ON_ERROR_STOP=1 <<EOSQL
@@ -14,7 +15,6 @@ psql -v ON_ERROR_STOP=1 <<EOSQL
     GRANT pg_stat_scan_tables TO grafana;
     GRANT pg_read_all_stats TO grafana;
     GRANT pg_monitor, pg_read_server_files TO pganalyze;
-    GRANT EXECUTE ON FUNCTION pg_read_file(text, bigint, bigint) TO pganalyze;
 EOSQL
 
 for db in tem sem; do

@@ -38,7 +38,6 @@ BEGIN
         -- 4. New events schema
         CREATE SCHEMA IF NOT EXISTS events AUTHORIZATION emhealth;
         COMMENT ON SCHEMA events IS 'HM events';
-        REVOKE USAGE ON SCHEMA public FROM grafana, emhealth;
 
         -- 5. move tables (triggers move automatically)
         ALTER TABLE public.instruments SET SCHEMA events;
@@ -327,6 +326,7 @@ $sql$;
 
         -- 14. Update schema version
         COMMENT ON TABLE public.schema_info IS 'Global schema version';
+        GRANT SELECT ON TABLE public.schema_info TO PUBLIC;
         UPDATE public.schema_info SET version = 5;
     END IF;
 END $$

@@ -11,24 +11,32 @@ CREATE EXTENSION IF NOT EXISTS postgres_fdw;
 CREATE TABLE IF NOT EXISTS public.schema_info (version int PRIMARY KEY,
                                                updated TIMESTAMPTZ NOT NULL DEFAULT NOW());
 COMMENT ON TABLE public.schema_info IS 'Global schema version';
+GRANT SELECT ON TABLE public.schema_info TO PUBLIC;
 
 -- events schema
 CREATE SCHEMA IF NOT EXISTS events AUTHORIZATION emhealth;
 COMMENT ON SCHEMA events IS 'HM events';
+SET ROLE emhealth; -- below objects are owned by emhealth
 \i /sql/events/create_tables.sql
 \i /sql/events/create_triggers.sql
 \i /sql/events/create_functions.sql
+SET ROLE postgres;
 
 -- uec schema
 CREATE SCHEMA IF NOT EXISTS uec AUTHORIZATION emhealth;
 COMMENT ON SCHEMA uec IS 'Error codes';
+SET ROLE emhealth; -- below objects are owned by emhealth
 \i /sql/uec/create_tables.sql
+SET ROLE postgres;
 
 -- pganalyze schema
 CREATE SCHEMA IF NOT EXISTS pganalyze AUTHORIZATION pganalyze;
 COMMENT ON SCHEMA pganalyze IS 'DB performance statistics';
+GRANT EXECUTE ON FUNCTION pg_read_file(text, bigint, bigint) TO pganalyze;
+SET ROLE pganalyze; -- below objects are owned by pganalyze
 \i /sql/pganalyze/create_tables.sql
 \i /sql/pganalyze/create_functions.sql
+SET ROLE postgres;
 
 -- pganalyze role privileges
 GRANT USAGE ON SCHEMA events, uec TO pganalyze;
