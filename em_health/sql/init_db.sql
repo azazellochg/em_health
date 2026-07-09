@@ -36,6 +36,7 @@ GRANT EXECUTE ON FUNCTION pg_read_file(text, bigint, bigint) TO pganalyze;
 SET ROLE pganalyze; -- below objects are owned by pganalyze
 \i /sql/pganalyze/create_tables.sql
 \i /sql/pganalyze/create_functions.sql
+\i /sql/pganalyze/create_jobs.sql
 SET ROLE postgres;
 
 -- pganalyze role privileges

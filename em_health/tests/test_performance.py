@@ -43,7 +43,7 @@ from em_health.utils.tools import logger, run_command
 
 DB_NAME = "benchmark"
 DB_USER = "postgres"
-DB_PASS = "postgres"
+DB_PASS = "POSTGRES_PASSWORD"
 DEFAULT_FILENAME = "simulated_data.csv"
 MANAGER = os.getenv("MANAGER_TYPE")
 
@@ -432,7 +432,3 @@ class TestPerformance:
             f"\tAvg time over {summary['trials']} runs: {summary['avg_time']:.4f} s\n"
             f"\tAvg performance: {summary['avg_tps']:,.4f} rows/s\n"
         )
-
-    def test_query(self):
-        """ Test common queries execution. """
-        pass

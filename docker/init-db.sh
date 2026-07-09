@@ -27,13 +27,5 @@ for db in tem sem; do
   --dbname="$db" -f /sql/init_db.sql
 done
 
-for db in tem sem; do
-  echo "Scheduling jobs as pganalyze user for: $db"
-  PGPASSWORD="${POSTGRES_PGANALYZE_PASSWORD}" \
-  psql -v ON_ERROR_STOP=1 \
-  -U pganalyze \
-  --dbname="$db" -f /sql/pganalyze/create_jobs.sql
-done
-
 echo "Running timescaledb-tune..."
 timescaledb-tune --quiet --yes

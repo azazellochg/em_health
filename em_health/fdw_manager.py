@@ -237,7 +237,8 @@ class FDWManager:
                 (SELECT MAX(time) FROM events.data WHERE instrument_id = {instr_id}),
                 '1900-01-01'
             )
-        """,{"schema": self.fdw_schema},
+        """,
+                                  {"schema": self.fdw_schema},
                                   strings={"instr_id": self.instr_id},
                                   mode="fetchall")
 

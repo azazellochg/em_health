@@ -188,7 +188,6 @@ def main():
     add_count_arg(dev_subparsers.add_parser("test-execmany", help="Benchmark EXECUTEMANY performance"))
     add_count_arg(dev_subparsers.add_parser("test-unnest", help="Benchmark INSERT UNNEST performance"))
     add_count_arg(dev_subparsers.add_parser("test-import", help="Benchmark XML import performance"))
-    add_count_arg(dev_subparsers.add_parser("test-query", help="Benchmark query execution performance"))
 
     args = parser.parse_args()
 
