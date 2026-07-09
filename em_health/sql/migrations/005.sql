@@ -184,7 +184,6 @@ BEGIN
 
         IF purge_func_exists THEN
             ALTER FUNCTION public.purge_old_chunks(text, integer, integer) SET SCHEMA events;
-            ALTER FUNCTION events.purge_old_chunks(text, integer, integer) OWNER TO emhealth;
         ELSE
             EXECUTE $sql$
 CREATE FUNCTION events.purge_old_chunks(
@@ -220,6 +219,7 @@ $func$;
 $sql$;
         END IF;
 
+        ALTER FUNCTION events.purge_old_chunks(text, integer, integer) OWNER TO emhealth;
         ALTER FUNCTION public.enum_values_upsert_before_insert() SET SCHEMA events;
         ALTER FUNCTION public.parameters_upsert_before_insert() SET SCHEMA events;
         ALTER FUNCTION public.enum_values_log_after_update() SET SCHEMA events;
