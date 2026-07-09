@@ -69,7 +69,7 @@ class FDWManager:
 
             CREATE USER MAPPING IF NOT EXISTS FOR public
             SERVER {name}
-            OPTIONS (username {user}, password {password});
+            OPTIONS (username {user}, password {password}, row_estimate_method 'showplan_all');
         """, identifiers={"name": self.name}, strings={
             "server": self.server,
             "user": user,
@@ -94,7 +94,7 @@ class FDWManager:
 
             CREATE USER MAPPING IF NOT EXISTS FOR public
             SERVER {name}
-            OPTIONS (user {user}, password {password});
+            OPTIONS (user {user}, password {password}, application_name 'EMHealth');
         """, identifiers={"name": self.name}, strings={
             "server": self.server,
             "user": user,
