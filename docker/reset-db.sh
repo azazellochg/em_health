@@ -32,10 +32,4 @@ if [ "${do_init}" -eq 1 ]; then
     -v var_pgstats_chunk_size="'${TBL_STATS_CHUNK_SIZE}'" \
     -v var_pgstats_retention="'${TBL_STATS_RETENTION}'" \
     -f /sql/init_db.sql
-
-  echo "Scheduling jobs as pganalyze user for: ${dbname}"
-
-  PGPASSWORD="${POSTGRES_PGANALYZE_PASSWORD}" \
-  psql -v ON_ERROR_STOP=1 -U pganalyze --dbname="${dbname}" \
-    -f /sql/pganalyze/create_jobs.sql
 fi
