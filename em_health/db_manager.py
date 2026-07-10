@@ -380,7 +380,7 @@ class DatabaseManager(PgClient):
                        strings={'days': days})
 
         self.conn.commit()
-        logger.debug("Removed %s chunks (%s rows)", chunks_dropped[0], self.cur.rowcount)
+        logger.debug("Removed %s chunks from events.data; %s rows from uec.errors", chunks_dropped[0], self.cur.rowcount)
 
 
 def main(dbname, action, days=None):
@@ -455,8 +455,6 @@ def main(dbname, action, days=None):
                 else:
                     db.create_mview(view, f"{schema}/mviews/{name}.sql")
                     db.schedule_mview_refresh(view)
-                db.run_query("GRANT SELECT ON {schema}.{name} TO grafana",
-                             {"schema": schema, "name": name})
 
     elif action == "erase":
         print(f"!!! WARNING: You are about to DELETE ALL DATA from database {dbname} !!!")
