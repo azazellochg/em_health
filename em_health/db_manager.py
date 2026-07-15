@@ -32,6 +32,9 @@ from typing import Iterable, Any
 from em_health.db_client import PgClient
 from em_health.utils.tools import logger, profile
 
+TEM_SCHEMA_VERSION = 5
+SEM_SCHEMA_VERSION = 5
+
 
 class DatabaseManager(PgClient):
     """ Manager class to operate on existing db.
@@ -473,7 +476,7 @@ def main(dbname, action, days=None):
             db.prune_data(days)
 
     elif action == "migrate":
-        latest_ver = os.getenv(f"{dbname.upper()}_SCHEMA_VERSION")
+        latest_ver = TEM_SCHEMA_VERSION if dbname == "tem" else SEM_SCHEMA_VERSION
         if latest_ver is not None:
             # requires superuser permissions
             with DatabaseManager(dbname, username="postgres", password="POSTGRES_PASSWORD") as db:
