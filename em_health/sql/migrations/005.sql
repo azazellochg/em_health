@@ -174,16 +174,9 @@ BEGIN
         ALTER TABLE uec.errors ADD CONSTRAINT errors_instrument_id_fkey FOREIGN KEY (instrument_id) REFERENCES events.instruments(id) ON DELETE CASCADE;
 
         -- 8. update functions
-        SELECT EXISTS (
-            SELECT 1
-            FROM pg_proc p
-                     JOIN pg_namespace n ON n.oid = p.pronamespace
-            WHERE n.nspname = 'public'
-              AND p.proname = 'purge_old_chunks'
-        ) INTO purge_func_exists;
-
+        SELECT to_regprocedure('public.purge_old_chunks(text,integer)') IS NOT NULL INTO purge_func_exists;
         IF purge_func_exists THEN
-            ALTER FUNCTION public.purge_old_chunks(text, integer, integer) SET SCHEMA events;
+            ALTER FUNCTION public.purge_old_chunks(text, integer) SET SCHEMA events;
         ELSE
             EXECUTE $sql$
 CREATE FUNCTION events.purge_old_chunks(
@@ -219,7 +212,7 @@ $func$;
 $sql$;
         END IF;
 
-        ALTER FUNCTION events.purge_old_chunks(text, integer, integer) OWNER TO emhealth;
+        ALTER FUNCTION events.purge_old_chunks(text, integer) OWNER TO emhealth;
         ALTER FUNCTION public.enum_values_upsert_before_insert() SET SCHEMA events;
         ALTER FUNCTION public.parameters_upsert_before_insert() SET SCHEMA events;
         ALTER FUNCTION public.enum_values_log_after_update() SET SCHEMA events;
