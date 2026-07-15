@@ -31,7 +31,6 @@ import json
 from em_health.utils.tools import logger
 
 HM_EXE = r"C:\Program Files (x86)\Thermo Scientific Health Monitor\HealthMonitorCmd.exe"
-TIME = "01:00"
 
 
 class CreateTaskCmd:

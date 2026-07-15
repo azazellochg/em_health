@@ -1,10 +1,12 @@
 apiVersion: 1
 
+# Datasource uid must be hardcoded otherwise Grafana will generate it randomly on every restart. We rely on this uid in the alert rules
+# https://grafana.com/docs/grafana/latest/upgrade-guide/upgrade-v11.2/#correct-uid-format
+
 datasources:
   - name: tem
     type: postgres
     uid: hm-tem
-    access: proxy
     isDefault: true
     url: "emhealth-db:5432"
     user: "grafana"
@@ -19,7 +21,6 @@ datasources:
   - name: sem
     type: postgres
     uid: hm-sem
-    access: proxy
     isDefault: false
     url: "emhealth-db:5432"
     user: "grafana"

@@ -1,6 +1,6 @@
 -- get_db_stats
-DROP FUNCTION IF EXISTS pganalyze.get_db_stats
-; CREATE FUNCTION pganalyze.get_db_stats(job_id int = NULL, config jsonb = NULL) RETURNS void LANGUAGE plpgsql AS $$
+DROP FUNCTION IF EXISTS pganalyze.get_db_stats;
+CREATE FUNCTION pganalyze.get_db_stats(job_id int = NULL, config jsonb = NULL) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
     INSERT INTO pganalyze.database_stats (
         collected_at,
@@ -25,8 +25,8 @@ $$
 ;
 
 -- get_table_stats
-DROP FUNCTION IF EXISTS pganalyze.get_table_stats
-; CREATE FUNCTION pganalyze.get_table_stats(job_id int = NULL, config jsonb = NULL) RETURNS void LANGUAGE plpgsql AS $$
+DROP FUNCTION IF EXISTS pganalyze.get_table_stats;
+CREATE FUNCTION pganalyze.get_table_stats(job_id int = NULL, config jsonb = NULL) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
     INSERT INTO pganalyze.table_stats (
         collected_at,
@@ -74,8 +74,8 @@ $$
 ;
 
 -- get_index_stats
-DROP FUNCTION IF EXISTS pganalyze.get_index_stats
-; CREATE FUNCTION pganalyze.get_index_stats(job_id int = NULL, config jsonb = NULL) RETURNS void LANGUAGE plpgsql AS $$
+DROP FUNCTION IF EXISTS pganalyze.get_index_stats;
+CREATE FUNCTION pganalyze.get_index_stats(job_id int = NULL, config jsonb = NULL) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
 
     WITH regular_indexes AS (
@@ -92,7 +92,7 @@ BEGIN
             COALESCE(io.idx_blks_hit, 0) AS idx_blks_hit
         FROM pg_stat_user_indexes s
                  LEFT JOIN pg_statio_user_indexes io USING (indexrelid)
-        WHERE s.schemaname IN ('public', 'uec', 'pganalyze')
+        WHERE s.schemaname IN ('events', 'uec', 'pganalyze')
     ),
 
          chunk_indexes AS (
@@ -157,8 +157,8 @@ $$
 ;
 
 -- get_stat_statements
-DROP FUNCTION IF EXISTS pganalyze.get_stat_statements
-; CREATE FUNCTION pganalyze.get_stat_statements(job_id int = NULL, config jsonb = NULL) RETURNS void LANGUAGE plpgsql AS $$
+DROP FUNCTION IF EXISTS pganalyze.get_stat_statements;
+CREATE FUNCTION pganalyze.get_stat_statements(job_id int = NULL, config jsonb = NULL) RETURNS void LANGUAGE plpgsql AS $$
 DECLARE
     snapshot_time TIMESTAMPTZ := now();
 BEGIN
@@ -273,8 +273,8 @@ $$
 ;
 
 -- parse_logs
-DROP FUNCTION IF EXISTS pganalyze.parse_logs
-; CREATE FUNCTION pganalyze.parse_logs(job_id int = NULL, config jsonb = NULL) RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+DROP FUNCTION IF EXISTS pganalyze.parse_logs;
+CREATE FUNCTION pganalyze.parse_logs(job_id int = NULL, config jsonb = NULL) RETURNS void LANGUAGE plpgsql AS $$
 DECLARE
     logfile TEXT;
 BEGIN
@@ -347,7 +347,7 @@ BEGIN
              FROM split
              WHERE dbname = current_database()
                AND (
-                 schemaname IN ('public', 'uec', 'pganalyze')
+                 schemaname IN ('events', 'uec', 'pganalyze')
                      OR (schemaname = '_timescaledb_internal' AND tablename LIKE '_hyper_%_chunk')
                  )
          )
@@ -405,8 +405,8 @@ $$
 ;
 
 -- parse sysinfo
-DROP FUNCTION IF EXISTS pganalyze.parse_sysinfo
-; CREATE FUNCTION pganalyze.parse_sysinfo(job_id int = NULL, config jsonb = NULL) RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+DROP FUNCTION IF EXISTS pganalyze.parse_sysinfo;
+CREATE FUNCTION pganalyze.parse_sysinfo(job_id int = NULL, config jsonb = NULL) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
     INSERT INTO pganalyze.sys_stats (load1, load5, load15, cpu_count, mem_total, mem_free, mem_avail)
     WITH loadavg AS (
@@ -441,8 +441,8 @@ $$
 ;
 
 -- Purge old data
-DROP FUNCTION IF EXISTS pganalyze.purge_stats
-; CREATE FUNCTION pganalyze.purge_stats(job_id int = NULL, config jsonb = '{"drop_after":"3 months"}') RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+DROP FUNCTION IF EXISTS pganalyze.purge_stats;
+CREATE FUNCTION pganalyze.purge_stats(job_id int = NULL, config jsonb = '{"drop_after":"3 months"}') RETURNS void LANGUAGE plpgsql AS $$
 DECLARE
     drop_after interval;
 BEGIN
@@ -471,10 +471,4 @@ BEGIN
     DELETE FROM pganalyze.sys_stats
     WHERE time < NOW() - drop_after;
 END;
-$$
-; GRANT usage ON SCHEMA pganalyze TO pganalyze
-; GRANT select, insert, update, delete ON ALL TABLES IN SCHEMA pganalyze TO pganalyze
-; GRANT execute ON ALL FUNCTIONS IN SCHEMA pganalyze TO pganalyze
-; GRANT usage ON SCHEMA pganalyze TO grafana
-; GRANT select ON ALL TABLES IN SCHEMA pganalyze TO grafana
-; ALTER DEFAULT PRIVILEGES IN SCHEMA pganalyze GRANT select ON TABLES TO grafana
+$$;

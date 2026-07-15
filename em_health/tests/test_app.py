@@ -43,6 +43,7 @@ JSON_INFO = [{
     "template": "krios",
     "server": "127.0.0.1"
 }]
+MANAGER = os.getenv("MANAGER_TYPE")
 
 
 class TestEMHealth(unittest.TestCase):
@@ -92,55 +93,55 @@ class TestEMHealth(unittest.TestCase):
         print("[OK] datapoints test")
 
     def check_db(self, dbm: DatabaseManager, instrument_id: int):
-        self.run_test_query(dbm, "SELECT model FROM public.instruments WHERE serial = %s",
+        self.run_test_query(dbm, "SELECT model FROM events.instruments WHERE serial = %s",
                             (9999,), "Test instrument")
 
-        self.run_test_query(dbm, "SELECT COUNT(id) FROM public.enum_types WHERE instrument_id= %s",
+        self.run_test_query(dbm, "SELECT COUNT(id) FROM events.enum_types WHERE instrument_id= %s",
                             (instrument_id,), 41)
 
-        eid = self.run_test_query(dbm, "SELECT id FROM public.enum_types WHERE instrument_id = %s AND name= %s",
+        eid = self.run_test_query(dbm, "SELECT id FROM events.enum_types WHERE instrument_id = %s AND name= %s",
                                   (instrument_id, "FegState_enum"), expected_result=-1, do_return=True)
 
-        self.run_test_query(dbm, "SELECT value FROM public.enum_values WHERE enum_id = %s AND member_name = %s",
+        self.run_test_query(dbm, "SELECT value FROM events.enum_values WHERE enum_id = %s AND member_name = %s",
                             (eid, "Operate"), 4)
 
-        self.run_test_query(dbm, "SELECT COUNT(*) FROM public.enum_values WHERE enum_id = %s",
+        self.run_test_query(dbm, "SELECT COUNT(*) FROM events.enum_values WHERE enum_id = %s",
                             (eid,), 8)
 
-        self.run_test_query(dbm, "SELECT COUNT(*) FROM public.parameters WHERE instrument_id = %s",
+        self.run_test_query(dbm, "SELECT COUNT(*) FROM events.parameters WHERE instrument_id = %s",
                             (instrument_id,), 391)
 
-        self.run_test_query(dbm, "SELECT param_name FROM public.parameters WHERE instrument_id = %s AND param_id=%s",
+        self.run_test_query(dbm, "SELECT param_name FROM events.parameters WHERE instrument_id = %s AND param_id=%s",
                             (instrument_id, 184), "Laldwr")
 
-        self.run_test_query(dbm, "SELECT enum_id FROM public.parameters WHERE instrument_id = %s AND param_name = %s",
+        self.run_test_query(dbm, "SELECT enum_id FROM events.parameters WHERE instrument_id = %s AND param_name = %s",
                             (instrument_id, "FegState",), eid)
 
-        self.run_test_query(dbm, "SELECT COUNT(*) FROM public.data WHERE instrument_id = %s",
+        self.run_test_query(dbm, "SELECT COUNT(*) FROM events.data WHERE instrument_id = %s",
                             (instrument_id,), 1889)
 
-        self.run_test_query(dbm, "SELECT COUNT(*) FROM public.data WHERE instrument_id = %s and time > %s",
+        self.run_test_query(dbm, "SELECT COUNT(*) FROM events.data WHERE instrument_id = %s and time > %s",
                             (instrument_id, "2025-07-28 11:00:00+0"), 1333)
         print("[OK] database test #1")
 
     def check_db2(self, dbm: DatabaseManager, instrument_id: int):
         # check updated enums and history table
-        eid = self.run_test_query(dbm, "SELECT id FROM public.enum_types WHERE instrument_id = %s AND name= %s",
+        eid = self.run_test_query(dbm, "SELECT id FROM events.enum_types WHERE instrument_id = %s AND name= %s",
                                   (instrument_id, "FegState_enum"), expected_result=-1, do_return=True)
 
-        self.run_test_query(dbm, "SELECT value FROM public.enum_values WHERE enum_id = %s AND member_name = %s",
+        self.run_test_query(dbm, "SELECT value FROM events.enum_values WHERE enum_id = %s AND member_name = %s",
                             (eid, "Operate"), 99)
-        self.run_test_query(dbm, "SELECT value FROM public.enum_values WHERE enum_id = %s AND member_name = %s",
+        self.run_test_query(dbm, "SELECT value FROM events.enum_values WHERE enum_id = %s AND member_name = %s",
                             (eid, "Standby"), 100)
-        self.run_test_query(dbm, "SELECT value FROM public.enum_values_history WHERE enum_id = %s AND member_name = %s",
+        self.run_test_query(dbm, "SELECT value FROM events.enum_values_history WHERE enum_id = %s AND member_name = %s",
                             (eid, "Operate"), 4)
-        self.run_test_query(dbm, "SELECT value FROM public.enum_values_history WHERE enum_id = %s AND member_name = %s",
+        self.run_test_query(dbm, "SELECT value FROM events.enum_values_history WHERE enum_id = %s AND member_name = %s",
                             (eid, "Standby"), 5)
 
         # check updated params and history table
-        self.run_test_query(dbm, "SELECT abs_min FROM public.parameters WHERE instrument_id = %s AND param_id=%s",
+        self.run_test_query(dbm, "SELECT abs_min FROM events.parameters WHERE instrument_id = %s AND param_id=%s",
                             (instrument_id, 351), 250.5)
-        self.run_test_query(dbm, "SELECT abs_min FROM public.parameters_history WHERE instrument_id = %s AND param_id=%s",
+        self.run_test_query(dbm, "SELECT abs_min FROM events.parameters_history WHERE instrument_id = %s AND param_id=%s",
                             (instrument_id, 351), 273.15)
 
         print("[OK] database test #2")
@@ -162,9 +163,7 @@ class TestEMHealth(unittest.TestCase):
 
         instr_dict = parser.get_microscope_dict()
 
-        with DatabaseManager(parser.db_name,
-                             username="emhealth",
-                             password="POSTGRES_EMHEALTH_PASSWORD") as dbm:
+        with DatabaseManager(parser.db_name) as dbm:
             # first import
             instrument_id = dbm.add_instrument(instr_dict)
             enum_ids = dbm.add_enumerations(instrument_id, parser.enum_values)
@@ -190,12 +189,16 @@ class TestEMHealth(unittest.TestCase):
             self.check_db2(dbm, instrument_id)
 
             # clean-up
-            dbm.run_query("DELETE FROM public.instruments WHERE id = 9999")
+            dbm.run_query("DELETE FROM events.instruments WHERE serial = 9999")
 
-    def test_pgtap(self):
+    def test_pgtap_tem(self):
         """ Run database tests with pgTAP. """
-        MANAGER = os.getenv("MANAGER_TYPE")
         run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/*.sql"')
+
+    def test_pgtap_sem(self):
+        """ Run database tests with pgTAP. """
+        run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d sem -U postgres /sql/tests/pgtap/*.sql"')
+
 
 if __name__ == '__main__':
     unittest.main()

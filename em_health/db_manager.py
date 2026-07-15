@@ -50,7 +50,7 @@ class DatabaseManager(PgClient):
         """
         self.instrument_name = instr_dict["name"]
         instrument_id = self.run_query("""
-            INSERT INTO instruments (instrument, serial, model, name, template, server)
+            INSERT INTO events.instruments (instrument, serial, model, name, template, server)
             VALUES (%s, %s, %s, %s, %s, %s)
             ON CONFLICT (instrument) DO UPDATE SET instrument = EXCLUDED.instrument
             RETURNING id;
@@ -63,7 +63,7 @@ class DatabaseManager(PgClient):
             instr_dict["server"]
         ), mode="fetchone")[0]
 
-        logger.info("Updated public.instruments table", extra={"prefix": self.instrument_name})
+        logger.info("Updated events.instruments table", extra={"prefix": self.instrument_name})
 
         return instrument_id
 
@@ -78,25 +78,25 @@ class DatabaseManager(PgClient):
         """
         # Batch insert enum_types
         self.cur.executemany("""
-            INSERT INTO public.enum_types (instrument_id, name)
+            INSERT INTO events.enum_types (instrument_id, name)
             VALUES (%s, %s)
             ON CONFLICT DO NOTHING
         """, (
             (instrument_id, enum_name)
             for enum_name in enums_dict.keys()
         ))
-        logger.info("Updated public.enum_types table (%d rows)", self.cur.rowcount,
+        logger.info("Updated events.enum_types table (%d rows)", self.cur.rowcount,
                     extra={"prefix": self.instrument_name})
 
         # Fetch IDs for ALL enums
-        rows = self.run_query("SELECT id, name FROM public.enum_types WHERE instrument_id = %s",
+        rows = self.run_query("SELECT id, name FROM events.enum_types WHERE instrument_id = %s",
                               values=(instrument_id,),
                               mode="fetchall")
         enum_name_to_id = {name: eid for eid, name in rows}
 
         # Batch insert enum_values
         self.cur.executemany("""
-            INSERT INTO public.enum_values (enum_id, member_name, value)
+            INSERT INTO events.enum_values (enum_id, member_name, value)
             VALUES (%s, %s, %s)
         """, (
             (enum_name_to_id[enum_name], member_name, value)
@@ -104,7 +104,7 @@ class DatabaseManager(PgClient):
             for member_name, value in data.items()
         ))
 
-        logger.info("Updated public.enum_values table (%d rows)", self.cur.rowcount,
+        logger.info("Updated events.enum_values table (%d rows)", self.cur.rowcount,
                     extra={"prefix": self.instrument_name})
 
         self.conn.commit()
@@ -121,7 +121,7 @@ class DatabaseManager(PgClient):
         :param enums_ids: input enums dict
         """
         insert_sql = """
-            INSERT INTO public.parameters (
+            INSERT INTO events.parameters (
                 instrument_id, param_id,
                 subsystem, component, param_name, display_name,
                 display_unit, storage_unit, enum_id, value_type,
@@ -152,7 +152,7 @@ class DatabaseManager(PgClient):
 
         self.cur.executemany(insert_sql, data_to_insert)
         self.conn.commit()
-        logger.info("Updated public.parameters table (%d rows)", self.cur.rowcount,
+        logger.info("Updated events.parameters table (%d rows)", self.cur.rowcount,
                     extra={"prefix": self.instrument_name})
 
     #@profile
@@ -171,7 +171,7 @@ class DatabaseManager(PgClient):
         """
         if nocopy:
             query = """
-                INSERT INTO public.data (time, instrument_id, param_id, value_num, value_text)
+                INSERT INTO events.data (time, instrument_id, param_id, value_num, value_text)
                 VALUES (%s, %s, %s, %s, %s)
                 ON CONFLICT DO NOTHING
             """
@@ -181,7 +181,7 @@ class DatabaseManager(PgClient):
         else:
             # staging table can have duplicate rows, they will be omitted later
             query = """
-                COPY public.data_staging (time, instrument_id, param_id, value_num, value_text)
+                COPY events.data_staging (time, instrument_id, param_id, value_num, value_text)
                 FROM STDIN WITH (FORMAT text)
             """
 
@@ -215,39 +215,30 @@ class DatabaseManager(PgClient):
                 for chunk in stream_chunks(rows, max_size):
                     copy.write(chunk)
             t1 = time.perf_counter()
-            logger.debug(f"COPY to public.data_staging done in: {t1-t0:.4f} s")
+            logger.debug(f"COPY to events.data_staging done in: {t1-t0:.4f} s")
 
             # order by time before inserting to minimize Timescale switches between chunks
             query = """
-                        INSERT INTO public.data(time, instrument_id, param_id, value_num, value_text)
+                        INSERT INTO events.data(time, instrument_id, param_id, value_num, value_text)
                         SELECT time, instrument_id, param_id, value_num, value_text
-                        FROM data_staging
+                        FROM events.data_staging
                         ORDER BY time
                         ON CONFLICT DO NOTHING;
-                        TRUNCATE TABLE data_staging;
+                        TRUNCATE TABLE events.data_staging;
                     """
             self.cur.execute(query)
             self.conn.commit()
             t2 = time.perf_counter()
-            logger.debug(f"INSERT into public.data done in: {t2-t1:.4f} s")
+            logger.debug(f"INSERT into events.data done in: {t2-t1:.4f} s")
 
-        logger.info("Updated public.data table (%d rows)", self.cur.rowcount,
+        logger.info("Updated events.data table (%d rows)", self.cur.rowcount,
                     extra={"prefix": self.instrument_name})
 
-    @staticmethod
-    def get_fullname(name: str) -> str:
-        """ Return fully qualified name. """
-        if "." in name:
-            schema, name = name.split(".", 1)
-        else:
-            schema = "public"
-
-        return f"{schema}.{name}"
-
-    def drop_mview(self, name: str, is_cagg: bool = False) -> None:
+    def drop_mview(self, view: str, is_cagg: bool = False) -> None:
         """ Delete a materialized view. """
-        self.run_query("DROP MATERIALIZED VIEW IF EXISTS {name} CASCADE",
-                       {"name": name})
+        schema, name = view.split(".")
+        self.run_query("DROP MATERIALIZED VIEW IF EXISTS {schema}.{name} CASCADE",
+                       {"schema": schema, "name": name})
         if not is_cagg:
             # for standard mat. views we need to manually remove the job
             proc = f"refresh_{name}"
@@ -257,12 +248,14 @@ class DatabaseManager(PgClient):
                 WHERE proc_name = {proc}
             """, strings={"proc": proc})
 
-            self.run_query("DROP PROCEDURE IF EXISTS {name}", {"name": name})
+            self.run_query("DROP PROCEDURE IF EXISTS {schema}.{name}",
+                           {"schema": schema, "name": name})
 
-        logger.info("Dropped materialized view %s", self.get_fullname(name))
+        logger.info("Dropped MVIEW %s", view)
 
-    def schedule_mview_refresh(self, name: str, interval: str = "12 hours") -> None:
+    def schedule_mview_refresh(self, view: str, interval: str = "12 hours") -> None:
         """ Schedule a materialized view refresh. """
+        schema, name = view.split(".")
         proc = f"refresh_{name}"
 
         self.run_query("""
@@ -272,21 +265,21 @@ class DatabaseManager(PgClient):
             )
             LANGUAGE SQL
             AS $$
-              REFRESH MATERIALIZED VIEW {name};
+              REFRESH MATERIALIZED VIEW {schema}.{name};
             $$;
-        """, {"proc": proc, "name": name})
+        """, {"proc": proc, "schema": schema, "name": name})
 
         self.run_query("SELECT add_job({proc}, {period})",
                        strings={"proc": proc, "period": interval})
-        logger.info("Scheduled refresh for %s every %s", self.get_fullname(name), interval)
+        logger.info("Scheduled MVIEW refresh for %s every %s", view, interval)
 
     def schedule_cagg_refresh(self,
-                              name: str,
+                              view: str,
                               start_offset: str = "4 days",
                               end_offset: str = "1 day",
                               interval: str = "12 hours") -> None:
         """ Schedule a cont. aggregate refresh.
-        :param name:
+        :param view:
         :param start_offset: data before start offset will not be recalculated
         :param end_offset: data after end offset is not included
         :param interval: refresh interval
@@ -303,46 +296,42 @@ class DatabaseManager(PgClient):
         We refresh every 12h since we want minimal latency before yesterday's stats are available
         """
         self.run_query("""
-            SELECT add_continuous_aggregate_policy({name},
+            SELECT add_continuous_aggregate_policy({view},
             start_offset => INTERVAL {start_offset},
             end_offset => INTERVAL {end_offset},
             schedule_interval => INTERVAL {schedule_interval})
         """, strings={
-            "name": name,
+            "view": view,
             "start_offset": start_offset,
             "end_offset": end_offset,
             "schedule_interval": interval
         })
-        logger.info("Scheduled continuous aggregate refresh for %s", self.get_fullname(name))
+        logger.info("Scheduled CAGG refresh for %s every %s", view, interval)
 
-    def force_refresh_cagg(self, name: str) -> None:
+    def force_refresh_cagg(self, view: str) -> None:
         """ Force a cont. aggregate refresh.
         The WITH NO DATA option allows the continuous aggregate to be created
         instantly, so you don't have to wait for the data to be aggregated.
         Here we aggregate all historical data that has been imported so far.
         """
         self.conn.autocommit = True  # required since CALL cannot be executed inside a transaction
-        self.run_query("CALL refresh_continuous_aggregate({name}, NULL, NULL)",
-                       strings={"name": name})
+        self.run_query("CALL refresh_continuous_aggregate({view}, NULL, NULL)",
+                       strings={"view": view})
         self.conn.autocommit = False
-        logger.info("Forced continuous aggregate refresh for %s", self.get_fullname(name))
+        logger.info("Forced CAGG refresh for %s", view)
 
-    def enable_rt_cagg(self, name: str) -> None:
+    def enable_rt_cagg(self, view: str) -> None:
         """ Real-time aggregates automatically add the most recent data when
         you query your continuous aggregate. """
-        self.run_query("ALTER MATERIALIZED VIEW {name} set (timescaledb.materialized_only = false)",
-                       {"name": name})
+        schema, name = view.split(".")
+        self.run_query("ALTER MATERIALIZED VIEW {schema}.{name} set (timescaledb.materialized_only = false)",
+                       {"schema": schema, "name": name})
 
-    def create_mview(self, name: str, target: str) -> None:
+    def create_mview(self, view: str, target: str) -> None:
         """ Create a new materialized view or a continuous aggregate. """
-        if "." in name:
-            schema, name = name.split(".", 1)
-        else:
-            schema = "public"
-
         view_fn = self.get_path(target)
         self.execute_file(view_fn)
-        logger.info("Created materialized view %s.%s", schema, name)
+        logger.info("Created MVIEW %s", view)
 
     def migrate_db(self, latest_ver: int):
         """ Migrate db to the latest version. """
@@ -366,12 +355,12 @@ class DatabaseManager(PgClient):
             exit(0)
 
         servers = self.run_query("""
-            SELECT id, server FROM public.instruments
+            SELECT id, server FROM events.instruments
             WHERE server IS NOT NULL
         """, mode="fetchall")
 
         if not servers:
-            raise ValueError("No servers found in the public.instrument table")
+            raise ValueError("No servers found in the events.instruments table")
 
         from em_health.fdw_manager import FDWManager
 
@@ -385,13 +374,13 @@ class DatabaseManager(PgClient):
 
     def prune_data(self, days: int) -> None:
         """ Prune old data from a database. """
-        chunks_dropped = self.run_query("SELECT purge_old_chunks('public.data', %s)",
+        chunks_dropped = self.run_query("SELECT events.purge_old_chunks('events.data', %s)",
                                         values=(days,), mode='fetchone')
         self.run_query("DELETE FROM uec.errors WHERE time < (current_timestamp - INTERVAL '{days} days')",
                        strings={'days': days})
 
         self.conn.commit()
-        logger.debug("Removed %s chunks (%s rows)", chunks_dropped[0], self.cur.rowcount)
+        logger.debug("Removed %s chunks from events.data; %s rows from uec.errors", chunks_dropped[0], self.cur.rowcount)
 
 
 def main(dbname, action, days=None):
@@ -400,73 +389,72 @@ def main(dbname, action, days=None):
         mviews = {
             "tem": {
                 # name: is_cagg
-                "em_off_daily": True,
-                "em_off": False, # depends on em_off_daily
-                "epu_sessions": False,
-                "tomo_sessions": False,
-                "load_counters_daily": True,
-                "data_counters_daily": True,
-                "image_counters_daily": True,
-                "epu_state_daily": True,
-                "tomo_state_daily": True,
-                "tem_cryocycle_daily": True,
-                "tem_pressure_hourly": True,
-                "tem_pressure_daily": True, # depends on tem_pressure_hourly
-                #"tem_feg_counter_daily": True,
+                "events.em_off_daily": True,
+                "events.em_off": False, # depends on em_off_daily
+                "events.epu_sessions": False,
+                "events.tomo_sessions": False,
+                "events.load_counters_daily": True,
+                "events.data_counters_daily": True,
+                "events.image_counters_daily": True,
+                "events.epu_state_daily": True,
+                "events.tomo_state_daily": True,
+                "events.tem_cryocycle_daily": True,
+                "events.tem_pressure_hourly": True,
+                "events.tem_pressure_daily": True, # depends on tem_pressure_hourly
+                #"events.tem_feg_counter_daily": True,
 
                 # Depends on em_off
-                "vacuum_state_daily": False,
+                "events.vacuum_state_daily": False,
 
                 # Depend on *_sessions
-                "epu_runs": False,
-                "epud_runs": False,
-                "tomo_runs": False,
-                "epu_counters": False,
-                "tomo_counters": False,
+                "events.epu_runs": False,
+                "events.epud_runs": False,
+                "events.tomo_runs": False,
+                "events.epu_counters": False,
+                "events.tomo_counters": False,
 
                 # Depend on *_state_daily
-                "epu_running_daily": False,
-                "tomo_running_daily": False,
+                "events.epu_running_daily": False,
+                "events.tomo_running_daily": False,
             },
             "sem": {
-                "em_off_daily": True,
-                "em_off": False, # depends on em_off_daily
-                "load_counters_daily": True,
-                "fib_baa_counters_daily": True,
-                "fib_bda_counters_daily": True,
-                "gis_counters_daily": True,
-                "fib_beam_daily": True,
-                "sem_beam_daily": True,
-                "flm_beam_daily": True,
-                "sem_cryocycle_al_daily": True,
-                "sem_cryocycle_noal_daily": True,
-                "sem_chamber_state_daily": True,
-                "sem_pressure_hourly": True,
-                "sem_pressure_daily": True, # depends on sem_pressure_hourly
-                #"sem_source_counter_daily": True,
-                #"fibsem_apertures_daily": True,
+                "events.em_off_daily": True,
+                "events.em_off": False, # depends on em_off_daily
+                "events.load_counters_daily": True,
+                "events.fib_baa_counters_daily": True,
+                "events.fib_bda_counters_daily": True,
+                "events.gis_counters_daily": True,
+                "events.fib_beam_daily": True,
+                "events.sem_beam_daily": True,
+                "events.flm_beam_daily": True,
+                "events.sem_cryocycle_al_daily": True,
+                "events.sem_cryocycle_noal_daily": True,
+                "events.sem_chamber_state_daily": True,
+                "events.sem_pressure_hourly": True,
+                "events.sem_pressure_daily": True, # depends on sem_pressure_hourly
+                #"events.sem_source_counter_daily": True,
+                #"events.fibsem_apertures_daily": True,
 
                 # Depends on the views above
-                "sem_beamtime_daily": False,
+                "events.sem_beamtime_daily": False,
             }
         }
 
         with DatabaseManager(dbname) as db:
             for view, is_cagg in mviews[dbname].items():
+                schema, name = view.split(".")
                 db.drop_mview(view)
                 if is_cagg:
-                    db.create_mview(view, f"public/cagg/{view}.sql")
+                    db.create_mview(view, f"{schema}/cagg/{name}.sql")
                     db.force_refresh_cagg(view)
-                    if view.endswith("hourly"):
+                    if name.endswith("hourly"):
                         db.schedule_cagg_refresh(view, start_offset="6 hours", end_offset="1 hour", interval="1 hour")
-                    elif view.endswith("daily"):
+                    elif name.endswith("daily"):
                         db.schedule_cagg_refresh(view, start_offset="4 days",  end_offset="1 day", interval="12 hours")
                     db.enable_rt_cagg(view)
                 else:
-                    db.create_mview(view, f"public/mviews/{view}.sql")
+                    db.create_mview(view, f"{schema}/mviews/{name}.sql")
                     db.schedule_mview_refresh(view)
-                db.run_query("GRANT SELECT ON public.{view} TO grafana",
-                             {"view": view})
 
     elif action == "erase":
         print(f"!!! WARNING: You are about to DELETE ALL DATA from database {dbname} !!!")
@@ -487,11 +475,13 @@ def main(dbname, action, days=None):
     elif action == "migrate":
         latest_ver = os.getenv(f"{dbname.upper()}_SCHEMA_VERSION")
         if latest_ver is not None:
-            with DatabaseManager(dbname) as db:
+            # requires superuser permissions
+            with DatabaseManager(dbname, username="postgres", password="POSTGRES_PASSWORD") as db:
                 db.migrate_db(int(latest_ver))
         else:
             raise ValueError("Could not get latest schema version")
 
     elif action == "import-uec":
-        with DatabaseManager(dbname) as db:
+        # requires superuser permissions to create FDW
+        with DatabaseManager(dbname, username="postgres", password="POSTGRES_PASSWORD") as db:
             db.import_uec()

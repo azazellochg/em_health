@@ -69,7 +69,7 @@ class FDWManager:
 
             CREATE USER MAPPING IF NOT EXISTS FOR public
             SERVER {name}
-            OPTIONS (username {user}, password {password});
+            OPTIONS (username {user}, password {password}, row_estimate_method 'showplan_all');
         """, identifiers={"name": self.name}, strings={
             "server": self.server,
             "user": user,
@@ -94,7 +94,7 @@ class FDWManager:
 
             CREATE USER MAPPING IF NOT EXISTS FOR public
             SERVER {name}
-            OPTIONS (user {user}, password {password});
+            OPTIONS (user {user}, password {password}, application_name 'EMHealth');
         """, identifiers={"name": self.name}, strings={
             "server": self.server,
             "user": user,
@@ -234,10 +234,11 @@ class FDWManager:
                 value_string AS value_text
             FROM {schema}.event_property
             WHERE event_dtm > COALESCE(
-                (SELECT MAX(time) FROM public.data WHERE instrument_id = {instr_id}),
+                (SELECT MAX(time) FROM events.data WHERE instrument_id = {instr_id}),
                 '1900-01-01'
             )
-        """,{"schema": self.fdw_schema},
+        """,
+                                  {"schema": self.fdw_schema},
                                   strings={"instr_id": self.instr_id},
                                   mode="fetchall")
 

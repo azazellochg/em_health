@@ -43,7 +43,7 @@ from em_health.utils.tools import logger, run_command
 
 DB_NAME = "benchmark"
 DB_USER = "postgres"
-DB_PASS = "postgres"
+DB_PASS = "POSTGRES_PASSWORD"
 DEFAULT_FILENAME = "simulated_data.csv"
 MANAGER = os.getenv("MANAGER_TYPE")
 
@@ -247,7 +247,7 @@ class Benchmark:
         def setup_table(dbm: DatabaseManager):
             dbm.run_query(
                 """
-                CREATE TABLE IF NOT EXISTS public.data_staging (
+                CREATE TABLE IF NOT EXISTS events.data_staging (
                     time TIMESTAMPTZ NOT NULL,
                     instrument_id INTEGER NOT NULL,
                     param_id INTEGER NOT NULL,
@@ -302,7 +302,7 @@ class Benchmark:
         chunk_size = self.batch
         header = f"--COPY_{chunk_size}"
         query = f"""{header}
-            COPY public.data_staging (time, instrument_id, param_id, value_num, value_text)
+            COPY events.data_staging (time, instrument_id, param_id, value_num, value_text)
             FROM STDIN WITH CSV NULL ''
         """
         with dbm.cur.copy(query) as copy:
@@ -314,7 +314,7 @@ class Benchmark:
     def insert_executemany(self, dbm: DatabaseManager) -> Tuple[int, str]:
         header = f"--EXECMANY_{self.batch}"
         query = f"""{header}
-            INSERT INTO public.data_staging (time, instrument_id, param_id, value_num, value_text)
+            INSERT INTO events.data_staging (time, instrument_id, param_id, value_num, value_text)
             VALUES (%s, %s, %s, %s, %s)
             ON CONFLICT DO NOTHING
         """
@@ -328,7 +328,7 @@ class Benchmark:
     def insert_unnest(self, dbm: DatabaseManager) -> Tuple[int, str]:
         header = f"--UNNEST_{self.batch}"
         query = f"""{header}
-            INSERT INTO public.data_staging (time, instrument_id, param_id, value_num, value_text)
+            INSERT INTO events.data_staging (time, instrument_id, param_id, value_num, value_text)
             SELECT * FROM unnest(%s::timestamp[], %s::int[], %s::int[], %s::float[], %s::text[])
             ON CONFLICT DO NOTHING
         """
@@ -389,9 +389,9 @@ class TestPerformance:
         for _ in range(trials):
             self.bench.create_test_db()
             with DatabaseManager(db_name=DB_NAME, username=DB_USER, password=DB_PASS) as dbm:
-                logger.info("Creating public tables in the benchmark db")
+                logger.info("Creating events tables in the benchmark db")
                 dbm.execute_file(
-                    dbm.get_path("public/create_tables.sql"),
+                    dbm.get_path("events/create_tables.sql"),
                     {
                         "var_data_chunk_size": table_chunk_size,
                         "var_data_compression": table_compression,
@@ -432,7 +432,3 @@ class TestPerformance:
             f"\tAvg time over {summary['trials']} runs: {summary['avg_time']:.4f} s\n"
             f"\tAvg performance: {summary['avg_tps']:,.4f} rows/s\n"
         )
-
-    def test_query(self):
-        """ Test common queries execution. """
-        pass

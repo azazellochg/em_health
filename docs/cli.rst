@@ -71,7 +71,7 @@ Update EMHealth
 Description
 ^^^^^^^^^^^
 
-Make sure to run `pip install -U em_health` before running this command. The update script will migrate the databases schema to the latest
+Make sure to run `git pull origin master` from the installation folder before running this command. The update command below will migrate the databases schema to the latest
 version and update container images.
 
 Syntax
@@ -126,7 +126,7 @@ Backup
 Description
 ^^^^^^^^^^^
 
-Perform a logical backup of TimescaleDB (both TEM and SEM) and a physical backup of Grafana databases. The backups are saved into `BACKUP_DIR` folder.
+Perform a logical backup of TimescaleDB (both TEM and SEM) or a physical backup of Grafana databases. The backups are saved into `BACKUP_DIR` folder.
 
 Syntax
 ^^^^^^
@@ -134,6 +134,7 @@ Syntax
 .. code-block::
 
     emhealth db -d tem backup
+    emhealth db -d grafana backup
 
 ----
 
@@ -200,6 +201,7 @@ Description
 
 The periodic database statistics collection is enabled by default. Below command can be used if you
 modify the pganalyze tables or functions and want to update the jobs. The output is used in dashboards under *DB performance* folder.
+Optional `f` flag will erase existing database statistics.
 
 Syntax
 ^^^^^^
@@ -235,26 +237,8 @@ Import Alarms
 Universal Error Codes (UECs) or Alarms from an instrument are stored (from TEM server 6.2) in a database separate from Health Monitor events and
 can be typically displayed with UEC Viewer. If you have the credentials to access the MSSQL server on MPC,
 you can import UECs from MSSQL into ``EMHealth`` database. To make it work, MSSQL_USER and MSSQL_PASSWORD (in the `docker/.env`) have to be defined,
-as well as the *server* field for each instrument in the `instruments.json`.
+as well as the *server* field with IP address for each instrument in the `instruments.json`.
 
 .. code-block::
 
     emhealth dev -d tem import-uec
-
-----
-
-Execute queries
-~~~~~~~~~~~~~~~
-
-Description
-^^^^^^^^^^^
-
-If you have a long query and/or too lazy to use the `psql` client, you can edit **db_analyze.py** and then use the commands below.
-
-Syntax
-^^^^^^
-
-.. code-block::
-
-    emhealth dev -d tem run-query
-    emhealth dev -d tem explain-query

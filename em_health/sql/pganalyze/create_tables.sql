@@ -1,7 +1,5 @@
-CREATE SCHEMA IF NOT EXISTS pganalyze;
-
 -- Create tables
-CREATE TABLE pganalyze.database_stats (
+CREATE TABLE IF NOT EXISTS pganalyze.database_stats (
                                           collected_at    TIMESTAMPTZ      DEFAULT now() PRIMARY KEY,
                                           xact_commit     BIGINT           NOT NULL,
                                           xact_rollback   BIGINT           NOT NULL,
@@ -23,7 +21,7 @@ CREATE TABLE pganalyze.database_stats (
                                           wal_lsn         pg_lsn           NOT NULL
 );
 
-CREATE TABLE pganalyze.table_stats (
+CREATE TABLE IF NOT EXISTS pganalyze.table_stats (
                                        collected_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
                                        relid           OID         NOT NULL,
                                        table_bytes     BIGINT      NOT NULL,
@@ -35,7 +33,7 @@ CREATE TABLE pganalyze.table_stats (
                                        PRIMARY KEY (relid, collected_at)
 );
 
-CREATE TABLE pganalyze.index_stats (
+CREATE TABLE IF NOT EXISTS pganalyze.index_stats (
                                        collected_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
                                        indexrelid           OID         NOT NULL,
                                        relid                OID         NOT NULL,
@@ -48,7 +46,7 @@ CREATE TABLE pganalyze.index_stats (
                                        PRIMARY KEY (indexrelid, collected_at)
 );
 
-CREATE TABLE pganalyze.vacuum_stats (
+CREATE TABLE IF NOT EXISTS pganalyze.vacuum_stats (
                                         relid                   OID         NOT NULL,
                                         started_at              TIMESTAMPTZ NOT NULL,
                                         finished_at             TIMESTAMPTZ NOT NULL,
@@ -61,7 +59,7 @@ CREATE TABLE pganalyze.vacuum_stats (
                                         PRIMARY KEY (relid, started_at)
 );
 
-CREATE TABLE pganalyze.stat_snapshots (
+CREATE TABLE IF NOT EXISTS pganalyze.stat_snapshots (
                                            collected_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
                                            calls                   BIGINT      NOT NULL,
                                            total_plan_time         DOUBLE PRECISION NOT NULL,
@@ -93,11 +91,11 @@ CREATE TABLE pganalyze.stat_snapshots (
 SELECT add_retention_policy('pganalyze.stat_snapshots', drop_after => INTERVAL :var_pgstats_retention);
 
 CREATE TABLE IF NOT EXISTS pganalyze.queries (
-                                                 queryid BIGINT NOT NULL PRIMARY KEY,
-                                                 query TEXT
+                                   queryid BIGINT NOT NULL PRIMARY KEY,
+                                   query TEXT
 );
 
-CREATE TABLE pganalyze.stat_statements (
+CREATE TABLE IF NOT EXISTS pganalyze.stat_statements (
                                            collected_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
                                            userid                  OID         NOT NULL,
                                            queryid                 BIGINT NOT NULL REFERENCES pganalyze.queries(queryid) ON DELETE CASCADE,
@@ -134,7 +132,7 @@ CREATE TABLE pganalyze.stat_statements (
 
 SELECT add_retention_policy('pganalyze.stat_statements', drop_after => INTERVAL :var_pgstats_retention);
 
-CREATE TABLE pganalyze.stat_explains (
+CREATE TABLE IF NOT EXISTS pganalyze.stat_explains (
                                          time           TIMESTAMPTZ NOT NULL,
                                          queryid        BIGINT NOT NULL REFERENCES pganalyze.queries(queryid) ON DELETE CASCADE,
                                          duration       DOUBLE PRECISION NOT NULL,
@@ -145,7 +143,7 @@ CREATE TABLE pganalyze.stat_explains (
                                          PRIMARY KEY (queryid, time)
 );
 
-CREATE TABLE pganalyze.sys_stats (
+CREATE TABLE IF NOT EXISTS pganalyze.sys_stats (
                                      time       TIMESTAMPTZ NOT NULL DEFAULT now() UNIQUE,
                                      load1      DOUBLE PRECISION NOT NULL,
                                      load5      DOUBLE PRECISION NOT NULL,

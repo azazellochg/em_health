@@ -1,8 +1,9 @@
 #!/bin/sh
 set -eu
 
-# Create pgBackRest stanza
-pgbackrest --stanza=main stanza-create || pgbackrest --stanza=main stanza-upgrade
+echo "Create or upgrade pgBackRest stanza..."
+pgbackrest --stanza=main stanza-create || :
+pgbackrest --stanza=main stanza-upgrade
 pgbackrest --stanza=main check
 
 psql -v ON_ERROR_STOP=1 <<EOSQL
@@ -13,7 +14,7 @@ psql -v ON_ERROR_STOP=1 <<EOSQL
     CREATE ROLE pganalyze WITH LOGIN PASSWORD '${POSTGRES_PGANALYZE_PASSWORD}' CONNECTION LIMIT 5;
     GRANT pg_stat_scan_tables TO grafana;
     GRANT pg_read_all_stats TO grafana;
-    GRANT pg_monitor TO pganalyze;
+    GRANT pg_monitor, pg_read_server_files TO pganalyze;
 EOSQL
 
 for db in tem sem; do
@@ -24,14 +25,6 @@ for db in tem sem; do
   -v var_pgstats_chunk_size="'${TBL_STATS_CHUNK_SIZE}'" \
   -v var_pgstats_retention="'${TBL_STATS_RETENTION}'" \
   --dbname="$db" -f /sql/init_db.sql
-done
-
-for db in tem sem; do
-  echo "Scheduling jobs as pganalyze user for: $db"
-  PGPASSWORD="${POSTGRES_PGANALYZE_PASSWORD}" \
-  psql -v ON_ERROR_STOP=1 \
-  -U pganalyze \
-  --dbname="$db" -f /sql/pganalyze/create_jobs.sql
 done
 
 echo "Running timescaledb-tune..."

@@ -7,19 +7,19 @@ Changing Dashboards
 ^^^^^^^^^^^^^^^^^^^
 
 By default, the provisioned dashboards are read-only. If you set **EMHEALTH_DEBUG=true** in the `docker/.env`, you can modify and save changes via the Grafana UI.
-However, if you then update the provisioned dashboards (e.g. via `pip install -U em_health`), the changes made via UI will be lost. See details
+However, if you then update the provisioned dashboards (e.g. via `git pull`), the changes made via UI will be lost. See details
 `here <https://grafana.com/docs/grafana/latest/administration/provisioning/#make-changes-to-a-provisioned-dashboard>`_. The workaround is the following:
 
 1. Make changes to a dashboard via Grafana UI.
-2. Save and export dashboard to JSON using `Export > Export as code` (DO NOT toggle `Export for sharing externally`).
+2. Save and export dashboard to JSON using `Export > Export as code`, toggle `Share dashboard with another instance`.
 3. Overwrite existing dashboard file (they are in `docker/grafana/provisioning/dashboards/`) with the saved json file.
 
 Any file changes in the provisioning folder are immediately picked up by Grafana. There's no need to restart it.
 
 There are a few limitations:
 
-* You cannot create nested folders for dashboards. Only single level depth is supported.
-* You should not rename dashboards or folders via GUI as this will conflict with provisioned files. Do it directly on the files if really needed.
+* You can create nested folders for dashboards. `Max level depth is 4 <https://grafana.com/docs/grafana/latest/administration/provisioning/#provision-folders-structure-from-filesystem-to-grafana>`_.
+* You should not rename dashboards or folders via GUI as this will conflict with provisioned files. Do it directly in the files if really needed.
 * Some provisioned resources (alerts, contact points, datasources) cannot be modified from the GUI. You can create new ones though.
 
 
@@ -78,9 +78,12 @@ Database structure
 
 We have two databases: *tem* and *sem*, both have the same structure at the moment. Each database has several schemas:
 
-* public - default schema for storing HM events data
+* public - default schema
 
     * schema_info - table to store the current schema version
+
+* events - schema for storing HM events data
+
     * instruments - global metadata for each microscope
     * enum_types - enumeration names for each instrument
     * enum_values - enumeration values for each enum
@@ -222,4 +225,7 @@ Interpreting results
 Import HM data from PostgreSQL
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-On a MPC running Windows 10 and TEM server 7.2+, the health monitor data is stored in a PostgreSQL database and linked to MSSQL using foreign-data wrapper (DSPostgres)
+.. note:: This functionality is currently under development
+
+On a MPC running Windows 10 and TEM server 7.2+, the health monitor data (not UEC) is stored in a PostgreSQL
+database and linked to MSSQL using foreign-data wrapper (DSPostgres). The client to import this data directly from MPC is under development.

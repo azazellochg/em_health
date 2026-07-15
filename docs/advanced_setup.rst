@@ -28,12 +28,12 @@ Instruments Configuration
 - **name**: custom field, used for display purposes. You can customize this.
 - **type**: database name. "tem" or "sem" only.
 - **template**: microscope platform. Allowed values are "krios", "talos", "tundra", "sdb", "pfib". See examples in `instruments.json`
-- **server**: Optional field. IP address of the microscope PC (#1 on the screenshot above). This is used to connect to MSSQL/PostgreSQL servers on the MPC directly.
+- **server**: Optional field. IP address of the microscope PC (#1 on the screenshot above). This is used to directly connect to MSSQL/PostgreSQL servers on the MPC.
 
 Security Configuration
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. important:: While we provided example placeholder passwords and keys in the `docker/.env_example` file, you should NEVER start EMHealth using these defaults.
+.. important:: While we provide example placeholder passwords and keys in the `docker/.env_example` file, you should NEVER start EMHealth using these defaults.
 
 - DB accounts:
 
@@ -55,7 +55,7 @@ We provide a couple of scripts to simplify credentials configuration. The one be
 
     sh em_health/utils/generate-keys.sh
 
-If you already have a running EMHealth installation and would like to use the new values from `docker/.env`, run:
+To use the new values from `docker/.env`, run:
 
 .. code-block:: bash
 
@@ -65,7 +65,7 @@ If you already have a running EMHealth installation and would like to use the ne
 Creating a Windows Task
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-To create a new task in Windows Task Scheduler:
+To create a new task in Windows 10/11 Task Scheduler:
 
 1. Open Computer Management -> System Tools -> Task Scheduler -> Task Scheduler Library
 2. Right click and select `Create New Task`
@@ -77,7 +77,7 @@ To create a new task in Windows Task Scheduler:
 
 .. image:: /_static/task-02.png
 
-5. On the *Action* tab add a new action to start a program. Enter full path to the created batch script
+5. On the *Action* tab add a new action to start the program. Enter full path to the created batch script
 
 .. image:: /_static/task-03.png
 

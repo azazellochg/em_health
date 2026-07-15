@@ -79,7 +79,7 @@ BEGIN
 
         PERFORM disable_chunk_skipping('public.data', 'instrument_id');
 
-        -- 6. Replace unique constraint on data. param_id is equality constraint with highest cardinality
+        -- 6. Replace unique constraint on data. param_id is equality constraint with the highest cardinality
         ALTER TABLE data DROP CONSTRAINT data_time_instrument_id_param_id_key;
         ALTER TABLE data ADD UNIQUE (param_id, instrument_id, time);
 
