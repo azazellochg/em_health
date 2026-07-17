@@ -21,3 +21,4 @@ emhealth.log
 *.cmd
 em_health/instruments.json
 docker/.env
+docker/.env.old
