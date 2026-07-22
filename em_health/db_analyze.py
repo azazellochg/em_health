@@ -86,7 +86,8 @@ class DatabaseAnalyzer(DatabaseManager):
     def delete_jobs(self) -> None:
         """ Delete existing jobs. """
         jobs = self.run_query(
-            "SELECT job_id FROM timescaledb_information.jobs WHERE proc_schema = 'pganalyze'",
+            "SELECT job_id FROM timescaledb_information.jobs WHERE proc_schema = %s",
+            values=('pganalyze',),
             mode="fetchall")
 
         if jobs:

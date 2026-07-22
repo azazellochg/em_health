@@ -290,9 +290,10 @@ class Benchmark:
                        total_exec_time/NULLIF(calls, 0) AS exec_time
                 FROM pg_stat_statements s
                 JOIN pg_database d ON s.dbid = d.oid
-                WHERE d.datname = '{DB_NAME}'
-                  AND s.query LIKE '{header}%'
+                WHERE d.datname = %s
+                  AND s.query LIKE %s
                 """,
+                values=(DB_NAME, f"{header}%"),
                 mode="fetchall",
             )
         return r[0] if r else (0, 0, 0)

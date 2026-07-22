@@ -160,7 +160,7 @@ class PgClient(BaseDBClient):
         format_args = {}
 
         if identifiers:
-            format_args.update({k: sql.Identifier(v) for k, v in identifiers.items()})
+            format_args.update({k: sql.Identifier(*v.split(".")) for k, v in identifiers.items()})
         if strings:
             format_args.update({k: sql.Literal(v) for k, v in strings.items()})
 
