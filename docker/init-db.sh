@@ -21,7 +21,6 @@ for db in tem sem; do
   echo "Creating initial db structure for: $db"
   psql -v ON_ERROR_STOP=1 \
   -v var_data_chunk_size="'${TBL_DATA_CHUNK_SIZE}'" \
-  -v var_pgsnaps_chunk_size="'${TBL_SNAPS_CHUNK_SIZE}'" \
   -v var_pgstats_chunk_size="'${TBL_STATS_CHUNK_SIZE}'" \
   -v var_pgstats_retention="'${TBL_STATS_RETENTION}'" \
   --dbname="$db" -f /sql/init_db.sql

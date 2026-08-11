@@ -468,6 +468,9 @@ BEGIN
     DELETE FROM pganalyze.stat_explains
     WHERE time < NOW() - drop_after;
 
+    DELETE FROM pganalyze.stat_snapshots
+    WHERE collected_at < NOW() - drop_after;
+
     DELETE FROM pganalyze.sys_stats
     WHERE time < NOW() - drop_after;
 END;

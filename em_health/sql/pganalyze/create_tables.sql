@@ -81,14 +81,7 @@ CREATE TABLE IF NOT EXISTS pganalyze.stat_snapshots (
                                            wal_fpi                 BIGINT      NOT NULL,
                                            wal_bytes               NUMERIC     NOT NULL,
                                            stats_reset             TIMESTAMPTZ NOT NULL
-) WITH (
-                                             tsdb.hypertable,
-                                             tsdb.chunk_interval=:var_pgsnaps_chunk_size,
-                                             tsdb.partition_column='collected_at',
-                                             tsdb.orderby='collected_at DESC'
-                                             );
-
-SELECT add_retention_policy('pganalyze.stat_snapshots', drop_after => INTERVAL :var_pgstats_retention);
+);
 
 CREATE TABLE IF NOT EXISTS pganalyze.queries (
                                    queryid BIGINT NOT NULL PRIMARY KEY,

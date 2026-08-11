@@ -32,8 +32,8 @@ from typing import Iterable, Any
 from em_health.db_client import PgClient
 from em_health.utils.tools import logger, profile
 
-TEM_SCHEMA_VERSION = 5
-SEM_SCHEMA_VERSION = 5
+TEM_SCHEMA_VERSION = 6
+SEM_SCHEMA_VERSION = 6
 
 
 class DatabaseManager(PgClient):
