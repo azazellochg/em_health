@@ -104,7 +104,38 @@ $sql$;
 
         PERFORM add_job('pganalyze.purge_stats', schedule_interval=>'1 day'::interval, config => '{"drop_after":"3 months"}');
 
-        -- 4. Update schema version
+        -- 4. Fix constraint for events.enum_values
+        ALTER TABLE events.enum_values
+            DROP CONSTRAINT enum_values_enum_id_member_name_value_key;
+        ALTER TABLE events.enum_values
+            ADD CONSTRAINT enum_values_enum_id_member_name_key UNIQUE (enum_id, member_name),
+            ADD CONSTRAINT enum_values_enum_id_value_key UNIQUE (enum_id, value);
+
+        -- 5. Drop bad indexes
+        DROP INDEX enum_values_member_name_enum_id_idx;
+        DROP INDEX parameters_enum_id_instrument_id_param_id_param_name_subsys_idx;
+
+        -- 6. Fix SET NULL condition for events.parameters FK
+        ALTER TABLE events.parameters
+            DROP CONSTRAINT parameters_enum_id_instrument_id_fkey;
+        ALTER TABLE events.parameters
+            ADD CONSTRAINT parameters_enum_id_instrument_id_fkey
+                FOREIGN KEY (enum_id, instrument_id)
+                REFERENCES events.enum_types (id, instrument_id)
+                ON DELETE SET NULL (enum_id);
+
+        ALTER TABLE events.parameters_history
+            DROP CONSTRAINT parameters_history_enum_id_instrument_id_fkey;
+        ALTER TABLE events.parameters_history
+            ADD CONSTRAINT parameters_history_enum_id_instrument_id_fkey
+                FOREIGN KEY (enum_id, instrument_id)
+                REFERENCES events.enum_types (id, instrument_id)
+                ON DELETE SET NULL (enum_id);
+
+        -- 7. Make the staging table unlogged
+        ALTER TABLE events.data_staging SET UNLOGGED;
+
+        -- 8. Update schema version
         UPDATE public.schema_info SET version = 6;
     END IF;
 END $$
