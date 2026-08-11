@@ -247,7 +247,7 @@ class Benchmark:
         def setup_table(dbm: DatabaseManager):
             dbm.run_query(
                 """
-                CREATE TABLE IF NOT EXISTS events.data_staging (
+                CREATE UNLOGGED TABLE IF NOT EXISTS events.data_staging (
                     time TIMESTAMPTZ NOT NULL,
                     instrument_id INTEGER NOT NULL,
                     param_id INTEGER NOT NULL,
