@@ -17,6 +17,7 @@ BEGIN
 
         PERFORM alter_job(job, scheduled => false);
 
+        -- this will take quite some time on a large events.data table
         FOR chunk IN SELECT show_chunks('events.data') LOOP
             CALL convert_to_rowstore(chunk);
         END LOOP;
@@ -57,7 +58,6 @@ BEGIN
         FROM pganalyze.stat_snapshots_old
         ORDER BY collected_at;
 
-        SET ROLE postgres;
         DROP TABLE pganalyze.stat_snapshots_old;
 
         -- 3. Update pganalyze.purge_stats func
@@ -104,6 +104,8 @@ $sql$;
 
         PERFORM add_job('pganalyze.purge_stats', schedule_interval=>'1 day'::interval, config => '{"drop_after":"3 months"}');
 
+        SET ROLE postgres;
+
         -- 4. Fix constraint for events.enum_values
         ALTER TABLE events.enum_values
             DROP CONSTRAINT enum_values_enum_id_member_name_value_key;
@@ -112,8 +114,8 @@ $sql$;
             ADD CONSTRAINT enum_values_enum_id_value_key UNIQUE (enum_id, value);
 
         -- 5. Drop bad indexes
-        DROP INDEX enum_values_member_name_enum_id_idx;
-        DROP INDEX parameters_enum_id_instrument_id_param_id_param_name_subsys_idx;
+        DROP INDEX events.enum_values_member_name_enum_id_idx;
+        DROP INDEX events.parameters_enum_id_instrument_id_param_id_param_name_subsys_idx;
 
         -- 6. Fix SET NULL condition for events.parameters FK
         ALTER TABLE events.parameters
