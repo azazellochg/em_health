@@ -3,10 +3,29 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "ee46beab-c046-42b1-b547-23990e2ec0f3",
+    "namespace": "default",
+    "uid": "bf8ebcdd-7045-413d-9980-336150e28f18",
+    "resourceVersion": "1786517777946996",
     "generation": 2,
-    "creationTimestamp": "2026-08-11T15:54:39Z",
-    "labels": {},
-    "annotations": {}
+    "creationTimestamp": "2026-08-11T16:55:21Z",
+    "labels": {
+      "grafana.app/deprecatedInternalID": "2054716192411648"
+    },
+    "annotations": {
+      "grafana.app/createdBy": "access-policy:service",
+      "grafana.app/folder": "df5dxhobf2qyod",
+      "grafana.app/managedBy": "classic-file-provisioning",
+      "grafana.app/managerAllowsEdits": "true",
+      "grafana.app/managerId": "dashboards",
+      "grafana.app/saved-from-ui": "Grafana v13.1.0-25893932881 (fae43e29)",
+      "grafana.app/sourceChecksum": "408faf38e038f2c32e9633e3ac42f774",
+      "grafana.app/sourcePath": "/etc/grafana/provisioning/dashboards/DB performance/dashboard-1786467162289.json",
+      "grafana.app/sourceTimestamp": "1786467316000",
+      "grafana.app/updatedBy": "user:df5dxhmpcxpmoc",
+      "grafana.app/updatedTimestamp": "2026-08-12T06:56:17Z",
+      "grafana.app/folderTitle": "DB performance",
+      "grafana.app/folderUrl": "/em-health/dashboards/f/df5dxhobf2qyod/db-performance"
+    }
   },
   "spec": {
     "annotations": [
@@ -773,6 +792,9 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "datasource": {
+                        "name": "hm-sem"
+                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
@@ -795,9 +817,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
                       }
                     },
                     "refId": "A",

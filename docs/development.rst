@@ -11,7 +11,7 @@ However, if you then update the provisioned dashboards (e.g. via `git pull`), th
 `here <https://grafana.com/docs/grafana/latest/administration/provisioning/#make-changes-to-a-provisioned-dashboard>`_. The workaround is the following:
 
 1. Make changes to a dashboard via Grafana UI.
-2. Save and export dashboard to JSON using `Export > Export as code`, toggle `Share dashboard with another instance`.
+2. Save and export dashboard to JSON using `Export > Export as code`, DO NOT toggle `Share dashboard with another instance`.
 3. Overwrite existing dashboard file (they are in `docker/grafana/provisioning/dashboards/`) with the saved json file.
 
 Any file changes in the provisioning folder are immediately picked up by Grafana. There's no need to restart it.
