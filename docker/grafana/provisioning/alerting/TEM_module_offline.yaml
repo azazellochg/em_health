@@ -37,6 +37,7 @@ groups:
                                         JOIN target_param t
                                           ON d.param_id = t.param_id
                                           AND d.instrument_id = t.id
+                                        WHERE $__timeFilter(d.time)
                                         ORDER BY d.time ASC
                 refId: A
                 sql:
