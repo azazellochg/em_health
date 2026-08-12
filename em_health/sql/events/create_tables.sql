@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS events.data (
                                              tsdb.partition_column='time',
                                              tsdb.create_default_indexes=false,
                                              tsdb.segmentby='instrument_id',
-                                             tsdb.orderby='time DESC'
+                                             tsdb.orderby='param_id, time DESC'
                                              );
 COMMENT ON TABLE events.data IS 'Main time series table with HM events';
 

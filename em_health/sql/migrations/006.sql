@@ -19,10 +19,14 @@ BEGIN
 
         -- this will take quite some time on a large events.data table
         FOR chunk IN SELECT show_chunks('events.data') LOOP
+            RAISE NOTICE 'Converting % to rowstore', chunk;
             CALL convert_to_rowstore(chunk);
         END LOOP;
 
-        ALTER TABLE events.data SET (timescaledb.segmentby = 'instrument_id', timescaledb.orderby = 'time DESC');
+        ALTER TABLE events.data SET (
+            timescaledb.segmentby = 'instrument_id',
+            timescaledb.orderby = 'param_id, time DESC'
+            );
 
         PERFORM alter_job(job, scheduled => true);
 
