@@ -393,7 +393,7 @@ BEGIN
       log_time,
       message,
       SUBSTRING(message FROM 'automatic vacuum of table "([^"]+)"') AS fqname,
-      SUBSTRING(message FROM 'elapsed: ([0-9\.]+) s') ::DOUBLE PRECISION AS elapsed_s,
+      SUBSTRING(message FROM 'elapsed: ([0-9\.]+) s')::DOUBLE PRECISION AS elapsed_s,
       SUBSTRING(message FROM 'index scans: (\d+)')::BIGINT AS index_scans,
       SUBSTRING(message FROM 'pages: (\d+) removed')::BIGINT AS pages_removed,
       SUBSTRING(message FROM 'tuples: (\d+) removed')::BIGINT AS tuples_removed,
@@ -467,7 +467,7 @@ BEGIN
   SELECT
     log_time,
     query_id,
-    SUBSTRING(message FROM 'duration: ([\d.]+) ms') ::DOUBLE PRECISION,
+    SUBSTRING(message FROM 'duration: ([\d.]+) ms')::DOUBLE PRECISION,
     (SUBSTRING(message FROM 'plan:\n(\{.*)')::json #>> '{Plan,Total Cost}')::DOUBLE PRECISION AS total_cost,
     (SUBSTRING(message FROM 'plan:\n(\{.*)')::json #>> '{Plan,Shared Read Blocks}')::BIGINT * 8192 AS bytes_read,
     (SUBSTRING(message FROM 'plan:\n(\{.*)')::json #>> '{Plan,Shared I/O Read Time}')::DOUBLE PRECISION AS io_read_time,
@@ -525,7 +525,7 @@ BEGIN
         ) t
     )
   SELECT
-    parts[1] ::DOUBLE PRECISION AS load1,
+    parts[1]::DOUBLE PRECISION AS load1,
     parts[2]::DOUBLE PRECISION AS load5,
     parts[3]::DOUBLE PRECISION AS load15,
     cpu_count,
@@ -549,7 +549,7 @@ DECLARE
   drop_after INTERVAL;
 
 BEGIN
-  SELECT jsonb_object_field_text(config, 'drop_after') ::INTERVAL INTO STRICT drop_after;
+  SELECT jsonb_object_field_text(config, 'drop_after')::INTERVAL INTO STRICT drop_after;
 
   IF drop_after IS NULL THEN
     RAISE EXCEPTION 'Config must have drop_after';
