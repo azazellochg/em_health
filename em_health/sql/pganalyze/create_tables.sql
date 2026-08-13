@@ -1,148 +1,149 @@
 -- Create tables
 CREATE TABLE IF NOT EXISTS pganalyze.database_stats (
-                                          collected_at    TIMESTAMPTZ      DEFAULT now() PRIMARY KEY,
-                                          xact_commit     BIGINT           NOT NULL,
-                                          xact_rollback   BIGINT           NOT NULL,
-                                          blks_read       BIGINT           NOT NULL,
-                                          blks_hit        BIGINT           NOT NULL,
-                                          tup_inserted    BIGINT           NOT NULL,
-                                          tup_updated     BIGINT           NOT NULL,
-                                          tup_deleted     BIGINT           NOT NULL,
-                                          tup_fetched     BIGINT           NOT NULL,
-                                          tup_returned    BIGINT           NOT NULL,
-                                          temp_files      BIGINT           NOT NULL,
-                                          temp_bytes      BIGINT           NOT NULL,
-                                          deadlocks       BIGINT           NOT NULL,
-                                          blk_read_time   DOUBLE PRECISION NOT NULL,
-                                          blk_write_time  DOUBLE PRECISION NOT NULL,
-                                          frozen_xid_age  BIGINT           NOT NULL,
-                                          frozen_mxid_age BIGINT           NOT NULL,
-                                          db_size         BIGINT           NOT NULL,
-                                          wal_lsn         pg_lsn           NOT NULL
+  collected_at timestamptz DEFAULT NOW() PRIMARY KEY,
+  xact_commit BIGINT NOT NULL,
+  xact_rollback BIGINT NOT NULL,
+  blks_read BIGINT NOT NULL,
+  blks_hit BIGINT NOT NULL,
+  tup_inserted BIGINT NOT NULL,
+  tup_updated BIGINT NOT NULL,
+  tup_deleted BIGINT NOT NULL,
+  tup_fetched BIGINT NOT NULL,
+  tup_returned BIGINT NOT NULL,
+  temp_files BIGINT NOT NULL,
+  temp_bytes BIGINT NOT NULL,
+  deadlocks BIGINT NOT NULL,
+  blk_read_time DOUBLE PRECISION NOT NULL,
+  blk_write_time DOUBLE PRECISION NOT NULL,
+  frozen_xid_age BIGINT NOT NULL,
+  frozen_mxid_age BIGINT NOT NULL,
+  db_size BIGINT NOT NULL,
+  wal_lsn pg_lsn NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS pganalyze.table_stats (
-                                       collected_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-                                       relid           OID         NOT NULL,
-                                       table_bytes     BIGINT      NOT NULL,
-                                       index_bytes     BIGINT      NOT NULL,
-                                       toast_bytes     BIGINT      NOT NULL,
-                                       frozen_xid_age  BIGINT      NOT NULL,
-                                       num_dead_rows   BIGINT      NOT NULL,
-                                       num_live_rows   BIGINT      NOT NULL,
-                                       PRIMARY KEY (relid, collected_at)
+  collected_at timestamptz NOT NULL DEFAULT NOW(),
+  relid oid NOT NULL,
+  table_bytes BIGINT NOT NULL,
+  index_bytes BIGINT NOT NULL,
+  toast_bytes BIGINT NOT NULL,
+  frozen_xid_age BIGINT NOT NULL,
+  num_dead_rows BIGINT NOT NULL,
+  num_live_rows BIGINT NOT NULL,
+  PRIMARY KEY (relid, collected_at)
 );
 
 CREATE TABLE IF NOT EXISTS pganalyze.index_stats (
-                                       collected_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
-                                       indexrelid           OID         NOT NULL,
-                                       relid                OID         NOT NULL,
-                                       size_bytes           BIGINT      NOT NULL,
-                                       scan                 BIGINT      NOT NULL,
-                                       tup_read             BIGINT      NOT NULL,
-                                       tup_fetch            BIGINT      NOT NULL,
-                                       blks_read            BIGINT      NOT NULL,
-                                       blks_hit             BIGINT      NOT NULL,
-                                       PRIMARY KEY (indexrelid, collected_at)
+  collected_at timestamptz NOT NULL DEFAULT NOW(),
+  indexrelid oid NOT NULL,
+  relid oid NOT NULL,
+  size_bytes BIGINT NOT NULL,
+  scan BIGINT NOT NULL,
+  tup_read BIGINT NOT NULL,
+  tup_fetch BIGINT NOT NULL,
+  blks_read BIGINT NOT NULL,
+  blks_hit BIGINT NOT NULL,
+  PRIMARY KEY (indexrelid, collected_at)
 );
 
 CREATE TABLE IF NOT EXISTS pganalyze.vacuum_stats (
-                                        relid                   OID         NOT NULL,
-                                        started_at              TIMESTAMPTZ NOT NULL,
-                                        finished_at             TIMESTAMPTZ NOT NULL,
-                                        index_scans             BIGINT      NOT NULL,
-                                        pages_removed           BIGINT      NOT NULL,
-                                        tuples_removed          BIGINT      NOT NULL,
-                                        tuples_remain           BIGINT      NOT NULL,
-                                        wraparound              BOOLEAN     NOT NULL,
-                                        details                 TEXT        NOT NULL,
-                                        PRIMARY KEY (relid, started_at)
+  relid oid NOT NULL,
+  started_at timestamptz NOT NULL,
+  finished_at timestamptz NOT NULL,
+  index_scans BIGINT NOT NULL,
+  pages_removed BIGINT NOT NULL,
+  tuples_removed BIGINT NOT NULL,
+  tuples_remain BIGINT NOT NULL,
+  wraparound BOOLEAN NOT NULL,
+  details TEXT NOT NULL,
+  PRIMARY KEY (relid, started_at)
 );
 
 CREATE TABLE IF NOT EXISTS pganalyze.stat_snapshots (
-                                           collected_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
-                                           calls                   BIGINT      NOT NULL,
-                                           total_plan_time         DOUBLE PRECISION NOT NULL,
-                                           total_exec_time         DOUBLE PRECISION NOT NULL,
-                                           rows                    BIGINT      NOT NULL,
-                                           shared_blks_hit         BIGINT      NOT NULL,
-                                           shared_blks_read        BIGINT      NOT NULL,
-                                           shared_blks_dirtied     BIGINT      NOT NULL,
-                                           shared_blks_written     BIGINT      NOT NULL,
-                                           local_blks_hit          BIGINT      NOT NULL,
-                                           local_blks_read         BIGINT      NOT NULL,
-                                           local_blks_dirtied      BIGINT      NOT NULL,
-                                           local_blks_written      BIGINT      NOT NULL,
-                                           temp_blks_read          BIGINT      NOT NULL,
-                                           temp_blks_written       BIGINT      NOT NULL,
-                                           blk_read_time           DOUBLE PRECISION NOT NULL,
-                                           blk_write_time          DOUBLE PRECISION NOT NULL,
-                                           wal_records             BIGINT      NOT NULL,
-                                           wal_fpi                 BIGINT      NOT NULL,
-                                           wal_bytes               NUMERIC     NOT NULL,
-                                           stats_reset             TIMESTAMPTZ NOT NULL
+  collected_at timestamptz NOT NULL DEFAULT NOW(),
+  calls BIGINT NOT NULL,
+  total_plan_time DOUBLE PRECISION NOT NULL,
+  total_exec_time DOUBLE PRECISION NOT NULL,
+  rows BIGINT NOT NULL,
+  shared_blks_hit BIGINT NOT NULL,
+  shared_blks_read BIGINT NOT NULL,
+  shared_blks_dirtied BIGINT NOT NULL,
+  shared_blks_written BIGINT NOT NULL,
+  local_blks_hit BIGINT NOT NULL,
+  local_blks_read BIGINT NOT NULL,
+  local_blks_dirtied BIGINT NOT NULL,
+  local_blks_written BIGINT NOT NULL,
+  temp_blks_read BIGINT NOT NULL,
+  temp_blks_written BIGINT NOT NULL,
+  blk_read_time DOUBLE PRECISION NOT NULL,
+  blk_write_time DOUBLE PRECISION NOT NULL,
+  wal_records BIGINT NOT NULL,
+  wal_fpi BIGINT NOT NULL,
+  wal_bytes NUMERIC NOT NULL,
+  stats_reset timestamptz NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS pganalyze.queries (
-                                   queryid BIGINT NOT NULL PRIMARY KEY,
-                                   query TEXT
+  queryid BIGINT NOT NULL PRIMARY KEY,
+  query TEXT
 );
 
 CREATE TABLE IF NOT EXISTS pganalyze.stat_statements (
-                                           collected_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
-                                           userid                  OID         NOT NULL,
-                                           queryid                 BIGINT NOT NULL REFERENCES pganalyze.queries(queryid) ON DELETE CASCADE,
-                                           plans                   BIGINT      NOT NULL,
-                                           calls                   BIGINT      NOT NULL,
-                                           total_plan_time         DOUBLE PRECISION NOT NULL,
-                                           total_exec_time         DOUBLE PRECISION NOT NULL,
-                                           mean_exec_time          DOUBLE PRECISION NOT NULL,
-                                           rows                    BIGINT      NOT NULL,
-                                           shared_blks_hit         BIGINT      NOT NULL,
-                                           shared_blks_read        BIGINT      NOT NULL,
-                                           shared_blks_dirtied     BIGINT      NOT NULL,
-                                           shared_blks_written     BIGINT      NOT NULL,
-                                           local_blks_hit          BIGINT      NOT NULL,
-                                           local_blks_read         BIGINT      NOT NULL,
-                                           local_blks_dirtied      BIGINT      NOT NULL,
-                                           local_blks_written      BIGINT      NOT NULL,
-                                           temp_blks_read          BIGINT      NOT NULL,
-                                           temp_blks_written       BIGINT      NOT NULL,
-                                           blk_read_time           DOUBLE PRECISION NOT NULL,
-                                           blk_write_time          DOUBLE PRECISION NOT NULL,
-                                           wal_records             BIGINT      NOT NULL,
-                                           wal_fpi                 BIGINT      NOT NULL,
-                                           wal_bytes               BIGINT      NOT NULL DEFAULT 0,
-                                           PRIMARY KEY (queryid, userid, collected_at)
-                                           -- To define an index as a UNIQUE or PRIMARY KEY index, the index must include the time column and the partitioning column
-) WITH (
-                                             tsdb.hypertable,
-                                             tsdb.chunk_interval=:var_pgstats_chunk_size,
-                                             tsdb.partition_column='collected_at',
-                                             tsdb.segmentby='queryid',
-                                             tsdb.orderby='collected_at DESC'
-                                             );
+  collected_at timestamptz NOT NULL DEFAULT NOW(),
+  userid oid NOT NULL,
+  queryid BIGINT NOT NULL REFERENCES pganalyze.queries (queryid) ON DELETE CASCADE,
+  plans BIGINT NOT NULL,
+  calls BIGINT NOT NULL,
+  total_plan_time DOUBLE PRECISION NOT NULL,
+  total_exec_time DOUBLE PRECISION NOT NULL,
+  mean_exec_time DOUBLE PRECISION NOT NULL,
+  rows BIGINT NOT NULL,
+  shared_blks_hit BIGINT NOT NULL,
+  shared_blks_read BIGINT NOT NULL,
+  shared_blks_dirtied BIGINT NOT NULL,
+  shared_blks_written BIGINT NOT NULL,
+  local_blks_hit BIGINT NOT NULL,
+  local_blks_read BIGINT NOT NULL,
+  local_blks_dirtied BIGINT NOT NULL,
+  local_blks_written BIGINT NOT NULL,
+  temp_blks_read BIGINT NOT NULL,
+  temp_blks_written BIGINT NOT NULL,
+  blk_read_time DOUBLE PRECISION NOT NULL,
+  blk_write_time DOUBLE PRECISION NOT NULL,
+  wal_records BIGINT NOT NULL,
+  wal_fpi BIGINT NOT NULL,
+  wal_bytes BIGINT NOT NULL DEFAULT 0,
+  PRIMARY KEY (queryid, userid, collected_at)
+  -- To define an index as a UNIQUE or PRIMARY KEY index, the index must include the time column and the partitioning column
+)
+WITH (
+  tsdb.hypertable,
+  tsdb.chunk_interval = :var_pgstats_chunk_size,
+  tsdb.partition_column = 'collected_at',
+  tsdb.segmentby = 'queryid',
+  tsdb.orderby = 'collected_at DESC'
+  );
 
-SELECT add_retention_policy('pganalyze.stat_statements', drop_after => INTERVAL :var_pgstats_retention);
+SELECT add_retention_policy('pganalyze.stat_statements', drop_after = > INTERVAL :var_pgstats_retention);
 
 CREATE TABLE IF NOT EXISTS pganalyze.stat_explains (
-                                         time           TIMESTAMPTZ NOT NULL,
-                                         queryid        BIGINT NOT NULL REFERENCES pganalyze.queries(queryid) ON DELETE CASCADE,
-                                         duration       DOUBLE PRECISION NOT NULL,
-                                         total_cost     DOUBLE PRECISION NOT NULL,
-                                         bytes_read     BIGINT      NOT NULL,
-                                         io_read_time   DOUBLE PRECISION NOT NULL,
-                                         plan           JSON        NOT NULL,
-                                         PRIMARY KEY (queryid, time)
+  time timestamptz NOT NULL,
+  queryid BIGINT NOT NULL REFERENCES pganalyze.queries (queryid) ON DELETE CASCADE,
+  duration DOUBLE PRECISION NOT NULL,
+  total_cost DOUBLE PRECISION NOT NULL,
+  bytes_read BIGINT NOT NULL,
+  io_read_time DOUBLE PRECISION NOT NULL,
+  plan json NOT NULL,
+  PRIMARY KEY (queryid, time)
 );
 
 CREATE TABLE IF NOT EXISTS pganalyze.sys_stats (
-                                     time       TIMESTAMPTZ NOT NULL DEFAULT now() UNIQUE,
-                                     load1      DOUBLE PRECISION NOT NULL,
-                                     load5      DOUBLE PRECISION NOT NULL,
-                                     load15     DOUBLE PRECISION NOT NULL,
-                                     cpu_count  INT         NOT NULL,
-                                     mem_total  BIGINT      NOT NULL,
-                                     mem_free   BIGINT      NOT NULL,
-                                     mem_avail  BIGINT      NOT NULL
+  time timestamptz NOT NULL DEFAULT NOW() UNIQUE,
+  load1 DOUBLE PRECISION NOT NULL,
+  load5 DOUBLE PRECISION NOT NULL,
+  load15 DOUBLE PRECISION NOT NULL,
+  cpu_count INT NOT NULL,
+  mem_total BIGINT NOT NULL,
+  mem_free BIGINT NOT NULL,
+  mem_avail BIGINT NOT NULL
 );
