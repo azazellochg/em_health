@@ -124,7 +124,7 @@ WITH (
   tsdb.orderby = 'collected_at DESC'
   );
 
-SELECT add_retention_policy('pganalyze.stat_statements', drop_after = > INTERVAL :var_pgstats_retention);
+SELECT add_retention_policy('pganalyze.stat_statements', drop_after => INTERVAL :var_pgstats_retention);
 
 CREATE TABLE IF NOT EXISTS pganalyze.stat_explains (
   time timestamptz NOT NULL,

@@ -105,9 +105,9 @@ BEGIN
     CASE WHEN ht.hypertable_name IS NOT NULL THEN (hds).toast_bytes
          ELSE PG_TOTAL_RELATION_SIZE(s.relid) - PG_TABLE_SIZE(s.relid) -
               PG_INDEXES_SIZE(s.relid) END AS toast_external_bytes,
-    CASE WHEN ht.hypertable_name IS NOT NULL THEN cs.frozen_xid_age ELSE AGE(c.relfrozenxid) END AS frozen_xid_age,
-    CASE WHEN ht.hypertable_name IS NOT NULL THEN cs.num_dead_rows ELSE COALESCE(st.n_dead_tup, 0) END AS num_dead_rows,
-    CASE WHEN ht.hypertable_name IS NOT NULL THEN cs.num_live_rows ELSE COALESCE(st.n_live_tup, 0) END AS num_live_rows
+    CASE WHEN ht.hypertable_name IS NOT NULL THEN COALESCE(cs.frozen_xid_age, 0) ELSE COALESCE(AGE(c.relfrozenxid), 0) END AS frozen_xid_age,
+    CASE WHEN ht.hypertable_name IS NOT NULL THEN COALESCE(cs.num_dead_rows, 0) ELSE COALESCE(st.n_dead_tup, 0) END AS num_dead_rows,
+    CASE WHEN ht.hypertable_name IS NOT NULL THEN COALESCE(cs.num_live_rows, 0) ELSE COALESCE(st.n_live_tup, 0) END AS num_live_rows
 
   FROM
     pg_catalog.pg_statio_user_tables s
@@ -506,7 +506,7 @@ BEGIN
       SELECT
         COUNT(*) AS cpu_count
       FROM
-        UNNEST(STRING_TO_ARRAY(PG_READ_FILE('/proc/stat', 0, 2000), e '\n')) AS line
+        UNNEST(STRING_TO_ARRAY(PG_READ_FILE('/proc/stat', 0, 2000), E'\n')) AS line
       WHERE
         line ~ '^cpu[0-9]+'
     ),
@@ -521,7 +521,7 @@ BEGIN
       FROM
         (
           -- only read first 200 bytes of meminfo, which always covers first 3 lines
-          SELECT UNNEST(STRING_TO_ARRAY(PG_READ_FILE('/proc/meminfo', 0, 200), e '\n')) AS line
+          SELECT UNNEST(STRING_TO_ARRAY(PG_READ_FILE('/proc/meminfo', 0, 200), E'\n')) AS line
         ) t
     )
   SELECT
