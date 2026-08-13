@@ -3,10 +3,29 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "2ddfc99a-7e8a-556c-9f3f-b06c67af2509",
-    "generation": 1,
-    "creationTimestamp": "2025-11-27T12:30:55Z",
-    "labels": {},
-    "annotations": {}
+    "namespace": "default",
+    "uid": "626d9621-2d10-4651-a41b-3bf1250e2b7a",
+    "resourceVersion": "1786637177692003",
+    "generation": 3,
+    "creationTimestamp": "2026-07-15T13:29:25Z",
+    "labels": {
+      "grafana.app/deprecatedInternalID": "1225619457613824"
+    },
+    "annotations": {
+      "grafana.app/createdBy": "access-policy:service",
+      "grafana.app/folder": "df5dxhobf2qyod",
+      "grafana.app/managedBy": "classic-file-provisioning",
+      "grafana.app/managerAllowsEdits": "true",
+      "grafana.app/managerId": "dashboards",
+      "grafana.app/saved-from-ui": "Grafana v13.1.0-25893932881 (fae43e29)",
+      "grafana.app/sourceChecksum": "07fae1663eb95d0ffb57090f1b3e6ae8",
+      "grafana.app/sourcePath": "/etc/grafana/provisioning/dashboards/DB performance/dashboard-1782229028155.json",
+      "grafana.app/sourceTimestamp": "1784122160000",
+      "grafana.app/updatedBy": "user:df5dxhmpcxpmoc",
+      "grafana.app/updatedTimestamp": "2026-08-13T16:06:17Z",
+      "grafana.app/folderTitle": "DB performance",
+      "grafana.app/folderUrl": "/em-health/dashboards/f/df5dxhobf2qyod/db-performance"
+    }
   },
   "spec": {
     "annotations": [
@@ -17,19 +36,13 @@
             "kind": "DataQuery",
             "group": "grafana",
             "version": "v0",
-            "spec": {},
-            "labels": {
-              "grafana.app/export-label": "grafana-1"
-            }
+            "spec": {}
           },
           "enable": true,
           "hide": true,
           "iconColor": "rgba(0, 211, 255, 1)",
           "name": "Annotations & Alerts",
-          "builtIn": true,
-          "legacyOptions": {
-            "type": "dashboard"
-          }
+          "builtIn": true
         }
       }
     ],
@@ -61,7 +74,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  schemaname || '.' || matviewname AS \"View\",\n  pg_total_relation_size(format('%I.%I', schemaname, matviewname)::regclass) AS \"Object size\",\n  approximate_row_count(format('%I.%I', schemaname, matviewname)::regclass) AS \"Approx. row count\"\nFROM pg_matviews\nORDER BY schemaname, matviewname\n",
+                        "rawSql": "SELECT\n  pm.schemaname || '.' || pm.matviewname AS \"View\",\n  pm.hasindexes AS \"Indexed?\",\n  pg_total_relation_size(\n    format('%I.%I', pm.schemaname, pm.matviewname) :: regclass\n  ) AS \"Object size\",\n  approximate_row_count(\n    format('%I.%I', pm.schemaname, pm.matviewname) :: regclass\n  ) AS \"Approx. row count\",\n  st.n_dead_tup AS \"Dead tuples\"\nFROM\n  pg_matviews pm\n  LEFT JOIN pg_catalog.pg_stat_user_tables st ON st.schemaname = pm.schemaname\n  AND st.relname = pm.matviewname\nORDER BY\n  pm.schemaname,\n  pm.matviewname",
                         "sql": {
                           "columns": [
                             {
@@ -93,19 +106,11 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
-                "footer": {
-                  "countRows": false,
-                  "enablePagination": true,
-                  "fields": "",
-                  "reducer": [
-                    "sum"
-                  ],
-                  "show": false
-                },
+                "enablePagination": true,
                 "showHeader": true,
                 "sortBy": [
                   {
@@ -116,7 +121,6 @@
               },
               "fieldConfig": {
                 "defaults": {
-                  "unit": "decbytes",
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -132,10 +136,13 @@
                   "custom": {
                     "align": "center",
                     "cellOptions": {
-                      "type": "auto",
-                      "wrapText": false
+                      "type": "auto"
                     },
-                    "inspect": false
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false,
+                    "wrapText": false
                   }
                 },
                 "overrides": [
@@ -159,12 +166,13 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Approx. row count"
+                      "scope": "series",
+                      "options": "Object size"
                     },
                     "properties": [
                       {
                         "id": "unit",
-                        "value": "none"
+                        "value": "decbytes"
                       }
                     ]
                   }
@@ -199,7 +207,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  c.view_schema || '.' || c.view_name AS \"View\",\n  c.hypertable_schema || '.' || c.hypertable_name AS \"Parent object\",\n  c.compression_enabled AS \"Compression\",\n  hypertable_size(format('%I.%I', c.view_schema, c.view_name)) AS \"Object size\",\n  approximate_row_count(format('%I.%I', c.view_schema, c.view_name)::regclass) AS \"Approx. row count\",\n  (SELECT count(*) FROM show_chunks(format('%I.%I', c.view_schema, c.view_name))) AS \"Chunks\",\n  d.time_interval AS \"Chunk interval\"\nFROM timescaledb_information.continuous_aggregates c\nJOIN timescaledb_information.dimensions d ON d.hypertable_schema = c.materialization_hypertable_schema AND d.hypertable_name = c.materialization_hypertable_name\nORDER BY c.view_schema\n",
+                        "rawSql": "SELECT\n  c.view_schema || '.' || c.view_name AS \"View\",\n  CASE\n    WHEN c.hypertable_name LIKE '_materialized_hypertable%' THEN 'Hierarchical CAGG'\n    ELSE c.hypertable_schema || '.' || c.hypertable_name\n  END AS \"Parent object\",\n  c.compression_enabled AS \"Compression\",\n  hypertable_size(format('%I.%I', c.view_schema, c.view_name)) AS \"Object size\",\n  approximate_row_count(\n    format('%I.%I', c.view_schema, c.view_name) :: regclass\n  ) AS \"Approx. row count\",\n  (\n    SELECT\n      count(*)\n    FROM\n      show_chunks(format('%I.%I', c.view_schema, c.view_name))\n  ) AS \"Chunks\",\n  d.time_interval AS \"Chunk interval\"\nFROM\n  timescaledb_information.continuous_aggregates c\n  JOIN timescaledb_information.dimensions d ON d.hypertable_schema = c.materialization_hypertable_schema\n  AND d.hypertable_name = c.materialization_hypertable_name\nORDER BY\n  c.view_schema",
                         "sql": {
                           "columns": [
                             {
@@ -231,19 +239,11 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
-                "footer": {
-                  "countRows": false,
-                  "enablePagination": true,
-                  "fields": "",
-                  "reducer": [
-                    "sum"
-                  ],
-                  "show": false
-                },
+                "enablePagination": true,
                 "showHeader": true,
                 "sortBy": [
                   {
@@ -269,10 +269,13 @@
                   "custom": {
                     "align": "center",
                     "cellOptions": {
-                      "type": "auto",
-                      "wrapText": false
+                      "type": "auto"
                     },
-                    "inspect": false
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false,
+                    "wrapText": false
                   }
                 },
                 "overrides": [
@@ -414,19 +417,11 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
-                "footer": {
-                  "countRows": false,
-                  "enablePagination": true,
-                  "fields": "",
-                  "reducer": [
-                    "sum"
-                  ],
-                  "show": false
-                },
+                "enablePagination": true,
                 "frameIndex": 0,
                 "showHeader": true
               },
@@ -447,10 +442,13 @@
                   "custom": {
                     "align": "center",
                     "cellOptions": {
-                      "type": "auto",
-                      "wrapText": false
+                      "type": "auto"
                     },
-                    "inspect": false
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false,
+                    "wrapText": false
                   }
                 },
                 "overrides": []
@@ -477,7 +475,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "text",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "code": {
@@ -683,6 +681,7 @@
             }
           },
           "regex": "",
+          "regexApplyTo": "value",
           "sort": "disabled",
           "definition": "SELECT view_definition\nFROM timescaledb_information.continuous_aggregates\nWHERE format('%I.%I', view_schema, view_name) = '$viewname'\nUNION ALL\nSELECT definition\nFROM pg_matviews\nWHERE format('%I.%I', schemaname, matviewname) = '$viewname'",
           "options": [],
