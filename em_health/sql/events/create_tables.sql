@@ -117,7 +117,14 @@ CREATE TABLE IF NOT EXISTS events.data (
   UNIQUE (param_id, instrument_id, time)
   -- To define an index as a UNIQUE or PRIMARY KEY index, the index must include the time column and the partitioning column
 )
-WITH ( tsdb.hypertable, tsdb.chunk_interval = :var_data_chunk_size, tsdb.partition_column = 'time', tsdb.create_default_indexes = FALSE, tsdb.segmentby = 'instrument_id', tsdb.orderby = 'param_id, time DESC' );
+WITH (
+  tsdb.hypertable,
+  tsdb.chunk_interval = :var_data_chunk_size,
+  tsdb.partition_column = 'time',
+  tsdb.create_default_indexes = FALSE,
+  tsdb.segmentby = 'instrument_id',
+  tsdb.orderby = 'param_id, time DESC'
+  );
 
 COMMENT ON TABLE events.data IS 'Main time series table with HM events';
 

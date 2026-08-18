@@ -3,29 +3,10 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "2ddfc99a-7e8a-556c-9f3f-b06c67af2509",
-    "namespace": "default",
-    "uid": "626d9621-2d10-4651-a41b-3bf1250e2b7a",
-    "resourceVersion": "1786637177692003",
-    "generation": 3,
-    "creationTimestamp": "2026-07-15T13:29:25Z",
-    "labels": {
-      "grafana.app/deprecatedInternalID": "1225619457613824"
-    },
-    "annotations": {
-      "grafana.app/createdBy": "access-policy:service",
-      "grafana.app/folder": "df5dxhobf2qyod",
-      "grafana.app/managedBy": "classic-file-provisioning",
-      "grafana.app/managerAllowsEdits": "true",
-      "grafana.app/managerId": "dashboards",
-      "grafana.app/saved-from-ui": "Grafana v13.1.0-25893932881 (fae43e29)",
-      "grafana.app/sourceChecksum": "07fae1663eb95d0ffb57090f1b3e6ae8",
-      "grafana.app/sourcePath": "/etc/grafana/provisioning/dashboards/DB performance/dashboard-1782229028155.json",
-      "grafana.app/sourceTimestamp": "1784122160000",
-      "grafana.app/updatedBy": "user:df5dxhmpcxpmoc",
-      "grafana.app/updatedTimestamp": "2026-08-13T16:06:17Z",
-      "grafana.app/folderTitle": "DB performance",
-      "grafana.app/folderUrl": "/em-health/dashboards/f/df5dxhobf2qyod/db-performance"
-    }
+    "generation": 8,
+    "creationTimestamp": "2026-08-14T13:16:07Z",
+    "labels": {},
+    "annotations": {}
   },
   "spec": {
     "annotations": [
@@ -207,7 +188,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  c.view_schema || '.' || c.view_name AS \"View\",\n  CASE\n    WHEN c.hypertable_name LIKE '_materialized_hypertable%' THEN 'Hierarchical CAGG'\n    ELSE c.hypertable_schema || '.' || c.hypertable_name\n  END AS \"Parent object\",\n  c.compression_enabled AS \"Compression\",\n  hypertable_size(format('%I.%I', c.view_schema, c.view_name)) AS \"Object size\",\n  approximate_row_count(\n    format('%I.%I', c.view_schema, c.view_name) :: regclass\n  ) AS \"Approx. row count\",\n  (\n    SELECT\n      count(*)\n    FROM\n      show_chunks(format('%I.%I', c.view_schema, c.view_name))\n  ) AS \"Chunks\",\n  d.time_interval AS \"Chunk interval\"\nFROM\n  timescaledb_information.continuous_aggregates c\n  JOIN timescaledb_information.dimensions d ON d.hypertable_schema = c.materialization_hypertable_schema\n  AND d.hypertable_name = c.materialization_hypertable_name\nORDER BY\n  c.view_schema",
+                        "rawSql": "SELECT\n  c.view_schema || '.' || c.view_name AS \"View\",\n  CASE\n    WHEN c.hypertable_name LIKE '_materialized_hypertable%' THEN 'Hierarchical CAGG'\n    ELSE c.hypertable_schema || '.' || c.hypertable_name\n  END AS \"Parent object\",\n  CASE\n    WHEN c.materialized_only = false THEN '✅'\n    ELSE '❌'\n  END AS \"RT aggregate\",\n  hypertable_size(format('%I.%I', c.view_schema, c.view_name)) AS \"Object size\",\n  approximate_row_count(\n    format('%I.%I', c.view_schema, c.view_name) :: regclass\n  ) AS \"Approx. row count\",\n  (\n    SELECT\n      count(*)\n    FROM\n      show_chunks(format('%I.%I', c.view_schema, c.view_name))\n  ) AS \"Chunks\",\n  d.time_interval AS \"Chunk interval\"\nFROM\n  timescaledb_information.continuous_aggregates c\n  JOIN timescaledb_information.dimensions d ON d.hypertable_schema = c.materialization_hypertable_schema\n  AND d.hypertable_name = c.materialization_hypertable_name\nORDER BY\n  c.view_schema",
                         "sql": {
                           "columns": [
                             {
@@ -339,7 +320,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  schedule_interval\nFROM\n  timescaledb_information.jobs\nWHERE\n  proc_name = format('refresh_%I', split_part('$viewname', '.', 2))",
+                        "rawSql": "SELECT\n  job_id,\n  schedule_interval\nFROM\n  timescaledb_information.jobs\nWHERE\n  proc_name = format('refresh_%I', split_part('$viewname', '.', 2))",
                         "sql": {
                           "columns": [
                             {
@@ -377,7 +358,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH cagg_check AS (\n  SELECT\n    1 AS is_cagg\n  FROM\n    timescaledb_information.continuous_aggregates c\n  WHERE\n    c.view_schema || '.' || c.view_name = '$viewname'\n)\nSELECT\n  policy ->> 'policy_name' AS policy,\n  (policy ->> 'refresh_interval') :: interval AS schedule_interval,\n  policy ->> 'refresh_start_offset' AS start_offset,\n  policy ->> 'refresh_end_offset' AS end_offset\nFROM\n  timescaledb_experimental.show_policies('$viewname') AS policy\nWHERE\n  EXISTS (\n    SELECT\n      1\n    FROM\n      cagg_check\n  )",
+                        "rawSql": "WITH cagg_check AS (\n  SELECT\n    c.view_schema,\n    c.view_name\n  FROM timescaledb_information.continuous_aggregates c\n  WHERE c.view_schema || '.' || c.view_name = '$viewname'\n)\nSELECT\n  j.job_id,\n  (policy ->> 'refresh_interval')::interval AS schedule_interval,\n  policy ->> 'refresh_start_offset' AS start_offset,\n  policy ->> 'refresh_end_offset' AS end_offset\nFROM\n  timescaledb_experimental.show_policies('$viewname') AS policy\nJOIN cagg_check c\n  ON true\nLEFT JOIN timescaledb_information.jobs j\n  ON j.hypertable_schema = c.view_schema\n AND j.hypertable_name = c.view_name\n AND j.proc_name = 'policy_refresh_continuous_aggregate';",
                         "sql": {
                           "columns": [
                             {
@@ -409,6 +390,15 @@
                   "spec": {
                     "options": {}
                   }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "transpose",
+                  "spec": {
+                    "options": {
+                      "firstFieldName": ""
+                    }
+                  }
                 }
               ],
               "queryOptions": {}
@@ -423,7 +413,7 @@
                 "cellHeight": "sm",
                 "enablePagination": true,
                 "frameIndex": 0,
-                "showHeader": true
+                "showHeader": false
               },
               "fieldConfig": {
                 "defaults": {
@@ -483,7 +473,7 @@
                   "showLineNumbers": true,
                   "showMiniMap": false
                 },
-                "content": "$definition",
+                "content": "${definition:raw}",
                 "mode": "code"
               },
               "fieldConfig": {
@@ -553,8 +543,8 @@
                       "spec": {
                         "x": 0,
                         "y": 7,
-                        "width": 24,
-                        "height": 4,
+                        "width": 6,
+                        "height": 7,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-8"
@@ -564,9 +554,9 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 0,
-                        "y": 11,
-                        "width": 24,
+                        "x": 6,
+                        "y": 7,
+                        "width": 18,
                         "height": 15,
                         "element": {
                           "kind": "ElementReference",

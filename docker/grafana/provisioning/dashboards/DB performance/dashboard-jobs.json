@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "2ddfc99a-7e8a-402c-9f3f-b06c67af2509",
-    "generation": 1,
-    "creationTimestamp": "2025-11-27T12:30:54Z",
+    "generation": 4,
+    "creationTimestamp": "2026-08-14T13:14:44Z",
     "labels": {},
     "annotations": {}
   },
@@ -17,19 +17,13 @@
             "kind": "DataQuery",
             "group": "grafana",
             "version": "v0",
-            "spec": {},
-            "labels": {
-              "grafana.app/export-label": "grafana-1"
-            }
+            "spec": {}
           },
           "enable": true,
           "hide": true,
           "iconColor": "rgba(0, 211, 255, 1)",
           "name": "Annotations & Alerts",
-          "builtIn": true,
-          "legacyOptions": {
-            "type": "dashboard"
-          }
+          "builtIn": true
         }
       }
     ],
@@ -61,7 +55,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  j.job_id AS \"Job ID\",\n  regexp_replace(j.application_name, E'\\\\s*\\\\[\\\\d+\\\\]$', '') AS \"Type\",\n  j.proc_schema || '.' || j.proc_name AS \"Method\",\n  j.hypertable_schema || '.' || j.hypertable_name AS \"Target\",\n  CASE js.last_run_status\n    WHEN 'Success' THEN '✅'\n    WHEN 'Failed' THEN '❌'\n    ELSE '❓'\n  END AS \"Last run\",\n  js.job_status || ' (in ' || (js.next_start - now()) || ')' AS \"Status\"\nFROM timescaledb_information.jobs j\nJOIN timescaledb_information.job_stats js USING (job_id)\nORDER BY j.job_id\n",
+                        "rawSql": "SELECT\n  j.job_id AS \"Job ID\",\n  regexp_replace(j.application_name, E'\\\\s*\\\\[\\\\d+\\\\]$', '') AS \"Type\",\n  CASE\n    WHEN j.proc_schema LIKE '_timescaledb_functions' THEN j.proc_name\n    ELSE j.proc_schema || '.' || j.proc_name\n  END AS \"Method\",\n  j.hypertable_schema || '.' || j.hypertable_name AS \"Target\",\n  CASE js.last_run_status\n    WHEN 'Success' THEN '✅'\n    WHEN 'Failed' THEN '❌'\n    ELSE '❓'\n  END AS \"Last run\",\n  j.schedule_interval AS \"Interval\",\n  js.job_status || ' (in ' || (js.next_start - now()) || ')' AS \"Status\"\nFROM timescaledb_information.jobs j\nJOIN timescaledb_information.job_stats js USING (job_id)\nORDER BY j.job_id\n",
                         "sql": {
                           "columns": [
                             {
@@ -93,19 +87,11 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
-                "footer": {
-                  "countRows": false,
-                  "enablePagination": true,
-                  "fields": "",
-                  "reducer": [
-                    "sum"
-                  ],
-                  "show": false
-                },
+                "enablePagination": true,
                 "showHeader": true,
                 "sortBy": [
                   {
@@ -131,10 +117,13 @@
                   "custom": {
                     "align": "center",
                     "cellOptions": {
-                      "type": "auto",
-                      "wrapText": false
+                      "type": "auto"
                     },
-                    "inspect": false
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false,
+                    "wrapText": false
                   }
                 },
                 "overrides": [
@@ -242,7 +231,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -305,7 +294,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  pid AS \"PID\",\n  usename AS \"Username\",\n  application_name AS \"Application name\",\n  client_addr AS \"Client\",\n  state AS \"Status\",\n  backend_start AS \"Backend start\",\n  extract(epoch FROM (now() - backend_start)) AS \"Duration\"\nFROM pg_stat_activity\nWHERE datname = current_database()\n  AND backend_type = 'client backend'\nORDER BY backend_start DESC",
+                        "rawSql": "SELECT\n  pid AS \"PID\",\n  usename AS \"Username\",\n  application_name AS \"Application\",\n  state AS \"Status\",\n  extract(epoch FROM (now() - backend_start)) AS \"Duration\",\n  query AS \"Query\",\n  wait_event_type || ' / ' || wait_event AS \"Wait event\"\nFROM pg_stat_activity\nWHERE datname = current_database()\n  AND backend_type = 'client backend'\nORDER BY backend_start DESC",
                         "sql": {
                           "columns": [
                             {
@@ -337,19 +326,11 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
-                "footer": {
-                  "countRows": false,
-                  "enablePagination": true,
-                  "fields": "",
-                  "reducer": [
-                    "sum"
-                  ],
-                  "show": false
-                },
+                "enablePagination": true,
                 "showHeader": true,
                 "sortBy": [
                   {
@@ -376,6 +357,9 @@
                     "align": "center",
                     "cellOptions": {
                       "type": "auto"
+                    },
+                    "footer": {
+                      "reducers": []
                     },
                     "inspect": false
                   }
@@ -472,7 +456,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  j.job_id AS \"Job ID\",\n  j.proc_schema || '.' || j.proc_name AS \"Method\",\n  j.hypertable_schema || '.' || j.hypertable_name AS \"Target\",\n  ROUND(EXTRACT(EPOCH FROM js.last_run_duration) * 1000) || ' ms' AS \"Duration\",\n  j.schedule_interval AS \"Interval\",\n  j.config AS \"Config\",\n  CASE \n    WHEN js.last_run_status <> 'Success' THEN je.err_message\n    ELSE NULL\n  END AS \"Error message\"\nFROM timescaledb_information.jobs j\nLEFT JOIN timescaledb_information.job_stats js\n  ON j.job_id = js.job_id\nLEFT JOIN LATERAL (\n  SELECT err_message\n  FROM timescaledb_information.job_errors je\n  WHERE je.job_id = j.job_id\n  ORDER BY je.finish_time DESC\n  LIMIT 1\n) je ON true\nWHERE \n  COALESCE(NULLIF('$jobid', ''), NULL)::int IS NOT NULL\n  AND j.job_id = COALESCE(NULLIF('$jobid', ''), NULL)::int;\n",
+                        "rawSql": "SELECT\n  j.job_id AS \"Job ID\",\n  CASE\n    WHEN j.proc_schema LIKE '_timescaledb_functions' THEN j.proc_name\n    ELSE j.proc_schema || '.' || j.proc_name\n  END AS \"Method\",\n  j.hypertable_schema || '.' || j.hypertable_name AS \"Target\",\n  ROUND(EXTRACT(EPOCH FROM js.last_run_duration) * 1000) || ' ms' AS \"Duration\",\n  js.total_successes || '/' || js.total_runs AS \"Completed runs\",\n  j.config AS \"Config\"\nFROM timescaledb_information.jobs j\nLEFT JOIN timescaledb_information.job_stats js\n  ON j.job_id = js.job_id\nWHERE \n  COALESCE(NULLIF('$jobid', ''), NULL)::int IS NOT NULL\n  AND j.job_id = COALESCE(NULLIF('$jobid', ''), NULL)::int;\n",
                         "sql": {
                           "columns": [
                             {
@@ -497,27 +481,29 @@
                   }
                 }
               ],
-              "transformations": [],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "transpose",
+                  "spec": {
+                    "options": {
+                      "emptyValue": "null"
+                    }
+                  }
+                }
+              ],
               "queryOptions": {}
             }
           },
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
-                "footer": {
-                  "countRows": false,
-                  "enablePagination": false,
-                  "fields": "",
-                  "reducer": [
-                    "sum"
-                  ],
-                  "show": false
-                },
-                "showHeader": true
+                "enablePagination": false,
+                "showHeader": false
               },
               "fieldConfig": {
                 "defaults": {
@@ -536,66 +522,30 @@
                   "custom": {
                     "align": "center",
                     "cellOptions": {
-                      "type": "auto",
-                      "wrapText": false
+                      "type": "auto"
                     },
-                    "inspect": false
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false,
+                    "wrapText": false
                   }
                 },
                 "overrides": [
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Config"
+                      "scope": "series",
+                      "options": "Field"
                     },
                     "properties": [
-                      {
-                        "id": "custom.inspect",
-                        "value": true
-                      },
                       {
                         "id": "custom.align",
                         "value": "left"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Error message"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.inspect",
-                        "value": true
                       },
                       {
-                        "id": "custom.align",
-                        "value": "left"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Duration"
-                    },
-                    "properties": [
-                      {
                         "id": "custom.width",
-                        "value": 100
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Job ID"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.width",
-                        "value": 100
+                        "value": 150
                       }
                     ]
                   }
@@ -623,7 +573,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "text",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "code": {
@@ -631,7 +581,7 @@
                   "showLineNumbers": true,
                   "showMiniMap": false
                 },
-                "content": "$function",
+                "content": "${function:raw}",
                 "mode": "code"
               },
               "fieldConfig": {
@@ -661,7 +611,7 @@
                       "spec": {
                         "x": 0,
                         "y": 0,
-                        "width": 3,
+                        "width": 2,
                         "height": 8,
                         "element": {
                           "kind": "ElementReference",
@@ -672,9 +622,9 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 3,
+                        "x": 2,
                         "y": 0,
-                        "width": 21,
+                        "width": 22,
                         "height": 8,
                         "element": {
                           "kind": "ElementReference",
@@ -714,8 +664,8 @@
                       "spec": {
                         "x": 0,
                         "y": 12,
-                        "width": 24,
-                        "height": 4,
+                        "width": 7,
+                        "height": 9,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-8"
@@ -725,10 +675,10 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 0,
-                        "y": 16,
-                        "width": 24,
-                        "height": 15,
+                        "x": 7,
+                        "y": 12,
+                        "width": 17,
+                        "height": 9,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-9"
@@ -842,6 +792,7 @@
             }
           },
           "regex": "",
+          "regexApplyTo": "value",
           "sort": "disabled",
           "definition": "SELECT pg_get_functiondef(p.oid) AS definition\nFROM pg_proc p\nJOIN pg_namespace n ON n.oid = p.pronamespace\nJOIN timescaledb_information.jobs j\n  ON j.proc_name = p.proname\n AND j.proc_schema = n.nspname\nWHERE j.job_id = $jobid",
           "options": [],

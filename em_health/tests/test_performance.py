@@ -367,7 +367,6 @@ class TestPerformance:
             "test-execmany": lambda: self.bench.run_test(self.bench.insert_executemany),
             "test-unnest": lambda: self.bench.run_test(self.bench.insert_unnest),
             "test-import": self.test_import,
-            "test-query": self.test_query,
         }
         action_fn = actions.get(self.action)
         if not action_fn:

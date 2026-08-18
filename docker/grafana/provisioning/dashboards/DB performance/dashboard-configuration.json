@@ -3,29 +3,10 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "ee46beab-c046-42b1-b547-23990e2ec0f3",
-    "namespace": "default",
-    "uid": "bf8ebcdd-7045-413d-9980-336150e28f18",
-    "resourceVersion": "1786517777946996",
-    "generation": 2,
-    "creationTimestamp": "2026-08-11T16:55:21Z",
-    "labels": {
-      "grafana.app/deprecatedInternalID": "2054716192411648"
-    },
-    "annotations": {
-      "grafana.app/createdBy": "access-policy:service",
-      "grafana.app/folder": "df5dxhobf2qyod",
-      "grafana.app/managedBy": "classic-file-provisioning",
-      "grafana.app/managerAllowsEdits": "true",
-      "grafana.app/managerId": "dashboards",
-      "grafana.app/saved-from-ui": "Grafana v13.1.0-25893932881 (fae43e29)",
-      "grafana.app/sourceChecksum": "408faf38e038f2c32e9633e3ac42f774",
-      "grafana.app/sourcePath": "/etc/grafana/provisioning/dashboards/DB performance/dashboard-1786467162289.json",
-      "grafana.app/sourceTimestamp": "1786467316000",
-      "grafana.app/updatedBy": "user:df5dxhmpcxpmoc",
-      "grafana.app/updatedTimestamp": "2026-08-12T06:56:17Z",
-      "grafana.app/folderTitle": "DB performance",
-      "grafana.app/folderUrl": "/em-health/dashboards/f/df5dxhobf2qyod/db-performance"
-    }
+    "generation": 10,
+    "creationTimestamp": "2026-08-14T13:01:46Z",
+    "labels": {},
+    "annotations": {}
   },
   "spec": {
     "annotations": [
@@ -390,7 +371,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  pg_size_bytes(current_setting('work_mem')) AS current,\n  pg_size_bytes(current_setting('shared_buffers')) / current_setting('max_connections')::int AS recommended",
+                        "rawSql": "SELECT\n    pg_size_bytes(current_setting('work_mem')) / 1024 / 1024 AS current_value,\n    GREATEST(\n        1,\n        LEAST(\n            256,\n            pg_size_bytes(current_setting('shared_buffers')) /\n            current_setting('max_connections')::int / 1024 / 1024\n        )\n    ) AS recommended",
                         "sql": {
                           "columns": [
                             {
@@ -432,16 +413,16 @@
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
                   "calcs": [],
-                  "fields": "",
+                  "fields": "/.*/",
                   "values": true
                 },
                 "showPercentChange": false,
-                "textMode": "auto",
+                "textMode": "value_and_name",
                 "wideLayout": true
               },
               "fieldConfig": {
                 "defaults": {
-                  "unit": "decbytes",
+                  "unit": "decmbytes",
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -702,10 +683,11 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
+                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH compressed_tables AS (\n    SELECT hypertable_schema, hypertable_name\n    FROM timescaledb_information.hypertables\n    WHERE compression_enabled = true\n),\nchunk_counts AS (\n    SELECT hypertable_schema, hypertable_name, COUNT(*) AS chunk_count\n    FROM timescaledb_information.chunks\n    GROUP BY hypertable_schema, hypertable_name\n)\nSELECT\n    t.hypertable_schema || '.' || t.hypertable_name AS hypertable,\n    cc.chunk_count,\n    pg_size_pretty(s.before_compression_total_bytes) AS before_size,\n    pg_size_pretty(s.after_compression_total_bytes) AS after_size,\n    ROUND(\n        s.before_compression_total_bytes::numeric\n        / NULLIF(s.after_compression_total_bytes,0), 1\n    ) AS compression_ratio,\n    CASE\n        WHEN s.before_compression_total_bytes::numeric\n             / NULLIF(s.after_compression_total_bytes,1) < 2\n        THEN 'POOR — review segmentby'\n        ELSE 'OK'\n    END AS result\nFROM compressed_tables t\nJOIN chunk_counts cc\n  ON cc.hypertable_schema = t.hypertable_schema\n AND cc.hypertable_name = t.hypertable_name\nJOIN LATERAL hypertable_compression_stats(\n    t.hypertable_schema || '.' || t.hypertable_name\n) AS s ON TRUE\nORDER BY hypertable",
+                        "rawSql": "WITH compressed_tables AS (\n    SELECT\n        hypertable_schema,\n        hypertable_name\n    FROM timescaledb_information.hypertables\n    WHERE compression_enabled = true\n)\nSELECT\n    t.hypertable_schema || '.' || t.hypertable_name AS hypertable,\n\n    COUNT(s.chunk_name) AS chunk_count,\n\n    pg_size_pretty(\n        AVG(s.total_bytes)::bigint\n    ) AS avg_chunk_size,\n\n    pg_size_pretty(\n        cs.before_compression_total_bytes\n    ) AS before_size,\n\n    pg_size_pretty(\n        cs.after_compression_total_bytes\n    ) AS after_size,\n\n    ROUND(\n        cs.before_compression_total_bytes::numeric\n        / NULLIF(cs.after_compression_total_bytes, 0),\n        1\n    ) AS compression_ratio\n\nFROM compressed_tables t\n\nJOIN LATERAL chunks_detailed_size(\n    format('%I.%I', t.hypertable_schema, t.hypertable_name)\n) s ON TRUE\n\nJOIN LATERAL hypertable_compression_stats(\n    format('%I.%I', t.hypertable_schema, t.hypertable_name)\n) cs ON TRUE\n\nGROUP BY\n    t.hypertable_schema,\n    t.hypertable_name,\n    cs.before_compression_total_bytes,\n    cs.after_compression_total_bytes\n\nORDER BY hypertable",
                         "sql": {
                           "columns": [
                             {
@@ -723,9 +705,12 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
                       }
                     },
-                    "refId": "A",
+                    "refId": "B",
                     "hidden": false
                   }
                 }
@@ -792,14 +777,11 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "datasource": {
-                        "name": "hm-sem"
-                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH compressed_tables AS (\n    SELECT hypertable_schema, hypertable_name\n    FROM timescaledb_information.hypertables\n    WHERE compression_enabled = true\n),\nchunk_counts AS (\n    SELECT hypertable_schema, hypertable_name, COUNT(*) AS chunk_count\n    FROM timescaledb_information.chunks\n    GROUP BY hypertable_schema, hypertable_name\n)\nSELECT\n    t.hypertable_schema || '.' || t.hypertable_name AS hypertable,\n    cc.chunk_count,\n    pg_size_pretty(s.before_compression_total_bytes) AS before_size,\n    pg_size_pretty(s.after_compression_total_bytes) AS after_size,\n    ROUND(\n        s.before_compression_total_bytes::numeric\n        / NULLIF(s.after_compression_total_bytes,0), 1\n    ) AS compression_ratio,\n    CASE\n        WHEN s.before_compression_total_bytes::numeric\n             / NULLIF(s.after_compression_total_bytes,1) < 2\n        THEN 'POOR — review segmentby'\n        ELSE 'OK'\n    END AS result\nFROM compressed_tables t\nJOIN chunk_counts cc\n  ON cc.hypertable_schema = t.hypertable_schema\n AND cc.hypertable_name = t.hypertable_name\nJOIN LATERAL hypertable_compression_stats(\n    t.hypertable_schema || '.' || t.hypertable_name\n) AS s ON TRUE\nORDER BY hypertable",
+                        "rawSql": "WITH compressed_tables AS (\n    SELECT\n        hypertable_schema,\n        hypertable_name\n    FROM timescaledb_information.hypertables\n    WHERE compression_enabled = true\n)\nSELECT\n    t.hypertable_schema || '.' || t.hypertable_name AS hypertable,\n\n    COUNT(s.chunk_name) AS chunk_count,\n\n    pg_size_pretty(\n        AVG(s.total_bytes)::bigint\n    ) AS avg_chunk_size,\n\n    pg_size_pretty(\n        cs.before_compression_total_bytes\n    ) AS before_size,\n\n    pg_size_pretty(\n        cs.after_compression_total_bytes\n    ) AS after_size,\n\n    ROUND(\n        cs.before_compression_total_bytes::numeric\n        / NULLIF(cs.after_compression_total_bytes, 0),\n        1\n    ) AS compression_ratio\n\nFROM compressed_tables t\n\nJOIN LATERAL chunks_detailed_size(\n    format('%I.%I', t.hypertable_schema, t.hypertable_name)\n) s ON TRUE\n\nJOIN LATERAL hypertable_compression_stats(\n    format('%I.%I', t.hypertable_schema, t.hypertable_name)\n) cs ON TRUE\n\nGROUP BY\n    t.hypertable_schema,\n    t.hypertable_name,\n    cs.before_compression_total_bytes,\n    cs.after_compression_total_bytes\n\nORDER BY hypertable;",
                         "sql": {
                           "columns": [
                             {
@@ -817,6 +799,9 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-2"
                       }
                     },
                     "refId": "A",
@@ -867,6 +852,113 @@
             }
           }
         }
+      },
+      "panel-38": {
+        "kind": "Panel",
+        "spec": {
+          "id": 38,
+          "title": "Tuning autovacuum_work_mem",
+          "description": "Triggers when at least 1 autovacuum run in the last 24h have had multiple index scan phases, which usually means the memory setting is too low.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT CASE\n    WHEN EXISTS (\n        SELECT 1\n        FROM pganalyze.vacuum_stats\n        WHERE started_at >= now() - interval '24 hours'\n          AND index_scans > 1\n    )\n    THEN 'Not OK'\n    ELSE 'OK'\nEND AS status;",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.1.0-25893932881",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [],
+                  "fields": "/.*/",
+                  "values": true
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "mappings": [
+                    {
+                      "type": "value",
+                      "options": {
+                        "Not OK": {
+                          "color": "red",
+                          "index": 1
+                        },
+                        "OK": {
+                          "color": "green",
+                          "index": 0
+                        }
+                      }
+                    }
+                  ],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
       }
     },
     "layout": {
@@ -904,8 +996,21 @@
             "spec": {
               "x": 0,
               "y": 11,
-              "width": 5,
+              "width": 12,
               "height": 5,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-36"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 12,
+              "y": 11,
+              "width": 5,
+              "height": 4,
               "element": {
                 "kind": "ElementReference",
                 "name": "panel-32"
@@ -915,10 +1020,10 @@
           {
             "kind": "GridLayoutItem",
             "spec": {
-              "x": 5,
+              "x": 17,
               "y": 11,
               "width": 3,
-              "height": 5,
+              "height": 4,
               "element": {
                 "kind": "ElementReference",
                 "name": "panel-33"
@@ -928,10 +1033,10 @@
           {
             "kind": "GridLayoutItem",
             "spec": {
-              "x": 8,
+              "x": 20,
               "y": 11,
               "width": 4,
-              "height": 5,
+              "height": 4,
               "element": {
                 "kind": "ElementReference",
                 "name": "panel-34"
@@ -942,9 +1047,22 @@
             "kind": "GridLayoutItem",
             "spec": {
               "x": 12,
-              "y": 11,
+              "y": 15,
+              "width": 4,
+              "height": 4,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-38"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 16,
+              "y": 15,
               "width": 3,
-              "height": 5,
+              "height": 4,
               "element": {
                 "kind": "ElementReference",
                 "name": "panel-35"
@@ -957,20 +1075,7 @@
               "x": 0,
               "y": 16,
               "width": 12,
-              "height": 6,
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-36"
-              }
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "x": 0,
-              "y": 22,
-              "width": 12,
-              "height": 6,
+              "height": 5,
               "element": {
                 "kind": "ElementReference",
                 "name": "panel-37"

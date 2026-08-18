@@ -141,7 +141,62 @@ $sql$;
       ALTER TABLE events.data_staging
         SET UNLOGGED;
 
-      -- 8. Update schema version
+      -- 8. Add new columns to pganalyze tables
+      ALTER TABLE pganalyze.table_stats
+        ADD COLUMN IF NOT EXISTS tup_ins BIGINT NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS tup_upd BIGINT NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS tup_del BIGINT NOT NULL DEFAULT 0;
+
+      ALTER TABLE pganalyze.vacuum_stats
+        ADD COLUMN IF NOT EXISTS hypertable_relid oid;
+
+      -- 9. Update hypertable_relid in pganalyze.vacuum_stats for the old rows
+      -- update values for normal tables
+      UPDATE pganalyze.vacuum_stats
+      SET hypertable_relid = relid
+      WHERE hypertable_relid IS NULL
+        AND EXISTS (
+          SELECT 1
+          FROM pg_class c
+          WHERE c.oid = pganalyze.vacuum_stats.relid
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM pg_class c
+               JOIN pg_namespace n ON n.oid = c.relnamespace
+               JOIN timescaledb_information.chunks ch
+              ON ch.chunk_schema = n.nspname
+              AND ch.chunk_name = c.relname
+          WHERE c.oid = pganalyze.vacuum_stats.relid
+        );
+
+      -- update values for hypertable chunks
+      UPDATE pganalyze.vacuum_stats v
+      SET hypertable_relid = h.oid
+      FROM pg_class c
+           JOIN pg_namespace n
+          ON n.oid = c.relnamespace
+           JOIN timescaledb_information.chunks ch
+          ON ch.chunk_schema = n.nspname
+          AND ch.chunk_name = c.relname
+           JOIN pg_namespace hn
+          ON hn.nspname = ch.hypertable_schema
+           JOIN pg_class h
+          ON h.relnamespace = hn.oid
+          AND h.relname = ch.hypertable_name
+      WHERE v.hypertable_relid IS NULL
+        AND v.relid = c.oid;
+
+      -- update remaining values (mostly dropped chunks)
+      UPDATE pganalyze.vacuum_stats
+      SET hypertable_relid = relid
+      WHERE hypertable_relid IS NULL;
+
+      -- set the column NOT NULL
+      ALTER TABLE pganalyze.vacuum_stats
+        ALTER COLUMN hypertable_relid SET NOT NULL;
+
+      -- 10. Update schema version
       UPDATE public.schema_info SET version = 6;
     END IF;
   END

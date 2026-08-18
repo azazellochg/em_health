@@ -69,6 +69,9 @@ BEGIN
       ch.hypertable_schema,
       ch.hypertable_name,
       MAX(AGE(c.relfrozenxid)) AS frozen_xid_age,
+      COALESCE(SUM(s.n_tup_ins), 0) AS tup_ins,
+      COALESCE(SUM(s.n_tup_upd), 0) AS tup_upd,
+      COALESCE(SUM(s.n_tup_del), 0) AS tup_del,
       COALESCE(SUM(s.n_dead_tup), 0) AS num_dead_rows,
       COALESCE(SUM(s.n_live_tup), 0) AS num_live_rows
     FROM
@@ -94,6 +97,9 @@ BEGIN
     index_bytes,
     toast_bytes,
     frozen_xid_age,
+    tup_ins,
+    tup_upd,
+    tup_del,
     num_dead_rows,
     num_live_rows
   )
@@ -106,6 +112,9 @@ BEGIN
          ELSE PG_TOTAL_RELATION_SIZE(s.relid) - PG_TABLE_SIZE(s.relid) -
               PG_INDEXES_SIZE(s.relid) END AS toast_external_bytes,
     CASE WHEN ht.hypertable_name IS NOT NULL THEN COALESCE(cs.frozen_xid_age, 0) ELSE COALESCE(AGE(c.relfrozenxid), 0) END AS frozen_xid_age,
+    CASE WHEN ht.hypertable_name IS NOT NULL THEN COALESCE(cs.tup_ins, 0) ELSE COALESCE(st.n_tup_ins, 0) END AS tup_ins,
+    CASE WHEN ht.hypertable_name IS NOT NULL THEN COALESCE(cs.tup_upd, 0) ELSE COALESCE(st.n_tup_upd, 0) END AS tup_upd,
+    CASE WHEN ht.hypertable_name IS NOT NULL THEN COALESCE(cs.tup_del, 0) ELSE COALESCE(st.n_tup_del, 0) END AS tup_del,
     CASE WHEN ht.hypertable_name IS NOT NULL THEN COALESCE(cs.num_dead_rows, 0) ELSE COALESCE(st.n_dead_tup, 0) END AS num_dead_rows,
     CASE WHEN ht.hypertable_name IS NOT NULL THEN COALESCE(cs.num_live_rows, 0) ELSE COALESCE(st.n_live_tup, 0) END AS num_live_rows
 
@@ -426,9 +435,9 @@ BEGIN
         AND (schemaname IN ('events', 'uec', 'pganalyze') OR
              (schemaname = '_timescaledb_internal' AND tablename LIKE '_hyper_%_chunk'))
     )
-  INSERT
-  INTO pganalyze.vacuum_stats (
+  INSERT INTO pganalyze.vacuum_stats (
     relid,
+    hypertable_relid,
     started_at,
     finished_at,
     index_scans,
@@ -439,19 +448,28 @@ BEGIN
     details
   )
   SELECT
-    c.oid,
-    log_time,
-    log_time + (elapsed_s * INTERVAL '1 second'),
-    index_scans,
-    pages_removed,
-    tuples_removed,
-    tuples_remain,
-    wraparound,
-    message
+    c.oid AS relid,
+    COALESCE(h.oid, c.oid) AS hypertable_relid,
+    f.log_time AS started_at,
+    f.log_time + (f.elapsed_s * INTERVAL '1 second') AS finished_at,
+    f.index_scans,
+    f.pages_removed,
+    f.tuples_removed,
+    f.tuples_remain,
+    f.wraparound,
+    f.message AS details
   FROM
     filtered f
     JOIN pg_class c
       ON c.oid = TO_REGCLASS(f.relname)::oid
+    LEFT JOIN timescaledb_information.chunks ch
+      ON ch.chunk_schema = f.schemaname
+      AND ch.chunk_name = f.tablename
+    LEFT JOIN pg_namespace hn
+      ON hn.nspname = ch.hypertable_schema
+    LEFT JOIN pg_class h
+      ON h.relnamespace = hn.oid
+      AND h.relname = ch.hypertable_name
   ON CONFLICT DO NOTHING;
 
 -- Insert parsed plans into stat_explains

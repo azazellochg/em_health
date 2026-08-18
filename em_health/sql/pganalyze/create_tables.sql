@@ -28,6 +28,9 @@ CREATE TABLE IF NOT EXISTS pganalyze.table_stats (
   index_bytes BIGINT NOT NULL,
   toast_bytes BIGINT NOT NULL,
   frozen_xid_age BIGINT NOT NULL,
+  tup_ins BIGINT NOT NULL,
+  tup_upd BIGINT NOT NULL,
+  tup_del BIGINT NOT NULL,
   num_dead_rows BIGINT NOT NULL,
   num_live_rows BIGINT NOT NULL,
   PRIMARY KEY (relid, collected_at)
@@ -48,6 +51,7 @@ CREATE TABLE IF NOT EXISTS pganalyze.index_stats (
 
 CREATE TABLE IF NOT EXISTS pganalyze.vacuum_stats (
   relid oid NOT NULL,
+  hypertable_relid oid NOT NULL,
   started_at timestamptz NOT NULL,
   finished_at timestamptz NOT NULL,
   index_scans BIGINT NOT NULL,
