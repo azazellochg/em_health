@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS pganalyze.database_stats (
   frozen_xid_age BIGINT NOT NULL,
   frozen_mxid_age BIGINT NOT NULL,
   db_size BIGINT NOT NULL,
-  wal_lsn pg_lsn NOT NULL
+  wal_lsn pg_lsn NOT NULL,
+  xmin_horizon BIGINT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS pganalyze.table_stats (

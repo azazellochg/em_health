@@ -24,8 +24,36 @@ BEGIN
     frozen_xid_age,
     frozen_mxid_age,
     db_size,
-    wal_lsn
+    wal_lsn,
+    xmin_horizon
   )
+  WITH xmin_candidates AS (
+    SELECT
+      (
+        SELECT
+          CASE
+            WHEN COALESCE(pg_catalog.age(backend_xid), 0) > COALESCE(pg_catalog.age(backend_xmin), 0)
+              THEN backend_xid::text::bigint
+            ELSE backend_xmin::text::bigint
+            END
+        FROM pg_catalog.pg_stat_activity
+        WHERE backend_xmin IS NOT NULL
+          OR backend_xid IS NOT NULL
+        ORDER BY greatest(pg_catalog.age(backend_xmin), pg_catalog.age(backend_xid)) DESC
+        LIMIT 1
+      ) AS backend,
+      (
+        SELECT transaction::text::bigint
+        FROM pg_catalog.pg_prepared_xacts
+        ORDER BY pg_catalog.age(transaction) DESC
+        LIMIT 1
+      ) AS prepare_xact
+  ),
+    true_xmin AS (
+      SELECT
+        COALESCE(LEAST(backend, prepare_xact), 0) AS xmin_horizon
+      FROM xmin_candidates
+    )
   SELECT
     NOW() AS collected_at,
     s.xact_commit,
@@ -45,11 +73,13 @@ BEGIN
     AGE(d.datfrozenxid) AS frozen_xid_age,
     mxid_age(d.datminmxid) AS frozen_mxid_age,
     PG_DATABASE_SIZE(CURRENT_DATABASE()) AS db_size,
-    pg_current_wal_lsn() AS wal_lsn
+    pg_current_wal_lsn() AS wal_lsn,
+    tx.xmin_horizon
   FROM
     pg_catalog.pg_stat_database s
     JOIN pg_catalog.pg_database d
       ON s.datname = d.datname
+    CROSS JOIN true_xmin tx
   WHERE
     s.datname = CURRENT_DATABASE();
 END;

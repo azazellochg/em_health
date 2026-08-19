@@ -142,6 +142,9 @@ $sql$;
         SET UNLOGGED;
 
       -- 8. Add new columns to pganalyze tables
+      ALTER TABLE pganalyze.database_stats
+        ADD COLUMN xmin_horizon BIGINT NOT NULL DEFAULT 0;
+
       ALTER TABLE pganalyze.table_stats
         ADD COLUMN IF NOT EXISTS tup_ins BIGINT NOT NULL DEFAULT 0,
         ADD COLUMN IF NOT EXISTS tup_upd BIGINT NOT NULL DEFAULT 0,

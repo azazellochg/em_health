@@ -23,8 +23,8 @@ groups:
                 rawSql: |-
                     WITH target_param AS (
                                           SELECT p.param_id, i.name, i.id
-                                          FROM parameters p
-                                          JOIN instruments i ON i.id = p.instrument_id
+                                          FROM events.parameters p
+                                          JOIN events.instruments i ON i.id = p.instrument_id
                                           WHERE subsystem = 'EnergyFilterBrick'
                                             AND param_name = 'EnergyFilterIsAvailable'
                                         )
@@ -33,7 +33,7 @@ groups:
                                             t.name AS "instrument",
                                             'EnergyFilter' AS "module",
                                             d.value_num AS "value"
-                                        FROM data d
+                                        FROM events.data d
                                         JOIN target_param t
                                           ON d.param_id = t.param_id
                                           AND d.instrument_id = t.id
