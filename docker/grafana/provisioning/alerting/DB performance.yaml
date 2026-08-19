@@ -1,0 +1,1775 @@
+apiVersion: 1
+groups:
+    - orgId: 1
+      name: 1 min
+      folder: DB performance
+      interval: 1m
+      rules:
+        - uid: cfvk3enafmfpcc
+          title: Active long queries
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: hm-tem
+              model:
+                dataset: tem
+                editorMode: code
+                format: table
+                intervalMs: 1000
+                maxDataPoints: 43200
+                rawQuery: true
+                rawSql: |-
+                    SELECT
+                      pid::text AS "PID",
+                      usename AS "User",
+                      datname AS "Database",
+                      LEFT(query, 500) AS "Query",
+                      EXTRACT(EPOCH FROM (now() - query_start)) AS "Duration"
+                    FROM
+                      pg_stat_activity
+                    WHERE
+                      state = 'active'
+                      AND query_start IS NOT NULL
+                      AND now() - query_start > interval '1800 seconds'
+                      AND pid <> pg_backend_pid()
+
+                      -- Ignore backup / maintenance programs
+                      AND query NOT ILIKE '%pg_dump%'
+                      AND query NOT ILIKE '%pg_repack%'
+
+                      -- Ignore CREATE INDEX CONCURRENTLY
+                      AND query !~* '\bCREATE\s+INDEX\s+CONCURRENTLY\b'
+
+                      -- Ignore REINDEX CONCURRENTLY
+                      AND query !~* '\bREINDEX\s+CONCURRENTLY\b'
+
+                      -- Ignore VACUUM, but not VACUUM FULL
+                      AND query !~* '^\s*VACUUM\s+(?!FULL\b)'
+
+                      -- Ignore ANALYZE
+                      AND query !~* '^\s*ANALYZE\b'
+                    ORDER BY
+                      query_start;
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: reducer
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: count
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: count
+                refId: reducer
+                type: reduce
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: reducer
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: OK
+          execErrState: Error
+          annotations:
+            Common causes: |-
+                - Locks
+                The queries may be waiting for locks. Check the Wait Events page for the associated backends, and look for any wait events of type Lock. If you have log_lock_waits turned on, you can also see details about locking in the Logs page for the backend.
+
+                - Long-running migration
+                If some of these queries are DDL that is part of a database migration, they may need to rewrite a table (e.g., changing the type of a column) or scan a whole table (e.g., CREATE INDEX without CONCURRENTLY), which can take much longer in production than in a staging or development environment. If your migration is transactional, consider canceling it and refactor it to avoid table rewrites.
+
+                - Missing index
+                If a query lacks the necessary indexes to execute efficiently, it may take longer and use more I/O than necessary, causing a negative impact on the whole system. Check the the Index Check tab for the referenced queries to review indexing recommendations.
+
+                - Data changes
+                If the the data accessed by a query changes dramatically (either grows in size or changes in terms of statistics relevant to query planning ), the query may start performing poorly. You may need to review the EXPLAIN plans for the query, change indexes, or create auxiliary statistics to give Postgres more information about the distribution of the underlying data. You should also check vacuum activity on the tables involved to make sure bloat is under control and that the tables have been analyzed recently.
+            Impact: Long-running queries can hold locks, blocking other queries. They can prevent VACUUM (including autovacuum) from cleaning up dead rows, leading to table or index bloat. They may also be consuming a lot of I/O or CPU resources, impacting overall performance.
+            Solution: 'If you''ve confirmed the queries are causing problems, you can cancel any of them with SELECT pg_cancel_backend(''<query_pid>'');. Note that this only treats the symptom: if the query runs again without any changes, it is likely to run slowly again.'
+            description: |-
+                Detects queries currently running for longer than the specified threshold of 1800 seconds and creates an issue with severity "warning". Resolves automatically once these queries stop running.
+
+                Ignores queries from backup and maintenance programs (pg_dump, pg_repack, etc).
+
+                Also ignores concurrent CREATE INDEX/REINDEX (CREATE INDEX CONCURRENTLY and REINDEX CONCURRENTLY), based on this check's configuration (off).
+
+                Also ignores non-blocking maintenance commands (VACUUM, excluding VACUUM FULL, and ANALYZE), based on this check's configuration (off).
+            summary: 'Long query (PID {{ index $labels "PID" }}, {{ index $labels "User" }}@{{ index $labels "Database" }}): {{ index $labels "Query" }}, duration {{ $values.A.Value }}s'
+          labels:
+            module: queries
+            severity: warning
+          isPaused: false
+          notification_settings:
+            receiver: email-contact-point
+        - uid: cfvk3ybht91c0b
+          title: Idle transactions
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: hm-tem
+              model:
+                dataset: tem
+                editorMode: code
+                format: table
+                intervalMs: 1000
+                maxDataPoints: 43200
+                rawQuery: true
+                rawSql: |-
+                    SELECT
+                      EXTRACT(EPOCH FROM (NOW() - a.state_change)) AS "Duration",
+                      a.pid::text AS "PID",
+                      COALESCE(a.usename, '') AS "User",
+                      COALESCE(a.datname, '') AS "Database",
+                      COALESCE(a.application_name, '') AS "Application",
+                      LEFT(a.query, 500) AS "Query"
+                    FROM
+                      pg_stat_activity a
+                    WHERE
+                      a.state = 'idle in transaction'
+                      AND a.state_change IS NOT NULL
+                      AND a.pid <> pg_backend_pid()
+                      AND NOW() - a.state_change > interval '1800 seconds'
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: reducer
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: count
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: count
+                refId: reducer
+                type: reduce
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: reducer
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: OK
+          execErrState: Error
+          annotations:
+            Common causes: |-
+                - Application bugs
+                If there is an error (either in the application or in the database) while processing a query, the application must handle that correctly and roll back the transaction (and possibly close the connection). If it fails to do that, the idle transaction may be left open as long as the application keeps running.
+
+                If your application sets application_name on its connections or uses a distinct role, you can find more details by querying pg_stat_activity. Review the code path that triggered the idle transaction (you can also check the last query on the connection in pg_stat_activity), and make sure that any errors are handled appropriately (e.g., with rescue or catch) and roll back the transaction.
+
+                - Interactive sessions
+                If someone is accessing the database directly in an interactive session and they manually open a transaction with BEGIN or START TRANSACTION, they must close it with COMMIT or ROLLBACK, or disconnect entirely (which will roll back the transaction).
+            Impact: Transactions left open can hold locks, blocking other queries, and can prevent VACUUM (including autovacuum) from cleaning up dead rows, leading to index or table bloat.
+            Solution: |-
+                For an immediate solution, you can kill a connection with an idle transaction with SELECT pg_terminate_backend('<session_pid>');. Note that this only treats the symptom: unless this is due to a one-off manual session, you may run into this problem again.
+
+                You can also change the idle_in_transaction_session_timeout setting to automatically roll back idle transactions older than a specified threshold.
+            description: Detects transactions that have been open with no activity (the idle in transaction state) for longer than the specified threshold of 1800 seconds and creates an issue with severity "warning". Resolves automatically once the transactions are committed, rolled back, or show activity again.
+            summary: 'Idle transaction (PID {{ index $labels "PID" }}, {{ index $labels "User" }}@{{ index $labels "Database" }}, application {{ index $labels "Application" }}): {{ index $labels "Query" }}, duration {{ $values.A.Value }}s'
+          labels:
+            module: queries
+            severity: warning
+          isPaused: false
+          notification_settings:
+            receiver: email-contact-point
+        - uid: cfvk5iuyilgcga
+          title: Blocking Queries
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: hm-tem
+              model:
+                dataset: tem
+                editorMode: code
+                format: table
+                intervalMs: 1000
+                maxDataPoints: 43200
+                rawQuery: true
+                rawSql: |-
+                    WITH blocked_queries AS (
+                      SELECT
+                        bp.blocking_pid,
+                        blocked.pid AS blocked_pid,
+                        blocked.query_start
+                      FROM
+                        pg_stat_activity blocked
+                        CROSS JOIN LATERAL unnest(pg_blocking_pids(blocked.pid)) AS bp(blocking_pid)
+                      WHERE
+                        blocked.state = 'active'
+                        AND blocked.query_start IS NOT NULL
+                    ),
+                    blocking_counts AS (
+                      SELECT
+                        blocking_pid,
+                        COUNT(DISTINCT blocked_pid) AS blocked_count
+                      FROM
+                        blocked_queries
+                      GROUP BY
+                        blocking_pid
+                      HAVING
+                        COUNT(DISTINCT blocked_pid) >= 3
+                    )
+                    SELECT
+                      bq.blocking_pid::text AS pid
+                    FROM
+                      blocked_queries bq
+                      JOIN blocking_counts bc
+                        ON bc.blocking_pid = bq.blocking_pid
+                    GROUP BY
+                      bq.blocking_pid
+                    HAVING
+                      NOW() - MIN(bq.query_start) > interval '300 seconds'
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: B
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params: []
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: count
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: count
+                refId: B
+                type: reduce
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: B
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: OK
+          execErrState: Error
+          annotations:
+            Common causes: |-
+                - Autovacuum (to prevent wraparound)
+                In general, autovacuum won't block other queries. If a query tries to acquire a lock that conflicts with a running autovacuum, autovacuum will be interrupted so that the query can proceed. However, if autovacuum is running to prevent transaction ID wraparound, it will not yield like this and will block other queries trying to acquire conflicting locks.
+
+                - Long-running migration
+                If some of these queries are DDL that is part of a database migration, they may need to rewrite a table (e.g., changing the type of a column) or scan a whole table (e.g., CREATE INDEX without CONCURRENTLY), which can take much longer in production than in a staging or development environment. If your migration is transactional, consider canceling it and refactor it to avoid table rewrites.
+
+                - Other long-running queries
+                A long running query could block other queries if it holds locks that they require to make progress. Navigate to the Connection Traces page to check the overview of which query is blocking which queries to understand the impact. It is useful to know what kind of locks the blocking query is holding and what kind of locks the blocked queries are waiting for. You can check the wait event of these locks in the Wait Events page, with any wait events of type Lock. If you have log_lock_waits turned on, you can also see details about locking in the Logs page for these queries.
+
+                You can run the queries like SELECT * FROM pg_locks WHERE pid = '<blocking_pid>'; to obtain more detailed lock information of the blocking query to see which locks the blocking query is holding. You can also run this query with the blocked query like SELECT * FROM pg_locks WHERE pid = '<blocked_pid>' WHERE NOT granted; to see which locks it's waiting for. This information can be used to investigate why this has happened and how to change the query to prevent this from happening again in the future.
+            Impact: Queries that hold contended locks for a significant period of time may end up preventing other queries from making progress. This can even block simple SELECT queries, and in some cases, it can affect overall system performance or it can cause the system to run out of connections.
+            Solution: |-
+                You can cancel these queries with SELECT pg_cancel_backend('<query_pid>');. Note that this only treats the symptom: if the query runs again without any changes, it is likely to acquire the same locks and block other queries again.
+
+                If you're canceling an autovacuum to prevent wraparound, note that it does critical work. It will restart and need to be completed eventually, acquiring the same locks. Consider tuning your vacuum settings to be more aggressive to avoid the need for explicit vacuums to prevent wraparound.
+            description: Detects queries currently blocking at least 3 other queries. When any blocked query is running for longer than 300 seconds, creates an issue with severity "warning". Escalates to "critical" if any blocked query continues to run longer than 600 seconds. Resolves automatically once these queries complete or abort and release their locks.
+            summary: 'Blocking PID: {{ index $labels "pid" }}'
+          labels:
+            module: queries
+            severity: warning
+          isPaused: false
+          notification_settings:
+            receiver: email-contact-point
+    - orgId: 1
+      name: 24h
+      folder: DB performance
+      interval: 1d
+      rules:
+        - uid: ffvjs4zz4syyoc
+          title: Inefficient Index Phase
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: hm-tem
+              model:
+                dataset: tem
+                editorMode: code
+                format: table
+                intervalMs: 1000
+                maxDataPoints: 43200
+                rawQuery: true
+                rawSql: |-
+                    SELECT
+                      CASE
+                        WHEN EXISTS (
+                          SELECT
+                            1
+                          FROM
+                            pganalyze.vacuum_stats
+                          WHERE
+                            started_at >= now() - interval '24 hours'
+                            AND index_scans > 1
+                        ) THEN 1
+                        ELSE 0
+                      END AS value;
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: reducer
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: avg
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: reducer
+                type: reduce
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: reducer
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          annotations:
+            Impact: Autovacuum on affected tables may take significantly longer. VACUUM processes tables and their indexes in phases. To avoid impacting your primary workload, autovacuum is limited to using a certain amount of memory. If this is not enough to process all dead rows, the index scan phase will need to be repeated (possibly several times). This is inefficient in terms of CPU and I/O.
+            Solution: Increasing autovacuum_work_mem can allow autovacuum to proceed more efficiently. It's hard to predict how much memory may be needed, but doubling the value (up to the maximum of 1GB) and monitoring the impact is a reasonable approach. If autovacuum_work_mem is set to -1, it will fall back to the current value of maintenance_work_mem. It is generally preferable to set it separately. Update the setting to the recommended value by using ALTER SYSTEM  or modifying the parameters in your cloud provider portal.
+            summary: Detects when autovacuum runs in this server are forced to perform inefficient multiple index scan phases due to limited configured memory, and creates an issue with severity "warning". Triggers when at least 1 autovacuum run in the last 24h have had multiple index scan phases. Resolves automatically once fewer than 1 autovacuum run in the last 24h have had multiple index scan phases.
+          labels:
+            module: vacuum
+            severity: warning
+          isPaused: false
+          notification_settings:
+            receiver: email-contact-point
+        - uid: bfvjslgfrb400c
+          title: Bloat - Insufficient VACUUM Frequency
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: hm-tem
+              model:
+                dataset: tem
+                editorMode: code
+                format: table
+                intervalMs: 1000
+                maxDataPoints: 43200
+                rawQuery: true
+                rawSql: |-
+                    WITH stats AS (
+                      SELECT
+                        collected_at,
+                        relid,
+                        table_bytes,
+                        num_dead_rows,
+                        num_live_rows,
+                        tup_ins,
+                        LAG(collected_at) OVER (
+                          PARTITION BY relid
+                          ORDER BY
+                            collected_at
+                        ) AS prev_at,
+                        LAG(table_bytes) OVER (
+                          PARTITION BY relid
+                          ORDER BY
+                            collected_at
+                        ) AS prev_table_bytes,
+                        LAG(num_dead_rows) OVER (
+                          PARTITION BY relid
+                          ORDER BY
+                            collected_at
+                        ) AS prev_dead_rows,
+                        LAG(tup_ins) OVER (
+                          PARTITION BY relid
+                          ORDER BY
+                            collected_at
+                        ) AS prev_tup_ins
+                      FROM
+                        pganalyze.table_stats
+                      WHERE
+                        collected_at >= now() - interval '7 days'
+                    ),
+                    intervals AS (
+                      SELECT
+                        s.*,
+                        /*
+                         * Inserts that happened during this sampling interval.
+                         */
+                        GREATEST(s.tup_ins - s.prev_tup_ins, 0) AS new_rows,
+                        /*
+                         * Dead rows that were already available for reuse at
+                         * the beginning of the interval.
+                         */
+                        GREATEST(s.prev_dead_rows, 0) AS reusable_rows
+                      FROM
+                        stats s
+                      WHERE
+                        s.prev_at IS NOT NULL
+                        AND s.prev_tup_ins IS NOT NULL
+                    ),
+                    vacuum_intervals AS (
+                      SELECT
+                        i.*,
+                        /*
+                         * Was there a VACUUM between the two statistics samples?
+                         */
+                        EXISTS (
+                          SELECT
+                            1
+                          FROM
+                            pganalyze.vacuum_stats v
+                          WHERE
+                            v.relid = i.relid
+                            AND v.finished_at > i.prev_at
+                            AND v.finished_at <= i.collected_at
+                        ) AS vacuum_ran
+                      FROM
+                        intervals i
+                    ),
+                    avoidable AS (
+                      SELECT
+                        relid,
+                        /*
+                         * If VACUUM didn't run during the interval, the dead rows
+                         * available at the start could not be reused.
+                         *
+                         * We estimate how many new rows therefore required new
+                         * physical space.
+                         */
+                        CASE
+                          WHEN vacuum_ran THEN 0
+                          ELSE LEAST(new_rows, reusable_rows)
+                        END AS avoidable_rows,
+                        /*
+                         * Total new rows during the period.
+                         */
+                        new_rows,
+                        /*
+                         * Estimate the physical size of one row using the latest
+                         * observed table size / live row count.
+                         */
+                        CASE
+                          WHEN num_live_rows > 0 THEN table_bytes :: numeric / num_live_rows
+                          ELSE 0
+                        END AS bytes_per_row
+                      FROM
+                        vacuum_intervals
+                    ),
+                    per_table AS (
+                      SELECT
+                        relid,
+                        SUM(avoidable_rows) AS avoidable_rows,
+                        SUM(new_rows) AS new_rows,
+                        /*
+                         * Convert avoidable rows to approximate bytes.
+                         */
+                        SUM(avoidable_rows * bytes_per_row) AS avoidable_bytes
+                      FROM
+                        avoidable
+                      GROUP BY
+                        relid
+                    )
+                    SELECT
+                      CASE
+                        WHEN EXISTS (
+                          SELECT
+                            1
+                          FROM
+                            per_table
+                          WHERE
+                            avoidable_rows > 0
+                            AND avoidable_rows :: numeric / NULLIF(new_rows, 0) > 0.20
+                            AND avoidable_bytes >= 10 * 1024 * 1024
+                        ) THEN 1
+                        ELSE 0
+                      END AS value;
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: reducer
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: avg
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: reducer
+                type: reduce
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: reducer
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          annotations:
+            summary: Detects when insufficient VACUUM frequency leads to avoidable growth in a table. It analyzes the table statistic from the past seven days and calculates the amount of rows that could have been avoided to grow if VACUUM had been performed more frequently. Creates an issue when such rows exceeds 20% of total new rows, as well as 10MB accumulated. Resolves once such growth decreases.
+          labels:
+            module: vacuum
+            severity: warning
+          isPaused: false
+          notification_settings:
+            receiver: email-contact-point
+        - uid: afvjzu44cfapsd
+          title: Unused Indexes
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: hm-tem
+              model:
+                dataset: tem
+                editorMode: code
+                format: table
+                intervalMs: 1000
+                maxDataPoints: 43200
+                rawQuery: true
+                rawSql: |-
+                    SELECT
+                      n.nspname AS "Schema",
+                      t.relname AS "Table",
+                      c.relname AS "Index",
+                      MAX(i.scan) AS "Scans"
+                    FROM
+                      pganalyze.index_stats i
+                      JOIN pg_class c ON c.oid = i.indexrelid
+                      JOIN pg_index ix ON ix.indexrelid = i.indexrelid
+                      JOIN pg_class t ON t.oid = i.relid
+                      JOIN pg_namespace n ON n.oid = t.relnamespace
+                    WHERE
+                      i.collected_at >= now() - interval '35 days'
+                      AND NOT ix.indisprimary
+                      AND NOT ix.indisunique
+                      AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+                      AND n.nspname NOT LIKE 'pg_toast%'
+                    GROUP BY
+                      i.indexrelid,
+                      n.nspname,
+                      t.relname,
+                      c.relname
+                    HAVING
+                      MAX(i.size_bytes) >= 32 * 1024
+                      AND MAX(i.scan) = 0
+                    ORDER BY
+                      MAX(i.size_bytes) DESC;
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: reducer
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: avg
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: count
+                refId: reducer
+                type: reduce
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: eq
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: reducer
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          annotations:
+            Impact: Postgres has to keep maintaining unused indexes for inserts, updates, and deletes to the table, slowing down writes. They also take up memory, competing with actively used indexes and table data. Larger unused indexes can also cause unnecessary disk space usage.
+            Solution: |-
+                First, make sure these indexes are not in use in another database. You may need to check other environments that share the same schema, or verify that the index is not used on a read replica. If this server is a staging, QA or dev environment you may want to turn off the index unused check and only run it on production. You can also check usage of the associated table on the Schema Statistics page for the table. Once you've confirmed the indexes are safe to drop, you can clean them up by running DROP INDEX CONCURRENTLY "<index_name>";.
+
+                Note: expression indexes can influence the query planner even if the index is unused. When dropping an expression index, if you notice some queries are slower you may want to CREATE STATISTICS for the expression the index previously covered.
+            description: |-
+                Detects indexes that are not in use by any queries within the last 35 days and creates an issue with severity "warning", one for each table (or table hierarchy in case of inheritance or partitioning). Resolves once all unused indexes on a table are dropped or start being used. Note that if you have gaps in your collector reporting, this check may miss usage during un-reported periods.
+
+                Ignores small indexes (less than 32kB), primary keys, and unique indexes since they are necessary to enforce constraints.
+            summary: Unused index {{ index $labels "Index" }} on table {{ index $labels "Schema" }}.{{ index $labels "Table" }}
+          labels:
+            module: schema
+            severity: warning
+          isPaused: false
+          notification_settings:
+            receiver: email-contact-point
+    - orgId: 1
+      name: 30 min
+      folder: DB performance
+      interval: 30m
+      rules:
+        - uid: ffvjoe2mkg35sa
+          title: Disabled planning features
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: hm-tem
+              model:
+                dataset: tem
+                editorMode: code
+                format: table
+                intervalMs: 1000
+                maxDataPoints: 43200
+                rawQuery: true
+                rawSql: |-
+                    SELECT
+                      COUNT(*) AS value
+                    FROM pg_settings
+                    WHERE
+                      name LIKE 'enable_%'
+                      AND setting <> boot_val;
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: reducer
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: avg
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: reducer
+                type: reduce
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: reducer
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          annotations:
+            Impact: Postgres supports a number of ways to execute most queries, and has settings that can control which mechanisms are enabled. If a certain mechanism is being chosen but is not effective, it may be tempting to turn it off, but doing so will likely have unexpected impact on other (current or future) queries by preventing efficient plans.
+            Solution: |-
+                Re-enable the setting and find another way to address the performance issues that led to the setting override in the first place. Consider these approaches:
+
+                Rewrite queries
+                Rewriting your query more efficiently may naturally lead to a better plan. If the query has modest performance impact on your system and you have integrated Automated EXPLAIN, you can investigate a rewrite by opening an interactive session to your database, re-enabling the setting for the session with SET , running the query, and reviewing the plan in pganalyze once it is available after a few minutes.
+
+                Ensure up-to-date stats
+                If the query is referencing tables for which ANALYZE has not run recently, it may lead to a bad plan. Check whether the queried tables have correct statistics, and possible tune your autovacuum ANALYZE settings or adjust statistics targets.
+
+                Optimize the schema
+                You may need to add indexes or use CREATE STATISTICS  to give Postgres more information about your data. You can run the query with the setting re-enabled, as above, and investigate index check recommendations.
+
+                Use session-local overrides
+                If the other approaches do not solve the problem, you can use session-local SET  commands instead to affect specific queries only. This gives you the same benefits without impacting other queries. Make sure you use SET LOCAL (if within a transaction) or use RESET after the query completes.
+            summary: Detects when Postgres parameters that control query planning features are disabled for the entire server, and creates an issue with severity "info". Resolves once all planner features are enabled globally.
+          labels:
+            module: config
+            severity: info
+          isPaused: false
+          notification_settings:
+            receiver: email-contact-point
+        - uid: ffvjp4oxj318gc
+          title: Disabled fsync
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: hm-tem
+              model:
+                dataset: tem
+                editorMode: code
+                format: table
+                intervalMs: 1000
+                maxDataPoints: 43200
+                rawQuery: true
+                rawSql: |-
+                    SELECT
+                      (setting = 'off')::int AS value
+                    FROM pg_settings
+                    WHERE name = 'fsync'
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: reducer
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: avg
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: reducer
+                type: reduce
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: reducer
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          annotations:
+            Impact: When fsync is turned off, an unpredictable shutdown (e.g., a power failure) can leave your entire server unusable.
+            Solution: If you need a performance boost but you are okay with losing some commits, consider setting synchronous_commit to off instead, which has most of the same performance benefits, but will leave the database server in a stable state even after a crash.
+            summary: Detects when the Postgres setting fsync is turned off and creates an issue with severity "critical". Resolves once fsync is enabled again.
+          labels:
+            module: config
+            severity: critical
+          isPaused: false
+          notification_settings:
+            receiver: email-contact-point
+        - uid: efvjqhgo0a0aoc
+          title: Too small shared_buffers
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: hm-tem
+              model:
+                dataset: tem
+                editorMode: code
+                format: table
+                intervalMs: 1000
+                maxDataPoints: 43200
+                rawQuery: true
+                rawSql: |-
+                    SELECT
+                      CASE
+                        WHEN mem_total < 2147483648 :: bigint THEN (
+                          pg_size_bytes(current_setting('shared_buffers')) < mem_total :: numeric * 0.20
+                        ) :: int
+                        WHEN mem_total < 34359738368 :: bigint THEN (
+                          pg_size_bytes(current_setting('shared_buffers')) < mem_total :: numeric * 0.25
+                        ) :: int
+                        ELSE (
+                          pg_size_bytes(current_setting('shared_buffers')) < 8589934592 :: bigint
+                        ) :: int
+                      END AS value
+                    FROM
+                      pganalyze.sys_stats
+                    ORDER BY
+                      time DESC
+                    LIMIT
+                      1
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: reducer
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: avg
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: reducer
+                type: reduce
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: reducer
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          annotations:
+            Impact: If the memory allocated to Postgres is too small, it will need to perform more reads and writes from disk, decreasing performance.
+            Solution: |-
+                The ideal shared_buffers setting depends on your workload, but pganalyze uses the following rule of thumb:
+
+                20% of RAM for systems with less than 2GB
+                25% of RAM for systems with less than 32GB
+                8GB for systems with 32GB or more
+                Postgres also relies on the operating system page cache, so giving it additional memory beyond the recommended values is not helpful and may be detrimental. For large servers or busy systems we recommend benchmarking to get to the best shared_buffers configuration for your specific workload.
+
+                Update the setting to the recommended value.
+            summary: Detects when the shared_buffers Postgres setting seems too low for the amount of RAM in your machine, and creates an issue with severity "warning". Resolves once the setting has been adjusted to within the recommended range.
+          labels:
+            module: config
+            severity: warning
+          isPaused: false
+          notification_settings:
+            receiver: email-contact-point
+        - uid: efvjr1ve7lc74a
+          title: Too small work_mem
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: hm-tem
+              model:
+                dataset: tem
+                editorMode: code
+                format: table
+                intervalMs: 1000
+                maxDataPoints: 43200
+                rawQuery: true
+                rawSql: |-
+                    SELECT
+                      (
+                        pg_size_bytes(current_setting('work_mem')) < GREATEST(
+                          1048576 :: bigint,
+                          LEAST(
+                            (
+                              mem_total :: numeric - pg_size_bytes(current_setting('shared_buffers'))
+                            ) / current_setting('max_connections') :: bigint,
+                            268435456 :: bigint
+                          )
+                        )
+                      ) :: int AS value
+                    FROM
+                      pganalyze.sys_stats
+                    ORDER BY
+                      time DESC
+                    LIMIT
+                      1;
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: reducer
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: avg
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: reducer
+                type: reduce
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: reducer
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          annotations:
+            Impact: The Postgres work_mem setting controls how much memory individual sort and hash operations can consume. These are used while executing queries to evaluate sorts, joins, and other query features. If set too low, can cause queries to create temporary files on disk more often, which will affect performance.
+            Solution: |-
+                The ideal work_mem setting depends heavily on your workload, but pganalyze uses the following rule of thumb:
+
+                - start with dividing shared_buffers by max_connections
+                - use no less than 1MB
+                - use no more than 256MB
+
+                Update the setting to the recommended value by using ALTER SYSTEM  or modifying the parameters in your cloud provider portal.
+            summary: Detects when the Postgres work_mem setting seems too low for the amount of RAM in your machine and the number of connections you have configured, and creates an issue with severity "warning".
+          labels:
+            module: config
+            severity: warning
+          isPaused: false
+          notification_settings:
+            receiver: email-contact-point
+        - uid: bfvjvdnpj04xsa
+          title: Bloat - VACUUM Blocked by Xmin Horizon
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: hm-tem
+              model:
+                dataset: tem
+                editorMode: code
+                format: table
+                intervalMs: 1000
+                maxDataPoints: 43200
+                rawQuery: true
+                rawSql: |-
+                    WITH current_horizon AS (
+                      SELECT
+                        xmin_horizon
+                      FROM
+                        pganalyze.database_stats
+                      WHERE
+                        xmin_horizon <> 0
+                      ORDER BY
+                        collected_at DESC
+                      LIMIT
+                        1
+                    ), horizon_age AS (
+                      SELECT
+                        MIN(ds.collected_at) AS assigned_at
+                      FROM
+                        pganalyze.database_stats ds
+                        CROSS JOIN current_horizon ch
+                      WHERE
+                        ds.xmin_horizon = ch.xmin_horizon
+                    )
+                    SELECT
+                      CASE
+                        WHEN assigned_at < now() - interval '24 hours' THEN 1
+                        ELSE 0
+                      END AS value
+                    FROM
+                      horizon_age;
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: reducer
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: avg
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: reducer
+                type: reduce
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: reducer
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          annotations:
+            Impact: |-
+                VACUUM is potentially blocked by the xmin horizon.
+
+                The xmin horizon tells you up to which point the vacuum process can clean up dead rows. When this value is behind and not advancing, VACUUMs will be blocked and will not be able to clean up dead rows.
+
+                When VACUUM is blocked and dead rows can't be cleaned, it can result in table bloat and slow queries.
+
+                The xmin horizon tracked by pganalyze is the oldest xmin across all databases, summarized as a server-wide metric. Note that while some types of xmin horizon delays affect all databases on a server, such as the xmin for each physical replication slots, in other cases not all databases of a server will be impacted, as Postgres can still clean up dead rows of tables on unrelated databases. For example, if the xmin horizon is held back by a long running transaction on database1, Postgres can still clean up dead rows of tables in database2, as the transaction of database1 will never be able to see database2.
+            Solution: See https://pganalyze.com/docs/checks/vacuum/xmin_horizon
+            summary: Detects when the xmin horizon on the server was assigned more than 24 hours ago and creates an issue with severity "warning". The issue will be created even if no VACUUM is currently blocked by this, as this will potentially block any future VACUUMs. Resolves once the assignment age of the xmin horizon is under the threshold.
+          labels:
+            module: vacuum
+            severity: warning
+          isPaused: false
+          notification_settings:
+            receiver: email-contact-point
+        - uid: afvjx5flc97uof
+          title: Freezing - Approaching Transaction ID Wraparound
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: hm-tem
+              model:
+                dataset: tem
+                editorMode: code
+                format: table
+                intervalMs: 1000
+                maxDataPoints: 43200
+                rawQuery: true
+                rawSql: |-
+                    SELECT
+                      ROUND(
+                        100.0 * MAX(age(datfrozenxid)) / 4294967296,
+                        4
+                      ) AS xid_utilization_percent
+                    FROM
+                      pg_database;
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: reducer
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: avg
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: reducer
+                type: reduce
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 50
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: reducer
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          annotations:
+            Common Causes: |-
+                - Ineffectual autovacuum settings
+                Autovacuums, especially anti-wraparound autovacuums, are meant to freeze old transaction IDs and keep sufficient transaction IDs available in order to prevent wraparound from happening. When autovacuum is turned off, or autovacuum settings are not well suited to actual database usage, it is possible that autovacuum is not able to keep up with freezing old transaction IDs. Make sure that autovacuum is turned on, and revisit the configuration settings to ensure that autovacuum will keep transaction ID space utilization under control. You can check out the configuration settings related to freezing.
+
+                - Blocked autovacuums
+                Even if autovacuum settings are adequate, it is possible that autovacuums themselves are blocked by something, hence freezing (to reduce transaction ID space utilization) is not able to keep up. The typical blocker is a long running transaction, or a transaction holding some locks that could cancel autovacuums. It is important to make sure that there is no such transactions so that VACUUMs can make freezing progress. Check for any long-running transactions and their lock state.
+            Impact: |-
+                Transaction ID space utilization is high and approaching wraparound.
+
+                Postgres runs autovacuums regularly and this helps keeping transaction ID space utilization low by freezing old transaction IDs. There is also the anti-wraparound autovacuum specific for freezing, when the regular autovacuums are either not freezing aggressively enough or simply not running. This anti-wraparound autovacuum will be triggered when utilization (age) exceeds the threshold, specified in autovacuum_freeze_max_age.
+
+                In order to avoid wraparound failure, old transaction IDs must be frozen by VACUUMs. The more old transaction IDs need to be frozen, the more expensive VACUUM becomes. It can take a really long time to finish and potentially causes overall performance degradation. The anti-wraparound autovacuum holds aSHARE UPDATE EXCLUSIVE lock, which can block DDL statements.
+
+                If transaction ID space utilization reaches to 99.85% (3M transaction IDs left), the system will shut down. This is to prevent any data corruption from happening by running out transaction IDs. Resolving this requires manual intervention.
+
+                With Postgres 14+, there is a special type of failsafe VACUUM which takes extraordinary measures to avoid the shutdown. While this is very useful, you still want to avoid this as a failsafe autovacuum ignores resource utilization constraints and can have significant performance impact.
+            summary: Detects when transaction ID space utilization on the server is more than 50% and creates an issue with severity "warning".  Resolves once utilization falls below the threshold.
+          labels:
+            module: vacuum
+            severity: warning
+          isPaused: false
+          notification_settings:
+            receiver: email-contact-point
+        - uid: ffvjxgah88pogf
+          title: Freezing - Approaching Multixact ID Wraparound
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: hm-tem
+              model:
+                dataset: tem
+                editorMode: code
+                format: table
+                intervalMs: 1000
+                maxDataPoints: 43200
+                rawQuery: true
+                rawSql: |-
+                    SELECT
+                      ROUND(
+                        100.0 * MAX(mxid_age(datminmxid)) / 4294967296,
+                        4
+                      ) AS mxid_utilization_percent
+                    FROM
+                      pg_database;
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: reducer
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: avg
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: reducer
+                type: reduce
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 50
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: reducer
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          annotations:
+            Common Causes: |-
+                - Ineffectual autovacuum settings
+                Autovacuums, especially anti-wraparound autovacuums, are meant to freeze old multixact IDs and keep sufficient multixact IDs available in order to prevent wraparound from happening. When autovacuum is turned off, or autovacuum settings are not well suited to actual database usage, it is possible that autovacuum is not able to keep up with freezing old multixact IDs. Make sure that autovacuum is turned on, and revisit the configuration settings to ensure that autovacuum will keep multixact ID space utilization under control. You can check out the configuration settings related to freezing.
+
+                - Blocked autovacuums
+                Even if autovacuum settings are adequate, it is possible that autovacuums themselves are blocked by something, hence freezing (to reduce multixact ID space utilization) is not able to keep up. The typical blocker is a long running transaction, or a transaction holding some locks that could cancel autovacuums. It is important to make sure that there is no such transactions so that VACUUMs can make freezing progress. Check for any long-running transactions and their lock state.
+            Impact: |-
+                Multixact ID space utilization is high and approaching wraparound.
+
+                This is about multixact IDs, not about normal transaction IDs. A multixact ID is an internal identifier used to support row locking by multiple transactions. Multixact IDs are commonly used with SELECT ... FOR UPDATE queries.
+
+                Postgres runs autovacuums regularly and this helps keeping multixact ID space utilization low by freezing old multixact IDs. There is also the anti-wraparound autovacuum specifically for freezing, when the regular autovacuums are either not freezing aggressively enough or simply not running. This anti-wraparound autovacuum will be triggered when utilization (age) exceeds the threshold, specified in autovacuum_multixact_freeze_max_age.
+
+                In order to avoid wraparound failure, old multixact IDs must be frozen by VACUUMs. The more old multixact IDs need to be frozen, the more expensive VACUUM becomes. It can take a really long time to finish and potentially cause overall performance degradation. The anti-wraparound autovacuum holds a SHARE UPDATE EXCLUSIVE lock, which can block DDL statements.
+
+                If multixact ID space utilization reaches to 99.85% (3M multixact IDs left), the system will shut down. This is to prevent any data corruption from happening by running out multixact IDs. Resolving this requires manual intervention.
+
+                With Postgres 14+, there is a special type of failsafe VACUUM which takes extraordinary measures to avoid the shutdown. While this is very useful, you still want to avoid this as a failsafe autovacuum ignores resource utilization constraints and can have significant performance impact.
+            summary: Detects when multixact ID space utilization on the server is more than 50% and creates an issue with severity "warning". Resolves once utilization falls below the threshold.
+          labels:
+            module: vacuum
+            severity: warning
+          isPaused: false
+          notification_settings:
+            receiver: email-contact-point
+        - uid: afvjxzc50uyv4c
+          title: Invalid Indexes
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: hm-tem
+              model:
+                dataset: tem
+                editorMode: code
+                format: table
+                intervalMs: 1000
+                maxDataPoints: 43200
+                rawQuery: true
+                rawSql: |-
+                    SELECT
+                      COUNT(*) AS invalid_indexes
+                    FROM pg_catalog.pg_index i
+                    JOIN pg_catalog.pg_class c
+                      ON c.oid = i.indexrelid
+                    JOIN pg_catalog.pg_namespace n
+                      ON n.oid = c.relnamespace
+                    WHERE NOT i.indisvalid
+                      AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+                      AND n.nspname NOT LIKE 'pg_toast%';
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: reducer
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: avg
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: reducer
+                type: reduce
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: reducer
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          annotations:
+            Impact: Invalid indexes take up disk space but are not usable by queries.
+            Solution: You can safely drop these invalid indexes.
+            summary: Detects indexes that are not recognized as valid in Postgres and creates an issue with severity "info", one for each table (or table hierarchy in case of inheritance or partitioning). These indexes typically are left over when using CREATE INDEX CONCURRENTLY and the command fails or is aborted by the user. Resolves once all invalid indexes on a table have been dropped.
+          labels:
+            module: schema
+            severity: info
+          isPaused: false
+          notification_settings:
+            receiver: email-contact-point

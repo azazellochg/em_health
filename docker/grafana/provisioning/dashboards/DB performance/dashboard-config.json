@@ -3,7 +3,7 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "ee46beab-c046-42b1-b547-23990e2ec0f3",
-    "generation": 10,
+    "generation": 21,
     "creationTimestamp": "2026-08-14T13:01:46Z",
     "labels": {},
     "annotations": {}
@@ -143,7 +143,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  name AS \"Name\",\n  short_desc AS \"Description\",\n  setting AS \"Value\",\n  unit AS \"Unit\",\n  min_val || ' to ' || max_val AS \"Range\"\nFROM\n  pg_settings\nWHERE\n  name IN (\n    'shared_buffers',\n    'work_mem',\n    'timescaledb.max_background_workers',\n    'timescaledb.enable_chunk_skipping',\n    'timescaledb.last_tuned',\n    'max_worker_processes',\n    'max_parallel_workers',\n    'max_locks_per_transaction',\n    'wal_buffers',\n    'autovacuum_max_workers',\n    'maintenance_work_mem',\n    'effective_cache_size'\n  )\nORDER BY \"Name\"",
+                        "rawSql": "SELECT\n  name AS \"Name\",\n  short_desc AS \"Description\",\n  setting AS \"Current value\",\n  boot_val AS \"Default value\",\n  unit AS \"Unit\",\n  min_val || ' to ' || max_val AS \"Range\"\nFROM\n  pg_settings\nWHERE\n  name IN (\n    'shared_buffers',\n    'work_mem',\n    'max_connections',\n    'max_worker_processes',\n    'max_parallel_workers',\n    'max_locks_per_transaction',\n    'wal_buffers',\n    'autovacuum_max_workers',\n    'autovacuum_work_mem',\n    'maintenance_work_mem',\n    'effective_cache_size'\n  )\nORDER BY \"Name\"",
                         "sql": {
                           "columns": [
                             {
@@ -218,6 +218,58 @@
                       {
                         "id": "custom.filterable",
                         "value": true
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Unit"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 60
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Current value"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 120
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Default value"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 120
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Range"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 140
                       }
                     ]
                   }
@@ -664,107 +716,12 @@
           }
         }
       },
-      "panel-36": {
+      "panel-39": {
         "kind": "Panel",
         "spec": {
-          "id": 36,
-          "title": "TEM: Hypertables compression",
-          "description": "Any ratio below 3x warrants investigation. Check segmentby cardinality.",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "spec": {
-                        "dataset": "tem",
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "WITH compressed_tables AS (\n    SELECT\n        hypertable_schema,\n        hypertable_name\n    FROM timescaledb_information.hypertables\n    WHERE compression_enabled = true\n)\nSELECT\n    t.hypertable_schema || '.' || t.hypertable_name AS hypertable,\n\n    COUNT(s.chunk_name) AS chunk_count,\n\n    pg_size_pretty(\n        AVG(s.total_bytes)::bigint\n    ) AS avg_chunk_size,\n\n    pg_size_pretty(\n        cs.before_compression_total_bytes\n    ) AS before_size,\n\n    pg_size_pretty(\n        cs.after_compression_total_bytes\n    ) AS after_size,\n\n    ROUND(\n        cs.before_compression_total_bytes::numeric\n        / NULLIF(cs.after_compression_total_bytes, 0),\n        1\n    ) AS compression_ratio\n\nFROM compressed_tables t\n\nJOIN LATERAL chunks_detailed_size(\n    format('%I.%I', t.hypertable_schema, t.hypertable_name)\n) s ON TRUE\n\nJOIN LATERAL hypertable_compression_stats(\n    format('%I.%I', t.hypertable_schema, t.hypertable_name)\n) cs ON TRUE\n\nGROUP BY\n    t.hypertable_schema,\n    t.hypertable_name,\n    cs.before_compression_total_bytes,\n    cs.after_compression_total_bytes\n\nORDER BY hypertable",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      }
-                    },
-                    "refId": "B",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "table",
-            "version": "13.1.0-25893932881",
-            "spec": {
-              "options": {
-                "cellHeight": "sm",
-                "showHeader": true
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "thresholds"
-                  },
-                  "custom": {
-                    "align": "center",
-                    "cellOptions": {
-                      "type": "auto"
-                    },
-                    "footer": {
-                      "reducers": []
-                    },
-                    "inspect": false
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-37": {
-        "kind": "Panel",
-        "spec": {
-          "id": 37,
-          "title": "SEM: Hypertables compression",
-          "description": "Any ratio below 3x warrants investigation. Check segmentby cardinality.",
+          "id": 39,
+          "title": "Timescale settings",
+          "description": "",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -781,101 +738,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH compressed_tables AS (\n    SELECT\n        hypertable_schema,\n        hypertable_name\n    FROM timescaledb_information.hypertables\n    WHERE compression_enabled = true\n)\nSELECT\n    t.hypertable_schema || '.' || t.hypertable_name AS hypertable,\n\n    COUNT(s.chunk_name) AS chunk_count,\n\n    pg_size_pretty(\n        AVG(s.total_bytes)::bigint\n    ) AS avg_chunk_size,\n\n    pg_size_pretty(\n        cs.before_compression_total_bytes\n    ) AS before_size,\n\n    pg_size_pretty(\n        cs.after_compression_total_bytes\n    ) AS after_size,\n\n    ROUND(\n        cs.before_compression_total_bytes::numeric\n        / NULLIF(cs.after_compression_total_bytes, 0),\n        1\n    ) AS compression_ratio\n\nFROM compressed_tables t\n\nJOIN LATERAL chunks_detailed_size(\n    format('%I.%I', t.hypertable_schema, t.hypertable_name)\n) s ON TRUE\n\nJOIN LATERAL hypertable_compression_stats(\n    format('%I.%I', t.hypertable_schema, t.hypertable_name)\n) cs ON TRUE\n\nGROUP BY\n    t.hypertable_schema,\n    t.hypertable_name,\n    cs.before_compression_total_bytes,\n    cs.after_compression_total_bytes\n\nORDER BY hypertable;",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-2"
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "table",
-            "version": "13.1.0-25893932881",
-            "spec": {
-              "options": {
-                "cellHeight": "sm",
-                "showHeader": true
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "thresholds"
-                  },
-                  "custom": {
-                    "align": "center",
-                    "cellOptions": {
-                      "type": "auto"
-                    },
-                    "footer": {
-                      "reducers": []
-                    },
-                    "inspect": false
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-38": {
-        "kind": "Panel",
-        "spec": {
-          "id": 38,
-          "title": "Tuning autovacuum_work_mem",
-          "description": "Triggers when at least 1 autovacuum run in the last 24h have had multiple index scan phases, which usually means the memory setting is too low.",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "SELECT CASE\n    WHEN EXISTS (\n        SELECT 1\n        FROM pganalyze.vacuum_stats\n        WHERE started_at >= now() - interval '24 hours'\n          AND index_scans > 1\n    )\n    THEN 'Not OK'\n    ELSE 'OK'\nEND AS status;",
+                        "rawSql": "SELECT\n  name AS \"Name\",\n  short_desc AS \"Description\",\n  setting AS \"Current value\",\n  boot_val AS \"Default value\",\n  unit AS \"Unit\",\n  min_val || ' to ' || max_val AS \"Range\"\nFROM\n  pg_settings\nWHERE\n  name LIKE 'timescaledb%'\nORDER BY \"Name\"",
                         "sql": {
                           "columns": [
                             {
@@ -906,41 +769,16 @@
           },
           "vizConfig": {
             "kind": "VizConfig",
-            "group": "stat",
+            "group": "table",
             "version": "13.1.0-25893932881",
             "spec": {
               "options": {
-                "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "/.*/",
-                  "values": true
-                },
-                "showPercentChange": false,
-                "textMode": "auto",
-                "wideLayout": true
+                "cellHeight": "sm",
+                "enablePagination": false,
+                "showHeader": true
               },
               "fieldConfig": {
                 "defaults": {
-                  "mappings": [
-                    {
-                      "type": "value",
-                      "options": {
-                        "Not OK": {
-                          "color": "red",
-                          "index": 1
-                        },
-                        "OK": {
-                          "color": "green",
-                          "index": 0
-                        }
-                      }
-                    }
-                  ],
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -951,10 +789,86 @@
                     ]
                   },
                   "color": {
-                    "mode": "thresholds"
+                    "mode": "fixed"
+                  },
+                  "custom": {
+                    "align": "left",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false,
+                    "wrapText": true
                   }
                 },
-                "overrides": []
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Name"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.filterable",
+                        "value": true
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Unit"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 60
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Current value"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 120
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Default value"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 120
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Range"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 140
+                      }
+                    ]
+                  }
+                ]
               }
             }
           }
@@ -983,6 +897,58 @@
             "spec": {
               "x": 6,
               "y": 0,
+              "width": 5,
+              "height": 5,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-32"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 11,
+              "y": 0,
+              "width": 4,
+              "height": 5,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-33"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 6,
+              "y": 5,
+              "width": 5,
+              "height": 4,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-34"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 11,
+              "y": 5,
+              "width": 4,
+              "height": 4,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-35"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 0,
+              "y": 11,
               "width": 18,
               "height": 11,
               "element": {
@@ -995,90 +961,12 @@
             "kind": "GridLayoutItem",
             "spec": {
               "x": 0,
-              "y": 11,
-              "width": 12,
-              "height": 5,
+              "y": 22,
+              "width": 18,
+              "height": 11,
               "element": {
                 "kind": "ElementReference",
-                "name": "panel-36"
-              }
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "x": 12,
-              "y": 11,
-              "width": 5,
-              "height": 4,
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-32"
-              }
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "x": 17,
-              "y": 11,
-              "width": 3,
-              "height": 4,
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-33"
-              }
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "x": 20,
-              "y": 11,
-              "width": 4,
-              "height": 4,
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-34"
-              }
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "x": 12,
-              "y": 15,
-              "width": 4,
-              "height": 4,
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-38"
-              }
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "x": 16,
-              "y": 15,
-              "width": 3,
-              "height": 4,
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-35"
-              }
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "x": 0,
-              "y": 16,
-              "width": 12,
-              "height": 5,
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-37"
+                "name": "panel-39"
               }
             }
           }
