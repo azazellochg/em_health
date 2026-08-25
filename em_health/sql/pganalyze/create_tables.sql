@@ -64,30 +64,6 @@ CREATE TABLE IF NOT EXISTS pganalyze.vacuum_stats (
   PRIMARY KEY (relid, started_at)
 );
 
-CREATE TABLE IF NOT EXISTS pganalyze.stat_snapshots (
-  collected_at timestamptz NOT NULL DEFAULT NOW(),
-  calls BIGINT NOT NULL,
-  total_plan_time DOUBLE PRECISION NOT NULL,
-  total_exec_time DOUBLE PRECISION NOT NULL,
-  rows BIGINT NOT NULL,
-  shared_blks_hit BIGINT NOT NULL,
-  shared_blks_read BIGINT NOT NULL,
-  shared_blks_dirtied BIGINT NOT NULL,
-  shared_blks_written BIGINT NOT NULL,
-  local_blks_hit BIGINT NOT NULL,
-  local_blks_read BIGINT NOT NULL,
-  local_blks_dirtied BIGINT NOT NULL,
-  local_blks_written BIGINT NOT NULL,
-  temp_blks_read BIGINT NOT NULL,
-  temp_blks_written BIGINT NOT NULL,
-  blk_read_time DOUBLE PRECISION NOT NULL,
-  blk_write_time DOUBLE PRECISION NOT NULL,
-  wal_records BIGINT NOT NULL,
-  wal_fpi BIGINT NOT NULL,
-  wal_bytes NUMERIC NOT NULL,
-  stats_reset timestamptz NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS pganalyze.queries (
   queryid BIGINT NOT NULL PRIMARY KEY,
   query TEXT

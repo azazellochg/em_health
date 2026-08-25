@@ -54,7 +54,6 @@ SELECT has_table('pganalyze'::name, 'table_stats'::name);
 SELECT has_table('pganalyze'::name, 'index_stats'::name);
 SELECT has_table('pganalyze'::name, 'vacuum_stats'::name);
 SELECT has_table('pganalyze'::name, 'queries'::name);
-SELECT has_table('pganalyze'::name, 'stat_snapshots'::name);
 SELECT has_table('pganalyze'::name, 'stat_statements'::name);
 SELECT has_table('pganalyze'::name, 'stat_explains'::name);
 SELECT has_table('pganalyze'::name, 'sys_stats'::name);

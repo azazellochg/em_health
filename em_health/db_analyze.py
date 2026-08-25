@@ -110,7 +110,6 @@ def main(dbname, action, force=False):
                     DROP TABLE IF EXISTS pganalyze.table_stats CASCADE;
                     DROP TABLE IF EXISTS pganalyze.index_stats CASCADE;
                     DROP TABLE IF EXISTS pganalyze.vacuum_stats CASCADE;
-                    DROP TABLE IF EXISTS pganalyze.stat_snapshots CASCADE;
                     DROP TABLE IF EXISTS pganalyze.queries CASCADE;
                     DROP TABLE IF EXISTS pganalyze.stat_statements CASCADE;
                     DROP TABLE IF EXISTS pganalyze.stat_explains CASCADE;

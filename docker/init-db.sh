@@ -27,4 +27,4 @@ for db in tem sem; do
 done
 
 echo "Running timescaledb-tune..."
-timescaledb-tune --quiet --yes
+timescaledb-tune -quiet -yes

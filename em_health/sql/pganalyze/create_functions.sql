@@ -291,34 +291,6 @@ BEGIN
 
     queries
       AS ( INSERT INTO pganalyze.queries (queryid, query) SELECT queryid, query FROM statements ON CONFLICT DO NOTHING RETURNING queryid
-    ),
-
-    snapshot AS (
-      INSERT INTO pganalyze.stat_snapshots
-        SELECT
-          snapshot_time AS collected_at,
-          SUM(calls) AS calls,
-          SUM(total_plan_time) AS total_plan_time,
-          SUM(total_exec_time) AS total_exec_time,
-          SUM(rows) AS rows,
-          SUM(shared_blks_hit) AS shared_blks_hit,
-          SUM(shared_blks_read) AS shared_blks_read,
-          SUM(shared_blks_dirtied) AS shared_blks_dirtied,
-          SUM(shared_blks_written) AS shared_blks_written,
-          SUM(local_blks_hit) AS local_blks_hit,
-          SUM(local_blks_read) AS local_blks_read,
-          SUM(local_blks_dirtied) AS local_blks_dirtied,
-          SUM(local_blks_written) AS local_blks_written,
-          SUM(temp_blks_read) AS temp_blks_read,
-          SUM(temp_blks_written) AS temp_blks_written,
-          SUM(shared_blk_read_time) AS blk_read_time,
-          SUM(shared_blk_write_time) AS blk_write_time,
-          SUM(wal_records) AS wal_records,
-          SUM(wal_fpi) AS wal_fpi,
-          SUM(wal_bytes) AS wal_bytes,
-          PG_POSTMASTER_START_TIME() AS stats_reset
-        FROM
-          statements
     )
 
   INSERT INTO pganalyze.stat_statements (
@@ -612,8 +584,6 @@ BEGIN
   DELETE FROM pganalyze.vacuum_stats WHERE started_at < NOW() - drop_after;
 
   DELETE FROM pganalyze.stat_explains WHERE time < NOW() - drop_after;
-
-  DELETE FROM pganalyze.stat_snapshots WHERE collected_at < NOW() - drop_after;
 
   DELETE FROM pganalyze.sys_stats WHERE time < NOW() - drop_after;
 
