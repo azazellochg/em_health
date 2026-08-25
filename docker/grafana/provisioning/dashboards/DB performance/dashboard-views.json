@@ -3,10 +3,29 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "2ddfc99a-7e8a-556c-9f3f-b06c67af2509",
-    "generation": 8,
+    "namespace": "default",
+    "uid": "60847bfa-10a8-4bcd-b8c6-23a8545b1b8d",
+    "resourceVersion": "1787567598111015",
+    "generation": 9,
     "creationTimestamp": "2026-08-14T13:16:07Z",
-    "labels": {},
-    "annotations": {}
+    "labels": {
+      "grafana.app/deprecatedInternalID": "3086706925711360"
+    },
+    "annotations": {
+      "grafana.app/createdBy": "access-policy:service",
+      "grafana.app/folder": "ffrkp562prwu8b",
+      "grafana.app/managedBy": "classic-file-provisioning",
+      "grafana.app/managerAllowsEdits": "true",
+      "grafana.app/managerId": "dashboards",
+      "grafana.app/saved-from-ui": "Grafana v13.1.0-25893932881 (fae43e29)",
+      "grafana.app/sourceChecksum": "9c2cbe9d9c8841c858a778637f34441e",
+      "grafana.app/sourcePath": "/etc/grafana/provisioning/dashboards/DB performance/dashboard-views.json",
+      "grafana.app/sourceTimestamp": "1786976780000",
+      "grafana.app/updatedBy": "user:bfrkp4qvu07i8a",
+      "grafana.app/updatedTimestamp": "2026-08-24T10:33:18Z",
+      "grafana.app/folderTitle": "DB performance",
+      "grafana.app/folderUrl": "/dashboards/f/ffrkp562prwu8b/db-performance"
+    }
   },
   "spec": {
     "annotations": [
@@ -320,7 +339,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  job_id,\n  schedule_interval\nFROM\n  timescaledb_information.jobs\nWHERE\n  proc_name = format('refresh_%I', split_part('$viewname', '.', 2))",
+                        "rawSql": "SELECT\n  job_id,\n  regexp_replace(\n    application_name,\n    '(\\s+Policy\\s+\\[[^]]*\\]|\\s+\\[[^]]*\\])\\s*$',\n    '') AS policy,\n  schedule_interval\nFROM\n  timescaledb_information.jobs\nWHERE\n  proc_name = format('refresh_%I', split_part('$viewname', '.', 2))",
                         "sql": {
                           "columns": [
                             {
@@ -358,7 +377,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH cagg_check AS (\n  SELECT\n    c.view_schema,\n    c.view_name\n  FROM timescaledb_information.continuous_aggregates c\n  WHERE c.view_schema || '.' || c.view_name = '$viewname'\n)\nSELECT\n  j.job_id,\n  (policy ->> 'refresh_interval')::interval AS schedule_interval,\n  policy ->> 'refresh_start_offset' AS start_offset,\n  policy ->> 'refresh_end_offset' AS end_offset\nFROM\n  timescaledb_experimental.show_policies('$viewname') AS policy\nJOIN cagg_check c\n  ON true\nLEFT JOIN timescaledb_information.jobs j\n  ON j.hypertable_schema = c.view_schema\n AND j.hypertable_name = c.view_name\n AND j.proc_name = 'policy_refresh_continuous_aggregate';",
+                        "rawSql": "WITH cagg_check AS (\n  SELECT\n    c.view_schema,\n    c.view_name\n  FROM timescaledb_information.continuous_aggregates c\n  WHERE c.view_schema || '.' || c.view_name = '$viewname'\n)\nSELECT\n  j.job_id,\n  regexp_replace(\n    application_name,\n    '(\\s+Policy\\s+\\[[^]]*\\]|\\s+\\[[^]]*\\])\\s*$',\n    '') AS policy,\n  (policy ->> 'refresh_interval')::interval AS schedule_interval,\n  policy ->> 'refresh_start_offset' AS start_offset,\n  policy ->> 'refresh_end_offset' AS end_offset\nFROM\n  timescaledb_experimental.show_policies('$viewname') AS policy\nJOIN cagg_check c\n  ON true\nLEFT JOIN timescaledb_information.jobs j\n  ON j.hypertable_schema = c.view_schema\n AND j.hypertable_name = c.view_name\n AND j.proc_name = 'policy_refresh_continuous_aggregate';",
                         "sql": {
                           "columns": [
                             {

@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "ee46beab-c046-42b1-b547-23990e2ec0f3",
-    "generation": 21,
-    "creationTimestamp": "2026-08-14T13:01:46Z",
+    "generation": 5,
+    "creationTimestamp": "2026-08-19T16:14:59Z",
     "labels": {},
     "annotations": {}
   },
@@ -143,7 +143,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  name AS \"Name\",\n  short_desc AS \"Description\",\n  setting AS \"Current value\",\n  boot_val AS \"Default value\",\n  unit AS \"Unit\",\n  min_val || ' to ' || max_val AS \"Range\"\nFROM\n  pg_settings\nWHERE\n  name IN (\n    'shared_buffers',\n    'work_mem',\n    'max_connections',\n    'max_worker_processes',\n    'max_parallel_workers',\n    'max_locks_per_transaction',\n    'wal_buffers',\n    'autovacuum_max_workers',\n    'autovacuum_work_mem',\n    'maintenance_work_mem',\n    'effective_cache_size'\n  )\nORDER BY \"Name\"",
+                        "rawSql": "SELECT\n  name AS \"Name\",\n  short_desc AS \"Description\",\n  setting AS \"Current value\",\n  boot_val AS \"Default value\",\n  unit AS \"Unit\",\n  min_val || ' to ' || max_val AS \"Range\"\nFROM\n  pg_settings\nWHERE\n  name IN (\n    'shared_buffers',\n    'work_mem',\n    'max_connections',\n    'max_worker_processes',\n    'max_parallel_workers',\n    'max_locks_per_transaction',\n    'wal_buffers',\n    'min_wal_size',\n    'max_wal_size',\n    'autovacuum_max_workers',\n    'autovacuum_worker_slots',\n    'autovacuum_work_mem',\n    'maintenance_work_mem',\n    'effective_cache_size',\n    'jit',\n    'default_toast_compression'\n  )\nORDER BY \"Name\"",
                         "sql": {
                           "columns": [
                             {
@@ -270,128 +270,6 @@
                       {
                         "id": "custom.width",
                         "value": 140
-                      }
-                    ]
-                  }
-                ]
-              }
-            }
-          }
-        }
-      },
-      "panel-32": {
-        "kind": "Panel",
-        "spec": {
-          "id": 32,
-          "title": "Chunk size vs shared_buffers",
-          "description": "Make sure the chunks fit within 25% of shared_buffers",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "WITH memory_config AS (\n  SELECT\n    pg_size_bytes(current_setting('shared_buffers')) AS shared_buffers_bytes\n),\nchunk_sizes AS (\n  SELECT\n    hypertable_name,\n    chunk_name,\n    pg_total_relation_size(format('%I.%I', chunk_schema, chunk_name)) AS chunk_bytes\n  FROM\n    timescaledb_information.chunks\n  WHERE\n    NOT is_compressed\n),\nmax_chunks AS (\nSELECT\n  hypertable_name,\n  count(*) AS chunk_count,\n  pg_size_pretty(avg(chunk_bytes) :: bigint) AS avg_chunk_size,\n  pg_size_pretty(max(chunk_bytes)) AS max_chunk_size,\n  max(chunk_bytes) :: numeric / shared_buffers_bytes * 100 AS max_chunk_pct_of_shared_buffers\nFROM\n  chunk_sizes,\n  memory_config\nGROUP BY\n  hypertable_name,\n  shared_buffers_bytes\n)\nSELECT \n  AVG(mc.max_chunk_pct_of_shared_buffers) AS chunks_percent,\n  MAX(mem.shared_buffers_bytes)/1000 AS shared_buffers,\n  AVG(ps.mem_total) AS mem_total\nFROM max_chunks mc\nCROSS JOIN memory_config mem\nCROSS JOIN pganalyze.sys_stats ps\n",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "stat",
-            "version": "13.1.0-25893932881",
-            "spec": {
-              "options": {
-                "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "",
-                  "values": true
-                },
-                "showPercentChange": false,
-                "textMode": "auto",
-                "wideLayout": true
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "deckbytes",
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "thresholds"
-                  }
-                },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "chunks_percent"
-                    },
-                    "properties": [
-                      {
-                        "id": "unit",
-                        "value": "percent"
-                      },
-                      {
-                        "id": "thresholds",
-                        "value": {
-                          "mode": "absolute",
-                          "steps": [
-                            {
-                              "color": "green",
-                              "value": 0
-                            },
-                            {
-                              "color": "orange",
-                              "value": 25
-                            }
-                          ]
-                        }
                       }
                     ]
                   }
@@ -738,7 +616,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  name AS \"Name\",\n  short_desc AS \"Description\",\n  setting AS \"Current value\",\n  boot_val AS \"Default value\",\n  unit AS \"Unit\",\n  min_val || ' to ' || max_val AS \"Range\"\nFROM\n  pg_settings\nWHERE\n  name LIKE 'timescaledb%'\nORDER BY \"Name\"",
+                        "rawSql": "SELECT\n  name AS \"Name\",\n  short_desc AS \"Description\",\n  setting AS \"Current value\",\n  boot_val AS \"Default value\",\n  unit AS \"Unit\",\n  min_val || ' to ' || max_val AS \"Range\"\nFROM\n  pg_settings\nWHERE\n  name LIKE 'timescaledb%'\nORDER BY name",
                         "sql": {
                           "columns": [
                             {
@@ -897,33 +775,7 @@
             "spec": {
               "x": 6,
               "y": 0,
-              "width": 5,
-              "height": 5,
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-32"
-              }
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "x": 11,
-              "y": 0,
               "width": 4,
-              "height": 5,
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-33"
-              }
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "x": 6,
-              "y": 5,
-              "width": 5,
               "height": 4,
               "element": {
                 "kind": "ElementReference",
@@ -934,10 +786,23 @@
           {
             "kind": "GridLayoutItem",
             "spec": {
-              "x": 11,
-              "y": 5,
+              "x": 6,
+              "y": 4,
               "width": 4,
               "height": 4,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-33"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 6,
+              "y": 8,
+              "width": 4,
+              "height": 3,
               "element": {
                 "kind": "ElementReference",
                 "name": "panel-35"

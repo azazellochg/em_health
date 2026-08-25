@@ -3,7 +3,7 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "46837677-7190-44c2-b9bb-db869089ba49",
-    "generation": 27,
+    "generation": 31,
     "creationTimestamp": "2026-08-14T13:00:32Z",
     "labels": {},
     "annotations": {}
@@ -981,7 +981,7 @@
                     ]
                   },
                   "color": {
-                    "mode": "fixed",
+                    "mode": "thresholds",
                     "fixedColor": "text"
                   },
                   "custom": {
@@ -995,7 +995,43 @@
                     "inspect": false
                   }
                 },
-                "overrides": []
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Chunks"
+                    },
+                    "properties": [
+                      {
+                        "id": "thresholds",
+                        "value": {
+                          "mode": "absolute",
+                          "steps": [
+                            {
+                              "color": "green",
+                              "value": 0
+                            },
+                            {
+                              "color": "#EAB839",
+                              "value": 500
+                            },
+                            {
+                              "color": "red",
+                              "value": 1000
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "id": "custom.cellOptions",
+                        "value": {
+                          "type": "color-text"
+                        }
+                      }
+                    ]
+                  }
+                ]
               }
             }
           }
@@ -1120,7 +1156,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  AVG(s.total_bytes) AS \"Avg chunk size\",\n  cs.before_compression_total_bytes AS \"Before compression\",\n  cs.after_compression_total_bytes AS \"After compression\",\n  ROUND(\n    cs.before_compression_total_bytes :: numeric / NULLIF(cs.after_compression_total_bytes, 0),\n    1\n  ) AS \"Ratio\"\nFROM\n  timescaledb_information.hypertables t\n  CROSS JOIN LATERAL hypertable_compression_stats(\n    format('%I.%I', t.hypertable_schema, t.hypertable_name)\n  ) cs\n  JOIN LATERAL chunks_detailed_size(\n    format('%I.%I', t.hypertable_schema, t.hypertable_name)\n  ) s ON TRUE\nWHERE\n  t.hypertable_schema = '$schema'\n  AND t.hypertable_name = '$table'\nGROUP BY\n  cs.before_compression_total_bytes,\n  cs.after_compression_total_bytes;",
+                        "rawSql": "SELECT\n  AVG(s.total_bytes) AS \"Avg chunk size\",\n  cs.before_compression_total_bytes AS \"Before compression\",\n  cs.after_compression_total_bytes AS \"After compression\",\n  ROUND((1-cs.after_compression_total_bytes::numeric / cs.before_compression_total_bytes) * 100, 1) AS \"Compression\"\nFROM\n  timescaledb_information.hypertables t\n  CROSS JOIN LATERAL hypertable_compression_stats(\n    format('%I.%I', t.hypertable_schema, t.hypertable_name)\n  ) cs\n  JOIN LATERAL chunks_detailed_size(\n    format('%I.%I', t.hypertable_schema, t.hypertable_name)\n  ) s ON TRUE\nWHERE\n  t.hypertable_schema = '$schema'\n  AND t.hypertable_name = '$table'\n  AND cs.before_compression_total_bytes IS NOT NULL\n  AND cs.before_compression_total_bytes > 0\nGROUP BY\n  cs.before_compression_total_bytes,\n  cs.after_compression_total_bytes;",
                         "sql": {
                           "columns": [
                             {
@@ -1190,12 +1226,12 @@
                     "matcher": {
                       "id": "byName",
                       "scope": "series",
-                      "options": "Ratio"
+                      "options": "Compression"
                     },
                     "properties": [
                       {
                         "id": "unit",
-                        "value": "none"
+                        "value": "percent"
                       }
                     ]
                   }
@@ -1362,7 +1398,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH chunk_stats AS (\n  SELECT\n    max(s.total_bytes) AS max_chunk_size\n  FROM\n    chunks_detailed_size('events.data') s\n    JOIN timescaledb_information.chunks c USING (chunk_schema, chunk_name)\n  WHERE\n    c.is_compressed = false\n),\nconfig AS (\n  SELECT\n    time_interval AS current_chunk_interval\n  FROM\n    timescaledb_information.dimensions\n  WHERE\n    hypertable_schema = 'events'\n    AND hypertable_name = 'data'\n),\nmemory AS (\n  SELECT\n    AVG(mem_total) * 1024 AS memory_bytes\n  FROM pganalyze.sys_stats\n)\nSELECT\n  c.current_chunk_interval AS \"Current interval\",\n  format('%s (%s%% of RAM)', pg_size_pretty(s.max_chunk_size), round(100.0 * s.max_chunk_size / m.memory_bytes, 2)) AS \"Current uncompressed chunk\",\n  pg_size_pretty(m.memory_bytes) AS \"Total RAM\",\n  pg_size_pretty(m.memory_bytes * 0.25) AS \"Max chunk size\",\n\n  round(\n  extract(\n    epoch FROM (\n      m.memory_bytes * 0.25\n      / NULLIF(s.max_chunk_size, 0)\n      * c.current_chunk_interval\n    )\n  ) / 86400\n) * interval '1 day' AS \"Max chunk interval\"\nFROM\n  chunk_stats s\n  CROSS JOIN config c\n  CROSS JOIN memory m;",
+                        "rawSql": "WITH chunk_stats AS (\n  SELECT\n    max(s.total_bytes) AS max_chunk_size\n  FROM\n    chunks_detailed_size('$schema.$table') s\n    JOIN timescaledb_information.chunks c USING (chunk_schema, chunk_name)\n  WHERE\n    c.is_compressed = false\n),\nconfig AS (\n  SELECT\n    time_interval AS current_chunk_interval\n  FROM\n    timescaledb_information.dimensions\n  WHERE\n    hypertable_schema = '$schema'\n    AND hypertable_name = '$table'\n),\nmemory AS (\n  SELECT\n    AVG(mem_total) * 1024 AS memory_bytes\n  FROM pganalyze.sys_stats\n)\nSELECT\n  c.current_chunk_interval AS \"Current interval\",\n  format('%s (%s%% of RAM)', pg_size_pretty(s.max_chunk_size), round(100.0 * s.max_chunk_size / m.memory_bytes, 2)) AS \"Current uncompressed chunk\",\n  pg_size_pretty(m.memory_bytes) AS \"Total RAM\",\n  pg_size_pretty(m.memory_bytes * 0.25) AS \"Max chunk size\",\n\n  round(\n  extract(\n    epoch FROM (\n      m.memory_bytes * 0.25\n      / NULLIF(s.max_chunk_size, 0)\n      * c.current_chunk_interval\n    )\n  ) / 86400\n) * interval '1 day' AS \"Max chunk interval\"\nFROM\n  chunk_stats s\n  CROSS JOIN config c\n  CROSS JOIN memory m;",
                         "sql": {
                           "columns": [
                             {
@@ -1818,7 +1854,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH index_list AS (\n  SELECT\n    DISTINCT ON (i.indexrelid) i.indexrelid AS index_id,\n    i.relid AS table_id,\n    c.relname AS index_name,\n    i.size_bytes AS size_bytes\n  FROM\n    pganalyze.index_stats i\n    JOIN pg_class c ON c.oid = i.indexrelid\n  WHERE\n    i.relid = format(\n      '%I.%I',\n      '$schema',\n      '$table'\n    ) :: regclass :: oid\n  ORDER BY\n    i.indexrelid,\n    i.collected_at DESC\n),\nindex_info AS (\n  SELECT\n    il.*,\n    ix.indkey,\n    ix.indnkeyatts,\n    ix.indpred,\n    ix.indisprimary,\n    ix.indisunique,\n    am.amname,\n    tbl.relname AS table_relname,\n    ns.nspname AS table_schema,\n    -- Last time PostgreSQL used the index\n    pg_stat.last_idx_scan,\n    -- Index fillfactor (90 is the PostgreSQL default for B-tree)\n    COALESCE(\n      (\n        SELECT\n          option_value :: numeric\n        FROM\n          pg_options_to_table(idx.reloptions)\n        WHERE\n          option_name = 'fillfactor'\n      ),\n      CASE\n        WHEN am.amname = 'btree' THEN 90\n        ELSE NULL\n      END\n    ) AS fillfactor\n  FROM\n    index_list il\n    JOIN pg_index ix ON ix.indexrelid = il.index_id\n    JOIN pg_class tbl ON tbl.oid = il.table_id\n    JOIN pg_class idx ON idx.oid = il.index_id\n    JOIN pg_namespace ns ON ns.oid = tbl.relnamespace\n    JOIN pg_am am ON am.oid = (\n      SELECT\n        relam\n      FROM\n        pg_class\n      WHERE\n        oid = il.index_id\n    )\n    LEFT JOIN pg_stat_user_indexes pg_stat ON pg_stat.indexrelid = il.index_id\n),\nwidths AS (\n  SELECT\n    ii.index_id,\n    /*\n     * Width of index KEY columns.\n     *\n     * indnkeyatts deliberately excludes INCLUDE columns.\n     */\n    CASE\n      WHEN BOOL_OR(k.attnum <= 0) THEN NULL\n      ELSE SUM(s.avg_width) :: numeric\n    END AS indexed_columns_avg_width,\n    /*\n     * Width of all columns in the physical table.\n     */\n    (\n      SELECT\n        SUM(s2.avg_width) :: numeric\n      FROM\n        pg_stats s2\n      WHERE\n        s2.schemaname = ii.table_schema\n        AND s2.tablename = ii.table_relname\n    ) AS table_columns_avg_width\n  FROM\n    index_info ii\n    CROSS JOIN LATERAL unnest(ii.indkey [1:ii.indnkeyatts]) AS k(attnum)\n    LEFT JOIN pg_attribute a ON a.attrelid = ii.table_id\n    AND a.attnum = k.attnum\n    LEFT JOIN pg_stats s ON s.schemaname = ii.table_schema\n    AND s.tablename = ii.table_relname\n    AND s.attname = a.attname\n  GROUP BY\n    ii.index_id,\n    ii.table_schema,\n    ii.table_relname\n)\nSELECT\n  ii.index_id AS \"ID\",\n  ii.index_name AS \"Name\",\n  ii.amname || ' (' || string_agg(\n    pg_get_indexdef(ii.index_id, k + 1, true),\n    ', '\n  ) || ')' AS \"Definition\",\n  CASE\n    WHEN ii.indisprimary THEN 'PRIMARY KEY'\n    WHEN ii.indisunique THEN 'UNIQUE'\n    ELSE NULL\n  END AS \"Constraint\",\n  ii.size_bytes AS \"Size\",\n  ii.fillfactor AS \"Fillfactor\",\n  ii.last_idx_scan AS \"Last used\",\n  CASE\n    WHEN w.indexed_columns_avg_width IS NULL\n    OR w.table_columns_avg_width IS NULL THEN NULL\n    ELSE ROUND(\n      (\n        8.0 + w.indexed_columns_avg_width\n      ) / NULLIF(\n        27.0 + w.table_columns_avg_width,\n        0\n      ) * CASE\n        WHEN ii.indpred IS NOT NULL THEN 0.10\n        ELSE 1.0\n      END,\n      3\n    )\n  END AS \"Write overhead\"\nFROM\n  index_info ii\n  JOIN widths w ON w.index_id = ii.index_id\n  CROSS JOIN LATERAL generate_subscripts(ii.indkey, 1) AS k\nGROUP BY\n  ii.index_id,\n  ii.index_name,\n  ii.size_bytes,\n  ii.amname,\n  ii.indisprimary,\n  ii.indisunique,\n  ii.indpred,\n  ii.fillfactor,\n  ii.last_idx_scan,\n  w.indexed_columns_avg_width,\n  w.table_columns_avg_width\nORDER BY\n  ii.index_id;",
+                        "rawSql": "WITH index_list AS (\n  SELECT\n    DISTINCT ON (i.indexrelid) i.indexrelid AS index_id,\n    i.relid AS table_id,\n    c.relname AS index_name,\n    i.size_bytes AS size_bytes\n  FROM\n    pganalyze.index_stats i\n    JOIN pg_class c ON c.oid = i.indexrelid\n  WHERE\n    i.relid = format(\n      '%I.%I',\n      '$schema',\n      '$table'\n    ) :: regclass :: oid\n  ORDER BY\n    i.indexrelid,\n    i.collected_at DESC\n),\nindex_info AS (\n  SELECT\n    il.*,\n    ix.indkey,\n    ix.indnkeyatts,\n    ix.indpred,\n    ix.indisprimary,\n    ix.indisunique,\n    am.amname,\n    tbl.relname AS table_relname,\n    ns.nspname AS table_schema,\n    -- Last time PostgreSQL used the index\n    pg_stat.last_idx_scan,\n    -- Index fillfactor (90 is the PostgreSQL default for B-tree)\n    COALESCE(\n      (\n        SELECT\n          option_value :: numeric\n        FROM\n          pg_options_to_table(idx.reloptions)\n        WHERE\n          option_name = 'fillfactor'\n      ),\n      CASE\n        WHEN am.amname = 'btree' THEN 90\n        ELSE NULL\n      END\n    ) AS fillfactor\n  FROM\n    index_list il\n    JOIN pg_index ix ON ix.indexrelid = il.index_id\n    JOIN pg_class tbl ON tbl.oid = il.table_id\n    JOIN pg_class idx ON idx.oid = il.index_id\n    JOIN pg_namespace ns ON ns.oid = tbl.relnamespace\n    JOIN pg_am am ON am.oid = (\n      SELECT\n        relam\n      FROM\n        pg_class\n      WHERE\n        oid = il.index_id\n    )\n    LEFT JOIN pg_stat_user_indexes pg_stat ON pg_stat.indexrelid = il.index_id\n),\nwidths AS (\n  SELECT\n    ii.index_id,\n    /*\n     * Width of index KEY columns.\n     *\n     * indnkeyatts deliberately excludes INCLUDE columns.\n     */\n    CASE\n      WHEN BOOL_OR(k.attnum <= 0) THEN NULL\n      ELSE SUM(s.avg_width) :: numeric\n    END AS indexed_columns_avg_width,\n    /*\n     * Width of all columns in the physical table.\n     */\n    (\n      SELECT\n        SUM(s2.avg_width) :: numeric\n      FROM\n        pg_stats s2\n      WHERE\n        s2.schemaname = ii.table_schema\n        AND s2.tablename = ii.table_relname\n    ) AS table_columns_avg_width\n  FROM\n    index_info ii\n    CROSS JOIN LATERAL unnest(ii.indkey [1:ii.indnkeyatts]) AS k(attnum)\n    LEFT JOIN pg_attribute a ON a.attrelid = ii.table_id\n    AND a.attnum = k.attnum\n    LEFT JOIN pg_stats s ON s.schemaname = ii.table_schema\n    AND s.tablename = ii.table_relname\n    AND s.attname = a.attname\n  GROUP BY\n    ii.index_id,\n    ii.table_schema,\n    ii.table_relname\n)\nSELECT\n  ii.index_id AS \"ID\",\n  ii.index_name AS \"Name\",\n  regexp_replace(\n  pg_get_indexdef(ii.index_id),\n  '^.*? USING ',\n  ''\n) AS \"Definition\",\n  CASE\n    WHEN ii.indisprimary THEN 'PRIMARY KEY'\n    WHEN ii.indisunique THEN 'UNIQUE'\n    ELSE NULL\n  END AS \"Constraint\",\n  ii.size_bytes AS \"Size\",\n  ii.fillfactor AS \"Fillfactor\",\n  ii.last_idx_scan AS \"Last used\",\n  CASE\n    WHEN w.indexed_columns_avg_width IS NULL\n    OR w.table_columns_avg_width IS NULL THEN NULL\n    ELSE ROUND(\n      (\n        8.0 + w.indexed_columns_avg_width\n      ) / NULLIF(\n        27.0 + w.table_columns_avg_width,\n        0\n      ) * CASE\n        WHEN ii.indpred IS NOT NULL THEN 0.10\n        ELSE 1.0\n      END,\n      3\n    )\n  END AS \"Write overhead\"\nFROM\n  index_info ii\n  JOIN widths w ON w.index_id = ii.index_id\n  CROSS JOIN LATERAL generate_subscripts(ii.indkey, 1) AS k\nGROUP BY\n  ii.index_id,\n  ii.index_name,\n  ii.size_bytes,\n  ii.amname,\n  ii.indisprimary,\n  ii.indisunique,\n  ii.indpred,\n  ii.fillfactor,\n  ii.last_idx_scan,\n  w.indexed_columns_avg_width,\n  w.table_columns_avg_width\nORDER BY\n  ii.index_id;",
                         "sql": {
                           "columns": [
                             {

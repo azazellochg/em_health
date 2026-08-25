@@ -3,7 +3,7 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "2ddfc99a-7e8a-402c-9f3f-b06c67af2509",
-    "generation": 4,
+    "generation": 11,
     "creationTimestamp": "2026-08-14T13:14:44Z",
     "labels": {},
     "annotations": {}
@@ -55,7 +55,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  j.job_id AS \"Job ID\",\n  regexp_replace(j.application_name, E'\\\\s*\\\\[\\\\d+\\\\]$', '') AS \"Type\",\n  CASE\n    WHEN j.proc_schema LIKE '_timescaledb_functions' THEN j.proc_name\n    ELSE j.proc_schema || '.' || j.proc_name\n  END AS \"Method\",\n  j.hypertable_schema || '.' || j.hypertable_name AS \"Target\",\n  CASE js.last_run_status\n    WHEN 'Success' THEN '✅'\n    WHEN 'Failed' THEN '❌'\n    ELSE '❓'\n  END AS \"Last run\",\n  j.schedule_interval AS \"Interval\",\n  js.job_status || ' (in ' || (js.next_start - now()) || ')' AS \"Status\"\nFROM timescaledb_information.jobs j\nJOIN timescaledb_information.job_stats js USING (job_id)\nORDER BY j.job_id\n",
+                        "rawSql": "SELECT\n  j.job_id AS \"Job ID\",\n  regexp_replace(j.application_name, E'\\\\s*\\\\[\\\\d+\\\\]$', '') AS \"Type\",\n  CASE\n    WHEN j.proc_schema LIKE '_timescaledb_functions' THEN j.proc_name\n    ELSE j.proc_schema || '.' || j.proc_name\n  END AS \"Method\",\n  j.hypertable_schema || '.' || j.hypertable_name AS \"Target\",\n  CASE js.last_run_status\n    WHEN 'Success' THEN '✅'\n    WHEN 'Failed' THEN '❌'\n    ELSE '❓'\n  END AS \"Last run\",\n  j.schedule_interval AS \"Interval\",\n  CASE js.job_status\n    WHEN 'Scheduled' THEN 'Scheduled (in ' || (js.next_start - now()) || ')'\n    ELSE js.job_status  \n  END AS \"Status\"\nFROM timescaledb_information.jobs j\nJOIN timescaledb_information.job_stats js USING (job_id)\nWHERE ('$job_type' = 'User defined' AND j.application_name LIKE 'User-Defined%')\n  OR ('$job_type' = 'CAGG refresh' AND j.application_name LIKE 'Refresh Continuous Aggregate%')\n  OR ('$job_type' = 'Columnstore' AND j.application_name LIKE 'Columnstore%')\n  OR ('$job_type' = 'Retention' AND j.application_name LIKE '%Retention%')\n  OR ('$job_type' = 'Reorder' AND j.application_name LIKE 'Reorder%')\n  OR ('$job_type' = 'All types')\nORDER BY j.job_id\n",
                         "sql": {
                           "columns": [
                             {
@@ -294,7 +294,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  pid AS \"PID\",\n  usename AS \"Username\",\n  application_name AS \"Application\",\n  state AS \"Status\",\n  extract(epoch FROM (now() - backend_start)) AS \"Duration\",\n  query AS \"Query\",\n  wait_event_type || ' / ' || wait_event AS \"Wait event\"\nFROM pg_stat_activity\nWHERE datname = current_database()\n  AND backend_type = 'client backend'\nORDER BY backend_start DESC",
+                        "rawSql": "SELECT\n  pid AS \"PID\",\n  usename AS \"Role\",\n  application_name AS \"Application\",\n  state AS \"Status\",\n  extract(epoch FROM (now() - backend_start)) AS \"Duration\",\n  query AS \"Query\",\n  wait_event_type || ' / ' || wait_event AS \"Wait event\"\nFROM pg_stat_activity\nWHERE datname = current_database()\n  AND backend_type = 'client backend'\nORDER BY backend_start DESC",
                         "sql": {
                           "columns": [
                             {
@@ -361,7 +361,8 @@
                     "footer": {
                       "reducers": []
                     },
-                    "inspect": false
+                    "inspect": false,
+                    "width": 150
                   }
                 },
                 "overrides": [
@@ -422,6 +423,9 @@
                       {
                         "id": "custom.inspect",
                         "value": true
+                      },
+                      {
+                        "id": "custom.width"
                       }
                     ]
                   }
@@ -687,7 +691,29 @@
                     }
                   ]
                 }
-              }
+              },
+              "variables": [
+                {
+                  "kind": "CustomVariable",
+                  "spec": {
+                    "name": "job_type",
+                    "query": "User defined, CAGG refresh, Columnstore, Retention, Reorder",
+                    "current": {
+                      "text": "User defined",
+                      "value": "User defined"
+                    },
+                    "options": [],
+                    "multi": false,
+                    "includeAll": true,
+                    "allValue": "All types",
+                    "label": "Job type",
+                    "hide": "dontHide",
+                    "skipUrlSync": false,
+                    "allowCustomValue": false,
+                    "valuesFormat": "csv"
+                  }
+                }
+              ]
             }
           }
         ]

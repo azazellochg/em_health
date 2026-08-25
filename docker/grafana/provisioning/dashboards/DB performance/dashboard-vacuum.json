@@ -3,7 +3,7 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "d0e487ca-67bd-4aa2-93fa-02b2afc1e2e3",
-    "generation": 12,
+    "generation": 23,
     "creationTimestamp": "2026-08-14T13:00:15Z",
     "labels": {},
     "annotations": {}
@@ -34,7 +34,7 @@
         "kind": "Panel",
         "spec": {
           "id": 1,
-          "title": "Autovacuum count",
+          "title": "Autovacuum counters",
           "description": "",
           "links": [],
           "data": {
@@ -55,7 +55,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  COUNT(*) AS \"Total\",\n  COUNT(*) FILTER (WHERE wraparound) AS \"Anti-wraparound\"\nFROM pganalyze.vacuum_stats\nWHERE $__timeFilter(started_at)\n",
+                        "rawSql": "SELECT\n  COUNT(*) AS \"Total\",\n  COUNT(*) FILTER (WHERE wraparound) AS \"Anti-wraparound\",\n  ROUND(\n    COALESCE(\n      SUM(EXTRACT(EPOCH FROM (finished_at - started_at)))\n      / (($__to - $__from) / 1000.0),\n      0\n    ),\n    1\n  ) AS \"Avg. workers\"\nFROM pganalyze.vacuum_stats\nWHERE $__timeFilter(started_at);",
                         "sql": {
                           "columns": [
                             {
@@ -93,20 +93,21 @@
                 "colorMode": "value",
                 "graphMode": "area",
                 "justifyMode": "auto",
-                "orientation": "vertical",
+                "orientation": "auto",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
-                  "calcs": [],
-                  "fields": "",
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "/.*/",
                   "values": true
                 },
                 "showPercentChange": false,
-                "textMode": "value_and_name",
-                "wideLayout": false
+                "textMode": "auto",
+                "wideLayout": true
               },
               "fieldConfig": {
                 "defaults": {
-                  "decimals": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -120,7 +121,21 @@
                     "mode": "thresholds"
                   }
                 },
-                "overrides": []
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Avg. workers"
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 1
+                      }
+                    ]
+                  }
+                ]
               }
             }
           }
@@ -374,7 +389,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH xmin_candidates AS (\n  SELECT\n    COALESCE((\n      SELECT\n        CASE WHEN COALESCE(pg_catalog.age(backend_xid), 0) > COALESCE(pg_catalog.age(backend_xmin), 0)\n          THEN backend_xid::text::bigint\n          ELSE backend_xmin::text::bigint\n        END\n      FROM pg_catalog.pg_stat_activity\n      WHERE backend_xmin IS NOT NULL OR backend_xid IS NOT NULL\n      ORDER BY greatest(pg_catalog.age(backend_xmin), pg_catalog.age(backend_xid)) DESC\n      LIMIT 1\n    ), 0) AS backend,\n\n    COALESCE((\n      SELECT xmin::text::bigint\n      FROM pg_catalog.pg_replication_slots\n      WHERE xmin IS NOT NULL\n      ORDER BY pg_catalog.age(xmin) DESC\n      LIMIT 1\n    ), 0) AS replication_slot_xmin,\n\n    COALESCE((\n      SELECT catalog_xmin::text::bigint\n      FROM pg_catalog.pg_replication_slots\n      WHERE catalog_xmin IS NOT NULL\n      ORDER BY pg_catalog.age(catalog_xmin) DESC\n      LIMIT 1\n    ), 0) AS replication_slot_catalog_xmin,\n\n    COALESCE((\n      SELECT transaction::text::bigint\n      FROM pg_catalog.pg_prepared_xacts\n      ORDER BY pg_catalog.age(transaction) DESC\n      LIMIT 1\n    ), 0) AS prepare_xact,\n\n    COALESCE((\n      SELECT backend_xmin::text::bigint\n      FROM pg_catalog.pg_stat_replication\n      WHERE backend_xmin IS NOT NULL\n      ORDER BY pg_catalog.age(backend_xmin) DESC\n      LIMIT 1\n    ), 0) AS standby\n),\ntrue_xmin AS (\n  SELECT\n    LEAST(\n      backend,\n      replication_slot_xmin,\n      replication_slot_catalog_xmin,\n      prepare_xact,\n      standby\n    ) AS xmin\n  FROM xmin_candidates\n),\ntxn_rate AS (\n  SELECT\n    EXTRACT(epoch FROM (now() - COALESCE(stats_reset, pg_postmaster_start_time()))) AS seconds_since_startup,\n    (xact_commit + xact_rollback) AS total_txns,\n    CASE \n      WHEN (xact_commit + xact_rollback) > 0\n      THEN EXTRACT(epoch FROM (now() - COALESCE(stats_reset, pg_postmaster_start_time()))) / (xact_commit + xact_rollback)\n      ELSE NULL\n    END AS seconds_per_txn\n  FROM pg_stat_database\n  WHERE datname = current_database()\n)\nSELECT\n  CASE WHEN seconds_per_txn IS NOT NULL\n       THEN (txid_current() - xmin) * seconds_per_txn\n       ELSE NULL\n  END AS approx_seconds_ago\nFROM true_xmin CROSS JOIN txn_rate;\n",
+                        "rawSql": "WITH current_horizon AS (\n  SELECT\n    xmin_horizon\n  FROM\n    pganalyze.database_stats\n  WHERE\n    xmin_horizon <> 0\n  ORDER BY\n    collected_at DESC\n  LIMIT 1\n)\nSELECT\n  EXTRACT(EPOCH FROM (NOW() - MIN(ds.collected_at))) AS assigned_seconds_ago\nFROM\n  pganalyze.database_stats ds\n  CROSS JOIN current_horizon ch\nWHERE\n  ds.xmin_horizon = ch.xmin_horizon;",
                         "sql": {
                           "columns": [
                             {
@@ -416,7 +431,7 @@
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
                   "calcs": [],
-                  "fields": "/^approx_seconds_ago$/",
+                  "fields": "/.*/",
                   "values": true
                 },
                 "showPercentChange": false,
@@ -757,108 +772,11 @@
           }
         }
       },
-      "panel-16": {
-        "kind": "Panel",
-        "spec": {
-          "id": 16,
-          "title": "Max read I/O impact",
-          "description": "Theoretical maximum impact that VACUUM can have on your system",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${source}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "WITH settings AS (\n  SELECT\n    (CASE \n       WHEN (SELECT setting FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_limit') = '-1'\n       THEN (SELECT setting::numeric FROM pg_settings WHERE name = 'vacuum_cost_limit')\n       ELSE (SELECT setting::numeric FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_limit')\n     END) AS vacuum_cost_limit_effective,\n    (SELECT setting::numeric FROM pg_settings WHERE name = 'vacuum_cost_page_miss') AS vacuum_cost_page_miss,\n    (SELECT setting::numeric FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_delay') AS autovacuum_vacuum_cost_delay,\n    8192 AS block_size_bytes -- 8kB block size\n)\nSELECT\n  (vacuum_cost_limit_effective / vacuum_cost_page_miss * block_size_bytes / autovacuum_vacuum_cost_delay) * 1000 AS max_vacuum_read_rate_bytes_per_sec\nFROM settings\n",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "stat",
-            "version": "13.1.0-25893932881",
-            "spec": {
-              "options": {
-                "colorMode": "value",
-                "graphMode": "none",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "/^max_vacuum_read_rate_bytes_per_sec$/",
-                  "values": true
-                },
-                "showPercentChange": false,
-                "textMode": "value",
-                "wideLayout": false
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "Bps",
-                  "decimals": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "thresholds"
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
       "panel-17": {
         "kind": "Panel",
         "spec": {
           "id": 17,
-          "title": "Max write I/O impact",
+          "title": "Max I/O impact",
           "description": "Theoretical maximum impact that VACUUM can have on your system",
           "links": [],
           "data": {
@@ -879,7 +797,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH settings AS (\n  SELECT\n    (CASE \n       WHEN (SELECT setting FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_limit') = '-1'\n       THEN (SELECT setting::numeric FROM pg_settings WHERE name = 'vacuum_cost_limit')\n       ELSE (SELECT setting::numeric FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_limit')\n     END) AS vacuum_cost_limit_effective,\n    (SELECT setting::numeric FROM pg_settings WHERE name = 'vacuum_cost_page_dirty') AS vacuum_cost_page_dirty,\n    (SELECT setting::numeric FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_delay') AS autovacuum_vacuum_cost_delay,\n    8192 AS block_size_bytes -- 8kB block size\n)\nSELECT\n  (vacuum_cost_limit_effective / vacuum_cost_page_dirty * block_size_bytes / autovacuum_vacuum_cost_delay) * 1000 AS max_vacuum_write_rate_bytes_per_sec\nFROM settings\n",
+                        "rawSql": "WITH settings AS (\n  SELECT\n    (CASE \n       WHEN (SELECT setting FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_limit') = '-1'\n       THEN (SELECT setting::numeric FROM pg_settings WHERE name = 'vacuum_cost_limit')\n       ELSE (SELECT setting::numeric FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_limit')\n     END) AS vacuum_cost_limit_effective,\n    (SELECT setting::numeric FROM pg_settings WHERE name = 'vacuum_cost_page_miss') AS vacuum_cost_page_miss,\n    (SELECT setting::numeric FROM pg_settings WHERE name = 'vacuum_cost_page_dirty') AS vacuum_cost_page_dirty,\n    (SELECT setting::numeric FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_delay') AS autovacuum_vacuum_cost_delay,\n    8192 AS block_size_bytes -- 8kB block size\n)\nSELECT\n  (vacuum_cost_limit_effective / vacuum_cost_page_miss * block_size_bytes / autovacuum_vacuum_cost_delay) * 1000 AS \"read\",\n  (vacuum_cost_limit_effective / vacuum_cost_page_dirty * block_size_bytes / autovacuum_vacuum_cost_delay) * 1000 AS \"write\"\nFROM settings\n",
                         "sql": {
                           "columns": [
                             {
@@ -921,11 +839,11 @@
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
                   "calcs": [],
-                  "fields": "/^max_vacuum_write_rate_bytes_per_sec$/",
+                  "fields": "/.*/",
                   "values": true
                 },
                 "showPercentChange": false,
-                "textMode": "value",
+                "textMode": "value_and_name",
                 "wideLayout": false
               },
               "fieldConfig": {
@@ -956,7 +874,7 @@
         "spec": {
           "id": 4,
           "title": "Est. Table Bloat",
-          "description": "The estimated overall table bloat on this server or database - this is a very rough estimate and should be reviewed for individual tables. Compressed chunks are excluded and only tables > 1MB are considered.",
+          "description": "The estimated overall table bloat on this  database - this is a very rough estimate and should be reviewed for individual tables. Compressed chunks are excluded and only tables > 1MB are considered.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -976,7 +894,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH compressed_chunks AS (\n    SELECT\n        chunk_schema,\n        chunk_name\n    FROM timescaledb_information.chunks\n    WHERE is_compressed = true\n),\ntables AS (\n    SELECT\n        p.schemaname,\n        p.tablename\n    FROM pg_tables p\n    WHERE p.schemaname NOT SIMILAR TO '(pg_catalog|information_schema%)'\n      AND NOT EXISTS (\n          SELECT 1\n          FROM compressed_chunks c\n          WHERE c.chunk_schema = p.schemaname\n            AND c.chunk_name = p.tablename\n      )\n),\nbloat_data AS (\n    SELECT\n        stats.table_len,\n        stats.dead_tuple_len::numeric AS bloat_bytes\n    FROM tables t\n    CROSS JOIN LATERAL pgstattuple_approx(\n        format('%I.%I', t.schemaname, t.tablename)\n    ) stats\n    WHERE stats.table_len >= 1048576  -- 1 MB minimum\n)\nSELECT\n    COALESCE(SUM(bloat_bytes), 0) AS total_bloat_bytes,\n    COALESCE(\n        ROUND(\n            100.0 * SUM(bloat_bytes)\n            / NULLIF(SUM(table_len), 0),\n            2\n        ),\n        0\n    ) AS bloat_percent\nFROM bloat_data",
+                        "rawSql": "WITH compressed_chunks AS (\n    SELECT\n        chunk_schema,\n        chunk_name\n    FROM timescaledb_information.chunks\n    WHERE is_compressed = true\n),\ntables AS (\n    SELECT\n        p.schemaname,\n        p.tablename\n    FROM pg_tables p\n    WHERE p.schemaname NOT SIMILAR TO '(pg_catalog|information_schema%)'\n      AND NOT EXISTS (\n          SELECT 1\n          FROM compressed_chunks c\n          WHERE c.chunk_schema = p.schemaname\n            AND c.chunk_name = p.tablename\n      )\n),\nbloat_data AS (\n    SELECT\n        stats.table_len,\n        (stats.table_len - stats.approx_tuple_len) AS bloat_bytes\n    FROM tables t\n    CROSS JOIN LATERAL pgstattuple_approx(\n        format('%I.%I', t.schemaname, t.tablename)\n    ) stats\n    WHERE stats.table_len >= 1048576  -- 1 MB minimum\n)\nSELECT\n    COALESCE(SUM(bloat_bytes), 0) AS total_bloat_bytes,\n    COALESCE(\n        ROUND(\n            100.0 * SUM(bloat_bytes)\n            / NULLIF(SUM(table_len), 0),\n            2\n        ),\n        0\n    ) AS bloat_percent\nFROM bloat_data",
                         "sql": {
                           "columns": [
                             {
@@ -1281,7 +1199,7 @@
         "spec": {
           "id": 7,
           "title": "Table bloat info",
-          "description": "Per-table bloat estimates, as calculated by the difference of the actual table size, compared to the average row size * number of rows in the table. For hypertables we only consider uncompressed chunks",
+          "description": "Per-table bloat estimates, as calculated by the difference of the actual table size, compared to the average row size * number of rows in the table. For hypertables we only consider uncompressed chunks. Tables with no bloat are filtered out.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1298,11 +1216,11 @@
                         "name": "${source}"
                       },
                       "spec": {
-                        "dataset": "tem",
+                        "dataset": "sem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH constants AS (\n  SELECT\n    current_setting('block_size') :: numeric AS block_size,\n    8 :: numeric AS maxalign,\n    24 :: numeric AS page_header,\n    23 :: numeric AS tuple_header,\n    4 :: numeric AS item_pointer\n),\n/*\n * Column statistics used to estimate the physical row width.\n */\ncolumn_stats AS (\n  SELECT\n    s.schemaname AS schema,\n    s.tablename AS tbl,\n    SUM(\n      (1.0 - COALESCE(s.null_frac, 0)) * COALESCE(s.avg_width, 0)\n    ) :: numeric AS avg_data_width,\n    COUNT(*) FILTER (\n      WHERE\n        s.null_frac > 0\n    ) AS nullable_columns\n  FROM\n    pg_stats s\n  WHERE\n    s.schemaname NOT SIMILAR TO '(pg_catalog|information_schema|_timescaledb%)'\n    AND s.inherited = false\n  GROUP BY\n    s.schemaname,\n    s.tablename\n),\n/*\n * Effective per-table autovacuum settings.\n */\ntable_options AS (\n  SELECT\n    c.oid,\n    n.nspname AS schema,\n    c.relname AS tbl,\n    COALESCE(\n      (\n        SELECT\n          option_value :: numeric\n        FROM\n          pg_options_to_table(c.reloptions)\n        WHERE\n          option_name = 'autovacuum_vacuum_scale_factor'\n      ),\n      current_setting(\n        'autovacuum_vacuum_scale_factor'\n      ) :: numeric\n    ) AS vacuum_scale_factor,\n    COALESCE(\n      (\n        SELECT\n          option_value :: numeric\n        FROM\n          pg_options_to_table(c.reloptions)\n        WHERE\n          option_name = 'autovacuum_vacuum_threshold'\n      ),\n      current_setting(\n        'autovacuum_vacuum_threshold'\n      ) :: numeric\n    ) AS vacuum_threshold,\n    c.reltuples :: numeric AS row_count,\n    pg_relation_size(c.oid) :: numeric AS actual_heap_bytes,\n    COALESCE(\n      (\n        SELECT\n          option_value :: numeric\n        FROM\n          pg_options_to_table(c.reloptions)\n        WHERE\n          option_name = 'fillfactor'\n      ),\n      100\n    ) AS fillfactor\n  FROM\n    pg_class c\n    JOIN pg_namespace n ON n.oid = c.relnamespace\n  WHERE\n    c.relkind = 'r'\n    AND n.nspname NOT SIMILAR TO '(pg_catalog|information_schema|_timescaledb%)'\n),\n/*\n * Normal PostgreSQL tables.\n */\nnormal_estimates AS (\n  SELECT\n    o.schema,\n    o.tbl,\n    o.row_count,\n    o.actual_heap_bytes,\n    o.vacuum_scale_factor,\n    o.vacuum_threshold,\n    o.fillfactor,\n    CEIL(\n      o.row_count / GREATEST(\n        1,\n        FLOOR(\n          (\n            k.block_size - k.page_header\n          ) * (o.fillfactor / 100.0) / NULLIF(\n            (\n              k.item_pointer + k.tuple_header + CASE\n                WHEN COALESCE(cs.nullable_columns, 0) > 0 THEN CEIL(\n                  (cs.nullable_columns + 7) / 8.0\n                )\n                ELSE 0\n              END + COALESCE(cs.avg_data_width, 0) + k.maxalign - (\n                (\n                  k.item_pointer + k.tuple_header + CASE\n                    WHEN COALESCE(cs.nullable_columns, 0) > 0 THEN CEIL(\n                      (cs.nullable_columns + 7) / 8.0\n                    )\n                    ELSE 0\n                  END + COALESCE(cs.avg_data_width, 0)\n                ) % k.maxalign\n              )\n            ),\n            1\n          )\n        )\n      )\n    ) * k.block_size AS estimated_ideal_bytes\n  FROM\n    table_options o\n    CROSS JOIN constants k\n    LEFT JOIN column_stats cs ON cs.schema = o.schema\n    AND cs.tbl = o.tbl\n  WHERE\n    o.actual_heap_bytes >= 1048576\n),\n/*\n * TimescaleDB uncompressed chunks.\n */\nchunk_data AS (\n  SELECT\n    ch.hypertable_schema AS schema,\n    ch.hypertable_name AS tbl,\n    ch.chunk_schema,\n    ch.chunk_name,\n    c.oid,\n    c.reltuples :: numeric AS row_count,\n    pg_relation_size(c.oid) :: numeric AS actual_heap_bytes,\n    COALESCE(\n      (\n        SELECT\n          option_value :: numeric\n        FROM\n          pg_options_to_table(c.reloptions)\n        WHERE\n          option_name = 'autovacuum_vacuum_scale_factor'\n      ),\n      current_setting(\n        'autovacuum_vacuum_scale_factor'\n      ) :: numeric\n    ) AS vacuum_scale_factor,\n    COALESCE(\n      (\n        SELECT\n          option_value :: numeric\n        FROM\n          pg_options_to_table(c.reloptions)\n        WHERE\n          option_name = 'autovacuum_vacuum_threshold'\n      ),\n      current_setting(\n        'autovacuum_vacuum_threshold'\n      ) :: numeric\n    ) AS vacuum_threshold,\n    COALESCE(\n      (\n        SELECT\n          option_value :: numeric\n        FROM\n          pg_options_to_table(c.reloptions)\n        WHERE\n          option_name = 'fillfactor'\n      ),\n      100\n    ) AS fillfactor,\n    st.last_autovacuum\n  FROM\n    timescaledb_information.chunks ch\n    JOIN pg_class c ON c.oid = format(\n      '%I.%I',\n      ch.chunk_schema,\n      ch.chunk_name\n    ) :: regclass\n    LEFT JOIN pg_stat_user_tables st ON st.schemaname = ch.chunk_schema\n    AND st.relname = ch.chunk_name\n  WHERE\n    ch.is_compressed = false\n    AND pg_relation_size(c.oid) >= 1048576\n),\nchunk_estimates AS (\n  SELECT\n    cd.schema,\n    cd.tbl,\n    cd.row_count,\n    cd.actual_heap_bytes,\n    cd.vacuum_scale_factor,\n    cd.vacuum_threshold,\n    cd.last_autovacuum,\n    CEIL(\n      cd.row_count / GREATEST(\n        1,\n        FLOOR(\n          (\n            k.block_size - k.page_header\n          ) * (cd.fillfactor / 100.0) / NULLIF(\n            (\n              k.item_pointer + k.tuple_header + COALESCE(\n                CEIL(\n                  (cs.nullable_columns + 7) / 8.0\n                ),\n                0\n              ) + COALESCE(cs.avg_data_width, 0) + k.maxalign - (\n                (\n                  k.item_pointer + k.tuple_header + COALESCE(\n                    CEIL(\n                      (cs.nullable_columns + 7) / 8.0\n                    ),\n                    0\n                  ) + COALESCE(cs.avg_data_width, 0)\n                ) % k.maxalign\n              )\n            ),\n            1\n          )\n        )\n      )\n    ) * k.block_size AS estimated_ideal_bytes\n  FROM\n    chunk_data cd\n    CROSS JOIN constants k\n    LEFT JOIN column_stats cs ON cs.schema = cd.chunk_schema\n    AND cs.tbl = cd.chunk_name\n),\n/*\n * Aggregate physical chunks into logical hypertables.\n */\nhypertable_estimates AS (\n  SELECT\n    schema,\n    tbl,\n    SUM(actual_heap_bytes) AS actual_heap_bytes,\n    SUM(estimated_ideal_bytes) AS estimated_ideal_bytes,\n    /*\n     * For a hypertable, use the effective setting of the chunks.\n     * In normal TimescaleDB usage these will be identical.\n     */\n    MAX(vacuum_scale_factor) AS vacuum_scale_factor,\n    MAX(vacuum_threshold) AS vacuum_threshold,\n    MAX(last_autovacuum) AS last_autovacuum,\n    SUM(row_count) AS row_count\n  FROM\n    chunk_estimates\n  GROUP BY\n    schema,\n    tbl\n),\ncombined AS (\n  SELECT\n    schema,\n    tbl,\n    row_count,\n    actual_heap_bytes,\n    estimated_ideal_bytes,\n    vacuum_scale_factor,\n    vacuum_threshold,\n    NULL :: timestamptz AS last_autovacuum\n  FROM\n    normal_estimates\n  UNION\n  ALL\n  SELECT\n    schema,\n    tbl,\n    row_count,\n    actual_heap_bytes,\n    estimated_ideal_bytes,\n    vacuum_scale_factor,\n    vacuum_threshold,\n    last_autovacuum\n  FROM\n    hypertable_estimates\n),\nfinal AS (\n  SELECT\n    *,\n    GREATEST(\n      actual_heap_bytes - estimated_ideal_bytes,\n      0\n    ) AS estimated_bloat_bytes\n  FROM\n    combined\n)\nSELECT\n  schema AS \"Schema\",\n  tbl AS \"Table\",\n  pg_size_pretty(actual_heap_bytes) AS \"Actual heap size\",\n  pg_size_pretty(estimated_bloat_bytes) AS \"Est. bloat\",\n  ROUND(\n    100.0 * estimated_bloat_bytes / NULLIF(actual_heap_bytes, 0),\n    2\n  ) AS \"Est. bloat %\",\n  ROUND(vacuum_scale_factor, 2) AS \"Scale factor\",\n  ROUND(vacuum_threshold, 0) AS \"Threshold\",\n  last_autovacuum AS \"Last vacuum\"\nFROM\n  final\nORDER BY\n  estimated_bloat_bytes DESC",
+                        "rawSql": "/* WARNING: executed with a non-superuser role, the query inspect only tables and materialized view (9.3+) you are granted to read.\n* This query is compatible with PostgreSQL 9.0 and more\n*/\n\nWITH table_options AS (\n  SELECT\n    n.nspname AS schemaname,\n    c.relname AS tblname,\n    COALESCE(\n      (SELECT option_value :: numeric FROM pg_options_to_table(c.reloptions) WHERE option_name = 'autovacuum_vacuum_scale_factor'),\n      current_setting('autovacuum_vacuum_scale_factor') :: numeric\n    ) AS vacuum_scale_factor,\n    COALESCE(\n      (SELECT option_value :: numeric FROM pg_options_to_table(c.reloptions) WHERE option_name = 'autovacuum_vacuum_threshold'),\n      current_setting('autovacuum_vacuum_threshold') :: numeric\n    ) AS vacuum_threshold,\n    c.reltuples :: numeric AS row_count,\n    COALESCE(\n      (SELECT option_value :: numeric FROM pg_options_to_table(c.reloptions) WHERE option_name = 'fillfactor'),\n      100 :: numeric\n    ) AS fillfactor\n  FROM\n    pg_class c\n    JOIN pg_namespace n ON n.oid = c.relnamespace\n  WHERE\n    c.relkind IN ('r', 'm')\n    AND n.nspname NOT SIMILAR TO '(pg_catalog|information_schema|_timescaledb_c%)'\n    AND c.relname NOT SIMILAR TO '(%compress%|bgw%)'\n),\n\nbloat_estimates AS (\nSELECT schemaname, tblname, bs*tblpages AS real_size,\n  (tblpages-est_tblpages)*bs AS extra_size,\n  CASE WHEN tblpages > 0 AND tblpages - est_tblpages > 0\n    THEN 100 * (tblpages - est_tblpages)/tblpages::float\n    ELSE 0\n  END AS extra_pct,\n  CASE WHEN tblpages - est_tblpages_ff > 0\n    THEN (tblpages-est_tblpages_ff)*bs\n    ELSE 0\n  END AS bloat_size,\n  CASE WHEN tblpages > 0 AND tblpages - est_tblpages_ff > 0\n    THEN 100 * (tblpages - est_tblpages_ff)/tblpages::float\n    ELSE 0\n  END AS bloat_pct\n  -- , is_na, tpl_hdr_size, tpl_data_size, (pst).free_percent + (pst).dead_tuple_percent AS real_frag -- (DEBUG INFO)\nFROM (\n  SELECT ceil( reltuples / ( (bs-page_hdr)/tpl_size ) ) + ceil( toasttuples / 4 ) AS est_tblpages,\n    ceil( reltuples / ( (bs-page_hdr)*fillfactor/(tpl_size*100) ) ) + ceil( toasttuples / 4 ) AS est_tblpages_ff,\n    tblpages, fillfactor, bs, tblid, schemaname, tblname, heappages, toastpages, is_na\n    -- , tpl_hdr_size, tpl_data_size, pgstattuple(tblid) AS pst -- (DEBUG INFO)\n  FROM (\n    SELECT\n      ( 4 + tpl_hdr_size + tpl_data_size + (2*ma)\n        - CASE WHEN tpl_hdr_size%ma = 0 THEN ma ELSE tpl_hdr_size%ma END\n        - CASE WHEN ceil(tpl_data_size)::int%ma = 0 THEN ma ELSE ceil(tpl_data_size)::int%ma END\n      ) AS tpl_size, bs - page_hdr AS size_per_block, (heappages + toastpages) AS tblpages, heappages,\n      toastpages, reltuples, toasttuples, bs, page_hdr, tblid, schemaname, tblname, fillfactor, is_na\n      -- , tpl_hdr_size, tpl_data_size\n    FROM (\n      SELECT\n        tbl.oid AS tblid, ns.nspname AS schemaname, tbl.relname AS tblname, tbl.reltuples,\n        tbl.relpages AS heappages, coalesce(toast.relpages, 0) AS toastpages,\n        coalesce(toast.reltuples, 0) AS toasttuples,\n        coalesce(substring(\n          array_to_string(tbl.reloptions, ' ')\n          FROM 'fillfactor=([0-9]+)')::smallint, 100) AS fillfactor,\n        current_setting('block_size')::numeric AS bs,\n        CASE WHEN version()~'mingw32' OR version()~'64-bit|x86_64|ppc64|ia64|amd64' THEN 8 ELSE 4 END AS ma,\n        24 AS page_hdr,\n        23 + CASE WHEN MAX(coalesce(s.null_frac,0)) > 0 THEN ( 7 + count(s.attname) ) / 8 ELSE 0::int END\n           + CASE WHEN bool_or(att.attname = 'oid' and att.attnum < 0) THEN 4 ELSE 0 END AS tpl_hdr_size,\n        sum( (1-coalesce(s.null_frac, 0)) * coalesce(s.avg_width, 0) ) AS tpl_data_size,\n        bool_or(att.atttypid = 'pg_catalog.name'::regtype)\n          OR sum(CASE WHEN att.attnum > 0 THEN 1 ELSE 0 END) <> count(s.attname) AS is_na\n      FROM pg_attribute AS att\n        JOIN pg_class AS tbl ON att.attrelid = tbl.oid\n        JOIN pg_namespace AS ns ON ns.oid = tbl.relnamespace\n        LEFT JOIN pg_stats AS s ON s.schemaname=ns.nspname\n          AND s.tablename = tbl.relname AND s.inherited=false AND s.attname=att.attname\n        LEFT JOIN pg_class AS toast ON tbl.reltoastrelid = toast.oid\n      WHERE NOT att.attisdropped\n        AND tbl.relkind in ('r','m')\n        AND ns.nspname NOT SIMILAR TO '(pg_catalog|information_schema|_timescaledb_c%)' \n        AND tbl.relname NOT SIMILAR TO '(%compress%|bgw%)'\n      AND NOT EXISTS (\n        SELECT 1\n        FROM timescaledb_information.chunks ch\n        WHERE ch.chunk_schema = ns.nspname\n          AND ch.chunk_name = tbl.relname\n          AND ch.is_compressed = true\n      )\n      GROUP BY 1,2,3,4,5,6,7,8,9,10\n      ORDER BY 2,3\n    ) AS s\n  ) AS s2\n) AS s3\nWHERE bs*tblpages > 0\n-- WHERE NOT is_na\n--   AND tblpages*((pst).free_percent + (pst).dead_tuple_percent)::float4/100 >= 1\nORDER BY schemaname, tblname\n),\n\ncagg_map AS (\n  SELECT\n    materialization_hypertable_schema,\n    materialization_hypertable_name,\n    view_schema,\n    view_name\n  FROM timescaledb_information.continuous_aggregates\n)\n\nSELECT\n  COALESCE(\n    cagg.view_schema,\n    ch.hypertable_schema,\n    b.schemaname\n  ) AS \"Schema\",\n\n  COALESCE(\n    cagg.view_name,\n    ch.hypertable_name,\n    b.tblname\n  ) AS \"Table\",\n\n  CASE\n    WHEN ch.chunk_name IS NOT NULL THEN b.tblname\n    ELSE '-'\n  END AS \"Chunk\",\n\n  b.bloat_size AS \"Est. bloat\",\n  b.bloat_pct AS \"Est. bloat %\",\n  opt.vacuum_scale_factor AS \"Scale factor\",\n  opt.vacuum_threshold AS \"Threshold\",\n  st.last_autovacuum AS \"Last vacuum\"\n\nFROM bloat_estimates b\n\nJOIN table_options opt\n  ON opt.schemaname = b.schemaname\n AND opt.tblname = b.tblname\n\nLEFT JOIN pg_stat_user_tables st\n  ON st.schemaname = b.schemaname\n AND st.relname = b.tblname\n\nLEFT JOIN timescaledb_information.chunks ch\n  ON ch.chunk_schema = b.schemaname\n AND ch.chunk_name = b.tblname\n\nLEFT JOIN cagg_map cagg\n  ON cagg.materialization_hypertable_schema = ch.hypertable_schema\n AND cagg.materialization_hypertable_name = ch.hypertable_name\n\nWHERE b.bloat_size > 0\n\nORDER BY b.bloat_pct DESC",
                         "sql": {
                           "columns": [
                             {
@@ -1322,7 +1240,7 @@
                         }
                       }
                     },
-                    "refId": "B",
+                    "refId": "A",
                     "hidden": false
                   }
                 }
@@ -1342,14 +1260,13 @@
                 "showHeader": true,
                 "sortBy": [
                   {
-                    "desc": false,
-                    "displayName": "Schema"
+                    "desc": true,
+                    "displayName": "Est. bloat"
                   }
                 ]
               },
               "fieldConfig": {
                 "defaults": {
-                  "decimals": 2,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -1374,19 +1291,6 @@
                   }
                 },
                 "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "scope": "series",
-                      "options": "Heap size"
-                    },
-                    "properties": [
-                      {
-                        "id": "unit",
-                        "value": "decbytes"
-                      }
-                    ]
-                  },
                   {
                     "matcher": {
                       "id": "byName",
@@ -1633,7 +1537,7 @@
                       "spec": {
                         "x": 0,
                         "y": 0,
-                        "width": 6,
+                        "width": 5,
                         "height": 12,
                         "element": {
                           "kind": "ElementReference",
@@ -1644,10 +1548,10 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 6,
+                        "x": 5,
                         "y": 0,
-                        "width": 4,
-                        "height": 3,
+                        "width": 5,
+                        "height": 4,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-1"
@@ -1670,10 +1574,10 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 6,
-                        "y": 3,
-                        "width": 4,
-                        "height": 3,
+                        "x": 5,
+                        "y": 4,
+                        "width": 5,
+                        "height": 4,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-8"
@@ -1683,23 +1587,10 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 6,
-                        "y": 6,
-                        "width": 4,
-                        "height": 3,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-16"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 6,
-                        "y": 9,
-                        "width": 4,
-                        "height": 3,
+                        "x": 5,
+                        "y": 8,
+                        "width": 5,
+                        "height": 4,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-17"

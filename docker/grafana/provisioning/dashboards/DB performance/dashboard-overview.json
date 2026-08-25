@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "ee46beab-c046-45a5-b547-23990e2ec0f3",
-    "generation": 2,
-    "creationTimestamp": "2026-07-15T13:29:25Z",
+    "generation": 11,
+    "creationTimestamp": "2026-08-14T12:59:34Z",
     "labels": {},
     "annotations": {}
   },
@@ -201,7 +201,6 @@
                 },
                 "legend": {
                   "calcs": [
-                    "min",
                     "max",
                     "mean"
                   ],
@@ -445,7 +444,6 @@
                 },
                 "legend": {
                   "calcs": [
-                    "min",
                     "max",
                     "mean"
                   ],
@@ -1204,14 +1202,10 @@
                   "multiLane": false
                 },
                 "legend": {
-                  "calcs": [
-                    "min",
-                    "max",
-                    "mean"
-                  ],
+                  "calcs": [],
                   "displayMode": "table",
-                  "placement": "bottom",
-                  "showLegend": true
+                  "placement": "right",
+                  "showLegend": false
                 },
                 "tooltip": {
                   "hideZeros": false,
@@ -1380,8 +1374,8 @@
         "kind": "Panel",
         "spec": {
           "id": 38,
-          "title": "Queries runtime",
-          "description": "Average execution time per call",
+          "title": "Query runtime",
+          "description": "",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1401,7 +1395,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT time_bucket(INTERVAL '$__interval', collected_at) AS time,\n\n  -- Average total latency per query (planning + execution)\n  (delta(counter_agg(collected_at, total_plan_time)) +\n   delta(counter_agg(collected_at, total_exec_time)))\n   / NULLIF(delta(counter_agg(collected_at, calls)), 0) AS \"Avg query latency\",\n\n  -- Average I/O time per query (read + write)\n  (delta(counter_agg(collected_at, blk_read_time)) +\n   delta(counter_agg(collected_at, blk_write_time)))\n   / NULLIF(delta(counter_agg(collected_at, calls)), 0) AS \"Avg I/O time\",\n  \n  -- Average rows returned per query\n  delta(counter_agg(collected_at, rows))\n   / NULLIF(delta(counter_agg(collected_at, calls)), 0) AS \"Avg rows per call\"\n\nFROM pganalyze.stat_snapshots\nWHERE $__timeFilter(collected_at)\nGROUP BY time\n",
+                        "rawSql": "WITH statement_rates AS (\n    SELECT\n        time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n        queryid,\n        rate(counter_agg(collected_at, total_exec_time)) AS exec_time_rate,\n        rate(counter_agg(collected_at, calls)) AS calls_rate\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(collected_at)\n    GROUP BY 1, queryid\n)\n\nSELECT\n    bucket AS time,\n    SUM(calls_rate) AS \"Calls/sec (QPS)\",\n    SUM(exec_time_rate) / 1000.0 AS \"Query duration (sec/sec)\"\nFROM statement_rates\nGROUP BY bucket\n",
                         "sql": {
                           "columns": [
                             {
@@ -1443,8 +1437,11 @@
                   "multiLane": false
                 },
                 "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
+                  "calcs": [
+                    "mean",
+                    "max"
+                  ],
+                  "displayMode": "table",
                   "placement": "bottom",
                   "showLegend": true
                 },
@@ -1456,7 +1453,6 @@
               },
               "fieldConfig": {
                 "defaults": {
-                  "unit": "ms",
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -1504,20 +1500,7 @@
                     }
                   }
                 },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Avg rows per call"
-                    },
-                    "properties": [
-                      {
-                        "id": "unit",
-                        "value": "none"
-                      }
-                    ]
-                  }
-                ]
+                "overrides": []
               }
             }
           }
@@ -1853,8 +1836,8 @@
         "kind": "Panel",
         "spec": {
           "id": 43,
-          "title": "WAL size",
-          "description": "Global for all databases",
+          "title": "WAL size for all DBs",
+          "description": "",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1984,7 +1967,7 @@
                         "x": 2,
                         "y": 0,
                         "width": 5,
-                        "height": 7,
+                        "height": 6,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-28"
@@ -1996,8 +1979,8 @@
                       "spec": {
                         "x": 7,
                         "y": 0,
-                        "width": 3,
-                        "height": 7,
+                        "width": 2,
+                        "height": 6,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-39"
@@ -2007,10 +1990,10 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 10,
+                        "x": 9,
                         "y": 0,
                         "width": 6,
-                        "height": 7,
+                        "height": 6,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-40"
@@ -2020,10 +2003,10 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 16,
+                        "x": 15,
                         "y": 0,
-                        "width": 3,
-                        "height": 7,
+                        "width": 2,
+                        "height": 6,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-31"
@@ -2033,10 +2016,10 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 19,
+                        "x": 17,
                         "y": 0,
-                        "width": 3,
-                        "height": 7,
+                        "width": 2,
+                        "height": 6,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-25"
@@ -2046,13 +2029,52 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
+                        "x": 19,
+                        "y": 0,
+                        "width": 3,
+                        "height": 6,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-43"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 22,
+                        "y": 0,
+                        "width": 2,
+                        "height": 3,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-36"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
                         "x": 0,
                         "y": 3,
                         "width": 2,
-                        "height": 4,
+                        "height": 3,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-29"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 22,
+                        "y": 3,
+                        "width": 2,
+                        "height": 3,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-27"
                         }
                       }
                     }
@@ -2075,8 +2097,8 @@
                       "spec": {
                         "x": 0,
                         "y": 0,
-                        "width": 24,
-                        "height": 8,
+                        "width": 13,
+                        "height": 9,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-38"
@@ -2086,9 +2108,22 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
+                        "x": 13,
+                        "y": 0,
+                        "width": 11,
+                        "height": 9,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-35"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
                         "x": 0,
-                        "y": 8,
-                        "width": 4,
+                        "y": 9,
+                        "width": 3,
                         "height": 4,
                         "element": {
                           "kind": "ElementReference",
@@ -2099,8 +2134,8 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 4,
-                        "y": 8,
+                        "x": 3,
+                        "y": 9,
                         "width": 10,
                         "height": 12,
                         "element": {
@@ -2112,9 +2147,9 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 14,
-                        "y": 8,
-                        "width": 10,
+                        "x": 13,
+                        "y": 9,
+                        "width": 11,
                         "height": 12,
                         "element": {
                           "kind": "ElementReference",
@@ -2126,8 +2161,8 @@
                       "kind": "GridLayoutItem",
                       "spec": {
                         "x": 0,
-                        "y": 12,
-                        "width": 4,
+                        "y": 13,
+                        "width": 3,
                         "height": 4,
                         "element": {
                           "kind": "ElementReference",
@@ -2139,64 +2174,12 @@
                       "kind": "GridLayoutItem",
                       "spec": {
                         "x": 0,
-                        "y": 16,
-                        "width": 4,
+                        "y": 17,
+                        "width": 3,
                         "height": 4,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-34"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 0,
-                        "y": 20,
-                        "width": 4,
-                        "height": 4,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-43"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 4,
-                        "y": 20,
-                        "width": 20,
-                        "height": 7,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-35"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 0,
-                        "y": 24,
-                        "width": 2,
-                        "height": 3,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-36"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 2,
-                        "y": 24,
-                        "width": 2,
-                        "height": 3,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-27"
                         }
                       }
                     }
