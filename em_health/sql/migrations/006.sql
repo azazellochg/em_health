@@ -167,7 +167,10 @@ $sql$;
       -- 9. Drop pganalyze.stat_snapshots
       DROP TABLE pganalyze.stat_snapshots;
 
-      -- 10. Update schema version
+      -- 10. Create a new extension for future index checks
+      CREATE EXTENSION IF NOT EXISTS amcheck;
+
+      -- 11. Update schema version
       UPDATE public.schema_info SET version = 6;
     END IF;
   END

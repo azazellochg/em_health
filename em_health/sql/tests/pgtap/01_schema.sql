@@ -9,6 +9,7 @@ SELECT has_extension('timescaledb_toolkit');
 SELECT has_extension('pg_stat_statements');
 SELECT has_extension('pgstattuple');
 SELECT has_extension('pgtap');
+SELECT has_extension('amcheck');
 SELECT has_extension('tds_fdw');
 SELECT has_extension('postgres_fdw');
 

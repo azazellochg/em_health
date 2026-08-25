@@ -225,7 +225,8 @@ class Benchmark:
             psql -d benchmark -c \"CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit CASCADE;\" && \
             psql -d benchmark -c \"CREATE EXTENSION IF NOT EXISTS pg_stat_statements;\" && \
             psql -d benchmark -c \"CREATE EXTENSION IF NOT EXISTS pgstattuple;\" && \
-            psql -d benchmark -c \"CREATE EXTENSION IF NOT EXISTS pgtap;\" && \
+            psql -d benchmark -c \"CREATE EXTENSION IF NOT EXISTS pgtap;\" && \\
+            psql -d benchmark -c \"CREATE EXTENSION IF NOT EXISTS amcheck;\" && \\
             psql -d benchmark -c \"CREATE EXTENSION IF NOT EXISTS tds_fdw;\" && \
             psql -d benchmark -c \"CREATE EXTENSION IF NOT EXISTS postgres_fdw;\""
         """
