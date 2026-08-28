@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(37);
+SELECT plan(35);
 
 ---------------------------
 -- SCHEMA PRIVILEGES

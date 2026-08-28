@@ -4,7 +4,18 @@ Changelog
 Version 0.1a8
 ^^^^^^^^^^^^^
 
-
+* move schema version from .env
+* fix image link in README
+* change segmentby and orderby for events.data to improve compression
+* fix update-passwd cmd for podman-compose
+* split query identifier string properly
+* make staging table unlogged
+* fix constraints and remove some unnecessary indexes
+* fix pganalyze index and tabl stats collection for hypertable chunks
+* remove pganalyze.stat_snapshots
+* follow mozilla sql style guide
+* update all DB performance dashboards
+* new alerts for DB performance
 
 Version 0.1a7
 ^^^^^^^^^^^^^

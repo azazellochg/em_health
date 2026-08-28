@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(15);
+SELECT plan(14);
 
 -- Insert a dummy instrument
 INSERT INTO events.instruments (instrument, serial, model, name, template, server)
