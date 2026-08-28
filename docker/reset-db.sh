@@ -28,7 +28,6 @@ if [ "${do_init}" -eq 1 ]; then
 
   psql -v ON_ERROR_STOP=1 --dbname="${dbname}" \
     -v var_data_chunk_size="'${TBL_DATA_CHUNK_SIZE}'" \
-    -v var_pgsnaps_chunk_size="'${TBL_SNAPS_CHUNK_SIZE}'" \
     -v var_pgstats_chunk_size="'${TBL_STATS_CHUNK_SIZE}'" \
     -v var_pgstats_retention="'${TBL_STATS_RETENTION}'" \
     -f /sql/init_db.sql

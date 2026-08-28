@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "d0e487ca-67bd-4aa2-93fa-02b2afc1e2e3",
-    "generation": 1,
-    "creationTimestamp": "2026-06-23T12:25:25Z",
+    "generation": 23,
+    "creationTimestamp": "2026-08-14T13:00:15Z",
     "labels": {},
     "annotations": {}
   },
@@ -17,19 +17,13 @@
             "kind": "DataQuery",
             "group": "grafana",
             "version": "v0",
-            "spec": {},
-            "labels": {
-              "grafana.app/export-label": "grafana-1"
-            }
+            "spec": {}
           },
           "enable": true,
           "hide": true,
           "iconColor": "rgba(0, 211, 255, 1)",
           "name": "Annotations & Alerts",
-          "builtIn": true,
-          "legacyOptions": {
-            "type": "dashboard"
-          }
+          "builtIn": true
         }
       }
     ],
@@ -40,7 +34,7 @@
         "kind": "Panel",
         "spec": {
           "id": 1,
-          "title": "Total autovacuum count",
+          "title": "Autovacuum counters",
           "description": "",
           "links": [],
           "data": {
@@ -61,7 +55,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  COUNT(*) AS \"Total\",\n  COUNT(*) FILTER (WHERE wraparound) AS \"Anti-wraparound vacuums\"\nFROM pganalyze.vacuum_stats\nWHERE $__timeFilter(started_at)\n",
+                        "rawSql": "SELECT\n  COUNT(*) AS \"Total\",\n  COUNT(*) FILTER (WHERE wraparound) AS \"Anti-wraparound\",\n  ROUND(\n    COALESCE(\n      SUM(EXTRACT(EPOCH FROM (finished_at - started_at)))\n      / (($__to - $__from) / 1000.0),\n      0\n    ),\n    1\n  ) AS \"Avg. workers\"\nFROM pganalyze.vacuum_stats\nWHERE $__timeFilter(started_at);",
                         "sql": {
                           "columns": [
                             {
@@ -93,26 +87,27 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "value",
                 "graphMode": "area",
                 "justifyMode": "auto",
-                "orientation": "vertical",
+                "orientation": "auto",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
-                  "calcs": [],
-                  "fields": "",
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "/.*/",
                   "values": true
                 },
                 "showPercentChange": false,
-                "textMode": "value_and_name",
-                "wideLayout": false
+                "textMode": "auto",
+                "wideLayout": true
               },
               "fieldConfig": {
                 "defaults": {
-                  "decimals": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -126,7 +121,21 @@
                     "mode": "thresholds"
                   }
                 },
-                "overrides": []
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Avg. workers"
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 1
+                      }
+                    ]
+                  }
+                ]
               }
             }
           }
@@ -189,7 +198,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -255,11 +264,11 @@
                         "name": "${source}"
                       },
                       "spec": {
-                        "dataset": "tem",
+                        "dataset": "sem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    COALESCE(\n        cag.view_schema || '.' || cag.view_name,\n        ch.hypertable_schema || '.' || ch.hypertable_name,\n        n.nspname || '.' || c.relname\n    ) AS \"Table\",\n    COUNT(*) AS \"Count\",\n    SUM(v.tuples_removed) || ' (' || \n        ROUND(\n            SUM(v.tuples_removed) / NULLIF(SUM(v.tuples_removed + v.tuples_remain), 0) * 100.0,\n            2\n        ) || '%)' AS \"Tuples removed\",\n    SUM(v.index_scans) AS \"Index scans\",\n    SUM(v.pages_removed) AS \"Pages removed\",\n    MAX(v.finished_at - v.started_at) AS \"Max duration\",\n    MAX(v.finished_at) AS \"Last vacuum\"\nFROM pganalyze.vacuum_stats v\nJOIN pg_class c ON c.oid = v.relid\nJOIN pg_namespace n ON n.oid = c.relnamespace\n\nLEFT JOIN timescaledb_information.chunks ch\n       ON ch.chunk_schema = n.nspname\n      AND ch.chunk_name   = c.relname\n\nLEFT JOIN timescaledb_information.continuous_aggregates cag\n  ON cag.materialization_hypertable_schema = ch.hypertable_schema\n AND cag.materialization_hypertable_name   = ch.hypertable_name\n\nWHERE $__timeFilter(v.started_at)\n\nGROUP BY\n    COALESCE(\n        cag.view_schema || '.' || cag.view_name,\n        ch.hypertable_schema || '.' || ch.hypertable_name,\n        n.nspname || '.' || c.relname\n    )\n\nORDER BY SUM(v.tuples_removed) DESC",
+                        "rawSql": "SELECT\n    n.nspname || '.' || c.relname AS \"Table\",\n    COUNT(*) AS \"Count\",\n    SUM(v.tuples_removed) || ' (' ||\n    ROUND(\n        SUM(v.tuples_removed)\n        / NULLIF(SUM(v.tuples_removed + v.tuples_remain), 0) * 100.0,\n        2\n    ) || '%)' AS \"Tuples removed\",\n    SUM(v.index_scans) AS \"Index scans\",\n    SUM(v.pages_removed) AS \"Pages removed\",\n    MAX(v.finished_at - v.started_at) AS \"Max duration\",\n    MAX(v.finished_at) AS \"Last vacuum\"\nFROM pganalyze.vacuum_stats v\nJOIN pg_class c\n    ON c.oid = v.hypertable_relid\nJOIN pg_namespace n\n    ON n.oid = c.relnamespace\nGROUP BY\n    v.hypertable_relid,\n    n.nspname,\n    c.relname\nORDER BY SUM(v.tuples_removed) DESC",
                         "sql": {
                           "columns": [
                             {
@@ -279,7 +288,7 @@
                         }
                       }
                     },
-                    "refId": "A",
+                    "refId": "B",
                     "hidden": false
                   }
                 }
@@ -291,11 +300,12 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
                 "enablePagination": true,
+                "frameIndex": 0,
                 "showHeader": true
               },
               "fieldConfig": {
@@ -379,7 +389,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH xmin_candidates AS (\n  SELECT\n    COALESCE((\n      SELECT\n        CASE WHEN COALESCE(pg_catalog.age(backend_xid), 0) > COALESCE(pg_catalog.age(backend_xmin), 0)\n          THEN backend_xid::text::bigint\n          ELSE backend_xmin::text::bigint\n        END\n      FROM pg_catalog.pg_stat_activity\n      WHERE backend_xmin IS NOT NULL OR backend_xid IS NOT NULL\n      ORDER BY greatest(pg_catalog.age(backend_xmin), pg_catalog.age(backend_xid)) DESC\n      LIMIT 1\n    ), 0) AS backend,\n\n    COALESCE((\n      SELECT xmin::text::bigint\n      FROM pg_catalog.pg_replication_slots\n      WHERE xmin IS NOT NULL\n      ORDER BY pg_catalog.age(xmin) DESC\n      LIMIT 1\n    ), 0) AS replication_slot_xmin,\n\n    COALESCE((\n      SELECT catalog_xmin::text::bigint\n      FROM pg_catalog.pg_replication_slots\n      WHERE catalog_xmin IS NOT NULL\n      ORDER BY pg_catalog.age(catalog_xmin) DESC\n      LIMIT 1\n    ), 0) AS replication_slot_catalog_xmin,\n\n    COALESCE((\n      SELECT transaction::text::bigint\n      FROM pg_catalog.pg_prepared_xacts\n      ORDER BY pg_catalog.age(transaction) DESC\n      LIMIT 1\n    ), 0) AS prepare_xact,\n\n    COALESCE((\n      SELECT backend_xmin::text::bigint\n      FROM pg_catalog.pg_stat_replication\n      WHERE backend_xmin IS NOT NULL\n      ORDER BY pg_catalog.age(backend_xmin) DESC\n      LIMIT 1\n    ), 0) AS standby\n),\ntrue_xmin AS (\n  SELECT\n    LEAST(\n      backend,\n      replication_slot_xmin,\n      replication_slot_catalog_xmin,\n      prepare_xact,\n      standby\n    ) AS xmin\n  FROM xmin_candidates\n),\ntxn_rate AS (\n  SELECT\n    EXTRACT(epoch FROM (now() - COALESCE(stats_reset, pg_postmaster_start_time()))) AS seconds_since_startup,\n    (xact_commit + xact_rollback) AS total_txns,\n    CASE \n      WHEN (xact_commit + xact_rollback) > 0\n      THEN EXTRACT(epoch FROM (now() - COALESCE(stats_reset, pg_postmaster_start_time()))) / (xact_commit + xact_rollback)\n      ELSE NULL\n    END AS seconds_per_txn\n  FROM pg_stat_database\n  WHERE datname = current_database()\n)\nSELECT\n  CASE WHEN seconds_per_txn IS NOT NULL\n       THEN (txid_current() - xmin) * seconds_per_txn\n       ELSE NULL\n  END AS approx_seconds_ago\nFROM true_xmin CROSS JOIN txn_rate;\n",
+                        "rawSql": "WITH current_horizon AS (\n  SELECT\n    xmin_horizon\n  FROM\n    pganalyze.database_stats\n  WHERE\n    xmin_horizon <> 0\n  ORDER BY\n    collected_at DESC\n  LIMIT 1\n)\nSELECT\n  EXTRACT(EPOCH FROM (NOW() - MIN(ds.collected_at))) AS assigned_seconds_ago\nFROM\n  pganalyze.database_stats ds\n  CROSS JOIN current_horizon ch\nWHERE\n  ds.xmin_horizon = ch.xmin_horizon;",
                         "sql": {
                           "columns": [
                             {
@@ -411,7 +421,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -421,7 +431,7 @@
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
                   "calcs": [],
-                  "fields": "/^approx_seconds_ago$/",
+                  "fields": "/.*/",
                   "values": true
                 },
                 "showPercentChange": false,
@@ -509,9 +519,13 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
+                "annotations": {
+                  "clustering": -1,
+                  "multiLane": false
+                },
                 "legend": {
                   "calcs": [],
                   "displayMode": "list",
@@ -661,9 +675,13 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
+                "annotations": {
+                  "clustering": -1,
+                  "multiLane": false
+                },
                 "legend": {
                   "calcs": [],
                   "displayMode": "list",
@@ -754,108 +772,11 @@
           }
         }
       },
-      "panel-16": {
-        "kind": "Panel",
-        "spec": {
-          "id": 16,
-          "title": "Max read I/O impact",
-          "description": "Theoretical maximum impact that VACUUM can have on your system",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${source}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "WITH settings AS (\n  SELECT\n    (CASE \n       WHEN (SELECT setting FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_limit') = '-1'\n       THEN (SELECT setting::numeric FROM pg_settings WHERE name = 'vacuum_cost_limit')\n       ELSE (SELECT setting::numeric FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_limit')\n     END) AS vacuum_cost_limit_effective,\n    (SELECT setting::numeric FROM pg_settings WHERE name = 'vacuum_cost_page_miss') AS vacuum_cost_page_miss,\n    (SELECT setting::numeric FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_delay') AS autovacuum_vacuum_cost_delay,\n    8192 AS block_size_bytes -- 8kB block size\n)\nSELECT\n  (vacuum_cost_limit_effective / vacuum_cost_page_miss * block_size_bytes / autovacuum_vacuum_cost_delay) * 1000 AS max_vacuum_read_rate_bytes_per_sec\nFROM settings\n",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "stat",
-            "version": "12.4.2",
-            "spec": {
-              "options": {
-                "colorMode": "value",
-                "graphMode": "none",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "/^max_vacuum_read_rate_bytes_per_sec$/",
-                  "values": true
-                },
-                "showPercentChange": false,
-                "textMode": "value",
-                "wideLayout": false
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "Bps",
-                  "decimals": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "thresholds"
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
       "panel-17": {
         "kind": "Panel",
         "spec": {
           "id": 17,
-          "title": "Max write I/O impact",
+          "title": "Max I/O impact",
           "description": "Theoretical maximum impact that VACUUM can have on your system",
           "links": [],
           "data": {
@@ -876,7 +797,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH settings AS (\n  SELECT\n    (CASE \n       WHEN (SELECT setting FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_limit') = '-1'\n       THEN (SELECT setting::numeric FROM pg_settings WHERE name = 'vacuum_cost_limit')\n       ELSE (SELECT setting::numeric FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_limit')\n     END) AS vacuum_cost_limit_effective,\n    (SELECT setting::numeric FROM pg_settings WHERE name = 'vacuum_cost_page_dirty') AS vacuum_cost_page_dirty,\n    (SELECT setting::numeric FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_delay') AS autovacuum_vacuum_cost_delay,\n    8192 AS block_size_bytes -- 8kB block size\n)\nSELECT\n  (vacuum_cost_limit_effective / vacuum_cost_page_dirty * block_size_bytes / autovacuum_vacuum_cost_delay) * 1000 AS max_vacuum_write_rate_bytes_per_sec\nFROM settings\n",
+                        "rawSql": "WITH settings AS (\n  SELECT\n    (CASE \n       WHEN (SELECT setting FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_limit') = '-1'\n       THEN (SELECT setting::numeric FROM pg_settings WHERE name = 'vacuum_cost_limit')\n       ELSE (SELECT setting::numeric FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_limit')\n     END) AS vacuum_cost_limit_effective,\n    (SELECT setting::numeric FROM pg_settings WHERE name = 'vacuum_cost_page_miss') AS vacuum_cost_page_miss,\n    (SELECT setting::numeric FROM pg_settings WHERE name = 'vacuum_cost_page_dirty') AS vacuum_cost_page_dirty,\n    (SELECT setting::numeric FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_delay') AS autovacuum_vacuum_cost_delay,\n    8192 AS block_size_bytes -- 8kB block size\n)\nSELECT\n  (vacuum_cost_limit_effective / vacuum_cost_page_miss * block_size_bytes / autovacuum_vacuum_cost_delay) * 1000 AS \"read\",\n  (vacuum_cost_limit_effective / vacuum_cost_page_dirty * block_size_bytes / autovacuum_vacuum_cost_delay) * 1000 AS \"write\"\nFROM settings\n",
                         "sql": {
                           "columns": [
                             {
@@ -908,7 +829,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -918,11 +839,11 @@
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
                   "calcs": [],
-                  "fields": "/^max_vacuum_write_rate_bytes_per_sec$/",
+                  "fields": "/.*/",
                   "values": true
                 },
                 "showPercentChange": false,
-                "textMode": "value",
+                "textMode": "value_and_name",
                 "wideLayout": false
               },
               "fieldConfig": {
@@ -953,7 +874,7 @@
         "spec": {
           "id": 4,
           "title": "Est. Table Bloat",
-          "description": "The estimated overall table bloat on this server or database - this is a very rough estimate and should be reviewed for individual tables. Only tables > 64kB are considered",
+          "description": "The estimated overall table bloat on this  database - this is a very rough estimate and should be reviewed for individual tables. Compressed chunks are excluded and only tables > 1MB are considered.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -973,7 +894,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH tables AS (\n  SELECT schemaname, tablename\n  FROM pg_tables\n  WHERE schemaname NOT SIMILAR TO '(pg_catalog|information_schema%)'\n),\nbloat_data AS (\n  SELECT\n    stats.table_len,\n    (stats.dead_tuple_len)::numeric AS bloat_bytes,\n    ((stats.dead_tuple_len)::numeric / NULLIF(stats.table_len, 0)) AS bloat_ratio\n  FROM tables t,\n  LATERAL pgstattuple_approx(format('%I.%I', t.schemaname, t.tablename)) stats\n  WHERE stats.table_len >= 65536 -- 64kb min\n)\nSELECT\n  COALESCE(SUM(bloat_bytes), 0) AS total_bloat,\n  COALESCE(ROUND(100.0 * AVG(bloat_ratio), 2), 0) AS avg_bloat_percent\nFROM bloat_data\nWHERE bloat_ratio IS NOT NULL;\n",
+                        "rawSql": "WITH compressed_chunks AS (\n    SELECT\n        chunk_schema,\n        chunk_name\n    FROM timescaledb_information.chunks\n    WHERE is_compressed = true\n),\ntables AS (\n    SELECT\n        p.schemaname,\n        p.tablename\n    FROM pg_tables p\n    WHERE p.schemaname NOT SIMILAR TO '(pg_catalog|information_schema%)'\n      AND NOT EXISTS (\n          SELECT 1\n          FROM compressed_chunks c\n          WHERE c.chunk_schema = p.schemaname\n            AND c.chunk_name = p.tablename\n      )\n),\nbloat_data AS (\n    SELECT\n        stats.table_len,\n        (stats.table_len - stats.approx_tuple_len) AS bloat_bytes\n    FROM tables t\n    CROSS JOIN LATERAL pgstattuple_approx(\n        format('%I.%I', t.schemaname, t.tablename)\n    ) stats\n    WHERE stats.table_len >= 1048576  -- 1 MB minimum\n)\nSELECT\n    COALESCE(SUM(bloat_bytes), 0) AS total_bloat_bytes,\n    COALESCE(\n        ROUND(\n            100.0 * SUM(bloat_bytes)\n            / NULLIF(SUM(table_len), 0),\n            2\n        ),\n        0\n    ) AS bloat_percent\nFROM bloat_data",
                         "sql": {
                           "columns": [
                             {
@@ -1005,7 +926,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -1042,7 +963,8 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "avg_bloat_percent"
+                      "scope": "series",
+                      "options": "bloat_percent"
                     },
                     "properties": [
                       {
@@ -1054,7 +976,8 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "total_bloat"
+                      "scope": "series",
+                      "options": "total_bloat_bytes"
                     },
                     "properties": [
                       {
@@ -1094,7 +1017,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT COUNT(*) AS total_tables\nFROM pg_tables\nWHERE schemaname NOT SIMILAR TO '(pg_catalog|information_schema|_timescaledb%)'\n",
+                        "rawSql": "SELECT COUNT(*) AS total_tables\nFROM pg_class c\n",
                         "sql": {
                           "columns": [
                             {
@@ -1126,7 +1049,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -1221,7 +1144,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -1276,7 +1199,7 @@
         "spec": {
           "id": 7,
           "title": "Table bloat info",
-          "description": "",
+          "description": "Per-table bloat estimates, as calculated by the difference of the actual table size, compared to the average row size * number of rows in the table. For hypertables we only consider uncompressed chunks. Tables with no bloat are filtered out.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1293,10 +1216,11 @@
                         "name": "${source}"
                       },
                       "spec": {
+                        "dataset": "sem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH per_table_options AS (\n  SELECT\n    n.nspname AS schema,\n    c.relname AS tbl,\n    opt.option_name,\n    opt.option_value\n  FROM pg_class c\n  JOIN pg_namespace n ON n.oid = c.relnamespace\n  CROSS JOIN LATERAL pg_options_to_table(c.reloptions) AS opt\n  WHERE c.relkind = 'r' -- only tables\n    AND n.nspname NOT LIKE '\\_timescaledb%'\n),\n\neffective_options AS (\n  SELECT\n    t.schema,\n    t.tbl,\n    COALESCE(MAX(CASE WHEN o.option_name = 'autovacuum_vacuum_scale_factor' THEN o.option_value END), '[default]') AS table_scale_factor,\n    COALESCE(MAX(CASE WHEN o.option_name = 'autovacuum_vacuum_threshold' THEN o.option_value END), '[default]') AS table_threshold\n  FROM (\n    SELECT DISTINCT n.nspname AS schema, c.relname AS tbl\n    FROM pg_class c\n    JOIN pg_namespace n ON n.oid = c.relnamespace\n    WHERE c.relkind = 'r'\n      AND n.nspname NOT SIMILAR TO '(pg_catalog|information_schema|_timescaledb%)'\n  ) t\n  LEFT JOIN per_table_options o ON o.schema = t.schema AND o.tbl = t.tbl\n  GROUP BY t.schema, t.tbl\n),\n\ntable_sizes AS (\n  SELECT \n    t.schemaname AS schema,\n    t.relname AS tbl,\n    CASE \n      WHEN ht.hypertable_name IS NOT NULL THEN hypertable_size(ht.hypertable_schema || '.' || ht.hypertable_name)\n      ELSE pg_total_relation_size(t.schemaname || '.' || t.relname)\n    END AS table_size_bytes\n  FROM pg_stat_user_tables t\n  LEFT JOIN timescaledb_information.hypertables ht\n    ON ht.hypertable_schema = t.schemaname\n   AND ht.hypertable_name = t.relname\n  WHERE t.schemaname NOT LIKE '\\_timescaledb%'\n),\n\nbloat_stats AS (\n  SELECT\n    schema,\n    tbl,\n    SUM(bloat_bytes) AS dead_bytes\n  FROM (\n    -- normal tables\n    SELECT\n      n.nspname AS schema,\n      c.relname AS tbl,\n      (stats.dead_tuple_len)::numeric AS bloat_bytes\n    FROM pg_class c\n    JOIN pg_namespace n ON n.oid = c.relnamespace\n    CROSS JOIN LATERAL pgstattuple_approx(format('%I.%I', n.nspname, c.relname)) AS stats\n    WHERE c.relkind = 'r'\n      AND n.nspname NOT SIMILAR TO '(pg_catalog|information_schema|_timescaledb%)'\n\n    UNION ALL\n\n    -- hypertable chunks\n    SELECT\n      ch.hypertable_schema AS schema,\n      ch.hypertable_name AS tbl,\n      (stats.dead_tuple_len)::numeric AS bloat_bytes\n    FROM timescaledb_information.chunks ch\n    CROSS JOIN LATERAL pgstattuple_approx(format('%I.%I', ch.chunk_schema, ch.chunk_name)) AS stats\n  ) sub\n  GROUP BY schema, tbl\n),\n\nvacuum AS (\n  SELECT\n      COALESCE(c.hypertable_schema, t.schemaname) AS schema,\n      COALESCE(c.hypertable_name, t.relname)      AS tbl,\n      t.last_vacuum,\n      t.last_autovacuum\n  FROM pg_stat_user_tables t\n  LEFT JOIN timescaledb_information.chunks c\n    ON c.chunk_schema = t.schemaname\n    AND c.chunk_name   = t.relname\n  WHERE COALESCE(c.hypertable_schema, t.schemaname)\n        IN ('events', 'pganalyze', 'uec')\n),\n\nlast_vacuum AS (\n  SELECT\n      schema,\n      tbl,\n      MAX(last_vacuum)     AS last_vacuum,\n      MAX(last_autovacuum) AS last_autovacuum\n  FROM vacuum\n  GROUP BY schema, tbl\n  ORDER BY last_autovacuum DESC NULLS LAST\n)\n\nSELECT\n  eo.schema AS \"Schema\",\n  eo.tbl AS \"Table\",\n  eo.table_scale_factor AS \"Scale factor\",\n  eo.table_threshold AS \"Threshold\",\n  ts.table_size_bytes AS \"Data size\",\n  bs.dead_bytes AS \"Est. bloat\",\n  ROUND(bs.dead_bytes / NULLIF(ts.table_size_bytes,0) * 100, 2) AS \"Est. bloat %\",\n  GREATEST(lv.last_vacuum, lv.last_autovacuum) AS \"Last vacuumed\"\nFROM effective_options eo\nLEFT JOIN table_sizes ts ON ts.schema = eo.schema AND ts.tbl = eo.tbl\nLEFT JOIN bloat_stats bs ON bs.schema = eo.schema AND bs.tbl = eo.tbl\nLEFT JOIN last_vacuum lv ON lv.schema = eo.schema AND lv.tbl = eo.tbl\nORDER BY eo.schema, eo.tbl;\n",
+                        "rawSql": "/* WARNING: executed with a non-superuser role, the query inspect only tables and materialized view (9.3+) you are granted to read.\n* This query is compatible with PostgreSQL 9.0 and more\n*/\n\nWITH table_options AS (\n  SELECT\n    n.nspname AS schemaname,\n    c.relname AS tblname,\n    COALESCE(\n      (SELECT option_value :: numeric FROM pg_options_to_table(c.reloptions) WHERE option_name = 'autovacuum_vacuum_scale_factor'),\n      current_setting('autovacuum_vacuum_scale_factor') :: numeric\n    ) AS vacuum_scale_factor,\n    COALESCE(\n      (SELECT option_value :: numeric FROM pg_options_to_table(c.reloptions) WHERE option_name = 'autovacuum_vacuum_threshold'),\n      current_setting('autovacuum_vacuum_threshold') :: numeric\n    ) AS vacuum_threshold,\n    c.reltuples :: numeric AS row_count,\n    COALESCE(\n      (SELECT option_value :: numeric FROM pg_options_to_table(c.reloptions) WHERE option_name = 'fillfactor'),\n      100 :: numeric\n    ) AS fillfactor\n  FROM\n    pg_class c\n    JOIN pg_namespace n ON n.oid = c.relnamespace\n  WHERE\n    c.relkind IN ('r', 'm')\n    AND n.nspname NOT SIMILAR TO '(pg_catalog|information_schema|_timescaledb_c%)'\n    AND c.relname NOT SIMILAR TO '(%compress%|bgw%)'\n),\n\nbloat_estimates AS (\nSELECT schemaname, tblname, bs*tblpages AS real_size,\n  (tblpages-est_tblpages)*bs AS extra_size,\n  CASE WHEN tblpages > 0 AND tblpages - est_tblpages > 0\n    THEN 100 * (tblpages - est_tblpages)/tblpages::float\n    ELSE 0\n  END AS extra_pct,\n  CASE WHEN tblpages - est_tblpages_ff > 0\n    THEN (tblpages-est_tblpages_ff)*bs\n    ELSE 0\n  END AS bloat_size,\n  CASE WHEN tblpages > 0 AND tblpages - est_tblpages_ff > 0\n    THEN 100 * (tblpages - est_tblpages_ff)/tblpages::float\n    ELSE 0\n  END AS bloat_pct\n  -- , is_na, tpl_hdr_size, tpl_data_size, (pst).free_percent + (pst).dead_tuple_percent AS real_frag -- (DEBUG INFO)\nFROM (\n  SELECT ceil( reltuples / ( (bs-page_hdr)/tpl_size ) ) + ceil( toasttuples / 4 ) AS est_tblpages,\n    ceil( reltuples / ( (bs-page_hdr)*fillfactor/(tpl_size*100) ) ) + ceil( toasttuples / 4 ) AS est_tblpages_ff,\n    tblpages, fillfactor, bs, tblid, schemaname, tblname, heappages, toastpages, is_na\n    -- , tpl_hdr_size, tpl_data_size, pgstattuple(tblid) AS pst -- (DEBUG INFO)\n  FROM (\n    SELECT\n      ( 4 + tpl_hdr_size + tpl_data_size + (2*ma)\n        - CASE WHEN tpl_hdr_size%ma = 0 THEN ma ELSE tpl_hdr_size%ma END\n        - CASE WHEN ceil(tpl_data_size)::int%ma = 0 THEN ma ELSE ceil(tpl_data_size)::int%ma END\n      ) AS tpl_size, bs - page_hdr AS size_per_block, (heappages + toastpages) AS tblpages, heappages,\n      toastpages, reltuples, toasttuples, bs, page_hdr, tblid, schemaname, tblname, fillfactor, is_na\n      -- , tpl_hdr_size, tpl_data_size\n    FROM (\n      SELECT\n        tbl.oid AS tblid, ns.nspname AS schemaname, tbl.relname AS tblname, tbl.reltuples,\n        tbl.relpages AS heappages, coalesce(toast.relpages, 0) AS toastpages,\n        coalesce(toast.reltuples, 0) AS toasttuples,\n        coalesce(substring(\n          array_to_string(tbl.reloptions, ' ')\n          FROM 'fillfactor=([0-9]+)')::smallint, 100) AS fillfactor,\n        current_setting('block_size')::numeric AS bs,\n        CASE WHEN version()~'mingw32' OR version()~'64-bit|x86_64|ppc64|ia64|amd64' THEN 8 ELSE 4 END AS ma,\n        24 AS page_hdr,\n        23 + CASE WHEN MAX(coalesce(s.null_frac,0)) > 0 THEN ( 7 + count(s.attname) ) / 8 ELSE 0::int END\n           + CASE WHEN bool_or(att.attname = 'oid' and att.attnum < 0) THEN 4 ELSE 0 END AS tpl_hdr_size,\n        sum( (1-coalesce(s.null_frac, 0)) * coalesce(s.avg_width, 0) ) AS tpl_data_size,\n        bool_or(att.atttypid = 'pg_catalog.name'::regtype)\n          OR sum(CASE WHEN att.attnum > 0 THEN 1 ELSE 0 END) <> count(s.attname) AS is_na\n      FROM pg_attribute AS att\n        JOIN pg_class AS tbl ON att.attrelid = tbl.oid\n        JOIN pg_namespace AS ns ON ns.oid = tbl.relnamespace\n        LEFT JOIN pg_stats AS s ON s.schemaname=ns.nspname\n          AND s.tablename = tbl.relname AND s.inherited=false AND s.attname=att.attname\n        LEFT JOIN pg_class AS toast ON tbl.reltoastrelid = toast.oid\n      WHERE NOT att.attisdropped\n        AND tbl.relkind in ('r','m')\n        AND ns.nspname NOT SIMILAR TO '(pg_catalog|information_schema|_timescaledb_c%)' \n        AND tbl.relname NOT SIMILAR TO '(%compress%|bgw%)'\n      AND NOT EXISTS (\n        SELECT 1\n        FROM timescaledb_information.chunks ch\n        WHERE ch.chunk_schema = ns.nspname\n          AND ch.chunk_name = tbl.relname\n          AND ch.is_compressed = true\n      )\n      GROUP BY 1,2,3,4,5,6,7,8,9,10\n      ORDER BY 2,3\n    ) AS s\n  ) AS s2\n) AS s3\nWHERE bs*tblpages > 0\n-- WHERE NOT is_na\n--   AND tblpages*((pst).free_percent + (pst).dead_tuple_percent)::float4/100 >= 1\nORDER BY schemaname, tblname\n),\n\ncagg_map AS (\n  SELECT\n    materialization_hypertable_schema,\n    materialization_hypertable_name,\n    view_schema,\n    view_name\n  FROM timescaledb_information.continuous_aggregates\n)\n\nSELECT\n  COALESCE(\n    cagg.view_schema,\n    ch.hypertable_schema,\n    b.schemaname\n  ) AS \"Schema\",\n\n  COALESCE(\n    cagg.view_name,\n    ch.hypertable_name,\n    b.tblname\n  ) AS \"Table\",\n\n  CASE\n    WHEN ch.chunk_name IS NOT NULL THEN b.tblname\n    ELSE '-'\n  END AS \"Chunk\",\n\n  b.bloat_size AS \"Est. bloat\",\n  b.bloat_pct AS \"Est. bloat %\",\n  opt.vacuum_scale_factor AS \"Scale factor\",\n  opt.vacuum_threshold AS \"Threshold\",\n  st.last_autovacuum AS \"Last vacuum\"\n\nFROM bloat_estimates b\n\nJOIN table_options opt\n  ON opt.schemaname = b.schemaname\n AND opt.tblname = b.tblname\n\nLEFT JOIN pg_stat_user_tables st\n  ON st.schemaname = b.schemaname\n AND st.relname = b.tblname\n\nLEFT JOIN timescaledb_information.chunks ch\n  ON ch.chunk_schema = b.schemaname\n AND ch.chunk_name = b.tblname\n\nLEFT JOIN cagg_map cagg\n  ON cagg.materialization_hypertable_schema = ch.hypertable_schema\n AND cagg.materialization_hypertable_name = ch.hypertable_name\n\nWHERE b.bloat_size > 0\n\nORDER BY b.bloat_pct DESC",
                         "sql": {
                           "columns": [
                             {
@@ -1328,7 +1252,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -1337,13 +1261,12 @@
                 "sortBy": [
                   {
                     "desc": true,
-                    "displayName": "Last vacuumed"
+                    "displayName": "Est. bloat"
                   }
                 ]
               },
               "fieldConfig": {
                 "defaults": {
-                  "decimals": 2,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -1368,18 +1291,6 @@
                   }
                 },
                 "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Data size"
-                    },
-                    "properties": [
-                      {
-                        "id": "unit",
-                        "value": "decbytes"
-                      }
-                    ]
-                  },
                   {
                     "matcher": {
                       "id": "byName",
@@ -1414,8 +1325,8 @@
         "kind": "Panel",
         "spec": {
           "id": 8,
-          "title": "Anti-Wraparound Frequency",
-          "description": "How often an Anti-Wraparound VACUUM is estimated to be scheduled on average from all tables - this is a function of the rate of transaction ID consumption, as well as the autovacuum_freeze_max_age and vacuum_freeze_min_age settings. Higher values are better.",
+          "title": "Next anti-wraparound vacuum",
+          "description": "Minimum time until any table reaches its anti-wraparound VACUUM threshold - this is a function of the rate of transaction ID consumption and the autovacuum_freeze_max_age setting. Higher values are better.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1432,10 +1343,11 @@
                         "name": "${source}"
                       },
                       "spec": {
+                        "dataset": "sem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH params AS (\n  SELECT\n    c.oid,\n    (c.relfrozenxid::text)::bigint AS relfrozenxid_int,\n    txid_current() AS current_xid,\n    (SELECT setting::bigint FROM pg_settings WHERE name = 'autovacuum_freeze_max_age') AS freeze_max_age,\n    ((d.xact_commit + d.xact_rollback) / NULLIF(EXTRACT(EPOCH FROM (now() - COALESCE(d.stats_reset, pg_postmaster_start_time()))),0)) AS xid_per_sec\n  FROM pg_class c\n  CROSS JOIN pg_stat_database d\n  WHERE d.datname = current_database()\n    AND c.relkind = 'r'\n)\nSELECT\n  AVG(\n    CASE\n      WHEN xid_per_sec > 0 THEN\n        (freeze_max_age - (current_xid - relfrozenxid_int)) / xid_per_sec / 3600\n      ELSE NULL\n    END\n  ) AS avg_hours_until_anti_wraparound_vacuum\nFROM params;\n",
+                        "rawSql": "WITH current_stats AS (\n  SELECT\n    collected_at,\n    xact_commit + xact_rollback AS total_transactions,\n    LAG(xact_commit + xact_rollback, 144) OVER (\n      ORDER BY\n        collected_at\n    ) AS transactions_24h_ago,\n    LAG(collected_at, 144) OVER (\n      ORDER BY\n        collected_at\n    ) AS collected_at_24h_ago\n  FROM\n    pganalyze.database_stats\n),\nparams AS (\n  SELECT\n    (\n      total_transactions - transactions_24h_ago\n    ) :: numeric / NULLIF(\n      EXTRACT(\n        EPOCH\n        FROM\n          (\n            collected_at - collected_at_24h_ago\n          )\n      ),\n      0\n    ) AS tx_per_sec,\n    current_setting('autovacuum_freeze_max_age') :: bigint AS freeze_max_age,\n    current_setting('autovacuum_multixact_freeze_max_age') :: bigint AS multixact_freeze_max_age\n  FROM\n    current_stats\n  WHERE\n    collected_at = (\n      SELECT\n        MAX(collected_at)\n      FROM\n        pganalyze.database_stats\n    )\n    AND transactions_24h_ago IS NOT NULL\n),\ntables AS (\n  SELECT\n    c.oid :: regclass :: text AS table_name,\n    LEAST(\n      p.freeze_max_age - age(c.relfrozenxid),\n      p.multixact_freeze_max_age - mxid_age(c.relminmxid)\n    ) AS tx_before_wraparound_vacuum\n  FROM\n    pg_class c\n    CROSS JOIN params p\n  WHERE\n    c.relfrozenxid != 0\n    AND c.oid > 16384\n),\nminimum AS (\n  SELECT\n    MIN(tx_before_wraparound_vacuum) AS min_tx_before_wraparound\n  FROM\n    tables\n)\nSELECT\n  min_tx_before_wraparound / NULLIF(p.tx_per_sec, 0) / 3600.0 AS min_hours_until_anti_wraparound_vacuum\nFROM\n  minimum\n  CROSS JOIN params p;",
                         "sql": {
                           "columns": [
                             {
@@ -1455,7 +1367,7 @@
                         }
                       }
                     },
-                    "refId": "A",
+                    "refId": "B",
                     "hidden": false
                   }
                 }
@@ -1467,7 +1379,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -1477,7 +1389,7 @@
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
                   "calcs": [],
-                  "fields": "/^avg_hours_until_anti_wraparound_vacuum$/",
+                  "fields": "",
                   "values": true
                 },
                 "showPercentChange": false,
@@ -1532,7 +1444,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  ROUND(\n    ((xact_commit + xact_rollback) / (LEAST(EXTRACT(EPOCH FROM now() - COALESCE(stats_reset, pg_postmaster_start_time())), 24 * 3600) / 60.0))::numeric,\n    2\n  ) AS txn_id_allocation_per_minute_24h_avg\nFROM pg_stat_database\nWHERE datname = current_database()\n",
+                        "rawSql": "WITH samples AS (\n    SELECT\n        collected_at,\n        xact_commit + xact_rollback AS total_transactions,\n        LAG(xact_commit + xact_rollback, 144) OVER (\n            ORDER BY collected_at\n        ) AS transactions_24h_ago,\n        LAG(collected_at, 144) OVER (\n            ORDER BY collected_at\n        ) AS collected_at_24h_ago\n    FROM pganalyze.database_stats\n)\nSELECT\n    collected_at AS time,\n    ROUND(\n        (\n            total_transactions - transactions_24h_ago\n        )::numeric\n        /\n        NULLIF(\n            EXTRACT(\n                EPOCH FROM (collected_at - collected_at_24h_ago)\n            ) / 60.0,\n            0\n        ),\n        2\n    ) AS txn_per_minute_24h_avg\nFROM samples\nWHERE transactions_24h_ago IS NOT NULL\nORDER BY collected_at",
                         "sql": {
                           "columns": [
                             {
@@ -1564,7 +1476,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -1573,9 +1485,11 @@
                 "orientation": "auto",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
-                  "calcs": [],
-                  "fields": "/^txn_id_allocation_per_minute_24h_avg$/",
-                  "values": true
+                  "calcs": [
+                    "mean"
+                  ],
+                  "fields": "",
+                  "values": false
                 },
                 "showPercentChange": false,
                 "textMode": "value",
@@ -1623,7 +1537,7 @@
                       "spec": {
                         "x": 0,
                         "y": 0,
-                        "width": 7,
+                        "width": 5,
                         "height": 12,
                         "element": {
                           "kind": "ElementReference",
@@ -1634,10 +1548,10 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 7,
+                        "x": 5,
                         "y": 0,
-                        "width": 4,
-                        "height": 3,
+                        "width": 5,
+                        "height": 4,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-1"
@@ -1647,9 +1561,9 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 11,
+                        "x": 10,
                         "y": 0,
-                        "width": 13,
+                        "width": 14,
                         "height": 12,
                         "element": {
                           "kind": "ElementReference",
@@ -1660,10 +1574,10 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 7,
-                        "y": 3,
-                        "width": 4,
-                        "height": 3,
+                        "x": 5,
+                        "y": 4,
+                        "width": 5,
+                        "height": 4,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-8"
@@ -1673,23 +1587,10 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 7,
-                        "y": 6,
-                        "width": 4,
-                        "height": 3,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-16"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 7,
-                        "y": 9,
-                        "width": 4,
-                        "height": 3,
+                        "x": 5,
+                        "y": 8,
+                        "width": 5,
+                        "height": 4,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-17"
@@ -1781,7 +1682,7 @@
                       "spec": {
                         "x": 0,
                         "y": 0,
-                        "width": 5,
+                        "width": 4,
                         "height": 3,
                         "element": {
                           "kind": "ElementReference",
@@ -1792,7 +1693,7 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 5,
+                        "x": 4,
                         "y": 0,
                         "width": 9,
                         "height": 6,
@@ -1805,7 +1706,7 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 14,
+                        "x": 13,
                         "y": 0,
                         "width": 10,
                         "height": 6,
@@ -1820,7 +1721,7 @@
                       "spec": {
                         "x": 0,
                         "y": 3,
-                        "width": 5,
+                        "width": 4,
                         "height": 3,
                         "element": {
                           "kind": "ElementReference",

@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "ee46beab-c046-42b1-b547-23990e2ec0f3",
-    "generation": 1,
-    "creationTimestamp": "2026-06-23T12:25:26Z",
+    "generation": 5,
+    "creationTimestamp": "2026-08-19T16:14:59Z",
     "labels": {},
     "annotations": {}
   },
@@ -17,19 +17,13 @@
             "kind": "DataQuery",
             "group": "grafana",
             "version": "v0",
-            "spec": {},
-            "labels": {
-              "grafana.app/export-label": "grafana-1"
-            }
+            "spec": {}
           },
           "enable": true,
           "hide": true,
           "iconColor": "rgba(0, 211, 255, 1)",
           "name": "Annotations & Alerts",
-          "builtIn": true,
-          "legacyOptions": {
-            "type": "dashboard"
-          }
+          "builtIn": true
         }
       }
     ],
@@ -76,9 +70,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
                       }
                     },
                     "refId": "A",
@@ -93,7 +84,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.4.1",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -152,7 +143,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  name AS \"Name\",\n  short_desc AS \"Description\",\n  setting AS \"Value\",\n  unit AS \"Unit\",\n  min_val || ' to ' || max_val AS \"Range\"\nFROM\n  pg_settings\nWHERE\n  name IN (\n    'shared_buffers',\n    'work_mem',\n    'timescaledb.max_background_workers',\n    'timescaledb.enable_chunk_skipping',\n    'timescaledb.last_tuned',\n    'max_worker_processes',\n    'max_parallel_workers',\n    'max_locks_per_transaction',\n    'wal_buffers',\n    'autovacuum_max_workers',\n    'maintenance_work_mem',\n    'effective_cache_size'\n  )\nORDER BY \"Name\"",
+                        "rawSql": "SELECT\n  name AS \"Name\",\n  short_desc AS \"Description\",\n  setting AS \"Current value\",\n  boot_val AS \"Default value\",\n  unit AS \"Unit\",\n  min_val || ' to ' || max_val AS \"Range\"\nFROM\n  pg_settings\nWHERE\n  name IN (\n    'shared_buffers',\n    'work_mem',\n    'max_connections',\n    'max_worker_processes',\n    'max_parallel_workers',\n    'max_locks_per_transaction',\n    'wal_buffers',\n    'min_wal_size',\n    'max_wal_size',\n    'autovacuum_max_workers',\n    'autovacuum_worker_slots',\n    'autovacuum_work_mem',\n    'maintenance_work_mem',\n    'effective_cache_size',\n    'jit',\n    'default_toast_compression'\n  )\nORDER BY \"Name\"",
                         "sql": {
                           "columns": [
                             {
@@ -170,9 +161,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
                       }
                     },
                     "refId": "A",
@@ -187,7 +175,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.4.1",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -232,129 +220,56 @@
                         "value": true
                       }
                     ]
-                  }
-                ]
-              }
-            }
-          }
-        }
-      },
-      "panel-32": {
-        "kind": "Panel",
-        "spec": {
-          "id": 32,
-          "title": "Chunk size vs shared_buffers",
-          "description": "Make sure the chunks fit within 25% of shared_buffers",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "WITH memory_config AS (\n  SELECT\n    pg_size_bytes(current_setting('shared_buffers')) AS shared_buffers_bytes\n),\nchunk_sizes AS (\n  SELECT\n    hypertable_name,\n    chunk_name,\n    pg_total_relation_size(format('%I.%I', chunk_schema, chunk_name)) AS chunk_bytes\n  FROM\n    timescaledb_information.chunks\n  WHERE\n    NOT is_compressed\n),\nmax_chunks AS (\nSELECT\n  hypertable_name,\n  count(*) AS chunk_count,\n  pg_size_pretty(avg(chunk_bytes) :: bigint) AS avg_chunk_size,\n  pg_size_pretty(max(chunk_bytes)) AS max_chunk_size,\n  max(chunk_bytes) :: numeric / shared_buffers_bytes * 100 AS max_chunk_pct_of_shared_buffers\nFROM\n  chunk_sizes,\n  memory_config\nGROUP BY\n  hypertable_name,\n  shared_buffers_bytes\n)\nSELECT \n  AVG(mc.max_chunk_pct_of_shared_buffers) AS chunks_percent,\n  MAX(mem.shared_buffers_bytes)/1000 AS shared_buffers,\n  AVG(ps.mem_total) AS mem_total\nFROM max_chunks mc\nCROSS JOIN memory_config mem\nCROSS JOIN pganalyze.sys_stats ps\n",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "stat",
-            "version": "12.4.1",
-            "spec": {
-              "options": {
-                "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "",
-                  "values": true
-                },
-                "showPercentChange": false,
-                "textMode": "auto",
-                "wideLayout": true
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "deckbytes",
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
                   },
-                  "color": {
-                    "mode": "thresholds"
-                  }
-                },
-                "overrides": [
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "chunks_percent"
+                      "scope": "series",
+                      "options": "Unit"
                     },
                     "properties": [
                       {
-                        "id": "unit",
-                        "value": "percent"
-                      },
+                        "id": "custom.width",
+                        "value": 60
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Current value"
+                    },
+                    "properties": [
                       {
-                        "id": "thresholds",
-                        "value": {
-                          "mode": "absolute",
-                          "steps": [
-                            {
-                              "color": "green",
-                              "value": 0
-                            },
-                            {
-                              "color": "orange",
-                              "value": 25
-                            }
-                          ]
-                        }
+                        "id": "custom.width",
+                        "value": 120
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Default value"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 120
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Range"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 140
                       }
                     ]
                   }
@@ -386,7 +301,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  pg_size_bytes(current_setting('work_mem')) AS current,\n  pg_size_bytes(current_setting('shared_buffers')) / current_setting('max_connections')::int AS recommended",
+                        "rawSql": "SELECT\n    pg_size_bytes(current_setting('work_mem')) / 1024 / 1024 AS current_value,\n    GREATEST(\n        1,\n        LEAST(\n            256,\n            pg_size_bytes(current_setting('shared_buffers')) /\n            current_setting('max_connections')::int / 1024 / 1024\n        )\n    ) AS recommended",
                         "sql": {
                           "columns": [
                             {
@@ -404,9 +319,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
                       }
                     },
                     "refId": "A",
@@ -421,7 +333,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.4.1",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -431,16 +343,16 @@
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
                   "calcs": [],
-                  "fields": "",
+                  "fields": "/.*/",
                   "values": true
                 },
                 "showPercentChange": false,
-                "textMode": "auto",
+                "textMode": "value_and_name",
                 "wideLayout": true
               },
               "fieldConfig": {
                 "defaults": {
-                  "unit": "decbytes",
+                  "unit": "decmbytes",
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -500,9 +412,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
                       }
                     },
                     "refId": "A",
@@ -517,7 +426,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.4.1",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -608,9 +517,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
                       }
                     },
                     "refId": "A",
@@ -625,7 +531,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.4.1",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -688,12 +594,12 @@
           }
         }
       },
-      "panel-36": {
+      "panel-39": {
         "kind": "Panel",
         "spec": {
-          "id": 36,
-          "title": "TEM: Hypertables compression",
-          "description": "Any ratio below 3x warrants investigation. Check segmentby cardinality.",
+          "id": 39,
+          "title": "Timescale settings",
+          "description": "",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -710,7 +616,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH compressed_tables AS (\n    SELECT hypertable_schema, hypertable_name\n    FROM timescaledb_information.hypertables\n    WHERE compression_enabled = true\n),\nchunk_counts AS (\n    SELECT hypertable_schema, hypertable_name, COUNT(*) AS chunk_count\n    FROM timescaledb_information.chunks\n    GROUP BY hypertable_schema, hypertable_name\n)\nSELECT\n    t.hypertable_schema || '.' || t.hypertable_name AS hypertable,\n    cc.chunk_count,\n    pg_size_pretty(s.before_compression_total_bytes) AS before_size,\n    pg_size_pretty(s.after_compression_total_bytes) AS after_size,\n    ROUND(\n        s.before_compression_total_bytes::numeric\n        / NULLIF(s.after_compression_total_bytes,0), 1\n    ) AS compression_ratio,\n    CASE\n        WHEN s.before_compression_total_bytes::numeric\n             / NULLIF(s.after_compression_total_bytes,1) < 2\n        THEN 'POOR — review segmentby'\n        ELSE 'OK'\n    END AS result\nFROM compressed_tables t\nJOIN chunk_counts cc\n  ON cc.hypertable_schema = t.hypertable_schema\n AND cc.hypertable_name = t.hypertable_name\nJOIN LATERAL hypertable_compression_stats(\n    t.hypertable_schema || '.' || t.hypertable_name\n) AS s ON TRUE\nORDER BY hypertable",
+                        "rawSql": "SELECT\n  name AS \"Name\",\n  short_desc AS \"Description\",\n  setting AS \"Current value\",\n  boot_val AS \"Default value\",\n  unit AS \"Unit\",\n  min_val || ' to ' || max_val AS \"Range\"\nFROM\n  pg_settings\nWHERE\n  name LIKE 'timescaledb%'\nORDER BY name",
                         "sql": {
                           "columns": [
                             {
@@ -728,9 +634,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
                       }
                     },
                     "refId": "A",
@@ -745,10 +648,11 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.4.1",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
+                "enablePagination": false,
                 "showHeader": true
               },
               "fieldConfig": {
@@ -763,114 +667,86 @@
                     ]
                   },
                   "color": {
-                    "mode": "thresholds"
+                    "mode": "fixed"
                   },
                   "custom": {
-                    "align": "center",
+                    "align": "left",
                     "cellOptions": {
                       "type": "auto"
                     },
                     "footer": {
                       "reducers": []
                     },
-                    "inspect": false
+                    "inspect": false,
+                    "wrapText": true
                   }
                 },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-37": {
-        "kind": "Panel",
-        "spec": {
-          "id": 37,
-          "title": "SEM: Hypertables compression",
-          "description": "Any ratio below 3x warrants investigation. Check segmentby cardinality.",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "WITH compressed_tables AS (\n    SELECT hypertable_schema, hypertable_name\n    FROM timescaledb_information.hypertables\n    WHERE compression_enabled = true\n),\nchunk_counts AS (\n    SELECT hypertable_schema, hypertable_name, COUNT(*) AS chunk_count\n    FROM timescaledb_information.chunks\n    GROUP BY hypertable_schema, hypertable_name\n)\nSELECT\n    t.hypertable_schema || '.' || t.hypertable_name AS hypertable,\n    cc.chunk_count,\n    pg_size_pretty(s.before_compression_total_bytes) AS before_size,\n    pg_size_pretty(s.after_compression_total_bytes) AS after_size,\n    ROUND(\n        s.before_compression_total_bytes::numeric\n        / NULLIF(s.after_compression_total_bytes,0), 1\n    ) AS compression_ratio,\n    CASE\n        WHEN s.before_compression_total_bytes::numeric\n             / NULLIF(s.after_compression_total_bytes,1) < 2\n        THEN 'POOR — review segmentby'\n        ELSE 'OK'\n    END AS result\nFROM compressed_tables t\nJOIN chunk_counts cc\n  ON cc.hypertable_schema = t.hypertable_schema\n AND cc.hypertable_name = t.hypertable_name\nJOIN LATERAL hypertable_compression_stats(\n    t.hypertable_schema || '.' || t.hypertable_name\n) AS s ON TRUE\nORDER BY hypertable",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-2"
-                      }
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Name"
                     },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "table",
-            "version": "12.4.1",
-            "spec": {
-              "options": {
-                "cellHeight": "sm",
-                "showHeader": true
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
+                    "properties": [
                       {
-                        "value": 0,
-                        "color": "green"
+                        "id": "custom.filterable",
+                        "value": true
                       }
                     ]
                   },
-                  "color": {
-                    "mode": "thresholds"
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Unit"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 60
+                      }
+                    ]
                   },
-                  "custom": {
-                    "align": "center",
-                    "cellOptions": {
-                      "type": "auto"
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Current value"
                     },
-                    "footer": {
-                      "reducers": []
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 120
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Default value"
                     },
-                    "inspect": false
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 120
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Range"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 140
+                      }
+                    ]
                   }
-                },
-                "overrides": []
+                ]
               }
             }
           }
@@ -899,6 +775,45 @@
             "spec": {
               "x": 6,
               "y": 0,
+              "width": 4,
+              "height": 4,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-34"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 6,
+              "y": 4,
+              "width": 4,
+              "height": 4,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-33"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 6,
+              "y": 8,
+              "width": 4,
+              "height": 3,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-35"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 0,
+              "y": 11,
               "width": 18,
               "height": 11,
               "element": {
@@ -911,77 +826,12 @@
             "kind": "GridLayoutItem",
             "spec": {
               "x": 0,
-              "y": 11,
-              "width": 5,
-              "height": 5,
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-32"
-              }
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "x": 5,
-              "y": 11,
-              "width": 3,
-              "height": 5,
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-33"
-              }
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "x": 8,
-              "y": 11,
-              "width": 4,
-              "height": 5,
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-34"
-              }
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "x": 12,
-              "y": 11,
-              "width": 3,
-              "height": 5,
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-35"
-              }
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "x": 0,
-              "y": 16,
-              "width": 12,
-              "height": 6,
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-36"
-              }
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "x": 0,
               "y": 22,
-              "width": 12,
-              "height": 6,
+              "width": 18,
+              "height": 11,
               "element": {
                 "kind": "ElementReference",
-                "name": "panel-37"
+                "name": "panel-39"
               }
             }
           }

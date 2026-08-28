@@ -225,7 +225,8 @@ class Benchmark:
             psql -d benchmark -c \"CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit CASCADE;\" && \
             psql -d benchmark -c \"CREATE EXTENSION IF NOT EXISTS pg_stat_statements;\" && \
             psql -d benchmark -c \"CREATE EXTENSION IF NOT EXISTS pgstattuple;\" && \
-            psql -d benchmark -c \"CREATE EXTENSION IF NOT EXISTS pgtap;\" && \
+            psql -d benchmark -c \"CREATE EXTENSION IF NOT EXISTS pgtap;\" && \\
+            psql -d benchmark -c \"CREATE EXTENSION IF NOT EXISTS amcheck;\" && \\
             psql -d benchmark -c \"CREATE EXTENSION IF NOT EXISTS tds_fdw;\" && \
             psql -d benchmark -c \"CREATE EXTENSION IF NOT EXISTS postgres_fdw;\""
         """
@@ -247,7 +248,7 @@ class Benchmark:
         def setup_table(dbm: DatabaseManager):
             dbm.run_query(
                 """
-                CREATE TABLE IF NOT EXISTS events.data_staging (
+                CREATE UNLOGGED TABLE IF NOT EXISTS events.data_staging (
                     time TIMESTAMPTZ NOT NULL,
                     instrument_id INTEGER NOT NULL,
                     param_id INTEGER NOT NULL,
@@ -290,9 +291,10 @@ class Benchmark:
                        total_exec_time/NULLIF(calls, 0) AS exec_time
                 FROM pg_stat_statements s
                 JOIN pg_database d ON s.dbid = d.oid
-                WHERE d.datname = '{DB_NAME}'
-                  AND s.query LIKE '{header}%'
+                WHERE d.datname = %s
+                  AND s.query LIKE %s
                 """,
+                values=(DB_NAME, f"{header}%"),
                 mode="fetchall",
             )
         return r[0] if r else (0, 0, 0)
@@ -366,7 +368,6 @@ class TestPerformance:
             "test-execmany": lambda: self.bench.run_test(self.bench.insert_executemany),
             "test-unnest": lambda: self.bench.run_test(self.bench.insert_unnest),
             "test-import": self.test_import,
-            "test-query": self.test_query,
         }
         action_fn = actions.get(self.action)
         if not action_fn:

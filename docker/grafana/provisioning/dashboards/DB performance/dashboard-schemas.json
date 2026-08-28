@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "46837677-7190-44c2-b9bb-db869089ba49",
-    "generation": 1,
-    "creationTimestamp": "2026-04-01T12:31:30Z",
+    "generation": 31,
+    "creationTimestamp": "2026-08-14T13:00:32Z",
     "labels": {},
     "annotations": {}
   },
@@ -17,135 +17,19 @@
             "kind": "DataQuery",
             "group": "grafana",
             "version": "v0",
-            "spec": {},
-            "labels": {
-              "grafana.app/export-label": "grafana-1"
-            }
+            "spec": {}
           },
           "enable": true,
           "hide": true,
           "iconColor": "rgba(0, 211, 255, 1)",
           "name": "Annotations & Alerts",
-          "builtIn": true,
-          "legacyOptions": {
-            "type": "dashboard"
-          }
+          "builtIn": true
         }
       }
     ],
     "cursorSync": "Off",
     "editable": true,
     "elements": {
-      "panel-1": {
-        "kind": "Panel",
-        "spec": {
-          "id": 1,
-          "title": "Select table to analyze",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${source}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "SELECT\n    t.tablename AS name,\n    CASE \n        WHEN ht.hypertable_name IS NOT NULL THEN hypertable_size(ht.hypertable_schema || '.' || ht.hypertable_name)\n        ELSE pg_total_relation_size(t.schemaname || '.' || t.tablename)\n    END AS size_bytes\nFROM pg_tables t\nLEFT JOIN timescaledb_information.hypertables ht\n    ON ht.hypertable_schema = t.schemaname\n   AND ht.hypertable_name = t.tablename\nWHERE t.schemaname = '$schema'\nORDER BY size_bytes DESC;\n",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "bargauge",
-            "version": "12.4.2",
-            "spec": {
-              "options": {
-                "displayMode": "gradient",
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": false
-                },
-                "maxVizHeight": 300,
-                "minVizHeight": 16,
-                "minVizWidth": 8,
-                "namePlacement": "auto",
-                "orientation": "auto",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "/^size_bytes$/",
-                  "values": true
-                },
-                "showUnfilled": true,
-                "sizing": "auto",
-                "valueMode": "text"
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "decbytes",
-                  "decimals": 1,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "continuous-blues"
-                  },
-                  "links": [
-                    {
-                      "title": "Show details",
-                      "url": "/d/${__dashboard.uid}/${__dashboard}?var-table=${__data.fields.name}"
-                    }
-                  ]
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
       "panel-10": {
         "kind": "Panel",
         "spec": {
@@ -205,9 +89,13 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
+                "annotations": {
+                  "clustering": -1,
+                  "multiLane": false
+                },
                 "legend": {
                   "calcs": [],
                   "displayMode": "list",
@@ -334,9 +222,13 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
+                "annotations": {
+                  "clustering": -1,
+                  "multiLane": false
+                },
                 "legend": {
                   "calcs": [],
                   "displayMode": "list",
@@ -463,7 +355,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -570,9 +462,13 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
+                "annotations": {
+                  "clustering": -1,
+                  "multiLane": false
+                },
                 "legend": {
                   "calcs": [],
                   "displayMode": "list",
@@ -720,9 +616,13 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
+                "annotations": {
+                  "clustering": -1,
+                  "multiLane": false
+                },
                 "legend": {
                   "calcs": [],
                   "displayMode": "list",
@@ -838,7 +738,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  finished_at AS \"Finished at\",\n  finished_at-started_at AS \"Duration\",\n  tuples_removed AS \"Tuples removed\",\n  tuples_removed / NULLIF(tuples_removed + tuples_remain, 0) * 100.0 AS \"Effectiveness\",\n  wraparound AS \"Anti-wraparound?\",\n  '' AS \"Chunk\",\n  regexp_replace(\n    details,\n    '^automatic vacuum of table \"[^\"]+\": ',\n    ''\n) AS \"Details\"\nFROM pganalyze.vacuum_stats\nWHERE relid = format('%I.%I', '$schema', '$table')::regclass::oid\n  AND $__timeFilter(started_at)\nORDER BY finished_at DESC\n",
+                        "rawSql": "SELECT\n  finished_at AS \"Finished at\",\n  finished_at - started_at AS \"Duration\",\n  tuples_removed AS \"Tuples removed\",\n  tuples_removed / NULLIF(tuples_removed + tuples_remain, 0) * 100.0 AS \"Effectiveness\",\n  wraparound AS \"Anti-wraparound?\",\n  CASE\n    WHEN relid = hypertable_relid THEN '-'\n    ELSE regexp_replace(\n      relid::regclass::text,\n      '_timescaledb_internal.',\n      ''\n    )\n  END AS \"Chunk\",\n  regexp_replace(\n    details,\n    '^automatic vacuum of table \"[^\"]+\": ',\n    ''\n  ) AS \"Details\"\nFROM\n  pganalyze.vacuum_stats\nWHERE\n  hypertable_relid = format('%I.%I', '$schema', '$table')::regclass::oid\n  AND $__timeFilter(started_at)\nORDER BY\n  finished_at DESC",
                         "sql": {
                           "columns": [
                             {
@@ -861,63 +761,16 @@
                     "refId": "tables",
                     "hidden": false
                   }
-                },
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${source}"
-                      },
-                      "spec": {
-                        "dataset": "tem",
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "SELECT\n  finished_at AS \"Finished at\",\n  finished_at-started_at AS \"Duration\",\n  tuples_removed AS \"Tuples removed\",\n  tuples_removed / NULLIF(tuples_removed + tuples_remain, 0) * 100.0 AS \"Effectiveness\",\n  wraparound AS \"Anti-wraparound?\",\n  c.chunk_name AS \"Chunk\",\n  regexp_replace(\n    details,\n    '^automatic vacuum of table \"[^\"]+\": ',\n    ''\n) AS \"Details\"\nFROM pganalyze.vacuum_stats v\nJOIN timescaledb_information.chunks c\n  ON v.relid = (c.chunk_schema || '.' || c.chunk_name)::regclass::oid\nWHERE c.hypertable_schema = '$schema'\n  AND c.hypertable_name = '$table'\n  AND $__timeFilter(v.started_at)\nORDER BY finished_at DESC\n",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "chunks",
-                    "hidden": false
-                  }
                 }
               ],
-              "transformations": [
-                {
-                  "kind": "Transformation",
-                  "group": "merge",
-                  "spec": {
-                    "options": {}
-                  }
-                }
-              ],
+              "transformations": [],
               "queryOptions": {}
             }
           },
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -1057,7 +910,7 @@
         "kind": "Panel",
         "spec": {
           "id": 17,
-          "title": "Hypertable options",
+          "title": "Parameters",
           "description": "",
           "links": [],
           "data": {
@@ -1078,7 +931,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    ht.num_chunks AS \"Chunks\",\n    d.time_interval AS \"Chunk time interval\",\n    ht.compression_enabled AS \"Compression\"\nFROM timescaledb_information.dimensions d\nJOIN timescaledb_information.hypertables ht ON ht.hypertable_schema = d.hypertable_schema AND ht.hypertable_name = d.hypertable_name\nWHERE ht.hypertable_schema = '$schema'\n    AND ht.hypertable_name = '$table'\n",
+                        "rawSql": "SELECT\n  ht.owner AS \"Owner\",\n  ht.num_chunks AS \"Chunks\",\n  d.time_interval AS \"Chunk interval\",\n  ht.primary_dimension AS \"Dimension by\",\n  hs.segmentby AS \"Segment by\",\n  hs.orderby AS \"Order by\",\n  ht.compression_enabled AS \"Compression\"\nFROM\n  timescaledb_information.dimensions d\n  JOIN timescaledb_information.hypertables ht ON ht.hypertable_schema = d.hypertable_schema\n  AND ht.hypertable_name = d.hypertable_name\n  JOIN timescaledb_information.hypertable_columnstore_settings hs ON hs.hypertable = format('%I.%I', d.hypertable_schema, d.hypertable_name) :: regclass\nWHERE\n  ht.hypertable_schema = '$schema'\n  AND ht.hypertable_name = '$table'",
                         "sql": {
                           "columns": [
                             {
@@ -1109,23 +962,12 @@
           },
           "vizConfig": {
             "kind": "VizConfig",
-            "group": "stat",
-            "version": "12.4.2",
+            "group": "table",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
-                "colorMode": "none",
-                "graphMode": "none",
-                "justifyMode": "center",
-                "orientation": "horizontal",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "/.*/",
-                  "values": false
-                },
-                "showPercentChange": false,
-                "textMode": "value_and_name",
-                "wideLayout": false
+                "cellHeight": "sm",
+                "showHeader": true
               },
               "fieldConfig": {
                 "defaults": {
@@ -1139,11 +981,57 @@
                     ]
                   },
                   "color": {
-                    "mode": "fixed",
+                    "mode": "thresholds",
                     "fixedColor": "text"
+                  },
+                  "custom": {
+                    "align": "center",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false
                   }
                 },
-                "overrides": []
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Chunks"
+                    },
+                    "properties": [
+                      {
+                        "id": "thresholds",
+                        "value": {
+                          "mode": "absolute",
+                          "steps": [
+                            {
+                              "color": "green",
+                              "value": 0
+                            },
+                            {
+                              "color": "#EAB839",
+                              "value": 500
+                            },
+                            {
+                              "color": "red",
+                              "value": 1000
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "id": "custom.cellOptions",
+                        "value": {
+                          "type": "color-text"
+                        }
+                      }
+                    ]
+                  }
+                ]
               }
             }
           }
@@ -1153,7 +1041,7 @@
         "kind": "Panel",
         "spec": {
           "id": 18,
-          "title": "Total objects",
+          "title": "Total objects in $source",
           "description": "",
           "links": [],
           "data": {
@@ -1206,7 +1094,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -1243,11 +1131,11 @@
           }
         }
       },
-      "panel-2": {
+      "panel-19": {
         "kind": "Panel",
         "spec": {
-          "id": 2,
-          "title": "Hypertable chunks",
+          "id": 19,
+          "title": "Compression",
           "description": "",
           "links": [],
           "data": {
@@ -1268,7 +1156,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    c.chunk_name AS \"Name\",\n    (cds).total_bytes AS \"Size\",\n    (cds).index_bytes AS \"Index size\",\n    c.is_compressed AS \"Compressed\",\n    c.range_start::text AS \"Start time\",\n    c.range_end::text   AS \"End time\"\nFROM timescaledb_information.chunks c\nJOIN LATERAL chunks_detailed_size('$schema' || '.' || '$table') AS cds ON cds.chunk_name = c.chunk_name\nWHERE c.hypertable_schema = '$schema'\n    AND c.hypertable_name = '$table'\nORDER BY range_end DESC;\n",
+                        "rawSql": "SELECT\n  AVG(s.total_bytes) AS \"Avg chunk size\",\n  cs.before_compression_total_bytes AS \"Before compression\",\n  cs.after_compression_total_bytes AS \"After compression\",\n  ROUND((1-cs.after_compression_total_bytes::numeric / cs.before_compression_total_bytes) * 100, 1) AS \"Compression\"\nFROM\n  timescaledb_information.hypertables t\n  CROSS JOIN LATERAL hypertable_compression_stats(\n    format('%I.%I', t.hypertable_schema, t.hypertable_name)\n  ) cs\n  JOIN LATERAL chunks_detailed_size(\n    format('%I.%I', t.hypertable_schema, t.hypertable_name)\n  ) s ON TRUE\nWHERE\n  t.hypertable_schema = '$schema'\n  AND t.hypertable_name = '$table'\n  AND cs.before_compression_total_bytes IS NOT NULL\n  AND cs.before_compression_total_bytes > 0\nGROUP BY\n  cs.before_compression_total_bytes,\n  cs.after_compression_total_bytes;",
                         "sql": {
                           "columns": [
                             {
@@ -1300,7 +1188,117 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
+            "spec": {
+              "options": {
+                "cellHeight": "sm",
+                "showHeader": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "decbytes",
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "fixed",
+                    "fixedColor": "text"
+                  },
+                  "custom": {
+                    "align": "center",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Compression"
+                    },
+                    "properties": [
+                      {
+                        "id": "unit",
+                        "value": "percent"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "panel-2": {
+        "kind": "Panel",
+        "spec": {
+          "id": 2,
+          "title": "Chunks",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    c.chunk_name AS \"Name\",\n    (cds).total_bytes AS \"Total size\",\n    (cds).index_bytes AS \"Index size\",\n    c.is_compressed AS \"Compressed\",\n    c.range_start::text AS \"Start time\",\n    c.range_end::text   AS \"End time\"\nFROM timescaledb_information.chunks c\nJOIN LATERAL chunks_detailed_size('$schema' || '.' || '$table') AS cds ON cds.chunk_name = c.chunk_name\nWHERE c.hypertable_schema = '$schema'\n    AND c.hypertable_name = '$table'\nORDER BY range_end DESC;\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "table",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -1336,7 +1334,8 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Size"
+                      "scope": "series",
+                      "options": "Total size"
                     },
                     "properties": [
                       {
@@ -1358,6 +1357,112 @@
                     ]
                   }
                 ]
+              }
+            }
+          }
+        }
+      },
+      "panel-20": {
+        "kind": "Panel",
+        "spec": {
+          "id": 20,
+          "title": "Chunk interval tuning",
+          "description": "Current uncompressed chunks from all hypertables must fit into 25% of RAM.",
+          "links": [
+            {
+              "title": "Retrofit intervals",
+              "url": "https://www.tigerdata.com/docs/build/performance-optimization/retrofit-chunk-intervals",
+              "targetBlank": true
+            },
+            {
+              "title": "More advice",
+              "url": "https://www.tigerdata.com/docs/build/performance-optimization/improve-hypertable-performance#optimize-hypertable-chunk-intervals",
+              "targetBlank": true
+            }
+          ],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH chunk_stats AS (\n  SELECT\n    max(s.total_bytes) AS max_chunk_size\n  FROM\n    chunks_detailed_size('$schema.$table') s\n    JOIN timescaledb_information.chunks c USING (chunk_schema, chunk_name)\n  WHERE\n    c.is_compressed = false\n),\nconfig AS (\n  SELECT\n    time_interval AS current_chunk_interval\n  FROM\n    timescaledb_information.dimensions\n  WHERE\n    hypertable_schema = '$schema'\n    AND hypertable_name = '$table'\n),\nmemory AS (\n  SELECT\n    AVG(mem_total) * 1024 AS memory_bytes\n  FROM pganalyze.sys_stats\n)\nSELECT\n  c.current_chunk_interval AS \"Current interval\",\n  format('%s (%s%% of RAM)', pg_size_pretty(s.max_chunk_size), round(100.0 * s.max_chunk_size / m.memory_bytes, 2)) AS \"Current uncompressed chunk\",\n  pg_size_pretty(m.memory_bytes) AS \"Total RAM\",\n  pg_size_pretty(m.memory_bytes * 0.25) AS \"Max chunk size\",\n\n  round(\n  extract(\n    epoch FROM (\n      m.memory_bytes * 0.25\n      / NULLIF(s.max_chunk_size, 0)\n      * c.current_chunk_interval\n    )\n  ) / 86400\n) * interval '1 day' AS \"Max chunk interval\"\nFROM\n  chunk_stats s\n  CROSS JOIN config c\n  CROSS JOIN memory m;",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "table",
+            "version": "13.1.0-25893932881",
+            "spec": {
+              "options": {
+                "cellHeight": "sm",
+                "showHeader": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "fixed",
+                    "fixedColor": "text"
+                  },
+                  "custom": {
+                    "align": "center",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false
+                  }
+                },
+                "overrides": []
               }
             }
           }
@@ -1420,7 +1525,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -1540,7 +1645,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -1654,7 +1759,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "barchart",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "barRadius": 0,
@@ -1745,10 +1850,11 @@
                         "name": "${source}"
                       },
                       "spec": {
+                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH index_list AS (\n    SELECT DISTINCT ON (i.indexrelid)\n        i.indexrelid AS index_id,\n        c.relname    AS index_name,\n        i.size_bytes AS size_bytes\n    FROM pganalyze.index_stats i\n    JOIN pg_class c ON c.oid = i.indexrelid\n    WHERE i.relid = format('%I.%I', '$schema', '$table')::regclass::oid\n    ORDER BY i.indexrelid, i.collected_at DESC\n)\nSELECT\n    il.index_id   AS \"ID\",\n    il.index_name AS \"Name\",\n    am.amname || ' (' || string_agg(pg_get_indexdef(il.index_id, k + 1, true), ', ') || ')' AS \"Definition\",\n    CASE\n        WHEN ix.indisprimary THEN 'PRIMARY KEY'\n        WHEN ix.indisunique  THEN 'UNIQUE'\n        ELSE NULL\n    END AS \"Constraint\",\n    il.size_bytes AS \"Size\"\nFROM index_list il\nJOIN pg_index ix ON ix.indexrelid = il.index_id\nJOIN pg_am am    ON am.oid = (SELECT relam FROM pg_class WHERE oid = il.index_id)\nCROSS JOIN LATERAL generate_subscripts(ix.indkey, 1) AS k\nGROUP BY il.index_id, il.index_name, il.size_bytes, am.amname, ix.indisprimary, ix.indisunique\nORDER BY il.index_id;\n",
+                        "rawSql": "WITH index_list AS (\n  SELECT\n    DISTINCT ON (i.indexrelid) i.indexrelid AS index_id,\n    i.relid AS table_id,\n    c.relname AS index_name,\n    i.size_bytes AS size_bytes\n  FROM\n    pganalyze.index_stats i\n    JOIN pg_class c ON c.oid = i.indexrelid\n  WHERE\n    i.relid = format(\n      '%I.%I',\n      '$schema',\n      '$table'\n    ) :: regclass :: oid\n  ORDER BY\n    i.indexrelid,\n    i.collected_at DESC\n),\nindex_info AS (\n  SELECT\n    il.*,\n    ix.indkey,\n    ix.indnkeyatts,\n    ix.indpred,\n    ix.indisprimary,\n    ix.indisunique,\n    am.amname,\n    tbl.relname AS table_relname,\n    ns.nspname AS table_schema,\n    -- Last time PostgreSQL used the index\n    pg_stat.last_idx_scan,\n    -- Index fillfactor (90 is the PostgreSQL default for B-tree)\n    COALESCE(\n      (\n        SELECT\n          option_value :: numeric\n        FROM\n          pg_options_to_table(idx.reloptions)\n        WHERE\n          option_name = 'fillfactor'\n      ),\n      CASE\n        WHEN am.amname = 'btree' THEN 90\n        ELSE NULL\n      END\n    ) AS fillfactor\n  FROM\n    index_list il\n    JOIN pg_index ix ON ix.indexrelid = il.index_id\n    JOIN pg_class tbl ON tbl.oid = il.table_id\n    JOIN pg_class idx ON idx.oid = il.index_id\n    JOIN pg_namespace ns ON ns.oid = tbl.relnamespace\n    JOIN pg_am am ON am.oid = (\n      SELECT\n        relam\n      FROM\n        pg_class\n      WHERE\n        oid = il.index_id\n    )\n    LEFT JOIN pg_stat_user_indexes pg_stat ON pg_stat.indexrelid = il.index_id\n),\nwidths AS (\n  SELECT\n    ii.index_id,\n    /*\n     * Width of index KEY columns.\n     *\n     * indnkeyatts deliberately excludes INCLUDE columns.\n     */\n    CASE\n      WHEN BOOL_OR(k.attnum <= 0) THEN NULL\n      ELSE SUM(s.avg_width) :: numeric\n    END AS indexed_columns_avg_width,\n    /*\n     * Width of all columns in the physical table.\n     */\n    (\n      SELECT\n        SUM(s2.avg_width) :: numeric\n      FROM\n        pg_stats s2\n      WHERE\n        s2.schemaname = ii.table_schema\n        AND s2.tablename = ii.table_relname\n    ) AS table_columns_avg_width\n  FROM\n    index_info ii\n    CROSS JOIN LATERAL unnest(ii.indkey [1:ii.indnkeyatts]) AS k(attnum)\n    LEFT JOIN pg_attribute a ON a.attrelid = ii.table_id\n    AND a.attnum = k.attnum\n    LEFT JOIN pg_stats s ON s.schemaname = ii.table_schema\n    AND s.tablename = ii.table_relname\n    AND s.attname = a.attname\n  GROUP BY\n    ii.index_id,\n    ii.table_schema,\n    ii.table_relname\n)\nSELECT\n  ii.index_id AS \"ID\",\n  ii.index_name AS \"Name\",\n  regexp_replace(\n  pg_get_indexdef(ii.index_id),\n  '^.*? USING ',\n  ''\n) AS \"Definition\",\n  CASE\n    WHEN ii.indisprimary THEN 'PRIMARY KEY'\n    WHEN ii.indisunique THEN 'UNIQUE'\n    ELSE NULL\n  END AS \"Constraint\",\n  ii.size_bytes AS \"Size\",\n  ii.fillfactor AS \"Fillfactor\",\n  ii.last_idx_scan AS \"Last used\",\n  CASE\n    WHEN w.indexed_columns_avg_width IS NULL\n    OR w.table_columns_avg_width IS NULL THEN NULL\n    ELSE ROUND(\n      (\n        8.0 + w.indexed_columns_avg_width\n      ) / NULLIF(\n        27.0 + w.table_columns_avg_width,\n        0\n      ) * CASE\n        WHEN ii.indpred IS NOT NULL THEN 0.10\n        ELSE 1.0\n      END,\n      3\n    )\n  END AS \"Write overhead\"\nFROM\n  index_info ii\n  JOIN widths w ON w.index_id = ii.index_id\n  CROSS JOIN LATERAL generate_subscripts(ii.indkey, 1) AS k\nGROUP BY\n  ii.index_id,\n  ii.index_name,\n  ii.size_bytes,\n  ii.amname,\n  ii.indisprimary,\n  ii.indisunique,\n  ii.indpred,\n  ii.fillfactor,\n  ii.last_idx_scan,\n  w.indexed_columns_avg_width,\n  w.table_columns_avg_width\nORDER BY\n  ii.index_id;",
                         "sql": {
                           "columns": [
                             {
@@ -1768,7 +1874,7 @@
                         }
                       }
                     },
-                    "refId": "A",
+                    "refId": "B",
                     "hidden": false
                   }
                 }
@@ -1780,7 +1886,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -1853,6 +1959,25 @@
                         "value": true
                       }
                     ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Write overhead"
+                    },
+                    "properties": [
+                      {
+                        "id": "links",
+                        "value": [
+                          {
+                            "targetBlank": true,
+                            "title": "See implementation details",
+                            "url": "https://pganalyze.com/docs/indexing-engine/index-write-overhead"
+                          }
+                        ]
+                      }
+                    ]
                   }
                 ]
               }
@@ -1919,9 +2044,13 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
+                "annotations": {
+                  "clustering": -1,
+                  "multiLane": false
+                },
                 "legend": {
                   "calcs": [],
                   "displayMode": "list",
@@ -2017,19 +2146,6 @@
                           "name": "panel-18"
                         }
                       }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 5,
-                        "y": 0,
-                        "width": 19,
-                        "height": 6,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-1"
-                        }
-                      }
                     }
                   ]
                 }
@@ -2039,206 +2155,257 @@
           {
             "kind": "RowsLayoutRow",
             "spec": {
-              "title": "Table size and columns for $table",
+              "title": "Selected table: $schema.$table",
               "collapse": false,
+              "fillScreen": false,
               "layout": {
-                "kind": "GridLayout",
+                "kind": "TabsLayout",
                 "spec": {
-                  "items": [
+                  "tabs": [
                     {
-                      "kind": "GridLayoutItem",
+                      "kind": "TabsLayoutTab",
                       "spec": {
-                        "x": 0,
-                        "y": 0,
-                        "width": 3,
-                        "height": 8,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-4"
+                        "title": "Autovacuum",
+                        "layout": {
+                          "kind": "GridLayout",
+                          "spec": {
+                            "items": [
+                              {
+                                "kind": "GridLayoutItem",
+                                "spec": {
+                                  "x": 0,
+                                  "y": 0,
+                                  "width": 8,
+                                  "height": 10,
+                                  "element": {
+                                    "kind": "ElementReference",
+                                    "name": "panel-13"
+                                  }
+                                }
+                              },
+                              {
+                                "kind": "GridLayoutItem",
+                                "spec": {
+                                  "x": 8,
+                                  "y": 0,
+                                  "width": 16,
+                                  "height": 10,
+                                  "element": {
+                                    "kind": "ElementReference",
+                                    "name": "panel-16"
+                                  }
+                                }
+                              },
+                              {
+                                "kind": "GridLayoutItem",
+                                "spec": {
+                                  "x": 0,
+                                  "y": 10,
+                                  "width": 11,
+                                  "height": 8,
+                                  "element": {
+                                    "kind": "ElementReference",
+                                    "name": "panel-14"
+                                  }
+                                }
+                              },
+                              {
+                                "kind": "GridLayoutItem",
+                                "spec": {
+                                  "x": 11,
+                                  "y": 10,
+                                  "width": 11,
+                                  "height": 8,
+                                  "element": {
+                                    "kind": "ElementReference",
+                                    "name": "panel-15"
+                                  }
+                                }
+                              }
+                            ]
+                          }
                         }
                       }
                     },
                     {
-                      "kind": "GridLayoutItem",
+                      "kind": "TabsLayoutTab",
                       "spec": {
-                        "x": 3,
-                        "y": 0,
-                        "width": 21,
-                        "height": 8,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-5"
+                        "title": "Indexes",
+                        "layout": {
+                          "kind": "GridLayout",
+                          "spec": {
+                            "items": [
+                              {
+                                "kind": "GridLayoutItem",
+                                "spec": {
+                                  "x": 0,
+                                  "y": 0,
+                                  "width": 24,
+                                  "height": 6,
+                                  "element": {
+                                    "kind": "ElementReference",
+                                    "name": "panel-6"
+                                  }
+                                }
+                              },
+                              {
+                                "kind": "GridLayoutItem",
+                                "spec": {
+                                  "x": 0,
+                                  "y": 6,
+                                  "width": 8,
+                                  "height": 7,
+                                  "element": {
+                                    "kind": "ElementReference",
+                                    "name": "panel-10"
+                                  }
+                                }
+                              },
+                              {
+                                "kind": "GridLayoutItem",
+                                "spec": {
+                                  "x": 8,
+                                  "y": 6,
+                                  "width": 8,
+                                  "height": 7,
+                                  "element": {
+                                    "kind": "ElementReference",
+                                    "name": "panel-9"
+                                  }
+                                }
+                              },
+                              {
+                                "kind": "GridLayoutItem",
+                                "spec": {
+                                  "x": 16,
+                                  "y": 6,
+                                  "width": 8,
+                                  "height": 7,
+                                  "element": {
+                                    "kind": "ElementReference",
+                                    "name": "panel-11"
+                                  }
+                                }
+                              }
+                            ]
+                          }
                         }
                       }
                     },
                     {
-                      "kind": "GridLayoutItem",
+                      "kind": "TabsLayoutTab",
                       "spec": {
-                        "x": 0,
-                        "y": 8,
-                        "width": 3,
-                        "height": 10,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-17"
+                        "title": "Columns and size",
+                        "layout": {
+                          "kind": "GridLayout",
+                          "spec": {
+                            "items": [
+                              {
+                                "kind": "GridLayoutItem",
+                                "spec": {
+                                  "x": 0,
+                                  "y": 0,
+                                  "width": 24,
+                                  "height": 10,
+                                  "element": {
+                                    "kind": "ElementReference",
+                                    "name": "panel-3"
+                                  }
+                                }
+                              },
+                              {
+                                "kind": "GridLayoutItem",
+                                "spec": {
+                                  "x": 0,
+                                  "y": 10,
+                                  "width": 5,
+                                  "height": 7,
+                                  "element": {
+                                    "kind": "ElementReference",
+                                    "name": "panel-4"
+                                  }
+                                }
+                              },
+                              {
+                                "kind": "GridLayoutItem",
+                                "spec": {
+                                  "x": 5,
+                                  "y": 10,
+                                  "width": 19,
+                                  "height": 7,
+                                  "element": {
+                                    "kind": "ElementReference",
+                                    "name": "panel-5"
+                                  }
+                                }
+                              }
+                            ]
+                          }
                         }
                       }
                     },
                     {
-                      "kind": "GridLayoutItem",
+                      "kind": "TabsLayoutTab",
                       "spec": {
-                        "x": 3,
-                        "y": 8,
-                        "width": 21,
-                        "height": 10,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-2"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 0,
-                        "y": 18,
-                        "width": 24,
-                        "height": 9,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-3"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          {
-            "kind": "RowsLayoutRow",
-            "spec": {
-              "title": "Indexes for $table",
-              "collapse": false,
-              "layout": {
-                "kind": "GridLayout",
-                "spec": {
-                  "items": [
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 0,
-                        "y": 0,
-                        "width": 24,
-                        "height": 6,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-6"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 0,
-                        "y": 6,
-                        "width": 8,
-                        "height": 8,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-9"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 8,
-                        "y": 6,
-                        "width": 8,
-                        "height": 8,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-10"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 16,
-                        "y": 6,
-                        "width": 8,
-                        "height": 8,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-11"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          {
-            "kind": "RowsLayoutRow",
-            "spec": {
-              "title": "Vacuum of $table",
-              "collapse": false,
-              "layout": {
-                "kind": "GridLayout",
-                "spec": {
-                  "items": [
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 0,
-                        "y": 0,
-                        "width": 8,
-                        "height": 10,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-13"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 8,
-                        "y": 0,
-                        "width": 16,
-                        "height": 10,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-16"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 0,
-                        "y": 10,
-                        "width": 12,
-                        "height": 9,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-14"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 12,
-                        "y": 10,
-                        "width": 12,
-                        "height": 9,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-15"
+                        "title": "Hypertable options",
+                        "layout": {
+                          "kind": "GridLayout",
+                          "spec": {
+                            "items": [
+                              {
+                                "kind": "GridLayoutItem",
+                                "spec": {
+                                  "x": 0,
+                                  "y": 0,
+                                  "width": 20,
+                                  "height": 4,
+                                  "element": {
+                                    "kind": "ElementReference",
+                                    "name": "panel-17"
+                                  }
+                                }
+                              },
+                              {
+                                "kind": "GridLayoutItem",
+                                "spec": {
+                                  "x": 0,
+                                  "y": 4,
+                                  "width": 12,
+                                  "height": 4,
+                                  "element": {
+                                    "kind": "ElementReference",
+                                    "name": "panel-20"
+                                  }
+                                }
+                              },
+                              {
+                                "kind": "GridLayoutItem",
+                                "spec": {
+                                  "x": 12,
+                                  "y": 4,
+                                  "width": 8,
+                                  "height": 4,
+                                  "element": {
+                                    "kind": "ElementReference",
+                                    "name": "panel-19"
+                                  }
+                                }
+                              },
+                              {
+                                "kind": "GridLayoutItem",
+                                "spec": {
+                                  "x": 0,
+                                  "y": 8,
+                                  "width": 20,
+                                  "height": 9,
+                                  "element": {
+                                    "kind": "ElementReference",
+                                    "name": "panel-2"
+                                  }
+                                }
+                              }
+                            ]
+                          }
                         }
                       }
                     }
@@ -2312,24 +2479,6 @@
       {
         "kind": "CustomVariable",
         "spec": {
-          "name": "table",
-          "query": "",
-          "current": {
-            "text": "data",
-            "value": "data"
-          },
-          "options": [],
-          "multi": false,
-          "includeAll": false,
-          "hide": "hideVariable",
-          "skipUrlSync": false,
-          "allowCustomValue": false,
-          "valuesFormat": "csv"
-        }
-      },
-      {
-        "kind": "CustomVariable",
-        "spec": {
           "name": "index",
           "query": "",
           "current": {
@@ -2379,6 +2528,59 @@
           "skipUrlSync": false,
           "allowCustomValue": false,
           "valuesFormat": "csv"
+        }
+      },
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "name": "table",
+          "current": {
+            "text": "",
+            "value": ""
+          },
+          "label": "table",
+          "hide": "dontHide",
+          "refresh": "onDashboardLoad",
+          "skipUrlSync": false,
+          "query": {
+            "kind": "DataQuery",
+            "group": "grafana-postgresql-datasource",
+            "version": "v0",
+            "spec": {
+              "dataset": "tem",
+              "editorMode": "code",
+              "format": "table",
+              "query": "SELECT tablename\nFROM pg_tables\nWHERE schemaname = '$schema'",
+              "rawQuery": true,
+              "rawSql": "SELECT tablename\nFROM pg_tables\nWHERE schemaname = '$schema'",
+              "refId": "SQLVariableQueryEditor-VariableQuery",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          },
+          "regex": "",
+          "regexApplyTo": "value",
+          "sort": "alphabeticalAsc",
+          "definition": "SELECT tablename\nFROM pg_tables\nWHERE schemaname = '$schema'",
+          "options": [],
+          "multi": false,
+          "includeAll": false,
+          "allowCustomValue": false
         }
       }
     ]

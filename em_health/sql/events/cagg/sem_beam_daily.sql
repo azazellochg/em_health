@@ -2,15 +2,18 @@
    Here we ignore the BeamIsOnFEGParameter since it's very rare to have beam unblanked and beam off.
  */
 CREATE MATERIALIZED VIEW events.sem_beam_daily WITH (timescaledb.continuous) AS
-SELECT
+  SELECT
     d.instrument_id,
     time_bucket('1 day', d.time) AS day,
-    toolkit_experimental.compact_state_agg(d.time, d.value_num::int) AS agg
-FROM
+    toolkit_experimental.compact_state_agg(d.time, d.value_num::INT) AS agg
+  FROM
     events.data d
-        JOIN events.parameters p USING (instrument_id, param_id)
-WHERE
+    JOIN events.parameters p
+      USING (instrument_id, param_id)
+  WHERE
     p.param_name = 'IsBlankedFEGParameter'
-  AND p.component = 'FEG'
-GROUP BY d.instrument_id, day
+    AND p.component = 'FEG'
+  GROUP BY
+    d.instrument_id,
+    day
 WITH NO DATA

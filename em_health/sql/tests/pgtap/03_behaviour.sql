@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(15);
+SELECT plan(14);
 
 -- Insert a dummy instrument
 INSERT INTO events.instruments (instrument, serial, model, name, template, server)
@@ -201,7 +201,6 @@ SELECT pganalyze.get_index_stats();
 SELECT isnt_empty('SELECT * FROM pganalyze.index_stats');
 
 SELECT pganalyze.get_stat_statements();
-SELECT isnt_empty('SELECT * FROM pganalyze.stat_snapshots');
 SELECT isnt_empty('SELECT * FROM pganalyze.stat_statements');
 SELECT isnt_empty('SELECT * FROM pganalyze.queries');
 

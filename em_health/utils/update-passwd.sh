@@ -58,4 +58,8 @@ $manager exec -it $GRAFANA_CONTAINER grafana cli admin reset-admin-password ${gr
 echo "Grafana admin password updated!"
 
 # recreate containers since compose only injects environment variables at container creation time
-$manager compose -f docker/compose.yaml up -d --force-recreate
+if [ "$manager" = "podman" ]; then
+  podman-compose -f docker/compose.yaml up -d --force-recreate
+else
+  $manager -f docker/compose.yaml up -d --force-recreate
+fi

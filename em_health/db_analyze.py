@@ -72,7 +72,6 @@ class DatabaseAnalyzer(DatabaseManager):
         """ Create tables to store metrics data. """
         self.execute_file(self.get_path("pganalyze/create_tables.sql"),
                           {
-                              "var_pgsnaps_chunk_size": os.getenv("TBL_SNAPS_CHUNK_SIZE", "4 weeks"),
                               "var_pgstats_chunk_size": os.getenv("TBL_STATS_CHUNK_SIZE", "1 week"),
                               "var_pgstats_retention": os.getenv("TBL_STATS_RETENTION", "3 months")
                           })
@@ -86,7 +85,8 @@ class DatabaseAnalyzer(DatabaseManager):
     def delete_jobs(self) -> None:
         """ Delete existing jobs. """
         jobs = self.run_query(
-            "SELECT job_id FROM timescaledb_information.jobs WHERE proc_schema = 'pganalyze'",
+            "SELECT job_id FROM timescaledb_information.jobs WHERE proc_schema = %s",
+            values=('pganalyze',),
             mode="fetchall")
 
         if jobs:
@@ -110,7 +110,6 @@ def main(dbname, action, force=False):
                     DROP TABLE IF EXISTS pganalyze.table_stats CASCADE;
                     DROP TABLE IF EXISTS pganalyze.index_stats CASCADE;
                     DROP TABLE IF EXISTS pganalyze.vacuum_stats CASCADE;
-                    DROP TABLE IF EXISTS pganalyze.stat_snapshots CASCADE;
                     DROP TABLE IF EXISTS pganalyze.queries CASCADE;
                     DROP TABLE IF EXISTS pganalyze.stat_statements CASCADE;
                     DROP TABLE IF EXISTS pganalyze.stat_explains CASCADE;

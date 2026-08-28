@@ -4,13 +4,18 @@
    It could happen that the server crashed or powered off and there was no 0 recorded.
 */
 CREATE MATERIALIZED VIEW events.em_off_daily WITH (timescaledb.continuous) AS
-SELECT
+  SELECT
     d.instrument_id,
     time_bucket('1 day', d.time) AS day,
-    state_agg(d.time, (d.value_num=0)::int) AS agg
-FROM events.data d
-         JOIN events.parameters p USING (instrument_id, param_id)
-WHERE p.component = 'Server'
-  AND p.param_name = 'Value'
-GROUP BY d.instrument_id, day
+    state_agg(d.time, (d.value_num = 0)::INT) AS agg
+  FROM
+    events.data d
+    JOIN events.parameters p
+      USING (instrument_id, param_id)
+  WHERE
+    p.component = 'Server'
+    AND p.param_name = 'Value'
+  GROUP BY
+    d.instrument_id,
+    day
 WITH NO DATA

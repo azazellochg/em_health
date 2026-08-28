@@ -32,6 +32,9 @@ from typing import Iterable, Any
 from em_health.db_client import PgClient
 from em_health.utils.tools import logger, profile
 
+TEM_SCHEMA_VERSION = 6
+SEM_SCHEMA_VERSION = 6
+
 
 class DatabaseManager(PgClient):
     """ Manager class to operate on existing db.
@@ -236,27 +239,25 @@ class DatabaseManager(PgClient):
 
     def drop_mview(self, view: str, is_cagg: bool = False) -> None:
         """ Delete a materialized view. """
-        schema, name = view.split(".")
-        self.run_query("DROP MATERIALIZED VIEW IF EXISTS {schema}.{name} CASCADE",
-                       {"schema": schema, "name": name})
+        self.run_query("DROP MATERIALIZED VIEW IF EXISTS {view} CASCADE",
+                       {"view": view})
         if not is_cagg:
             # for standard mat. views we need to manually remove the job
-            proc = f"refresh_{name}"
+            proc = f"refresh_{view.split('.')[-1]}"
             self.run_query("""
                 SELECT delete_job(job_id)
                 FROM timescaledb_information.jobs
                 WHERE proc_name = {proc}
             """, strings={"proc": proc})
 
-            self.run_query("DROP PROCEDURE IF EXISTS {schema}.{name}",
-                           {"schema": schema, "name": name})
+            self.run_query("DROP PROCEDURE IF EXISTS {view}",
+                           {"view": view})
 
         logger.info("Dropped MVIEW %s", view)
 
     def schedule_mview_refresh(self, view: str, interval: str = "12 hours") -> None:
         """ Schedule a materialized view refresh. """
-        schema, name = view.split(".")
-        proc = f"refresh_{name}"
+        proc = f"refresh_{view.split('.')[-1]}"
 
         self.run_query("""
             CREATE OR REPLACE PROCEDURE {proc}(
@@ -265,9 +266,9 @@ class DatabaseManager(PgClient):
             )
             LANGUAGE SQL
             AS $$
-              REFRESH MATERIALIZED VIEW {schema}.{name};
+              REFRESH MATERIALIZED VIEW {view};
             $$;
-        """, {"proc": proc, "schema": schema, "name": name})
+        """, {"proc": proc, "view": view})
 
         self.run_query("SELECT add_job({proc}, {period})",
                        strings={"proc": proc, "period": interval})
@@ -323,9 +324,8 @@ class DatabaseManager(PgClient):
     def enable_rt_cagg(self, view: str) -> None:
         """ Real-time aggregates automatically add the most recent data when
         you query your continuous aggregate. """
-        schema, name = view.split(".")
-        self.run_query("ALTER MATERIALIZED VIEW {schema}.{name} set (timescaledb.materialized_only = false)",
-                       {"schema": schema, "name": name})
+        self.run_query("ALTER MATERIALIZED VIEW {view} set (timescaledb.materialized_only = false)",
+                       {"view": view})
 
     def create_mview(self, view: str, target: str) -> None:
         """ Create a new materialized view or a continuous aggregate. """
@@ -473,7 +473,7 @@ def main(dbname, action, days=None):
             db.prune_data(days)
 
     elif action == "migrate":
-        latest_ver = os.getenv(f"{dbname.upper()}_SCHEMA_VERSION")
+        latest_ver = TEM_SCHEMA_VERSION if dbname == "tem" else SEM_SCHEMA_VERSION
         if latest_ver is not None:
             # requires superuser permissions
             with DatabaseManager(dbname, username="postgres", password="POSTGRES_PASSWORD") as db:

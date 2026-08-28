@@ -2,11 +2,30 @@
   "apiVersion": "dashboard.grafana.app/v2",
   "kind": "Dashboard",
   "metadata": {
-    "name": "2ddfc99a-7e8a-402c-9f3f-b06c67af2509",
-    "generation": 1,
-    "creationTimestamp": "2025-11-27T12:30:54Z",
-    "labels": {},
-    "annotations": {}
+    "name": "2ddfc99a-7e8a-556c-9f3f-b06c67af2509",
+    "namespace": "default",
+    "uid": "60847bfa-10a8-4bcd-b8c6-23a8545b1b8d",
+    "resourceVersion": "1787567598111015",
+    "generation": 9,
+    "creationTimestamp": "2026-08-14T13:16:07Z",
+    "labels": {
+      "grafana.app/deprecatedInternalID": "3086706925711360"
+    },
+    "annotations": {
+      "grafana.app/createdBy": "access-policy:service",
+      "grafana.app/folder": "ffrkp562prwu8b",
+      "grafana.app/managedBy": "classic-file-provisioning",
+      "grafana.app/managerAllowsEdits": "true",
+      "grafana.app/managerId": "dashboards",
+      "grafana.app/saved-from-ui": "Grafana v13.1.0-25893932881 (fae43e29)",
+      "grafana.app/sourceChecksum": "9c2cbe9d9c8841c858a778637f34441e",
+      "grafana.app/sourcePath": "/etc/grafana/provisioning/dashboards/DB performance/dashboard-views.json",
+      "grafana.app/sourceTimestamp": "1786976780000",
+      "grafana.app/updatedBy": "user:bfrkp4qvu07i8a",
+      "grafana.app/updatedTimestamp": "2026-08-24T10:33:18Z",
+      "grafana.app/folderTitle": "DB performance",
+      "grafana.app/folderUrl": "/dashboards/f/ffrkp562prwu8b/db-performance"
+    }
   },
   "spec": {
     "annotations": [
@@ -17,19 +36,13 @@
             "kind": "DataQuery",
             "group": "grafana",
             "version": "v0",
-            "spec": {},
-            "labels": {
-              "grafana.app/export-label": "grafana-1"
-            }
+            "spec": {}
           },
           "enable": true,
           "hide": true,
           "iconColor": "rgba(0, 211, 255, 1)",
           "name": "Annotations & Alerts",
-          "builtIn": true,
-          "legacyOptions": {
-            "type": "dashboard"
-          }
+          "builtIn": true
         }
       }
     ],
@@ -61,7 +74,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  j.job_id AS \"Job ID\",\n  regexp_replace(j.application_name, E'\\\\s*\\\\[\\\\d+\\\\]$', '') AS \"Type\",\n  j.proc_schema || '.' || j.proc_name AS \"Method\",\n  j.hypertable_schema || '.' || j.hypertable_name AS \"Target\",\n  CASE js.last_run_status\n    WHEN 'Success' THEN '✅'\n    WHEN 'Failed' THEN '❌'\n    ELSE '❓'\n  END AS \"Last run\",\n  js.job_status || ' (in ' || (js.next_start - now()) || ')' AS \"Status\"\nFROM timescaledb_information.jobs j\nJOIN timescaledb_information.job_stats js USING (job_id)\nORDER BY j.job_id\n",
+                        "rawSql": "SELECT\n  pm.schemaname || '.' || pm.matviewname AS \"View\",\n  pm.hasindexes AS \"Indexed?\",\n  pg_total_relation_size(\n    format('%I.%I', pm.schemaname, pm.matviewname) :: regclass\n  ) AS \"Object size\",\n  approximate_row_count(\n    format('%I.%I', pm.schemaname, pm.matviewname) :: regclass\n  ) AS \"Approx. row count\",\n  st.n_dead_tup AS \"Dead tuples\"\nFROM\n  pg_matviews pm\n  LEFT JOIN pg_catalog.pg_stat_user_tables st ON st.schemaname = pm.schemaname\n  AND st.relname = pm.matviewname\nORDER BY\n  pm.schemaname,\n  pm.matviewname",
                         "sql": {
                           "columns": [
                             {
@@ -93,19 +106,11 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
-                "footer": {
-                  "countRows": false,
-                  "enablePagination": true,
-                  "fields": "",
-                  "reducer": [
-                    "sum"
-                  ],
-                  "show": false
-                },
+                "enablePagination": true,
                 "showHeader": true,
                 "sortBy": [
                   {
@@ -131,41 +136,20 @@
                   "custom": {
                     "align": "center",
                     "cellOptions": {
-                      "type": "auto",
-                      "wrapText": false
+                      "type": "auto"
                     },
-                    "inspect": false
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false,
+                    "wrapText": false
                   }
                 },
                 "overrides": [
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Job ID"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.width",
-                        "value": 80
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Last run"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.width",
-                        "value": 70
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Job ID"
+                      "options": "View"
                     },
                     "properties": [
                       {
@@ -173,9 +157,22 @@
                         "value": [
                           {
                             "title": "Show details",
-                            "url": "/d/${__dashboard.uid}/?var-jobid=${__data.fields[\"Job ID\"]}&view=dashboard"
+                            "url": "/d/${__dashboard.uid}/?var-viewname=${__data.fields[\"View\"]}&view=dashboard"
                           }
                         ]
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Object size"
+                    },
+                    "properties": [
+                      {
+                        "id": "unit",
+                        "value": "decbytes"
                       }
                     ]
                   }
@@ -185,10 +182,10 @@
           }
         }
       },
-      "panel-3": {
+      "panel-10": {
         "kind": "Panel",
         "spec": {
-          "id": 3,
+          "id": 10,
           "title": "",
           "description": "",
           "links": [],
@@ -210,102 +207,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  COUNT(*) FILTER (WHERE state = 'active') AS \"Active\",\n  COUNT(*) AS \"Total\"\nFROM pg_stat_activity\nWHERE datname = current_database()\n",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "stat",
-            "version": "12.1.0",
-            "spec": {
-              "options": {
-                "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "center",
-                "orientation": "horizontal",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "",
-                  "values": true
-                },
-                "showPercentChange": false,
-                "textMode": "auto",
-                "wideLayout": true
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "thresholds"
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-4": {
-        "kind": "Panel",
-        "spec": {
-          "id": 4,
-          "title": "Sessions",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${source}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "SELECT\n  pid AS \"PID\",\n  usename AS \"Username\",\n  application_name AS \"Application name\",\n  client_addr AS \"Client\",\n  state AS \"Status\",\n  backend_start AS \"Backend start\",\n  extract(epoch FROM (now() - backend_start)) AS \"Duration\"\nFROM pg_stat_activity\nWHERE datname = current_database()\n  AND backend_type = 'client backend'\nORDER BY backend_start DESC",
+                        "rawSql": "SELECT\n  c.view_schema || '.' || c.view_name AS \"View\",\n  CASE\n    WHEN c.hypertable_name LIKE '_materialized_hypertable%' THEN 'Hierarchical CAGG'\n    ELSE c.hypertable_schema || '.' || c.hypertable_name\n  END AS \"Parent object\",\n  CASE\n    WHEN c.materialized_only = false THEN '✅'\n    ELSE '❌'\n  END AS \"RT aggregate\",\n  hypertable_size(format('%I.%I', c.view_schema, c.view_name)) AS \"Object size\",\n  approximate_row_count(\n    format('%I.%I', c.view_schema, c.view_name) :: regclass\n  ) AS \"Approx. row count\",\n  (\n    SELECT\n      count(*)\n    FROM\n      show_chunks(format('%I.%I', c.view_schema, c.view_name))\n  ) AS \"Chunks\",\n  d.time_interval AS \"Chunk interval\"\nFROM\n  timescaledb_information.continuous_aggregates c\n  JOIN timescaledb_information.dimensions d ON d.hypertable_schema = c.materialization_hypertable_schema\n  AND d.hypertable_name = c.materialization_hypertable_name\nORDER BY\n  c.view_schema",
                         "sql": {
                           "columns": [
                             {
@@ -337,24 +239,16 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
-                "footer": {
-                  "countRows": false,
-                  "enablePagination": true,
-                  "fields": "",
-                  "reducer": [
-                    "sum"
-                  ],
-                  "show": false
-                },
+                "enablePagination": true,
                 "showHeader": true,
                 "sortBy": [
                   {
                     "desc": false,
-                    "displayName": "Start time"
+                    "displayName": "Target method"
                   }
                 ]
               },
@@ -377,49 +271,26 @@
                     "cellOptions": {
                       "type": "auto"
                     },
-                    "inspect": false
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false,
+                    "wrapText": false
                   }
                 },
                 "overrides": [
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Duration"
+                      "options": "View"
                     },
                     "properties": [
                       {
-                        "id": "unit",
-                        "value": "s"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Status"
-                    },
-                    "properties": [
-                      {
-                        "id": "mappings",
+                        "id": "links",
                         "value": [
                           {
-                            "options": {
-                              "active": {
-                                "index": 0,
-                                "text": "🟢 Active"
-                              }
-                            },
-                            "type": "value"
-                          },
-                          {
-                            "options": {
-                              "pattern": "^idle.*$",
-                              "result": {
-                                "index": 1,
-                                "text": "🟡 Idle"
-                              }
-                            },
-                            "type": "regex"
+                            "title": "Show details",
+                            "url": "/d/${__dashboard.uid}/?var-viewname=${__data.fields[\"View\"]}&view=dashboard"
                           }
                         ]
                       }
@@ -428,16 +299,12 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Query"
+                      "options": "Object size"
                     },
                     "properties": [
                       {
-                        "id": "custom.align",
-                        "value": "left"
-                      },
-                      {
-                        "id": "custom.inspect",
-                        "value": true
+                        "id": "unit",
+                        "value": "decbytes"
                       }
                     ]
                   }
@@ -451,7 +318,7 @@
         "kind": "Panel",
         "spec": {
           "id": 8,
-          "title": "Job details",
+          "title": "Details for $viewname",
           "description": "",
           "links": [],
           "data": {
@@ -472,7 +339,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  j.job_id AS \"Job ID\",\n  j.proc_schema || '.' || j.proc_name AS \"Method\",\n  j.hypertable_schema || '.' || j.hypertable_name AS \"Target\",\n  ROUND(EXTRACT(EPOCH FROM js.last_run_duration) * 1000) || ' ms' AS \"Duration\",\n  j.schedule_interval AS \"Interval\",\n  j.config AS \"Config\",\n  CASE \n    WHEN js.last_run_status <> 'Success' THEN je.err_message\n    ELSE NULL\n  END AS \"Error message\"\nFROM timescaledb_information.jobs j\nLEFT JOIN timescaledb_information.job_stats js\n  ON j.job_id = js.job_id\nLEFT JOIN LATERAL (\n  SELECT err_message\n  FROM timescaledb_information.job_errors je\n  WHERE je.job_id = j.job_id\n  ORDER BY je.finish_time DESC\n  LIMIT 1\n) je ON true\nWHERE \n  COALESCE(NULLIF('$jobid', ''), NULL)::int IS NOT NULL\n  AND j.job_id = COALESCE(NULLIF('$jobid', ''), NULL)::int;\n",
+                        "rawSql": "SELECT\n  job_id,\n  regexp_replace(\n    application_name,\n    '(\\s+Policy\\s+\\[[^]]*\\]|\\s+\\[[^]]*\\])\\s*$',\n    '') AS policy,\n  schedule_interval\nFROM\n  timescaledb_information.jobs\nWHERE\n  proc_name = format('refresh_%I', split_part('$viewname', '.', 2))",
                         "sql": {
                           "columns": [
                             {
@@ -495,29 +362,77 @@
                     "refId": "A",
                     "hidden": false
                   }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH cagg_check AS (\n  SELECT\n    c.view_schema,\n    c.view_name\n  FROM timescaledb_information.continuous_aggregates c\n  WHERE c.view_schema || '.' || c.view_name = '$viewname'\n)\nSELECT\n  j.job_id,\n  regexp_replace(\n    application_name,\n    '(\\s+Policy\\s+\\[[^]]*\\]|\\s+\\[[^]]*\\])\\s*$',\n    '') AS policy,\n  (policy ->> 'refresh_interval')::interval AS schedule_interval,\n  policy ->> 'refresh_start_offset' AS start_offset,\n  policy ->> 'refresh_end_offset' AS end_offset\nFROM\n  timescaledb_experimental.show_policies('$viewname') AS policy\nJOIN cagg_check c\n  ON true\nLEFT JOIN timescaledb_information.jobs j\n  ON j.hypertable_schema = c.view_schema\n AND j.hypertable_name = c.view_name\n AND j.proc_name = 'policy_refresh_continuous_aggregate';",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": false
+                  }
                 }
               ],
-              "transformations": [],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "merge",
+                  "spec": {
+                    "options": {}
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "transpose",
+                  "spec": {
+                    "options": {
+                      "firstFieldName": ""
+                    }
+                  }
+                }
+              ],
               "queryOptions": {}
             }
           },
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
-                "footer": {
-                  "countRows": false,
-                  "enablePagination": false,
-                  "fields": "",
-                  "reducer": [
-                    "sum"
-                  ],
-                  "show": false
-                },
-                "showHeader": true
+                "enablePagination": true,
+                "frameIndex": 0,
+                "showHeader": false
               },
               "fieldConfig": {
                 "defaults": {
@@ -536,70 +451,16 @@
                   "custom": {
                     "align": "center",
                     "cellOptions": {
-                      "type": "auto",
-                      "wrapText": false
+                      "type": "auto"
                     },
-                    "inspect": false
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false,
+                    "wrapText": false
                   }
                 },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Config"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.inspect",
-                        "value": true
-                      },
-                      {
-                        "id": "custom.align",
-                        "value": "left"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Error message"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.inspect",
-                        "value": true
-                      },
-                      {
-                        "id": "custom.align",
-                        "value": "left"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Duration"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.width",
-                        "value": 100
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Job ID"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.width",
-                        "value": 100
-                      }
-                    ]
-                  }
-                ]
+                "overrides": []
               }
             }
           }
@@ -609,7 +470,7 @@
         "kind": "Panel",
         "spec": {
           "id": 9,
-          "title": "Job $jobid function",
+          "title": "Definition for $viewname",
           "description": "",
           "links": [],
           "data": {
@@ -623,7 +484,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "text",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "code": {
@@ -631,7 +492,7 @@
                   "showLineNumbers": true,
                   "showMiniMap": false
                 },
-                "content": "$function",
+                "content": "${definition:raw}",
                 "mode": "code"
               },
               "fieldConfig": {
@@ -650,7 +511,7 @@
           {
             "kind": "RowsLayoutRow",
             "spec": {
-              "title": "Connections",
+              "title": "Materialized views",
               "collapse": false,
               "layout": {
                 "kind": "GridLayout",
@@ -661,24 +522,11 @@
                       "spec": {
                         "x": 0,
                         "y": 0,
-                        "width": 3,
-                        "height": 8,
+                        "width": 24,
+                        "height": 7,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-3"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 3,
-                        "y": 0,
-                        "width": 21,
-                        "height": 8,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-4"
+                          "name": "panel-1"
                         }
                       }
                     }
@@ -690,7 +538,7 @@
           {
             "kind": "RowsLayoutRow",
             "spec": {
-              "title": "Jobs",
+              "title": "Continuous aggregates",
               "collapse": false,
               "layout": {
                 "kind": "GridLayout",
@@ -702,10 +550,10 @@
                         "x": 0,
                         "y": 0,
                         "width": 24,
-                        "height": 12,
+                        "height": 7,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-1"
+                          "name": "panel-10"
                         }
                       }
                     },
@@ -713,9 +561,9 @@
                       "kind": "GridLayoutItem",
                       "spec": {
                         "x": 0,
-                        "y": 12,
-                        "width": 24,
-                        "height": 4,
+                        "y": 7,
+                        "width": 6,
+                        "height": 7,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-8"
@@ -725,9 +573,9 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 0,
-                        "y": 16,
-                        "width": 24,
+                        "x": 6,
+                        "y": 7,
+                        "width": 18,
                         "height": 15,
                         "element": {
                           "kind": "ElementReference",
@@ -766,7 +614,7 @@
     ],
     "timeSettings": {
       "timezone": "Europe/London",
-      "from": "now-7d",
+      "from": "now-24h",
       "to": "now",
       "autoRefresh": "",
       "autoRefreshIntervals": [
@@ -784,7 +632,7 @@
       "hideTimepicker": true,
       "fiscalYearStartMonth": 0
     },
-    "title": "Connections and jobs",
+    "title": "Views and aggregates",
     "variables": [
       {
         "kind": "DatasourceVariable",
@@ -809,12 +657,12 @@
       {
         "kind": "TextVariable",
         "spec": {
-          "name": "jobid",
+          "name": "viewname",
           "current": {
-            "text": "1029",
-            "value": "1029"
+            "text": "events.em_off",
+            "value": "events.em_off"
           },
-          "query": "1029",
+          "query": "events.em_off",
           "hide": "hideVariable",
           "skipUrlSync": false
         }
@@ -822,7 +670,7 @@
       {
         "kind": "QueryVariable",
         "spec": {
-          "name": "function",
+          "name": "definition",
           "current": {
             "text": "",
             "value": ""
@@ -838,12 +686,13 @@
               "name": "${source}"
             },
             "spec": {
-              "__legacyStringValue": "SELECT pg_get_functiondef(p.oid) AS definition\nFROM pg_proc p\nJOIN pg_namespace n ON n.oid = p.pronamespace\nJOIN timescaledb_information.jobs j\n  ON j.proc_name = p.proname\n AND j.proc_schema = n.nspname\nWHERE j.job_id = $jobid"
+              "__legacyStringValue": "SELECT view_definition\nFROM timescaledb_information.continuous_aggregates\nWHERE format('%I.%I', view_schema, view_name) = '$viewname'\nUNION ALL\nSELECT definition\nFROM pg_matviews\nWHERE format('%I.%I', schemaname, matviewname) = '$viewname'"
             }
           },
           "regex": "",
+          "regexApplyTo": "value",
           "sort": "disabled",
-          "definition": "SELECT pg_get_functiondef(p.oid) AS definition\nFROM pg_proc p\nJOIN pg_namespace n ON n.oid = p.pronamespace\nJOIN timescaledb_information.jobs j\n  ON j.proc_name = p.proname\n AND j.proc_schema = n.nspname\nWHERE j.job_id = $jobid",
+          "definition": "SELECT view_definition\nFROM timescaledb_information.continuous_aggregates\nWHERE format('%I.%I', view_schema, view_name) = '$viewname'\nUNION ALL\nSELECT definition\nFROM pg_matviews\nWHERE format('%I.%I', schemaname, matviewname) = '$viewname'",
           "options": [],
           "multi": false,
           "includeAll": false,
