@@ -202,6 +202,18 @@ def update() -> None:
     logger.info("Finished updating")
 
 
+def check_db_schema():
+    """Check database schema vs app schema."""
+    from em_health.db_manager import TEM_SCHEMA_VERSION, SEM_SCHEMA_VERSION, DatabaseManager as DBM
+    for dbname, schema in [("tem", TEM_SCHEMA_VERSION), ("sem", SEM_SCHEMA_VERSION)]:
+        with DBM(dbname, username="postgres", password="POSTGRES_PASSWORD") as db:
+            current_ver = db.run_query("SELECT version FROM public.schema_info", mode="fetchone")
+            current_ver = current_ver[0]
+        if current_ver != schema:
+            raise Exception(f"Your actual {dbname} DB schema v{current_ver} does not match "
+                            f"application v{schema}\nRun 'emhealth dev -d {dbname} migrate'")
+
+
 def main(action: str, dbname: str = "tem") -> None:
     """Run update/backup/restore interactively."""
     if action == "update":

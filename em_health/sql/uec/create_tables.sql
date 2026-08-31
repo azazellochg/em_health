@@ -35,15 +35,15 @@ CREATE TABLE IF NOT EXISTS uec.error_definitions (
   errorcodeid INT NOT NULL,
   deviceinstanceid INT NOT NULL,
   UNIQUE (errorcodeid, subsystemid, devicetypeid, deviceinstanceid),
-  CONSTRAINT fk_error_definitions_device_instance FOREIGN KEY (deviceinstanceid, devicetypeid) REFERENCES uec.device_instance (deviceinstanceid, devicetypeid),
-  CONSTRAINT fk_error_definitions_error_code FOREIGN KEY (devicetypeid, errorcodeid) REFERENCES uec.error_code (devicetypeid, errorcodeid)
+  FOREIGN KEY (deviceinstanceid, devicetypeid) REFERENCES uec.device_instance (deviceinstanceid, devicetypeid),
+  FOREIGN KEY (devicetypeid, errorcodeid) REFERENCES uec.error_code (devicetypeid, errorcodeid)
 );
 
 -- Creating uec.errors
 CREATE TABLE IF NOT EXISTS uec.errors (
   time timestamptz NOT NULL,
-  instrument_id INT NOT NULL REFERENCES events.instruments (id) ON DELETE CASCADE,
+  instrument_id BIGINT NOT NULL REFERENCES events.instruments (id) ON DELETE CASCADE,
   errorid INT NOT NULL REFERENCES uec.error_definitions (errordefinitionid) ON DELETE CASCADE,
   messagetext TEXT,
-  UNIQUE (time, instrument_id, errorid)
+  UNIQUE (errorid, instrument_id, time)
 );

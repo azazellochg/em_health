@@ -192,6 +192,8 @@ def main():
     args = parser.parse_args()
 
     if args.command in COMMAND_DISPATCH:
+        from em_health.utils.maintenance import check_db_schema
+        check_db_schema()
         COMMAND_DISPATCH[args.command](args)
     else:
         parser.print_help()
