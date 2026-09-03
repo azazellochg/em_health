@@ -37,7 +37,6 @@ services:
       -c log_filename='postgresql-%Y-%m-%d.log'
       -c log_line_prefix=''
       -c log_autovacuum_min_duration=0
-      -c log_parameter_max_length=0
       -c auto_explain.log_format='json'
       -c auto_explain.log_min_duration=${MIN_QUERY_EXPLAIN}
       -c auto_explain.log_analyze=on
@@ -120,9 +119,6 @@ services:
 
 volumes:
   pgdata:
-    driver: local
-    driver_opts:
-      o: noatime
   grafana-storage:
 networks:
   emhealth-net:
