@@ -85,7 +85,8 @@ class DatabaseManager(PgClient):
     def write_data(self,
                    rows: Iterable[tuple],
                    chunk_size: int = 8*1024*1024) -> None:
-        """ Write raw values to the data table using COPY and a pre-serialized text buffer.
+        """ Write raw values to the data_staging table using COPY and a pre-serialized text buffer,
+         then move to the data table. We have to go through staging table because COPY doesn't support ON CONFLICT.
         :param rows: Iterable of tuples
         :param chunk_size: Number of bytes to read at a time
         """
@@ -124,12 +125,10 @@ class DatabaseManager(PgClient):
             for chunk in stream_chunks(rows, max_size):
                 copy.write(chunk)
 
-        # order by time before inserting to minimize Timescale switches between chunks
         query = """
             INSERT INTO events.data(time, instrument_id, param_id, value_num, value_text)
             SELECT time, instrument_id, param_id, value_num, value_text
             FROM events.data_staging
-            ORDER BY time
             ON CONFLICT DO NOTHING;
             TRUNCATE TABLE events.data_staging;
         """
