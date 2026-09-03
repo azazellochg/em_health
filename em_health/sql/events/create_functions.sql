@@ -212,9 +212,17 @@ BEGIN
     et.enum_id,
     (p.data ->> 'event_id')::INTEGER,
     numrange(
-      (p.data ->> 'abs_min')::numeric,
-      (p.data ->> 'abs_max')::numeric,
-      '[]'
+            CASE
+                WHEN (p.data ->> 'abs_min')::numeric = '-1.7976931348623157e308'::numeric
+                    THEN NULL
+                ELSE (p.data ->> 'abs_min')::numeric
+                END,
+            CASE
+                WHEN (p.data ->> 'abs_max')::numeric = '1.7976931348623157e308'::numeric
+                    THEN NULL
+                ELSE (p.data ->> 'abs_max')::numeric
+                END,
+            '[]'
     ),
     p.data ->> 'subsystem',
     p.data ->> 'component',
