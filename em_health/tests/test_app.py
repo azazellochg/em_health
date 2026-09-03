@@ -127,10 +127,10 @@ class TestEMHealth(unittest.TestCase):
 
         run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/05_import2.sql"')
 
-    def atest_pgtap_tem(self):
+    def test_pgtap_tem(self):
         run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/0[1-3]*.sql"')
 
-    def atest_pgtap_sem(self):
+    def test_pgtap_sem(self):
         run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d sem -U postgres /sql/tests/pgtap/0[1-3]*.sql"')
 
 
