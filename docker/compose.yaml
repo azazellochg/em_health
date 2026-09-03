@@ -37,14 +37,13 @@ services:
       -c log_filename='postgresql-%Y-%m-%d.log'
       -c log_line_prefix=''
       -c log_autovacuum_min_duration=0
+      -c log_parameter_max_length=0
       -c auto_explain.log_format='json'
       -c auto_explain.log_min_duration=${MIN_QUERY_EXPLAIN}
       -c auto_explain.log_analyze=on
       -c auto_explain.log_buffers=on
       -c auto_explain.log_timing=off
-      -c auto_explain.log_triggers=on
-      -c auto_explain.log_verbose=on
-      -c auto_explain.log_nested_statements=on
+      -c auto_explain.log_parameter_max_length=0
       -c archive_command='pgbackrest --stanza=main archive-push %p'
       -c archive_mode=on
       -c max_wal_senders=3
