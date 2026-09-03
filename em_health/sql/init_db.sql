@@ -5,8 +5,6 @@ CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit CASCADE;
 
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 
-CREATE EXTENSION IF NOT EXISTS pgstattuple;
-
 CREATE EXTENSION IF NOT EXISTS pgtap;
 
 CREATE EXTENSION IF NOT EXISTS amcheck;
@@ -87,5 +85,5 @@ INSERT INTO public.schema_info (
 )
 VALUES
   (
-    6
+    7
   );

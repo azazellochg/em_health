@@ -25,13 +25,14 @@
 # **************************************************************************
 
 import os
+import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Literal, Optional, Dict, Any
 import psycopg
 from psycopg import sql
 
-from em_health.utils.tools import logger
+from em_health.utils.tools import logger, PG_LOG_LEVELS
 
 
 class BaseDBClient(ABC):
@@ -99,6 +100,11 @@ class PgClient(BaseDBClient):
         super().__init__(db_name, 5432, **kwargs)
         self.host = os.getenv('POSTGRES_HOST', 'localhost')
 
+    @staticmethod
+    def postgres_notice_handler(notice):
+        level = PG_LOG_LEVELS.get(notice.severity, logging.INFO)
+        logger.log(level, notice.message_primary)
+
     def connect(self):
         self.conn = psycopg.connect(
             host=self.host,
@@ -108,6 +114,7 @@ class PgClient(BaseDBClient):
             password=self.password,
             application_name="EMHealth"
         )
+        self.conn.add_notice_handler(self.postgres_notice_handler)
         self.cur = self.conn.cursor()
         logger.info("Connected to PostgreSQL %s@%s: database %s",
                     self.username, self.host, self.db_name)
@@ -169,7 +176,7 @@ class PgClient(BaseDBClient):
 
         self.cur.execute(sql_query, values)
 
-        if mode == "fetchone":
+        if mode == "fetchone": # single row
             return self.cur.fetchone()
         elif mode == "fetchmany":
             return self.cur.fetchmany()

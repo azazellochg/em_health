@@ -17,15 +17,13 @@ Description
 ^^^^^^^^^^^
 
 Import health monitor data from XML file. Compressed files (\*.xml.gz) are also supported.
-Optional `skip-duplicates` argument is useful for small overlapping imports(e.g. automatic import of the last 1h of data every 30 min). If you are importing a large dataset, do not use this
-option as it will slow down the process significantly.
 
 Syntax
 ^^^^^^
 
 .. code-block::
 
-    emhealth import -i /path/to/file.xml.gz -s em_health/instruments.json [--skip-duplicates]
+    emhealth import -i /path/to/file.xml.gz -s em_health/instruments.json
 
 ----
 
@@ -120,6 +118,23 @@ Syntax
 
 ----
 
+Migrate database
+~~~~~~~~~~~~~~~~
+
+Description
+^^^^^^^^^^^
+
+Migrate TimescaleDB schema to the latest version (if required).
+
+Syntax
+^^^^^^
+
+.. code-block::
+
+    emhealth db -d tem migrate
+
+----
+
 Backup
 ~~~~~~
 
@@ -209,23 +224,6 @@ Syntax
 .. code-block::
 
     emhealth dev -d tem pganalyze [-f]
-
-----
-
-Migrate database
-~~~~~~~~~~~~~~~~
-
-Description
-^^^^^^^^^^^
-
-Migrate TimescaleDB schema to the latest version (if required).
-
-Syntax
-^^^^^^
-
-.. code-block::
-
-    emhealth dev -d tem migrate
 
 ----
 

@@ -126,8 +126,7 @@ class FileWatcher:
         """Run the XML import on a ready file."""
         try:
             import_main(os.path.abspath(filepath),
-                        os.path.abspath(self.json_fn),
-                        nocopy=True)
+                        os.path.abspath(self.json_fn))
         except Exception as e:
             logger.error("Error importing %s: %s", filepath, str(e))
         finally:

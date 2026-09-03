@@ -27,13 +27,16 @@
 import os
 import time
 from datetime import datetime
+import json
+import hashlib
 from typing import Iterable, Any
+from psycopg.types.json import Jsonb
 
 from em_health.db_client import PgClient
 from em_health.utils.tools import logger, profile
 
-TEM_SCHEMA_VERSION = 6
-SEM_SCHEMA_VERSION = 6
+TEM_SCHEMA_VERSION = 7
+SEM_SCHEMA_VERSION = 7
 
 
 class DatabaseManager(PgClient):
@@ -46,193 +49,94 @@ class DatabaseManager(PgClient):
         super().__init__(*args, **kwargs)
         self.instrument_name = None
 
-    def add_instrument(self, instr_dict: dict) -> int:
-        """ Populate the instrument metadata table.
+    @staticmethod
+    def compute_enum_hash(enums: dict) -> bytes:
+        """ Compute 16 bytes hash value for given dict of enumerations. """
+        data = json.dumps(
+            enums,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        ).encode("utf-8")
+
+        return hashlib.md5(data).digest()
+
+    def add_instrument(self,
+                       instr_dict: dict,
+                       config_dict: dict) -> int:
+        """ Populate the instrument metadata tables.
         :param instr_dict: input dict with microscope metadata
-        :return: id and of the new or existing instrument
+        :param config_dict: input params+enums dict
+        :return: instrument id
         """
         self.instrument_name = instr_dict["name"]
-        instrument_id = self.run_query("""
-            INSERT INTO events.instruments (instrument, serial, model, name, template, server)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            ON CONFLICT (instrument) DO UPDATE SET instrument = EXCLUDED.instrument
-            RETURNING id;
-        """, values=(
-            instr_dict["instrument"],
-            instr_dict["serial"],
-            instr_dict["model"],
-            self.instrument_name,
-            instr_dict["template"],
-            instr_dict["server"]
-        ), mode="fetchone")[0]
+        config_hash = self.compute_enum_hash(config_dict)
 
-        logger.info("Updated events.instruments table", extra={"prefix": self.instrument_name})
+        instrument_id = self.run_query(
+            "SELECT * FROM events.import_instrument(%s, %s, %s)",
+            values=(Jsonb(instr_dict), config_hash, Jsonb(config_dict)),
+            mode="fetchone")[0]
+
+        logger.info("Instrument imported", extra={"prefix": self.instrument_name})
 
         return instrument_id
-
-    def add_enumerations(self,
-                         instrument_id: int,
-                         enums_dict: dict) -> dict[str, int]:
-        """ Populate the enumerations for TEM or SEM.
-        Each enum value is stored as a separate SQL row.
-        :param instrument_id: Instrument id
-        :param enums_dict: input dict
-        :return a dict {enum_types.name: enum_types.id}
-        """
-        # Batch insert enum_types
-        self.cur.executemany("""
-            INSERT INTO events.enum_types (instrument_id, name)
-            VALUES (%s, %s)
-            ON CONFLICT DO NOTHING
-        """, (
-            (instrument_id, enum_name)
-            for enum_name in enums_dict.keys()
-        ))
-        logger.info("Updated events.enum_types table (%d rows)", self.cur.rowcount,
-                    extra={"prefix": self.instrument_name})
-
-        # Fetch IDs for ALL enums
-        rows = self.run_query("SELECT id, name FROM events.enum_types WHERE instrument_id = %s",
-                              values=(instrument_id,),
-                              mode="fetchall")
-        enum_name_to_id = {name: eid for eid, name in rows}
-
-        # Batch insert enum_values
-        self.cur.executemany("""
-            INSERT INTO events.enum_values (enum_id, member_name, value)
-            VALUES (%s, %s, %s)
-        """, (
-            (enum_name_to_id[enum_name], member_name, value)
-            for enum_name, data in enums_dict.items()
-            for member_name, value in data.items()
-        ))
-
-        logger.info("Updated events.enum_values table (%d rows)", self.cur.rowcount,
-                    extra={"prefix": self.instrument_name})
-
-        self.conn.commit()
-
-        return enum_name_to_id
-
-    def add_parameters(self,
-                       instrument_id: int,
-                       params_dict: dict,
-                       enums_ids: dict) -> None:
-        """ Populate parameters table with associated metadata.
-        :param instrument_id: Instrument id
-        :param params_dict: input params dict
-        :param enums_ids: input enums dict
-        """
-        insert_sql = """
-            INSERT INTO events.parameters (
-                instrument_id, param_id,
-                subsystem, component, param_name, display_name,
-                display_unit, storage_unit, enum_id, value_type,
-                event_id, event_name, abs_min, abs_max
-            ) VALUES
-            (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """
-
-        # Batch inserts
-        data_to_insert = [
-            (
-                instrument_id,
-                param_id,
-                p_dict["subsystem"],
-                p_dict["component"],
-                p_dict["param_name"],
-                p_dict["display_name"],
-                p_dict["display_unit"],
-                p_dict["storage_unit"],
-                enums_ids.get(enum) if (enum := p_dict.get("enum_name")) else None,
-                p_dict["value_type"],
-                p_dict["event_id"],
-                p_dict["event_name"],
-                p_dict["abs_min"],
-                p_dict["abs_max"]
-            ) for param_id, p_dict in params_dict.items()
-        ]
-
-        self.cur.executemany(insert_sql, data_to_insert)
-        self.conn.commit()
-        logger.info("Updated events.parameters table (%d rows)", self.cur.rowcount,
-                    extra={"prefix": self.instrument_name})
 
     #@profile
     def write_data(self,
                    rows: Iterable[tuple],
-                   nocopy: bool = False,
                    chunk_size: int = 8*1024*1024) -> None:
         """ Write raw values to the data table using COPY and a pre-serialized text buffer.
-        We do not sort input data, since:
-         - for each parameter XML file has a batch of datapoints already sorted by time
-         - TimescaleDB data table has chunking with compression, chunks will be sorted by time
-
         :param rows: Iterable of tuples
-        :param nocopy: If True, revert to executemany
         :param chunk_size: Number of bytes to read at a time
         """
-        if nocopy:
-            query = """
-                INSERT INTO events.data (time, instrument_id, param_id, value_num, value_text)
-                VALUES (%s, %s, %s, %s, %s)
-                ON CONFLICT DO NOTHING
-            """
-            self.cur.executemany(query, rows)
-            self.conn.commit()
+        query = """
+            COPY events.data_staging (time, instrument_id, param_id, value_num, value_text)
+            FROM STDIN WITH (FORMAT text)
+        """
 
-        else:
-            # staging table can have duplicate rows, they will be omitted later
-            query = """
-                COPY events.data_staging (time, instrument_id, param_id, value_num, value_text)
-                FROM STDIN WITH (FORMAT text)
-            """
+        def format_col(col: Any) -> str:
+            if col is None:
+                return "\\N"
+            if isinstance(col, datetime):
+                # PostgreSQL COPY expects 'YYYY-MM-DD HH:MM:SS.sss+00' ISO 8601 string
+                return col.strftime("%Y-%m-%d %H:%M:%S.%f%z")[:-3]
+            return str(col)
 
-            def format_col(col: Any) -> str:
-                if col is None:
-                    return "\\N"
-                if isinstance(col, datetime):
-                    # PostgreSQL COPY expects 'YYYY-MM-DD HH:MM:SS.sss+00' ISO 8601 string
-                    return col.strftime("%Y-%m-%d %H:%M:%S.%f%z")[:-3]
-                return str(col)
-
-            def stream_chunks(rows: Iterable[tuple], max_size: int) -> Iterable[str]:
-                buffer: list[str] = []
-                size = 0
-                for row in rows:
-                    newrow = "\t".join(format_col(col) for col in row) + "\n"
-                    encoded = newrow.encode("utf-8")
-                    buffer.append(newrow)
-                    size += len(encoded)
-                    if size >= max_size:
-                        yield ''.join(buffer)
-                        buffer.clear()
-                        size = 0
-                if buffer:
+        def stream_chunks(rows: Iterable[tuple], max_size: int) -> Iterable[str]:
+            buffer: list[str] = []
+            size = 0
+            for row in rows:
+                newrow = "\t".join(format_col(col) for col in row) + "\n"
+                encoded = newrow.encode("utf-8")
+                buffer.append(newrow)
+                size += len(encoded)
+                if size >= max_size:
                     yield ''.join(buffer)
+                    buffer.clear()
+                    size = 0
+            if buffer:
+                yield ''.join(buffer)
 
-            # avg row size is ~ 48 bytes, below will give about ~175k rows per chunk
-            max_size = int(os.getenv("WRITE_DATA_CHUNK_SIZE", chunk_size))  # 8 Mb
-            t0 = time.perf_counter()
-            with self.cur.copy(query) as copy:
-                for chunk in stream_chunks(rows, max_size):
-                    copy.write(chunk)
-            t1 = time.perf_counter()
-            logger.debug(f"COPY to events.data_staging done in: {t1-t0:.4f} s")
+        # avg row size is ~ 48 bytes, below will give about ~175k rows per chunk
+        max_size = int(os.getenv("WRITE_DATA_CHUNK_SIZE", chunk_size))  # 8 Mb
+        t0 = time.perf_counter()
+        with self.cur.copy(query) as copy:
+            for chunk in stream_chunks(rows, max_size):
+                copy.write(chunk)
 
-            # order by time before inserting to minimize Timescale switches between chunks
-            query = """
-                        INSERT INTO events.data(time, instrument_id, param_id, value_num, value_text)
-                        SELECT time, instrument_id, param_id, value_num, value_text
-                        FROM events.data_staging
-                        ORDER BY time
-                        ON CONFLICT DO NOTHING;
-                        TRUNCATE TABLE events.data_staging;
-                    """
-            self.cur.execute(query)
-            self.conn.commit()
-            t2 = time.perf_counter()
-            logger.debug(f"INSERT into events.data done in: {t2-t1:.4f} s")
+        # order by time before inserting to minimize Timescale switches between chunks
+        query = """
+            INSERT INTO events.data(time, instrument_id, param_id, value_num, value_text)
+            SELECT time, instrument_id, param_id, value_num, value_text
+            FROM events.data_staging
+            ORDER BY time
+            ON CONFLICT DO NOTHING;
+            TRUNCATE TABLE events.data_staging;
+        """
+        self.cur.execute(query)
+        self.conn.commit()
+        t1 = time.perf_counter()
+        logger.debug(f"INSERT into events.data done in: {t1-t0:.4f} s")
 
         logger.info("Updated events.data table (%d rows)", self.cur.rowcount,
                     extra={"prefix": self.instrument_name})

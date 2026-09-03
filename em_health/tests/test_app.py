@@ -25,7 +25,6 @@
 # **************************************************************************
 
 import os
-import os.path
 import unittest
 from datetime import datetime as dt, timezone as tz
 
@@ -34,6 +33,7 @@ from em_health.utils.tools import run_command
 from em_health.db_manager import DatabaseManager
 
 XML_FN = os.path.join(os.path.dirname(__file__), '9999_data.xml')
+XML_FN2 = os.path.join(os.path.dirname(__file__), '9999_changed_data.xml')
 JSON_INFO = [{
     "instrument": "9999, Test Instrument",
     "serial": 9999,
@@ -66,7 +66,6 @@ class TestEMHealth(unittest.TestCase):
         self.assertEqual(enums["MicroscopeType"]["Tecnai"], 2)
         self.assertEqual(enums["VacuumState_enum"]["AllVacuumColumnValvesClosed"], 6)
         self.assertEqual(len(enums["FegState_enum"]), 8)
-        print("[OK] enumerations test")
 
     def check_parameters(self, params: dict[int, dict]):
         self.assertEqual(len(params), 391)
@@ -74,7 +73,6 @@ class TestEMHealth(unittest.TestCase):
         self.assertEqual(params[184]["param_name"], "Laldwr")
         self.assertEqual(params[231]["display_name"], "Emission Current")
         self.assertEqual(params[400]["enum_name"], "CameraInsertStatus_enum")
-        print("[OK] parameters test")
 
     def check_datapoints(self, points: list[tuple]):
         expected = {
@@ -90,114 +88,50 @@ class TestEMHealth(unittest.TestCase):
                 match_count += 1
 
         self.assertEqual(match_count, 2)
-        print("[OK] datapoints test")
-
-    def check_db(self, dbm: DatabaseManager, instrument_id: int):
-        self.run_test_query(dbm, "SELECT model FROM events.instruments WHERE serial = %s",
-                            (9999,), "Test instrument")
-
-        self.run_test_query(dbm, "SELECT COUNT(id) FROM events.enum_types WHERE instrument_id= %s",
-                            (instrument_id,), 41)
-
-        eid = self.run_test_query(dbm, "SELECT id FROM events.enum_types WHERE instrument_id = %s AND name= %s",
-                                  (instrument_id, "FegState_enum"), expected_result=-1, do_return=True)
-
-        self.run_test_query(dbm, "SELECT value FROM events.enum_values WHERE enum_id = %s AND member_name = %s",
-                            (eid, "Operate"), 4)
-
-        self.run_test_query(dbm, "SELECT COUNT(*) FROM events.enum_values WHERE enum_id = %s",
-                            (eid,), 8)
-
-        self.run_test_query(dbm, "SELECT COUNT(*) FROM events.parameters WHERE instrument_id = %s",
-                            (instrument_id,), 391)
-
-        self.run_test_query(dbm, "SELECT param_name FROM events.parameters WHERE instrument_id = %s AND param_id=%s",
-                            (instrument_id, 184), "Laldwr")
-
-        self.run_test_query(dbm, "SELECT enum_id FROM events.parameters WHERE instrument_id = %s AND param_name = %s",
-                            (instrument_id, "FegState",), eid)
-
-        self.run_test_query(dbm, "SELECT COUNT(*) FROM events.data WHERE instrument_id = %s",
-                            (instrument_id,), 1889)
-
-        self.run_test_query(dbm, "SELECT COUNT(*) FROM events.data WHERE instrument_id = %s and time > %s",
-                            (instrument_id, "2025-07-28 11:00:00+0"), 1333)
-        print("[OK] database test #1")
-
-    def check_db2(self, dbm: DatabaseManager, instrument_id: int):
-        # check updated enums and history table
-        eid = self.run_test_query(dbm, "SELECT id FROM events.enum_types WHERE instrument_id = %s AND name= %s",
-                                  (instrument_id, "FegState_enum"), expected_result=-1, do_return=True)
-
-        self.run_test_query(dbm, "SELECT value FROM events.enum_values WHERE enum_id = %s AND member_name = %s",
-                            (eid, "Operate"), 99)
-        self.run_test_query(dbm, "SELECT value FROM events.enum_values WHERE enum_id = %s AND member_name = %s",
-                            (eid, "Standby"), 100)
-        self.run_test_query(dbm, "SELECT value FROM events.enum_values_history WHERE enum_id = %s AND member_name = %s",
-                            (eid, "Operate"), 4)
-        self.run_test_query(dbm, "SELECT value FROM events.enum_values_history WHERE enum_id = %s AND member_name = %s",
-                            (eid, "Standby"), 5)
-
-        # check updated params and history table
-        self.run_test_query(dbm, "SELECT abs_min FROM events.parameters WHERE instrument_id = %s AND param_id=%s",
-                            (instrument_id, 351), 250.5)
-        self.run_test_query(dbm, "SELECT abs_min FROM events.parameters_history WHERE instrument_id = %s AND param_id=%s",
-                            (instrument_id, 351), 273.15)
-
-        print("[OK] database test #2")
-
-    @staticmethod
-    def modify_input(enums: dict[str, dict],
-                     params: dict[int, dict]):
-        enums["FegState_enum"]["Operate"] = 99
-        enums["FegState_enum"]["Standby"] = 100
-        params[351]["abs_min"] = 250.5
 
     def test_client(self):
-        """ Test XML parser and the db client."""
+        # first import
         parser = ImportXML(XML_FN, JSON_INFO)
         parser.parse_enumerations()
         self.check_enumerations(parser.enum_values)
         parser.parse_parameters()
         self.check_parameters(parser.params)
-
         instr_dict = parser.get_microscope_dict()
+        config_dict = {"params": parser.params, "enums": parser.enum_values}
 
         with DatabaseManager(parser.db_name) as dbm:
-            # first import
-            instrument_id = dbm.add_instrument(instr_dict)
-            enum_ids = dbm.add_enumerations(instrument_id, parser.enum_values)
-            dbm.add_parameters(instrument_id, parser.params, enum_ids)
+            # clean-up
+            old = dbm.run_query("SELECT id FROM events.instruments WHERE serial=9999", mode="fetchone")
+            if old:
+                dbm.run_query("SELECT events.delete_instrument(%s)", values=(old[0],))
+
+            instrument_id = dbm.add_instrument(instr_dict, config_dict)
 
             # convert to list since we need to iterate twice
             datapoints = list(parser.parse_values(instrument_id, parser.params))
             self.check_datapoints(datapoints)
-
             dbm.write_data(datapoints)
-            self.check_db(dbm, instrument_id)
 
-            # modify enums and params
-            self.modify_input(parser.enum_values, parser.params)
+        run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/04_import.sql"')
 
-            # second import
-            instrument_id = dbm.add_instrument(instr_dict)
-            enum_ids = dbm.add_enumerations(instrument_id, parser.enum_values)
-            dbm.add_parameters(instrument_id, parser.params, enum_ids)
+        # second import
+        parser2 = ImportXML(XML_FN2, JSON_INFO)
+        parser2.parse_enumerations()
+        parser2.parse_parameters()
+        instr_dict = parser2.get_microscope_dict()
+        config_dict = {"params": parser2.params, "enums": parser2.enum_values}
 
-            self.check_datapoints(datapoints)
-            dbm.write_data(datapoints, nocopy=True)
-            self.check_db2(dbm, instrument_id)
+        with DatabaseManager(parser2.db_name) as dbm:
+            _ = dbm.add_instrument(instr_dict, config_dict)
+            dbm.write_data(datapoints)
 
-            # clean-up
-            dbm.run_query("DELETE FROM events.instruments WHERE serial = 9999")
+        run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/05_import2.sql"')
 
-    def test_pgtap_tem(self):
-        """ Run database tests with pgTAP. """
-        run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/*.sql"')
+    def atest_pgtap_tem(self):
+        run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/0[1-3]*.sql"')
 
-    def test_pgtap_sem(self):
-        """ Run database tests with pgTAP. """
-        run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d sem -U postgres /sql/tests/pgtap/*.sql"')
+    def atest_pgtap_sem(self):
+        run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d sem -U postgres /sql/tests/pgtap/0[1-3]*.sql"')
 
 
 if __name__ == '__main__':

@@ -34,7 +34,7 @@ HM_EXE = r"C:\Program Files (x86)\Thermo Scientific Health Monitor\HealthMonitor
 
 def import_cmd(args):
     from em_health.utils.import_xml import main as func
-    func(args.input, args.settings, getattr(args, "nocopy", False))
+    func(args.input, args.settings)
 
 
 def create_task_cmd(args):
@@ -63,7 +63,7 @@ def db_cmd(args):
     dbname = args.database
     action = args.action
 
-    if action in ["create-stats", "erase", "prune"]:
+    if action in ["create-stats", "erase", "prune", "migrate"]:
         from em_health.db_manager import main as func
         func(dbname, action, getattr(args, "days", None))
 
@@ -80,13 +80,9 @@ def dev_cmd(args):
         from em_health.db_analyze import main as func
         func(dbname, action, getattr(args, "force", False))
 
-    elif action in ["import-uec", "migrate"]:
+    elif action == "import-uec":
         from em_health.db_manager import main as func
         func(dbname, action)
-
-    elif action.startswith("test-"):
-        from em_health.tests.test_performance import TestPerformance
-        TestPerformance(action, args.batch).run()
 
 
 COMMAND_DISPATCH = {
@@ -122,8 +118,6 @@ def main():
                                help="Path to XML file (.xml or .xml.gz)")
     import_parser.add_argument("-s", dest="settings", required=True,
                                help="Path to instruments.json with metadata")
-    import_parser.add_argument("--skip-duplicates", dest="nocopy", action="store_true",
-                               help="Ignore duplicated datapoints (useful for small overlapping imports)")
 
     # --- Create Task command ---
     task_parser = subparsers.add_parser("create-task",
@@ -153,6 +147,7 @@ def main():
     db_subparsers = db_parser.add_subparsers(dest="action", required=True)
 
     db_subparsers.add_parser("create-stats", help="Create data statistics")
+    db_subparsers.add_parser("migrate", help="Migrate databases to the latest schema")
     db_subparsers.add_parser("backup", help="Back up the database")
     db_subparsers.add_parser("restore", help="Restore database from backup")
     db_subparsers.add_parser("erase", help="Erase ALL data in the database")
@@ -171,29 +166,15 @@ def main():
     perf.add_argument("-f", "--force", dest="force", action="store_true",
                       help="Erase existing pganalyze data and recreate tables")
 
-    dev_subparsers.add_parser("migrate", help="Migrate TimescaleDB to the latest schema")
     dev_subparsers.add_parser("import-uec", help="Import UEC data from microscope servers")
-
-    # helper function to add "batch" argument
-    def add_count_arg(p):
-        p.add_argument(
-            "batch",
-            type=int,
-            help="Batch/chunk/rows size"
-        )
-        return p
-
-    add_count_arg(dev_subparsers.add_parser("test-data", help="Generate CSV with simulated data"))
-    add_count_arg(dev_subparsers.add_parser("test-copy", help="Benchmark COPY performance"))
-    add_count_arg(dev_subparsers.add_parser("test-execmany", help="Benchmark EXECUTEMANY performance"))
-    add_count_arg(dev_subparsers.add_parser("test-unnest", help="Benchmark INSERT UNNEST performance"))
-    add_count_arg(dev_subparsers.add_parser("test-import", help="Benchmark XML import performance"))
 
     args = parser.parse_args()
 
     if args.command in COMMAND_DISPATCH:
-        from em_health.utils.maintenance import check_db_schema
-        check_db_schema()
+        if args.command not in ["db", "dev"]:
+            from em_health.utils.maintenance import check_db_schema
+            check_db_schema()
+
         COMMAND_DISPATCH[args.command](args)
     else:
         parser.print_help()

@@ -1,6 +1,30 @@
 Changelog
 =========
 
+Version 0.1a9
+^^^^^^^^^^^^^
+
+* remove import skip-duplicates arg, we always use COPY and ignore duplicates from data_staging table
+* remove enum_values_history and related triggers
+* refactor events schema to:
+
+   - get better column padding alignment
+   - store params and enums as a dict in events.configurations
+   - move from INT to BIGINT for PKs
+   - add is_active column to parameters and enums
+   - params limits replaced with numrange column
+   - verify parameter value_type
+
+* refactor import XML to reduce unnecessary row updates
+* new pgTAP tests to verify import after TEM server updates
+* verify current DB schema before running import and other cmds
+* move migrate cmd from dev to db commands group
+* remove performance test scripts
+* pass RAISE output from PG to the logger
+* remove pgstattuple extension, add amcheck for future use
+* parse XML parameters that have no subsystem category
+* add pgtune.sh script for future use
+
 Version 0.1a8
 ^^^^^^^^^^^^^
 
