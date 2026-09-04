@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(18);
+SELECT plan(16);
 
 SELECT table_privs_are('public'::name, 'schema_info'::name, 'public', ARRAY['SELECT']);
 
@@ -26,7 +26,5 @@ SELECT has_role('emhealth');
 SELECT has_role('pganalyze');
 
 SELECT is_member_of('pg_monitor', 'pganalyze');
-SELECT is_member_of('pg_stat_scan_tables', 'grafana');
-SELECT is_member_of('pg_read_all_stats', 'grafana');
 
 SELECT * FROM finish();

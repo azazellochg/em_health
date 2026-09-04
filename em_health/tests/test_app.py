@@ -32,8 +32,8 @@ from em_health.utils.import_xml import ImportXML
 from em_health.utils.tools import run_command
 from em_health.db_manager import DatabaseManager
 
-XML_FN = os.path.join(os.path.dirname(__file__), '9999_data.xml')
-XML_FN2 = os.path.join(os.path.dirname(__file__), '9999_changed_data.xml')
+XML_FN = os.path.join(os.path.dirname(__file__), '9999_data.xml.gz')
+XML_FN2 = os.path.join(os.path.dirname(__file__), '9999_changed_data.xml.gz')
 JSON_INFO = [{
     "instrument": "9999, Test Instrument",
     "serial": 9999,
