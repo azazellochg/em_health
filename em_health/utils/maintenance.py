@@ -102,8 +102,6 @@ def backup(dbname: str = "tem") -> Path:
         logger.info("Backing up TimescaleDB '%s' to %s", dbname, pg_host_backup.resolve())
         run_command(f"{PG_EXEC} pg_dump -Fc -d {dbname} -f {pg_backup}")
         return pg_backup
-    else:
-        raise ValueError(f"Unknown database: {dbname}")
 
 
 def list_backups() -> list[Path]:

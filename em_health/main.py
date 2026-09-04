@@ -64,10 +64,14 @@ def db_cmd(args):
     action = args.action
 
     if action in ["create-stats", "erase", "prune", "migrate"]:
+        if dbname not in ["tem", "sem"]:
+            raise ValueError(f"Database '{dbname}' not recognized. 'tem' or 'sem' only")
         from em_health.db_manager import main as func
         func(dbname, action, getattr(args, "days", None))
 
     elif action in ["backup", "restore"]:
+        if dbname not in ["tem", "sem", "grafana"]:
+            raise ValueError(f"Database '{dbname}' not recognized. 'tem', 'sem' or 'grafana' only")
         from em_health.utils.maintenance import main as func
         func(action, dbname)
 
@@ -75,6 +79,9 @@ def db_cmd(args):
 def dev_cmd(args):
     dbname = args.database
     action = args.action
+
+    if dbname not in ["tem", "sem"]:
+        raise ValueError(f"Database '{dbname}' not recognized. 'tem' or 'sem' only")
 
     if action == "pganalyze":
         from em_health.db_analyze import main as func

@@ -33,6 +33,9 @@ $$
       -- 5. Migrate events.instruments to adjust column padding
       DROP EXTENSION IF EXISTS pgstattuple;
 
+      REVOKE pg_stat_scan_tables FROM grafana;
+      REVOKE pg_read_all_stats FROM grafana;
+
       -- 4. Update schema version
       UPDATE public.schema_info SET version = 7;
     END IF;

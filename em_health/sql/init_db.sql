@@ -80,10 +80,5 @@ ALTER ROLE pganalyze SET search_path = pganalyze,public;
 ALTER ROLE grafana SET search_path = events,uec,pganalyze,public;
 
 -- set current schema version --
-INSERT INTO public.schema_info (
-  version
-)
-VALUES
-  (
-    7
-  );
+INSERT INTO public.schema_info (version)
+VALUES (7);
