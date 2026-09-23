@@ -298,6 +298,35 @@ BEGIN
 END;
 $$;
 
+-- Creating update_thresholds
+CREATE OR REPLACE FUNCTION events.update_thresholds(
+  p_instrument_id BIGINT,
+  p_thresholds_dict JSONB
+)
+  RETURNS VOID
+  LANGUAGE plpgsql
+AS $$
+BEGIN
+  UPDATE events.parameters p
+  SET
+    crit_limits = numrange(
+      (v.value ->> 'CriticalMin')::numeric,
+      (v.value ->> 'CriticalMax')::numeric,
+      '[]'),
+    warn_limits = numrange(
+      (v.value ->> 'WarningMin')::numeric,
+      (v.value ->> 'WarningMax')::numeric,
+      '[]'),
+    caution_limits = numrange(
+      (v.value ->> 'CautionMin')::numeric,
+      (v.value ->> 'CautionMax')::numeric,
+      '[]')
+  FROM jsonb_each(p_thresholds_dict) v
+  WHERE p.instrument_id = p_instrument_id
+    AND p.param_id = v.key::BIGINT;
+END;
+$$;
+
 -- Creating delete_instrument
 CREATE OR REPLACE FUNCTION events.delete_instrument(
   p_instrument_id BIGINT

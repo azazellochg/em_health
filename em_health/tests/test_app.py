@@ -110,6 +110,8 @@ class TestEMHealth(unittest.TestCase):
             # convert to list since we need to iterate twice
             datapoints = list(parser.parse_values(instrument_id, parser.params))
             self.check_datapoints(datapoints)
+            if parser.thresholds:
+                dbm.add_thresholds(instrument_id, parser.thresholds)
             dbm.write_data(datapoints)
 
         run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/04_import.sql"')

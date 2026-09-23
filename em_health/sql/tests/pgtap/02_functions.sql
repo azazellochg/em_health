@@ -10,6 +10,7 @@ SELECT function_privs_are(
 SELECT functions_are('events'::name, ARRAY[
   'purge_old_chunks',
   'import_instrument',
+  'update_thresholds',
   'delete_instrument',
   'parameters_log_after_update'
   ]);

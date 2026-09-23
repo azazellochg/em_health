@@ -60,6 +60,7 @@ class ImportXML:
         self.db_name = None
         self.enum_values: dict[str, dict] = {}
         self.params: dict[int, dict] = {}
+        self.thresholds: dict[int, dict] = {}
 
         if self.path.endswith('.xml.gz'):
             self.file = gzip.open(self.path, 'rb')
@@ -184,6 +185,7 @@ class ImportXML:
                     elem.clear()  # clear skipped elements
                     continue
                 value_type = param_dict["value_type"]
+                points = []
 
                 param_values_elem = elem.find('ns:ParameterValues', namespaces=NS)
                 if param_values_elem is not None:
@@ -196,8 +198,21 @@ class ImportXML:
                             continue  # failed to convert value
 
                         point = (timestamp, instr_id, param_id, value_num, value_text)
-                        yield point
+                        points.append(point)
 
+                limits_elem = elem.find('ns:Limits', namespaces=NS)
+                if limits_elem is not None:
+                    self.thresholds[param_id] = {}
+                    limit_elem = limits_elem.find('ns:Limit', namespaces=NS)
+                    if limit_elem is not None:
+                        for threshold_elem in limit_elem.findall('ns:Threshold', namespaces=NS):
+                            name = threshold_elem.get("Name")
+                            value_elem = threshold_elem.find('ns:Value', namespaces=NS)
+                            if value_elem is not None:
+                                self.thresholds[param_id][name] = float(value_elem.text)
+
+                # Only yield after thresholds have been populated
+                yield from points
                 elem.clear()  # Clear after handling <ValueData> and its children
 
     def __enter__(self):
@@ -287,6 +302,8 @@ def main(xml_fn, json_fn):
         with DatabaseManager(xmlparser.db_name) as dbm:
             instrument_id = dbm.add_instrument(instr_dict, config_dict)
             datapoints = xmlparser.parse_values(instrument_id, xmlparser.params)
+            if xmlparser.thresholds:
+                dbm.add_thresholds(instrument_id, xmlparser.thresholds)
             dbm.write_data(datapoints)
     else:
         logger.error("File %s has wrong format", xml_fn)

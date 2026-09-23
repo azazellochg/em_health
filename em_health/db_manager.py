@@ -81,6 +81,16 @@ class DatabaseManager(PgClient):
 
         return instrument_id
 
+    def add_thresholds(self,
+                       instr_id: int,
+                       thresholds_dict: dict) -> None:
+        """ Save parameters thresholds. """
+        self.run_query(
+            "SELECT events.update_thresholds(%s, %s)",
+            values=(instr_id, Jsonb(thresholds_dict),))
+
+        logger.info("Parameter thresholds updated", extra={"prefix": self.instrument_name})
+
     #@profile
     def write_data(self,
                    rows: Iterable[tuple],

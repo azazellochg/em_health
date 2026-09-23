@@ -71,7 +71,7 @@ SELECT is(
   (SELECT upper(abs_limits)
    FROM events.parameters_history
    WHERE instrument_id = (SELECT instrument_id FROM test_ids LIMIT 1)
-     AND param_id = 363),
+     AND param_id = 363 ORDER BY inserted DESC LIMIT 1),
   10000::numeric,
   'Old max abs_limit saved'
        );
@@ -80,8 +80,8 @@ SELECT is(
   (SELECT COUNT(*)
    FROM events.parameters_history
    WHERE instrument_id = (SELECT instrument_id FROM test_ids LIMIT 1)),
-  1::BIGINT,
-  'Params history has 1 record'
+  98::BIGINT,
+  'Params history has 98 records'
        );
 
 SELECT is(
