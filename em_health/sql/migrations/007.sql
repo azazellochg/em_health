@@ -2,6 +2,8 @@ DO
 $$
   DECLARE
     current_version INTEGER;
+    job INTEGER;
+    chunk REGCLASS;
     old_count BIGINT;
     new_count BIGINT;
     map_count BIGINT;
@@ -235,10 +237,19 @@ $$
         i.current_config_id,
         NULL, -- do not migrate enum_id
         p.event_id,
-        CASE
-          WHEN p.abs_min IS NULL AND p.abs_max IS NULL THEN NULL
-          ELSE numrange(p.abs_min, p.abs_max, '[]')
-          END,
+        numrange(
+          CASE
+            WHEN abs_min::numeric = '-1.7976931348623157e308'::numeric
+              THEN NULL
+            ELSE abs_min::numeric
+            END,
+          CASE
+            WHEN abs_max::numeric = '1.7976931348623157e308'::numeric
+              THEN NULL
+            ELSE abs_max::numeric
+            END,
+          '[]'
+        ),
         NULL,
         NULL,
         NULL,
@@ -790,10 +801,10 @@ $sql$;
       -- 14. Drop old tables
       RAISE NOTICE 'Removing old tables..';
       DROP TABLE IF EXISTS events.instruments_id_map;
-      DROP TABLE IF EXISTS events.enum_values_old;
-      DROP TABLE IF EXISTS events.enum_types_old;
-      DROP TABLE IF EXISTS events.parameters_old;
-      DROP TABLE IF EXISTS events.instruments_old;
+      DROP TABLE IF EXISTS events.enum_values_old CASCADE;
+      DROP TABLE IF EXISTS events.enum_types_old CASCADE;
+      DROP TABLE IF EXISTS events.parameters_old CASCADE;
+      DROP TABLE IF EXISTS events.instruments_old CASCADE;
 
       -- 15. Update schema version
       UPDATE public.schema_info SET version = 7;
