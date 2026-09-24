@@ -85,11 +85,14 @@ class DatabaseManager(PgClient):
                        instr_id: int,
                        thresholds_dict: dict) -> None:
         """ Save parameters thresholds. """
-        self.run_query(
+        rows = self.run_query(
             "SELECT events.update_thresholds(%s, %s)",
-            values=(instr_id, Jsonb(thresholds_dict),))
+            values=(instr_id, Jsonb(thresholds_dict),),
+            mode="fetchone")[0]
 
-        logger.info("Parameter thresholds updated", extra={"prefix": self.instrument_name})
+        if rows:
+            logger.info("Updated parameter thresholds (%d rows)", rows,
+                        extra={"prefix": self.instrument_name})
 
     #@profile
     def write_data(self,

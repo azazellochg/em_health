@@ -607,29 +607,47 @@ $func$;
 -- Creating update_thresholds
 CREATE OR REPLACE FUNCTION events.update_thresholds(
   p_instrument_id BIGINT,
-  p_thresholds_dict JSONB
+  p_thresholds_dict JSONB,
+  OUT v_updated_count INTEGER
 )
-  RETURNS VOID
   LANGUAGE plpgsql
 AS $func$
 BEGIN
+  WITH new_values AS (
+    SELECT
+      v.key::BIGINT AS param_id,
+      numrange(
+        (v.value ->> 'CriticalMin')::numeric,
+        (v.value ->> 'CriticalMax')::numeric,
+        '[]'
+      ) AS crit_limits,
+      numrange(
+        (v.value ->> 'WarningMin')::numeric,
+        (v.value ->> 'WarningMax')::numeric,
+        '[]'
+      ) AS warn_limits,
+      numrange(
+        (v.value ->> 'CautionMin')::numeric,
+        (v.value ->> 'CautionMax')::numeric,
+        '[]'
+      ) AS caution_limits
+    FROM jsonb_each(p_thresholds_dict) v
+  )
   UPDATE events.parameters p
   SET
-    crit_limits = numrange(
-      (v.value ->> 'CriticalMin')::numeric,
-      (v.value ->> 'CriticalMax')::numeric,
-      '[]'),
-    warn_limits = numrange(
-      (v.value ->> 'WarningMin')::numeric,
-      (v.value ->> 'WarningMax')::numeric,
-      '[]'),
-    caution_limits = numrange(
-      (v.value ->> 'CautionMin')::numeric,
-      (v.value ->> 'CautionMax')::numeric,
-      '[]')
-  FROM jsonb_each(p_thresholds_dict) v
+    crit_limits = n.crit_limits,
+    warn_limits = n.warn_limits,
+    caution_limits = n.caution_limits
+  FROM new_values n
   WHERE p.instrument_id = p_instrument_id
-    AND p.param_id = v.key::BIGINT;
+    AND p.param_id = n.param_id
+    AND (
+      p.crit_limits IS DISTINCT FROM n.crit_limits
+        OR p.warn_limits IS DISTINCT FROM n.warn_limits
+        OR p.caution_limits IS DISTINCT FROM n.caution_limits
+      );
+  GET DIAGNOSTICS v_updated_count = ROW_COUNT;
+  RETURN;
 END;
 $func$;
 
