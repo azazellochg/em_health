@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS uec.errors (
   instrument_id BIGINT NOT NULL REFERENCES events.instruments (id) ON DELETE CASCADE,
   errorid INT NOT NULL REFERENCES uec.error_definitions (errordefinitionid) ON DELETE CASCADE,
   messagetext TEXT,
-  UNIQUE (errorid, instrument_id, time)
+  UNIQUE (instrument_id, errorid, time)
 );
 
 COMMENT ON TABLE uec.errors IS 'Main UEC table with alarm events';
