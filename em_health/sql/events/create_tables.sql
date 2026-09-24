@@ -65,9 +65,9 @@ COMMENT ON CONSTRAINT enum_values_values_key
 
 -- Creating events.parameters
 CREATE TABLE IF NOT EXISTS events.parameters (
-  instrument_id BIGINT NOT NULL REFERENCES events.instruments (id),
+  instrument_id BIGINT NOT NULL,
   param_id BIGINT NOT NULL,
-  config_id BIGINT NOT NULL REFERENCES events.configurations(id),
+  config_id BIGINT NOT NULL,
   enum_id BIGINT,
   event_id INTEGER NOT NULL,
   abs_limits NUMRANGE,
@@ -98,9 +98,9 @@ COMMENT ON CONSTRAINT parameters_instr_param_key
 -- Creating events.parameters_history
 CREATE TABLE IF NOT EXISTS events.parameters_history (
   inserted timestamptz NOT NULL DEFAULT NOW(),
-  instrument_id BIGINT NOT NULL REFERENCES events.instruments (id),
+  instrument_id BIGINT NOT NULL,
   param_id BIGINT NOT NULL,
-  config_id BIGINT NOT NULL REFERENCES events.configurations(id),
+  config_id BIGINT NOT NULL,
   enum_id BIGINT,
   event_id INTEGER NOT NULL,
   abs_limits NUMRANGE,
@@ -138,7 +138,7 @@ COMMENT ON TABLE events.data_staging IS 'Staging table for bulk COPY inserts';
 -- Creating events.data
 CREATE TABLE IF NOT EXISTS events.data (
   time timestamptz NOT NULL,
-  instrument_id BIGINT NOT NULL REFERENCES events.instruments (id),
+  instrument_id BIGINT NOT NULL,
   param_id BIGINT NOT NULL,
   value_num DOUBLE PRECISION,
   value_text TEXT,

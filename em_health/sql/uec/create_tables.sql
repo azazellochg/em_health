@@ -47,3 +47,5 @@ CREATE TABLE IF NOT EXISTS uec.errors (
   messagetext TEXT,
   UNIQUE (errorid, instrument_id, time)
 );
+
+COMMENT ON TABLE uec.errors IS 'Main UEC table with alarm events';

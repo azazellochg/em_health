@@ -12,10 +12,11 @@ Version 0.1a9
    - store params and enums as a dict in events.configurations
    - move from INT to BIGINT for PKs
    - add is_active column to parameters and enums
-   - params limits replaced with numrange column
+   - param limits replaced with numrange columns
    - verify parameter value_type
 
 * refactor import XML to reduce unnecessary row updates
+* parse and import thresholds
 * new pgTAP tests to verify import after TEM server updates
 * verify current DB schema before running import and other cmds
 * move migrate cmd from dev to db commands group

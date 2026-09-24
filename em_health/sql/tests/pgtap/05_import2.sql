@@ -92,6 +92,4 @@ SELECT is(
   'Total 2 configuration records'
        );
 
-SELECT events.delete_instrument((SELECT instrument_id FROM test_ids LIMIT 1));
-
 SELECT * FROM finish();

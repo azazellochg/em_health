@@ -101,9 +101,11 @@ class TestEMHealth(unittest.TestCase):
 
         with DatabaseManager(parser.db_name) as dbm:
             # clean-up
-            old = dbm.run_query("SELECT id FROM events.instruments WHERE serial=9999", mode="fetchone")
-            if old:
-                dbm.run_query("SELECT events.delete_instrument(%s)", values=(old[0],))
+            dbm.run_query("""
+              SELECT events.delete_instrument(id)
+              FROM events.instruments
+              WHERE serial = 9999;
+            """)
 
             instrument_id = dbm.add_instrument(instr_dict, config_dict)
 
@@ -128,6 +130,14 @@ class TestEMHealth(unittest.TestCase):
             dbm.write_data(datapoints)
 
         run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/05_import2.sql"')
+
+        with DatabaseManager(parser.db_name) as dbm:
+            # clean-up
+            dbm.run_query("""
+              SELECT events.delete_instrument(id)
+              FROM events.instruments
+              WHERE serial = 9999;
+            """)
 
     def test_pgtap_tem(self):
         run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/0[1-3]*.sql"')
