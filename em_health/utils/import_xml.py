@@ -302,9 +302,10 @@ def main(xml_fn, json_fn):
         with DatabaseManager(xmlparser.db_name) as dbm:
             instrument_id = dbm.add_instrument(instr_dict, config_dict)
             datapoints = xmlparser.parse_values(instrument_id, xmlparser.params)
+            dbm.write_data(datapoints)
+            # thresholds are only populated once points are consumed
             if xmlparser.thresholds:
                 dbm.add_thresholds(instrument_id, xmlparser.thresholds)
-            dbm.write_data(datapoints)
     else:
         logger.error("File %s has wrong format", xml_fn)
         sys.exit(1)
