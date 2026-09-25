@@ -166,8 +166,8 @@ class DatabaseManager(PgClient):
                 WHERE proc_name = {proc}
             """, strings={"proc": proc})
 
-            self.run_query("DROP PROCEDURE IF EXISTS {view}",
-                           {"view": view})
+            self.run_query("DROP PROCEDURE IF EXISTS {proc}",
+                           {"proc": proc})
 
         logger.info("Dropped MVIEW %s", view)
 

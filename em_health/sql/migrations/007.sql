@@ -7,6 +7,7 @@ $$
     old_count BIGINT;
     new_count BIGINT;
     map_count BIGINT;
+    r RECORD;
   BEGIN
     -- Get current schema version
     SELECT MAX(version) INTO current_version FROM public.schema_info;
@@ -292,6 +293,34 @@ $$
         DROP CONSTRAINT IF EXISTS data_instrument_id_fkey;
       ALTER TABLE events.data
         DROP CONSTRAINT IF EXISTS data_param_id_instrument_id_time_key;
+
+      FOR r IN
+        SELECT view_schema, view_name
+        FROM timescaledb_information.continuous_aggregates
+        WHERE hypertable_schema = 'events'
+          AND hypertable_name = 'data'
+      LOOP
+        RAISE NOTICE 'Dropping continuous aggregate %.%', r.view_schema, r.view_name;
+        EXECUTE format('DROP MATERIALIZED VIEW IF EXISTS %I.%I CASCADE', r.view_schema, r.view_name);
+      END LOOP;
+
+      FOR r IN
+        SELECT schemaname, matviewname
+        FROM pg_matviews
+      LOOP
+        RAISE NOTICE 'Dropping materialized view %.%', r.schemaname, r.matviewname;
+        EXECUTE format(
+          'DROP MATERIALIZED VIEW IF EXISTS %I.%I CASCADE;
+     SELECT delete_job(job_id)
+     FROM timescaledb_information.jobs
+     WHERE proc_name = %L;
+     DROP PROCEDURE IF EXISTS %I;',
+          r.schemaname,
+          r.matviewname,
+          'refresh_' || r.matviewname,
+          'refresh_' || r.matviewname
+                );
+      END LOOP;
 
       ALTER TABLE events.data
         ALTER COLUMN instrument_id TYPE BIGINT,
@@ -808,12 +837,14 @@ $sql$;
 
       SELECT count(*) INTO new_count
       FROM events.parameters_old p
-           LEFT JOIN events.instruments_id_map m
-          ON m.old_id = p.instrument_id
-           LEFT JOIN events.parameters pn
-          ON pn.instrument_id = m.new_id
-          AND pn.param_id = p.param_id
-      WHERE pn.instrument_id IS NULL;
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM events.instruments_id_map m
+             JOIN events.parameters pn
+            ON pn.instrument_id = m.new_id
+            AND pn.param_id = p.param_id
+        WHERE m.old_id = p.instrument_id
+      );
 
       IF new_count <> 0 THEN
         RAISE EXCEPTION 'Parameter mapping failed: % parameters have no destination', new_count;
