@@ -37,6 +37,14 @@ except ImportError:
     HAS_MEMORY_PROFILER = False
 
 DEBUG = os.getenv("EMHEALTH_DEBUG", "false").lower() in ("true", "1", "yes")
+PG_LOG_LEVELS = {
+    "DEBUG": logging.DEBUG,
+    "LOG": logging.INFO,
+    "INFO": logging.INFO,
+    "NOTICE": logging.INFO,
+    "WARNING": logging.WARNING,
+    "ERROR": logging.ERROR,
+}
 
 
 class PrefixFormatter(logging.Formatter):

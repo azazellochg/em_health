@@ -37,6 +37,12 @@ from em_health.utils.tools import logger
 
 
 NS = {'ns': 'HealthMonitorExport http://schemas.fei.com/HealthMonitor/Export/2009/07'}
+VALUE_TYPES = {
+    'Int': 'int',
+    'Float': 'float',
+    'String': 'str',
+    'Boolean': 'bool',
+}
 
 
 class ImportXML:
@@ -54,6 +60,7 @@ class ImportXML:
         self.db_name = None
         self.enum_values: dict[str, dict] = {}
         self.params: dict[int, dict] = {}
+        self.thresholds: dict[int, dict] = {}
 
         if self.path.endswith('.xml.gz'):
             self.file = gzip.open(self.path, 'rb')
@@ -106,15 +113,29 @@ class ImportXML:
         logger.debug("Parsed enumerations:", extra={"prefix": self.instrument_name})
         logger.debug(json.dumps(self.enum_values, sort_keys=True, indent=2))
 
+    def __store_param(self,
+                      param,
+                      subsystem_name: str,
+                      component_name: str):
+            param_id = int(param.get("ID"))
+            # None is used because we want to avoid storing empty strings
+            self.params[param_id] = {
+                "subsystem": subsystem_name,
+                "component": component_name,
+                "param_name": param.get("Name"),
+                "enum_name": param.get("EnumerationName", None),
+                "display_name": param.get("DisplayName"),
+                "display_unit": param.get("DisplayUnit") or None,
+                "storage_unit": param.get("StorageUnit") or None,
+                "value_type": VALUE_TYPES.get(param.get("Type"), "str"),
+                "event_id": param.get("EventID"),
+                "event_name": param.get("EventName"),
+                "abs_min": param.get("AbsoluteMinimum") or None,
+                "abs_max": param.get("AbsoluteMaximum") or None
+            }
+
     def parse_parameters(self) -> None:
         """ Parse parameters from XML. """
-        known_types = {
-            'Int': 'int',
-            'Float': 'float',
-            'String': 'str',
-            'Boolean': 'bool',
-        }
-
         for event, elem in self.context:
             if self.__match(elem, "Instruments"):
 
@@ -122,27 +143,15 @@ class ImportXML:
                     for subsystem in instrument.findall('ns:Component', namespaces=NS):
                         subsystem_name = subsystem.get("Name")
 
-                        for component in subsystem.findall('ns:Component', namespaces=NS):
-                            component_name = component.get("Name", None)
-
-                            for param in component.findall('ns:Parameter', namespaces=NS):
-                                param_id = int(param.get("ID"))
-
-                                # None is used because we want to avoid storing empty strings
-                                self.params[param_id] = {
-                                    "subsystem": subsystem_name,
-                                    "component": component_name,
-                                    "param_name": param.get("Name"),
-                                    "enum_name": param.get("EnumerationName", None),
-                                    "display_name": param.get("DisplayName"),
-                                    "display_unit": param.get("DisplayUnit") or None,
-                                    "storage_unit": param.get("StorageUnit") or None,
-                                    "value_type": known_types.get(param.get("Type"), "str"),
-                                    "event_id": param.get("EventID"),
-                                    "event_name": param.get("EventName"),
-                                    "abs_min": param.get("AbsoluteMinimum") or None,
-                                    "abs_max": param.get("AbsoluteMaximum") or None
-                                }
+                        components = subsystem.findall('ns:Component', namespaces=NS)
+                        if components:
+                            for component in components:
+                                component_name = component.get("Name", None)
+                                for param in component.findall('ns:Parameter', namespaces=NS):
+                                    self.__store_param(param, subsystem_name, component_name)
+                        else: # no second level component
+                            for param in subsystem.findall('ns:Parameter', namespaces=NS):
+                                self.__store_param(param, "---", component_name=subsystem_name)
 
                     break  # only a single instrument is supported
 
@@ -176,6 +185,7 @@ class ImportXML:
                     elem.clear()  # clear skipped elements
                     continue
                 value_type = param_dict["value_type"]
+                points = []
 
                 param_values_elem = elem.find('ns:ParameterValues', namespaces=NS)
                 if param_values_elem is not None:
@@ -188,8 +198,21 @@ class ImportXML:
                             continue  # failed to convert value
 
                         point = (timestamp, instr_id, param_id, value_num, value_text)
-                        yield point
+                        points.append(point)
 
+                limits_elem = elem.find('ns:Limits', namespaces=NS)
+                if limits_elem is not None:
+                    self.thresholds[param_id] = {}
+                    limit_elem = limits_elem.find('ns:Limit', namespaces=NS)
+                    if limit_elem is not None:
+                        for threshold_elem in limit_elem.findall('ns:Threshold', namespaces=NS):
+                            name = threshold_elem.get("Name")
+                            value_elem = threshold_elem.find('ns:Value', namespaces=NS)
+                            if value_elem is not None:
+                                self.thresholds[param_id][name] = float(value_elem.text)
+
+                # Only yield after thresholds have been populated
+                yield from points
                 elem.clear()  # Clear after handling <ValueData> and its children
 
     def __enter__(self):
@@ -239,7 +262,7 @@ class ImportXML:
             return None, None
 
 
-def main(xml_fn, json_fn, nocopy):
+def main(xml_fn, json_fn):
     # Validate JSON file
     if not (os.path.exists(json_fn) and json_fn.endswith(".json")):
         logger.error("Settings file '%s' not found or is not a .json file.", json_fn)
@@ -274,13 +297,15 @@ def main(xml_fn, json_fn, nocopy):
         xmlparser.parse_enumerations()
         xmlparser.parse_parameters()
         instr_dict = xmlparser.get_microscope_dict()
+        config_dict = {"params": xmlparser.params, "enums": xmlparser.enum_values}
 
         with DatabaseManager(xmlparser.db_name) as dbm:
-            instrument_id = dbm.add_instrument(instr_dict)
-            enum_ids = dbm.add_enumerations(instrument_id, xmlparser.enum_values)
-            dbm.add_parameters(instrument_id, xmlparser.params, enum_ids)
+            instrument_id = dbm.add_instrument(instr_dict, config_dict)
             datapoints = xmlparser.parse_values(instrument_id, xmlparser.params)
-            dbm.write_data(datapoints, nocopy=nocopy)
+            dbm.write_data(datapoints)
+            # thresholds are only populated once points are consumed
+            if xmlparser.thresholds:
+                dbm.add_thresholds(instrument_id, xmlparser.thresholds)
     else:
         logger.error("File %s has wrong format", xml_fn)
         sys.exit(1)
