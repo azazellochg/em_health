@@ -77,10 +77,9 @@ def check_versions(dbname: str, fn: Path):
         logger.warning(f"Timescale version mismatch: server {ts_version_server} (db {dbname}), backup {ts_version}")
 
 
-def erase_db(dbname: str, ts_version: str | None = None, do_init: bool = False) -> None:
+def erase_db(dbname: str, ts_version: str = "", do_init: bool = False) -> None:
     """Erase existing DB and optionally re-initialize it."""
-    version_clause = f" VERSION '{ts_version}'" if ts_version else ""
-    run_command(f'{PG_EXEC} /usr/local/bin/reset-db.sh {dbname} {int(do_init)} "{version_clause}"')
+    run_command(f'{PG_EXEC} /usr/local/bin/reset-db.sh {dbname} {int(do_init)} {ts_version}')
 
 
 def backup(dbname: str = "tem") -> Path:
