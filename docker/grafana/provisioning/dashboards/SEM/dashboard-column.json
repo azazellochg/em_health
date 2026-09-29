@@ -2,9 +2,9 @@
   "apiVersion": "dashboard.grafana.app/v2",
   "kind": "Dashboard",
   "metadata": {
-    "name": "4395e67b-0345-47fd-94a8-684457567800",
-    "generation": 2,
-    "creationTimestamp": "2026-03-27T12:52:32Z",
+    "name": "4395e67b-0345-47fd-94a8-683653567800",
+    "generation": 1,
+    "creationTimestamp": "2026-07-09T09:04:11Z",
     "labels": {},
     "annotations": {}
   },
@@ -17,14 +17,14 @@
             "kind": "DataQuery",
             "group": "grafana",
             "version": "v0",
+            "labels": {
+              "grafana.app/export-label": "grafana-1"
+            },
             "spec": {
               "limit": 100,
               "matchAny": false,
               "tags": [],
               "type": "dashboard"
-            },
-            "labels": {
-              "grafana.app/export-label": "grafana-1"
             }
           },
           "enable": true,
@@ -78,11 +78,13 @@
           "name": "SEM off",
           "filter": {
             "ids": [
-              9,
-              27,
-              28,
-              29,
-              30
+              44,
+              37,
+              40,
+              42,
+              43,
+              48,
+              52
             ]
           }
         }
@@ -91,198 +93,12 @@
     "cursorSync": "Off",
     "editable": true,
     "elements": {
-      "panel-27": {
-        "kind": "Panel",
-        "spec": {
-          "id": 27,
-          "title": "IGP1 pressure",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${sourceSEM}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "time_series",
-                        "rawQuery": true,
-                        "rawSql": "SELECT\n  hour AS time,\n  param_name,\n  mean_value AS \"1-hour average\"\nFROM sem_pressure_hourly\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'E-Column.IGP1'\n  AND $__timeFilter(hour)\nORDER BY hour",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "hourly",
-                    "hidden": false
-                  }
-                },
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${sourceSEM}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "time_series",
-                        "rawQuery": true,
-                        "rawSql": "SELECT\n  day AS time,\n  param_name,\n  mean_value AS \"24-hour average\"\nFROM sem_pressure_daily\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'E-Column.IGP1'\n  AND $__timeFilter(day)\nORDER BY day",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "daily",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [
-                {
-                  "kind": "Transformation",
-                  "group": "renameByRegex",
-                  "spec": {
-                    "options": {
-                      "regex": "(.*) E-Column.IGP1",
-                      "renamePattern": "$1"
-                    }
-                  }
-                }
-              ],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "timeseries",
-            "version": "12.4.1",
-            "spec": {
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "sci",
-                  "decimals": 2,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      },
-                      {
-                        "value": 0.00008,
-                        "color": "#EAB839"
-                      },
-                      {
-                        "value": 0.0001,
-                        "color": "orange"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "Pa",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 0,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "showValues": false,
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "dashed"
-                    }
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
       "panel-29": {
         "kind": "Panel",
         "spec": {
           "id": 29,
-          "title": "IGP3 pressure",
-          "description": "",
+          "title": "Avg cryo cycle duration",
+          "description": "For Aquilos, we calculate the time periods when the temperature is above 0C",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -300,9 +116,9 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "format": "time_series",
+                        "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  hour AS time,\n  param_name,\n  mean_value AS \"1-hour average\"\nFROM sem_pressure_hourly\nWHERE\n  instrument_id = $instrument\n  AND param_name IN ('IGP3Parameter', 'I-Column.IGP3')\n  AND $__timeFilter(hour)\nORDER BY hour",
+                        "rawSql": "    SELECT\n        start_time,\n        end_time,\n        EXTRACT(EPOCH FROM(end_time - start_time)) AS total_duration\n    FROM sem_cryocycle_al_daily,\n        state_periods(agg, 1) -- boolean = 1 where value = CryoCycle\n    WHERE instrument_id = $instrument\n      AND param_name = 'Column'\n      AND $__timeFilter(day)\n",
                         "sql": {
                           "columns": [
                             {
@@ -322,7 +138,7 @@
                         }
                       }
                     },
-                    "refId": "hourly",
+                    "refId": "Arctis",
                     "hidden": false
                   }
                 },
@@ -338,9 +154,9 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "format": "time_series",
+                        "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  day AS time,\n  param_name,\n  mean_value AS \"24-hour average\"\nFROM sem_pressure_daily\nWHERE\n  instrument_id = $instrument\n  AND param_name IN ('IGP3Parameter', 'I-Column.IGP3')\n  AND $__timeFilter(day)\nORDER BY day",
+                        "rawSql": "    SELECT\n        start_time,\n        end_time,\n        EXTRACT(EPOCH FROM(end_time - start_time)) AS total_duration\n    FROM sem_cryocycle_noal_daily,\n        state_periods(agg, 1) -- boolean = 1 where value > 0\n    WHERE instrument_id = $instrument\n      AND $__timeFilter(day)\n",
                         "sql": {
                           "columns": [
                             {
@@ -360,23 +176,208 @@
                         }
                       }
                     },
-                    "refId": "daily",
+                    "refId": "Aquilos",
                     "hidden": false
                   }
                 }
               ],
-              "transformations": [
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "12.4.1",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "mean"
+                  ],
+                  "fields": "/^total_duration$/",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "value",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "s",
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-30": {
+        "kind": "Panel",
+        "spec": {
+          "id": 30,
+          "title": "Avg time between LN refills",
+          "description": "Arctis only",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
                 {
-                  "kind": "Transformation",
-                  "group": "renameByRegex",
+                  "kind": "PanelQuery",
                   "spec": {
-                    "options": {
-                      "regex": "(.*) (IGP3Parameter|I-Column.IGP3)",
-                      "renamePattern": "$1"
-                    }
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${sourceSEM}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH matching_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'TempCtrl'\n    AND param_name = 'Lcldwr'\n),\n\nbucketed AS (\n  SELECT\n    time_bucket('30 seconds', d.time) AS bucket,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN matching_param p ON d.param_id = p.param_id\n  WHERE d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n  GROUP BY bucket\n),\n\nlagged AS (\n  SELECT\n    bucket,\n    avg_value,\n    LAG(avg_value, 1) OVER (ORDER BY bucket) AS val_1,\n    LAG(avg_value, 2) OVER (ORDER BY bucket) AS val_2,\n    LAG(avg_value, 3) OVER (ORDER BY bucket) AS val_3\n  FROM bucketed\n),\n\nlabeled AS (\n  SELECT *,\n    CASE\n      WHEN avg_value > 90 AND (val_1 < 90 OR val_1 IS NULL) THEN true\n      WHEN avg_value >= COALESCE(val_1, -1e9)\n       AND avg_value >= COALESCE(val_2, -1e9)\n       AND avg_value >= COALESCE(val_3, -1e9)\n       AND avg_value > 90 THEN true\n      ELSE false\n    END AS is_peak\n  FROM lagged\n),\n\nwith_peak_groups AS (\n  SELECT *,\n    CASE\n      WHEN is_peak AND NOT LAG(is_peak, 1, false) OVER (ORDER BY bucket) THEN 1\n      ELSE 0\n    END AS new_peak_start\n  FROM labeled\n),\n\npeak_groups AS (\n  SELECT *,\n    SUM(new_peak_start) OVER (ORDER BY bucket) AS peak_group_id\n  FROM with_peak_groups\n),\n\nranked_peaks AS (\n  SELECT\n    bucket AS time,\n    avg_value,\n    peak_group_id,\n    RANK() OVER (PARTITION BY peak_group_id ORDER BY avg_value DESC) AS val_rank\n  FROM peak_groups\n  WHERE is_peak\n),\n\ncollapsed_peaks AS (\n  SELECT time\n  FROM ranked_peaks\n  WHERE val_rank = 1\n),\n\nwith_deltas AS (\n  SELECT\n    time,\n    LAG(time) OVER (ORDER BY time) AS prev_time\n  FROM collapsed_peaks\n),\n\ndeltas AS (\n  SELECT\n    EXTRACT(EPOCH FROM (time - prev_time)) AS sec_between\n  FROM with_deltas\n  WHERE prev_time IS NOT NULL\n)\n\nSELECT AVG(sec_between) AS avg_sec_between_refills\nFROM deltas;\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
                   }
                 }
               ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "12.4.1",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "/^avg_sec_between_refills$/",
+                  "values": true
+                },
+                "showPercentChange": false,
+                "textMode": "value",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "s",
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-44": {
+        "kind": "Panel",
+        "spec": {
+          "id": 44,
+          "title": "Base vacuum",
+          "description": "HVG pressure when the chamber is pumped",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${sourceSEM}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH chamber_state_param AS (\n    SELECT param_id, enum_id\n    FROM parameters\n    WHERE \n        instrument_id = $instrument\n        AND subsystem = 'Vacuum'\n        AND component = 'Chamber'\n        AND param_name = 'Chamber.StateSC'\n),\npumped_value AS (\n    SELECT \n        e.value AS pumped_value_num,\n        p.param_id\n    FROM chamber_state_param p\n    JOIN enum_values e ON e.enum_id = p.enum_id\n    WHERE e.member_name = 'Pumped'\n),\nraw_states AS (\n    SELECT state_agg(v.time, v.value_num::bigint) AS agg\n    FROM data v\n    JOIN chamber_state_param p ON p.param_id = v.param_id\n    WHERE v.instrument_id = $instrument\n      AND $__timeFilter(v.time)\n),\npumped_states AS (\n    SELECT start_time, end_time\n    FROM state_periods(\n        (SELECT agg FROM raw_states),\n        (SELECT pumped_value_num FROM pumped_value)::bigint\n        )\n),\npressure_param AS (\n    SELECT param_id\n    FROM parameters\n    WHERE \n      instrument_id = $instrument\n      AND component = 'Chamber'\n      AND param_name = 'Chamber.HVG'\n),\npressure_values AS (\n    SELECT \n        v.time,\n        v.value_num AS pressure_value\n    FROM data v\n    JOIN pressure_param p ON p.param_id = v.param_id\n    JOIN pumped_states r \n        ON v.time >= r.start_time \n        AND v.time <= r.end_time\n    WHERE \n        v.instrument_id = $instrument\n)\nSELECT\n    time,\n    approx_percentile(\n        0.5,\n        percentile_agg(pressure_value)\n            OVER (\n                ORDER BY time\n                RANGE BETWEEN INTERVAL '24 hours' PRECEDING AND CURRENT ROW\n            )\n    ) AS \"Rolling 24-hour median HVG pressure\"\nFROM pressure_values\nORDER BY time;",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
               "queryOptions": {}
             }
           },
@@ -410,12 +411,8 @@
                         "color": "green"
                       },
                       {
-                        "value": 0.00008,
+                        "value": 0.001,
                         "color": "#EAB839"
-                      },
-                      {
-                        "value": 0.0001,
-                        "color": "orange"
                       }
                     ]
                   },
@@ -463,11 +460,11 @@
           }
         }
       },
-      "panel-31": {
+      "panel-45": {
         "kind": "Panel",
         "spec": {
-          "id": 31,
-          "title": "IGP spikes",
+          "id": 45,
+          "title": "PVP1 Lifetime",
           "description": "",
           "links": [],
           "data": {
@@ -488,287 +485,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH state_param AS (\n  SELECT\n    param_id, param_name\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name IN ('I-Column.IGP1_PeakCount', 'I-Column.IGP2_PeakCount')\n    AND subsystem = 'Vacuum'\n)\nSELECT\n  p.param_name,\n  MAX(d.value_num) - MIN(d.value_num) AS counts\nFROM data d\nJOIN state_param p USING (param_id)\nWHERE instrument_id = $instrument \n  AND $__timeFilter(d.time)\nGROUP BY p.param_name",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [
-                {
-                  "kind": "Transformation",
-                  "group": "sortBy",
-                  "spec": {
-                    "options": {
-                      "fields": {},
-                      "sort": [
-                        {
-                          "field": "param_name"
-                        }
-                      ]
-                    }
-                  }
-                },
-                {
-                  "kind": "Transformation",
-                  "group": "rowsToFields",
-                  "spec": {
-                    "options": {
-                      "mappings": [
-                        {
-                          "fieldName": "param_name",
-                          "handlerKey": "field.name"
-                        },
-                        {
-                          "fieldName": "counts",
-                          "handlerKey": "field.value"
-                        }
-                      ]
-                    }
-                  }
-                },
-                {
-                  "kind": "Transformation",
-                  "group": "renameByRegex",
-                  "spec": {
-                    "options": {
-                      "regex": "I-Column.(.*)_PeakCount",
-                      "renamePattern": "$1"
-                    }
-                  }
-                }
-              ],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "stat",
-            "version": "12.4.1",
-            "spec": {
-              "options": {
-                "colorMode": "value",
-                "graphMode": "none",
-                "justifyMode": "center",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [
-                    "lastNotNull"
-                  ],
-                  "fields": "/.*/",
-                  "values": true
-                },
-                "showPercentChange": false,
-                "textMode": "value_and_name",
-                "wideLayout": true
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "thresholds"
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-32": {
-        "kind": "Panel",
-        "spec": {
-          "id": 32,
-          "title": "IGP spikes",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${sourceSEM}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "WITH state_param AS (\n  SELECT\n    param_id, param_name\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name IN ('I-Column.IGP3_PeakCount', 'I-Column.IGP4_PeakCount')\n    AND subsystem = 'Vacuum'\n)\nSELECT\n  p.param_name,\n  MAX(d.value_num) - MIN(d.value_num) AS counts\nFROM data d\nJOIN state_param p USING (param_id)\nWHERE instrument_id = $instrument \n  AND $__timeFilter(d.time)\nGROUP BY p.param_name",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [
-                {
-                  "kind": "Transformation",
-                  "group": "sortBy",
-                  "spec": {
-                    "options": {
-                      "fields": {},
-                      "sort": [
-                        {
-                          "field": "param_name"
-                        }
-                      ]
-                    }
-                  }
-                },
-                {
-                  "kind": "Transformation",
-                  "group": "rowsToFields",
-                  "spec": {
-                    "options": {
-                      "mappings": [
-                        {
-                          "fieldName": "param_name",
-                          "handlerKey": "field.name"
-                        },
-                        {
-                          "fieldName": "counts",
-                          "handlerKey": "field.value"
-                        }
-                      ]
-                    }
-                  }
-                },
-                {
-                  "kind": "Transformation",
-                  "group": "renameByRegex",
-                  "spec": {
-                    "options": {
-                      "regex": "I-Column.(.*)_PeakCount",
-                      "renamePattern": "$1"
-                    }
-                  }
-                }
-              ],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "stat",
-            "version": "12.4.1",
-            "spec": {
-              "options": {
-                "colorMode": "value",
-                "graphMode": "none",
-                "justifyMode": "center",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [
-                    "lastNotNull"
-                  ],
-                  "fields": "/.*/",
-                  "values": true
-                },
-                "showPercentChange": false,
-                "textMode": "value_and_name",
-                "wideLayout": true
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "thresholds"
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-33": {
-        "kind": "Panel",
-        "spec": {
-          "id": 33,
-          "title": "LMIS/PFIB",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${sourceSEM}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "WITH counter_param AS (\n  SELECT instrument_id, param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'FIB'\n    AND param_name IN ('SourceAgeParameter', 'OperatingTimeFIBParameter')\n),\n\nfiltered AS (\n  SELECT\n    d.time,\n    d.value_num AS operate_time\n  FROM data d\n  JOIN counter_param p USING (instrument_id, param_id)\n),\n\nchanges AS (\n  SELECT\n    time,\n    operate_time,\n    lag(operate_time) OVER (ORDER BY time) AS prev_value\n  FROM filtered\n),\n\nlast_replacement AS (\n  SELECT time\n  FROM changes\n  WHERE operate_time < prev_value   -- counter reset\n  ORDER BY time DESC\n  LIMIT 1\n),\n\nlast_value AS (\n  SELECT last(operate_time, time) AS source_age\n  FROM filtered\n)\n\nSELECT\n  lv.source_age / 3600 AS \"Source age\",\n  lr.time AS \"Last replacement\"\nFROM last_value lv\nLEFT JOIN last_replacement lr ON true\n",
+                        "rawSql": "WITH counter_param AS (\n  SELECT param_id, param_name\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND component = 'Service'\n    AND param_name = 'PVP1Lifetime'\n)\n\n  SELECT d.value_num\n  FROM data d\n  JOIN counter_param p ON p.param_id = d.param_id\n  WHERE d.instrument_id = $instrument \n    AND $__timeFilter(d.time)\n  ORDER BY d.time DESC\n  LIMIT 1\n",
                         "sql": {
                           "columns": [
                             {
@@ -806,7 +523,7 @@
                 "colorMode": "value",
                 "graphMode": "none",
                 "justifyMode": "center",
-                "orientation": "auto",
+                "orientation": "horizontal",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
                   "calcs": [],
@@ -814,11 +531,12 @@
                   "values": true
                 },
                 "showPercentChange": false,
-                "textMode": "value_and_name",
+                "textMode": "value",
                 "wideLayout": false
               },
               "fieldConfig": {
                 "defaults": {
+                  "unit": "h",
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -830,45 +548,19 @@
                   },
                   "color": {
                     "mode": "thresholds"
-                  },
-                  "noValue": "Unknown"
-                },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Source age"
-                    },
-                    "properties": [
-                      {
-                        "id": "unit",
-                        "value": "hours"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Last replacement"
-                    },
-                    "properties": [
-                      {
-                        "id": "unit",
-                        "value": "dateTimeAsLocal"
-                      }
-                    ]
                   }
-                ]
+                },
+                "overrides": []
               }
             }
           }
         }
       },
-      "panel-34": {
+      "panel-47": {
         "kind": "Panel",
         "spec": {
-          "id": 34,
-          "title": "LMIS emission current",
+          "id": 47,
+          "title": "Chamber modes",
           "description": "",
           "links": [],
           "data": {
@@ -887,9 +579,9 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "format": "time_series",
+                        "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'FIB'\n    AND param_name = 'EmissionFIBParameter'\n)\n\nSELECT\n  time,\n  value\nFROM unnest((\n  SELECT lttb(\n    time,\n    value_num,\n    2 * (($__to - $__from) / $__interval_ms)::int\n  )\n  FROM data\n  WHERE instrument_id = $instrument\n    AND param_id = (SELECT param_id FROM matching_param)\n    AND $__timeFilter(time)\n))\nORDER BY 1;\n",
+                        "rawSql": "WITH cagg AS (\n  SELECT\n    p.enum_id,\n    state_agg(d.time, d.value_num :: int) AS agg\n  FROM\n    data d\n    JOIN parameters p USING (instrument_id, param_id)\n  WHERE\n    d.instrument_id = $instrument \n    AND $__timeFilter(d.time)\n    AND p.component = 'Chamber'\n    AND p.param_name = 'Chamber.Mode'\n  GROUP BY\n    p.enum_id\n)\n\nSELECT\n  ev.member_name AS state,\n  COUNT(*) AS \"Count\"\nFROM\n  cagg\n  CROSS JOIN LATERAL state_int_timeline(agg) s\n  JOIN enum_values ev ON ev.enum_id = cagg.enum_id AND ev.value = s.state\nGROUP BY ev.member_name\nORDER BY \"Count\" DESC",
                         "sql": {
                           "columns": [
                             {
@@ -909,7 +601,7 @@
                         }
                       }
                     },
-                    "refId": "A",
+                    "refId": "B",
                     "hidden": false
                   }
                 }
@@ -920,39 +612,40 @@
           },
           "vizConfig": {
             "kind": "VizConfig",
-            "group": "timeseries",
+            "group": "barchart",
             "version": "12.4.1",
             "spec": {
               "options": {
+                "barRadius": 0,
+                "barWidth": 0.97,
+                "fullHighlight": false,
+                "groupWidth": 0.7,
                 "legend": {
                   "calcs": [],
                   "displayMode": "list",
                   "placement": "bottom",
                   "showLegend": false
                 },
+                "orientation": "horizontal",
+                "showValue": "auto",
+                "stacking": "none",
                 "tooltip": {
                   "hideZeros": false,
-                  "mode": "multi",
+                  "mode": "single",
                   "sort": "none"
-                }
+                },
+                "xField": "State",
+                "xTickLabelRotation": 0,
+                "xTickLabelSpacing": 100
               },
               "fieldConfig": {
                 "defaults": {
-                  "unit": "amp",
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
                         "value": 0,
-                        "color": "yellow"
-                      },
-                      {
-                        "value": 0.0000018,
-                        "color": "yellow"
-                      },
-                      {
-                        "value": 0.0000022,
-                        "color": "yellow"
+                        "color": "green"
                       }
                     ]
                   },
@@ -964,456 +657,20 @@
                     "axisCenteredZero": false,
                     "axisColorMode": "text",
                     "axisLabel": "",
-                    "axisPlacement": "left",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 0,
+                    "axisPlacement": "auto",
+                    "fillOpacity": 80,
                     "gradientMode": "none",
                     "hideFrom": {
                       "legend": false,
                       "tooltip": false,
                       "viz": false
                     },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineStyle": {
-                      "fill": "solid"
-                    },
-                    "lineWidth": 2,
-                    "pointSize": 5,
+                    "lineWidth": 1,
                     "scaleDistribution": {
-                      "log": 2,
-                      "type": "log"
-                    },
-                    "showPoints": "never",
-                    "showValues": false,
-                    "spanNulls": true,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
+                      "type": "linear"
                     },
                     "thresholdsStyle": {
-                      "mode": "dashed"
-                    }
-                  },
-                  "fieldMinMax": false
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-35": {
-        "kind": "Panel",
-        "spec": {
-          "id": 35,
-          "title": "LMIS heat cycles / PFIB ignition count",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${sourceSEM}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "SELECT d.value_num\nFROM data d\nJOIN parameters p\n  ON d.param_id = p.param_id\nWHERE p.instrument_id = $instrument\n  AND p.component = 'FIB'\n  AND p.param_name IN ('TotalLifetimeHeatsParameter', 'TotalIgnitionCountParameter')\nORDER BY d.time DESC\nLIMIT 1",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "stat",
-            "version": "12.4.1",
-            "spec": {
-              "options": {
-                "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "",
-                  "values": true
-                },
-                "showPercentChange": false,
-                "textMode": "value",
-                "wideLayout": true
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "noValue": "Unknown"
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-36": {
-        "kind": "Panel",
-        "spec": {
-          "id": 36,
-          "title": "PFIB ignition ratio (last week)",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${sourceSEM}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "WITH latest_week AS (\n  SELECT time_bucket('1 week', max(d.time)) AS bucket\n  FROM data d\n  JOIN parameters p\n    ON d.instrument_id = p.instrument_id\n   AND d.param_id = p.param_id\n  WHERE p.instrument_id = $instrument \n    AND p.component = 'FIB'\n    AND p.param_name IN ('SuccessfulIgnitionCountParameter', 'TotalIgnitionCountParameter')\n    AND $__timeFilter(d.time)\n)\n\nSELECT\n  COALESCE(NULLIF(delta(counter_agg(d.time, d.value_num) FILTER (WHERE p.param_name = 'SuccessfulIgnitionCountParameter')), 0), 1)::float\n  /\n  COALESCE(NULLIF(delta(counter_agg(d.time, d.value_num) FILTER (WHERE p.param_name = 'TotalIgnitionCountParameter')), 0), 1) AS ratio\n\nFROM data d\nJOIN parameters p\n  ON d.instrument_id = p.instrument_id\n AND d.param_id = p.param_id\nJOIN latest_week lw\n  ON time_bucket('1 week', d.time) = lw.bucket\nWHERE p.instrument_id = $instrument \n  AND p.component = 'FIB'\n  AND p.param_name IN ('SuccessfulIgnitionCountParameter', 'TotalIgnitionCountParameter')\n",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "stat",
-            "version": "12.4.1",
-            "spec": {
-              "options": {
-                "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "",
-                  "values": true
-                },
-                "showPercentChange": false,
-                "textMode": "value",
-                "wideLayout": true
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "percentunit",
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "orange"
-                      },
-                      {
-                        "value": 0.9,
-                        "color": "yellow"
-                      },
-                      {
-                        "value": 0.95,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "thresholds"
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-37": {
-        "kind": "Panel",
-        "spec": {
-          "id": 37,
-          "title": "PFIB jacket water flow",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${sourceSEM}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "SELECT\n  average(stats_agg(d.value_num)) AS avg_flow\nFROM\n  data d\n  JOIN parameters p USING (instrument_id, param_id)\nWHERE\n  d.instrument_id = $instrument \n  AND $__timeFilter(d.time)\n  AND p.component = 'FIB'\n  AND p.param_name = 'JacketFlowParameter'",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "stat",
-            "version": "12.4.1",
-            "spec": {
-              "options": {
-                "colorMode": "value",
-                "graphMode": "none",
-                "justifyMode": "center",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "",
-                  "values": true
-                },
-                "showPercentChange": false,
-                "textMode": "value",
-                "wideLayout": false
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "flowlpm",
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "thresholds"
-                  },
-                  "noValue": "Unknown"
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-38": {
-        "kind": "Panel",
-        "spec": {
-          "id": 38,
-          "title": "PFIB gas usage",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${sourceSEM}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "WITH params AS (\n  SELECT instrument_id, param_id, param_name\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'FIB'\n    AND param_name LIKE 'GasUsage_%Parameter'\n),\n\ntotals AS (\n  SELECT\n    substring(p.param_name FROM '^GasUsage_(.+)Parameter$') AS gas_type,\n    delta(counter_agg(d.time, d.value_num)) AS total_usage\n  FROM data d\n  JOIN params p USING (instrument_id, param_id)\n  WHERE $__timeFilter(d.time)\n  GROUP BY p.param_name\n)\n\nSELECT\n  gas_type,\n  total_usage,\n  total_usage * 100.0\n    / NULLIF(SUM(total_usage) OVER (), 0) AS pct_of_total\nFROM totals\nORDER BY pct_of_total DESC\n",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [
-                {
-                  "kind": "Transformation",
-                  "group": "rowsToFields",
-                  "spec": {
-                    "options": {
-                      "mappings": [
-                        {
-                          "fieldName": "total_usage",
-                          "handlerKey": "__ignore"
-                        }
-                      ]
-                    }
-                  }
-                }
-              ],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "piechart",
-            "version": "12.4.1",
-            "spec": {
-              "options": {
-                "displayLabels": [
-                  "percent",
-                  "name"
-                ],
-                "legend": {
-                  "displayMode": "list",
-                  "placement": "right",
-                  "showLegend": false
-                },
-                "pieType": "donut",
-                "reduceOptions": {
-                  "calcs": [
-                    "lastNotNull"
-                  ],
-                  "fields": "",
-                  "values": true
-                },
-                "sort": "desc",
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "single",
-                  "sort": "none"
-                }
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "percent",
-                  "min": 0,
-                  "max": 100,
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
+                      "mode": "off"
                     }
                   }
                 },
@@ -1423,11 +680,11 @@
           }
         }
       },
-      "panel-39": {
+      "panel-48": {
         "kind": "Panel",
         "spec": {
-          "id": 39,
-          "title": "IGP2 pressure",
+          "id": 48,
+          "title": "QuickLoader pressure",
           "description": "",
           "links": [],
           "data": {
@@ -1448,7 +705,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  hour AS time,\n  param_name,\n  mean_value AS \"1-hour average\"\nFROM sem_pressure_hourly\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'E-Column.IGP2'\n  AND $__timeFilter(hour)\nORDER BY hour",
+                        "rawSql": "SELECT\n  hour AS time,\n  param_name,\n  mean_value AS \"1-hour average\"\nFROM sem_pressure_hourly\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'Quickloader.QLG'\n  AND $__timeFilter(hour)\nORDER BY hour",
                         "sql": {
                           "columns": [
                             {
@@ -1486,7 +743,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  day AS time,\n  param_name,\n  mean_value AS \"24-hour average\"\nFROM sem_pressure_daily\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'E-Column.IGP2'\n  AND $__timeFilter(day)\nORDER BY day",
+                        "rawSql": "SELECT\n  day AS time,\n  param_name,\n  mean_value AS \"24-hour average\"\nFROM sem_pressure_daily\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'Quickloader.QLG'\n  AND $__timeFilter(day)\nORDER BY day",
                         "sql": {
                           "columns": [
                             {
@@ -1517,7 +774,7 @@
                   "group": "renameByRegex",
                   "spec": {
                     "options": {
-                      "regex": "(.*) E-Column.IGP2",
+                      "regex": "(.*)Quickloader.QLG",
                       "renamePattern": "$1"
                     }
                   }
@@ -1554,14 +811,6 @@
                       {
                         "value": 0,
                         "color": "green"
-                      },
-                      {
-                        "value": 0.00008,
-                        "color": "#EAB839"
-                      },
-                      {
-                        "value": 0.0001,
-                        "color": "orange"
                       }
                     ]
                   },
@@ -1609,197 +858,11 @@
           }
         }
       },
-      "panel-40": {
+      "panel-50": {
         "kind": "Panel",
         "spec": {
-          "id": 40,
-          "title": "IGP4 pressure",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${sourceSEM}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "time_series",
-                        "rawQuery": true,
-                        "rawSql": "SELECT\n  hour AS time,\n  param_name,\n  mean_value AS \"1-hour average\"\nFROM sem_pressure_hourly\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'IGP4Parameter'\n  AND $__timeFilter(hour)\nORDER BY hour",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "hourly",
-                    "hidden": false
-                  }
-                },
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${sourceSEM}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "time_series",
-                        "rawQuery": true,
-                        "rawSql": "SELECT\n  day AS time,\n  param_name,\n  mean_value AS \"24-hour average\"\nFROM sem_pressure_daily\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'IGP4Parameter'\n  AND $__timeFilter(day)\nORDER BY day",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "daily",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [
-                {
-                  "kind": "Transformation",
-                  "group": "renameByRegex",
-                  "spec": {
-                    "options": {
-                      "regex": "(.*)IGP4Parameter",
-                      "renamePattern": "$1"
-                    }
-                  }
-                }
-              ],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "timeseries",
-            "version": "12.4.1",
-            "spec": {
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "sci",
-                  "decimals": 2,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      },
-                      {
-                        "value": 0.00008,
-                        "color": "#EAB839"
-                      },
-                      {
-                        "value": 0.0001,
-                        "color": "orange"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "Pa",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 0,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "showValues": false,
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "dashed"
-                    }
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-7": {
-        "kind": "Panel",
-        "spec": {
-          "id": 7,
-          "title": "FEG states",
+          "id": 50,
+          "title": "Holder types",
           "description": "",
           "links": [],
           "data": {
@@ -1820,7 +883,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH cagg AS (\n  SELECT\n    p.enum_id,\n    state_agg(d.time, d.value_num :: int) AS agg\n  FROM\n    data d\n    JOIN parameters p USING (instrument_id, param_id)\n  WHERE\n    d.instrument_id = $instrument \n    AND $__timeFilter(d.time)\n    AND p.param_name = 'ExternalStateParameter'\n    AND p.component = 'FEG'\n  GROUP BY\n    p.enum_id\n)\nSELECT\n  ev.member_name AS state,\n  COUNT(*) AS interval_count\nFROM\n  cagg\n  CROSS JOIN LATERAL state_int_timeline(agg) s\n  JOIN enum_values ev ON ev.enum_id = cagg.enum_id AND ev.value = s.state\nGROUP BY\n  ev.member_name\nORDER BY\n  ev.member_name",
+                        "rawSql": "WITH cagg AS (\n  SELECT\n    p.enum_id,\n    state_agg(d.time, d.value_num :: int) AS agg\n  FROM\n    data d\n    JOIN parameters p USING (instrument_id, param_id)\n  WHERE\n    d.instrument_id = $instrument \n    AND $__timeFilter(d.time)\n    AND p.component = 'Stage'\n    AND p.param_name = 'ActiveHolder'\n  GROUP BY\n    p.enum_id\n)\n\nSELECT\n  ev.member_name AS \"Holder\",\n  COUNT(*) AS \"Count\"\nFROM\n  cagg\n  CROSS JOIN LATERAL state_int_timeline(agg) s\n  JOIN enum_values ev ON ev.enum_id = cagg.enum_id AND ev.value = s.state\nGROUP BY ev.member_name\nORDER BY \"Count\" DESC",
                         "sql": {
                           "columns": [
                             {
@@ -1919,11 +982,163 @@
           }
         }
       },
-      "panel-8": {
+      "panel-52": {
         "kind": "Panel",
         "spec": {
-          "id": 8,
-          "title": "FEG Operate time",
+          "id": 52,
+          "title": "Temperatures (1-hour median)",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${sourceSEM}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND subsystem = 'Options'\n    AND component = 'Thermometers'\n    AND param_name LIKE 'ExperimentalThermometerCryo%Temperature'\n)\nSELECT\n    time_bucket_gapfill('1 hour', d.time) AS time,\n    p.param_name,\n    locf(approx_percentile(0.5, percentile_agg(d.value_num))) AS median_1h\nFROM data d\nJOIN param_ids p ON p.param_id = d.param_id\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nGROUP BY 1, 2\nORDER BY 1\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "renameByRegex",
+                  "spec": {
+                    "options": {
+                      "regex": "median_1h ExperimentalThermometer(.*)Temperature",
+                      "renamePattern": "$1"
+                    }
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "12.4.1",
+            "spec": {
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "min",
+                    "max",
+                    "median"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "celsius",
+                  "decimals": 2,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 75,
+                        "color": "#EAB839"
+                      },
+                      {
+                        "value": 80,
+                        "color": "orange"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "left",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "dashed"
+                    }
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-54": {
+        "kind": "Panel",
+        "spec": {
+          "id": 54,
+          "title": "Interlocks",
           "description": "",
           "links": [],
           "data": {
@@ -1944,7 +1159,238 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH counter_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'FEG'\n    AND param_name = 'OperateTimeFEGParameter'\n)\n\nSELECT d.value_num AS \"OperationTimeCounter\"\nFROM data d\nJOIN counter_param p ON p.param_id = d.param_id\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time) \nORDER BY d.time DESC\nLIMIT 1;\n",
+                        "rawSql": "SELECT\n    p.param_name,\n    COUNT(*) AS bad_count\nFROM data d\nJOIN parameters p \n    ON d.param_id = p.param_id\n    AND p.instrument_id = $instrument\n    AND p.subsystem = 'Vacuum'\n    AND p.component = 'Interlocks'\nJOIN enum_values e\n    ON e.enum_id = p.enum_id\n    AND e.value = d.value_num\nWHERE $__timeFilter(d.time)\n  AND e.member_name IN ('Interlock BAD', 'Disabled')\nGROUP BY p.param_name\nORDER BY p.param_name\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "formatString",
+                  "spec": {
+                    "options": {
+                      "outputFormat": "Substring",
+                      "stringField": "param_name",
+                      "substringStart": 11
+                    }
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "12.4.1",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [],
+                  "fields": "",
+                  "values": true
+                },
+                "showPercentChange": false,
+                "textMode": "value_and_name",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "palette-classic"
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-55": {
+        "kind": "Panel",
+        "spec": {
+          "id": 55,
+          "title": "State",
+          "description": "Based on SC gauge",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${sourceSEM}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH cagg AS (\n  SELECT\n    p.enum_id,\n    state_agg(d.time, d.value_num :: int) AS agg\n  FROM\n    data d\n    JOIN parameters p USING (instrument_id, param_id)\n  WHERE\n    d.instrument_id = $instrument \n    AND $__timeFilter(d.time)\n    AND p.component = 'Chamber'\n    AND p.param_name = 'Chamber.StateSC'\n  GROUP BY\n    p.enum_id\n)\n\nSELECT\n  ev.member_name AS \"State\",\n  COUNT(*) AS \"Count\"\nFROM\n  cagg\n  CROSS JOIN LATERAL state_int_timeline(agg) s\n  JOIN enum_values ev ON ev.enum_id = cagg.enum_id AND ev.value = s.state\nGROUP BY ev.member_name\nORDER BY \"Count\" DESC",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "barchart",
+            "version": "12.4.1",
+            "spec": {
+              "options": {
+                "barRadius": 0,
+                "barWidth": 0.97,
+                "fullHighlight": false,
+                "groupWidth": 0.7,
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
+                },
+                "orientation": "horizontal",
+                "showValue": "auto",
+                "stacking": "none",
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                },
+                "xField": "State",
+                "xTickLabelRotation": 0,
+                "xTickLabelSpacing": 100
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "fillOpacity": 80,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineWidth": 1,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-56": {
+        "kind": "Panel",
+        "spec": {
+          "id": 56,
+          "title": "Buffer cycle",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${sourceSEM}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH state_param AS (\n  SELECT\n    param_id,\n    enum_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'Buffer.BufferState'\n    AND subsystem = 'Vacuum'\n),\n\nstate_enum AS (\n  SELECT e.member_name, e.value\n  FROM\n    enum_values e\n    JOIN state_param p USING (enum_id)\n),\n\ndurations AS (\n  SELECT\n    e.member_name AS state,\n    EXTRACT(EPOCH FROM (end_time-start_time)) AS duration\n  FROM\n    state_int_timeline(\n      (\n        SELECT\n          state_agg(d.time, d.value_num :: bigint) AS agg\n        FROM\n          data d\n          JOIN state_param p USING (param_id)\n        WHERE\n          d.instrument_id = $instrument\n          AND $__timeFilter(d.time)\n          AND d.value_num != 0 -- filter out zeros\n      )\n    )\n  JOIN state_enum e ON e.value = state\n)\n\nSELECT\n  AVG(duration) FILTER (WHERE state = 'Overflow') AS \"Avg duration\",\n  AVG(duration) FILTER (WHERE state = 'OK')  AS \"Avg time between cycles\"\nFROM durations\n",
                         "sql": {
                           "columns": [
                             {
@@ -1980,17 +1426,19 @@
             "spec": {
               "options": {
                 "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
+                "graphMode": "none",
+                "justifyMode": "center",
                 "orientation": "auto",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
-                  "calcs": [],
-                  "fields": "/^OperationTimeCounter$/",
+                  "calcs": [
+                    "mean"
+                  ],
+                  "fields": "",
                   "values": true
                 },
                 "showPercentChange": false,
-                "textMode": "auto",
+                "textMode": "value_and_name",
                 "wideLayout": true
               },
               "fieldConfig": {
@@ -2009,17 +1457,46 @@
                     "mode": "thresholds"
                   }
                 },
-                "overrides": []
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Avg duration"
+                    },
+                    "properties": [
+                      {
+                        "id": "thresholds",
+                        "value": {
+                          "mode": "absolute",
+                          "steps": [
+                            {
+                              "color": "green",
+                              "value": 0
+                            },
+                            {
+                              "color": "yellow",
+                              "value": 300
+                            },
+                            {
+                              "color": "orange",
+                              "value": 600
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                ]
               }
             }
           }
         }
       },
-      "panel-9": {
+      "panel-57": {
         "kind": "Panel",
         "spec": {
-          "id": 9,
-          "title": "Emission current",
+          "id": 57,
+          "title": "GIS",
           "description": "",
           "links": [],
           "data": {
@@ -2038,9 +1515,9 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "format": "time_series",
+                        "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND component = 'FEG'\n    AND param_name = 'EmissionFEGParameter'\n)\n\nSELECT\n  time,\n  value\nFROM unnest((\n  SELECT lttb(\n    time,\n    value_num,\n    2 * (($__to - $__from) / $__interval_ms)::int\n  )\n  FROM data\n  WHERE instrument_id = $instrument\n    AND param_id = (SELECT param_id FROM matching_param)\n    AND $__timeFilter(time)\n))\nORDER BY 1;\n",
+                        "rawSql": "WITH total AS (\n  SELECT\n    gis_port,\n    MAX(day) AS last_day,\n    last_val(rollup(agg)) AS total_usage\n  FROM gis_counters_daily\n  WHERE instrument_id = $instrument\n    AND $__timeFilter(day) \n  GROUP BY gis_port\n),\n\ndaily AS (\n  SELECT\n    gis_port,\n    AVG(delta(agg)) AS daily_avg\n  FROM gis_counters_daily\n    WHERE instrument_id = $instrument\n      AND $__timeFilter(day)\n    GROUP BY gis_port\n)\n\nSELECT\n  t.gis_port AS \"Port\",\n  COALESCE(d.daily_avg, 0) AS \"Daily usage\",\n  t.total_usage/3600.0 AS \"Total usage (h)\",\n  t.total_usage/3600.0/120*100 AS \"Total usage (%)\"\nFROM total t\nLEFT JOIN daily d USING (gis_port)\nORDER BY t.gis_port\n",
                         "sql": {
                           "columns": [
                             {
@@ -2071,25 +1548,15 @@
           },
           "vizConfig": {
             "kind": "VizConfig",
-            "group": "timeseries",
+            "group": "table",
             "version": "12.4.1",
             "spec": {
               "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": false
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
+                "cellHeight": "sm",
+                "showHeader": true
               },
               "fieldConfig": {
                 "defaults": {
-                  "unit": "amp",
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -2100,48 +1567,67 @@
                     ]
                   },
                   "color": {
-                    "mode": "palette-classic"
+                    "mode": "thresholds"
                   },
                   "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "left",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 0,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
+                    "align": "center",
+                    "cellOptions": {
+                      "type": "auto"
                     },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineStyle": {
-                      "fill": "solid"
+                    "footer": {
+                      "reducers": []
                     },
-                    "lineWidth": 2,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "log": 2,
-                      "type": "log"
-                    },
-                    "showPoints": "never",
-                    "showValues": false,
-                    "spanNulls": true,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
+                    "inspect": false
                   }
                 },
-                "overrides": []
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Daily usage"
+                    },
+                    "properties": [
+                      {
+                        "id": "unit",
+                        "value": "s"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Total usage (%)"
+                    },
+                    "properties": [
+                      {
+                        "id": "thresholds",
+                        "value": {
+                          "mode": "absolute",
+                          "steps": [
+                            {
+                              "color": "green",
+                              "value": 0
+                            },
+                            {
+                              "color": "yellow",
+                              "value": 83
+                            },
+                            {
+                              "color": "orange",
+                              "value": 100
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "id": "custom.cellOptions",
+                        "value": {
+                          "type": "color-background"
+                        }
+                      }
+                    ]
+                  }
+                ]
               }
             }
           }
@@ -2155,8 +1641,9 @@
           {
             "kind": "RowsLayoutRow",
             "spec": {
-              "title": "Electron Gun",
+              "title": "",
               "collapse": false,
+              "hideHeader": true,
               "layout": {
                 "kind": "GridLayout",
                 "spec": {
@@ -2167,10 +1654,10 @@
                         "x": 0,
                         "y": 0,
                         "width": 3,
-                        "height": 3,
+                        "height": 4,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-8"
+                          "name": "panel-29"
                         }
                       }
                     },
@@ -2179,63 +1666,89 @@
                       "spec": {
                         "x": 3,
                         "y": 0,
-                        "width": 5,
-                        "height": 3,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-31"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 8,
-                        "y": 0,
-                        "width": 16,
-                        "height": 8,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-27"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 0,
-                        "y": 3,
-                        "width": 8,
-                        "height": 7,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-7"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 8,
-                        "y": 8,
-                        "width": 16,
-                        "height": 8,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-39"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 0,
-                        "y": 10,
-                        "width": 8,
+                        "width": 9,
                         "height": 6,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-9"
+                          "name": "panel-44"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 12,
+                        "y": 0,
+                        "width": 12,
+                        "height": 6,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-57"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 4,
+                        "width": 3,
+                        "height": 4,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-30"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 3,
+                        "y": 6,
+                        "width": 9,
+                        "height": 6,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-55"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 12,
+                        "y": 6,
+                        "width": 7,
+                        "height": 6,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-54"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 19,
+                        "y": 6,
+                        "width": 5,
+                        "height": 6,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-56"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 8,
+                        "width": 3,
+                        "height": 4,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-45"
                         }
                       }
                     }
@@ -2247,7 +1760,7 @@
           {
             "kind": "RowsLayoutRow",
             "spec": {
-              "title": "Ion Gun",
+              "title": "Aquilos only",
               "collapse": false,
               "layout": {
                 "kind": "GridLayout",
@@ -2258,37 +1771,24 @@
                       "spec": {
                         "x": 0,
                         "y": 0,
-                        "width": 8,
-                        "height": 4,
+                        "width": 12,
+                        "height": 7,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-32"
+                          "name": "panel-48"
                         }
                       }
                     },
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 8,
+                        "x": 12,
                         "y": 0,
-                        "width": 13,
-                        "height": 8,
+                        "width": 7,
+                        "height": 7,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-29"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 21,
-                        "y": 0,
-                        "width": 3,
-                        "height": 8,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-38"
+                          "name": "panel-47"
                         }
                       }
                     },
@@ -2296,77 +1796,25 @@
                       "kind": "GridLayoutItem",
                       "spec": {
                         "x": 0,
-                        "y": 4,
-                        "width": 5,
-                        "height": 4,
+                        "y": 7,
+                        "width": 12,
+                        "height": 7,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-33"
+                          "name": "panel-52"
                         }
                       }
                     },
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 5,
-                        "y": 4,
-                        "width": 3,
-                        "height": 4,
+                        "x": 12,
+                        "y": 7,
+                        "width": 7,
+                        "height": 7,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-35"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 0,
-                        "y": 8,
-                        "width": 8,
-                        "height": 8,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-34"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 8,
-                        "y": 8,
-                        "width": 13,
-                        "height": 8,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-40"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 21,
-                        "y": 8,
-                        "width": 3,
-                        "height": 4,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-37"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 21,
-                        "y": 12,
-                        "width": 3,
-                        "height": 4,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-36"
+                          "name": "panel-50"
                         }
                       }
                     }
@@ -2451,7 +1899,7 @@
       "hideTimepicker": false,
       "fiscalYearStartMonth": 0
     },
-    "title": "Module | Source",
+    "title": "Module | Column",
     "variables": [
       {
         "kind": "DatasourceVariable",

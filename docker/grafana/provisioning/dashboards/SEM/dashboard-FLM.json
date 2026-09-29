@@ -2,9 +2,9 @@
   "apiVersion": "dashboard.grafana.app/v2",
   "kind": "Dashboard",
   "metadata": {
-    "name": "4395e67b-0560-47fd-94a8-684003f10755",
-    "generation": 2,
-    "creationTimestamp": "2026-02-26T17:38:05Z",
+    "name": "4395e67b-0280-47fd-94a8-648997f10800",
+    "generation": 1,
+    "creationTimestamp": "2026-07-09T09:04:12Z",
     "labels": {},
     "annotations": {}
   },
@@ -17,14 +17,14 @@
             "kind": "DataQuery",
             "group": "grafana",
             "version": "v0",
+            "labels": {
+              "grafana.app/export-label": "grafana-1"
+            },
             "spec": {
               "limit": 100,
               "matchAny": false,
               "tags": [],
               "type": "dashboard"
-            },
-            "labels": {
-              "grafana.app/export-label": "grafana-1"
             }
           },
           "enable": true,
@@ -77,9 +77,12 @@
           "iconColor": "red",
           "name": "SEM off",
           "filter": {
-            "exclude": true,
             "ids": [
-              17
+              2,
+              12,
+              14,
+              3,
+              13
             ]
           }
         }
@@ -88,11 +91,49 @@
     "cursorSync": "Off",
     "editable": true,
     "elements": {
-      "panel-14": {
+      "panel-18": {
         "kind": "Panel",
         "spec": {
-          "id": 14,
-          "title": "CPU load",
+          "id": 18,
+          "title": "",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "text",
+            "version": "12.1.0",
+            "spec": {
+              "options": {
+                "code": {
+                  "language": "plaintext",
+                  "showLineNumbers": false,
+                  "showMiniMap": false
+                },
+                "content": "This dashboard is for Arctis only!",
+                "mode": "markdown"
+              },
+              "fieldConfig": {
+                "defaults": {},
+                "overrides": []
+              }
+            }
+          },
+          "transparent": true
+        }
+      },
+      "panel-19": {
+        "kind": "Panel",
+        "spec": {
+          "id": 19,
+          "title": "FilterExchanger",
           "description": "",
           "links": [],
           "data": {
@@ -113,7 +154,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'Usage.CPU'\n    AND subsystem = 'ProcessMonitor'\n    AND component = 'SystemResources'\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', v.time) AS time,\n  avg(v.value_num) AS \"CPU load avg\"\nFROM\n  data v\nWHERE\n  $__timeFilter(v.time)\n  AND v.instrument_id = $instrument\n  AND v.param_id = (\n    SELECT\n      param_id\n    FROM\n      matching_param\n  )\nGROUP BY\n  time\nORDER BY\n  time",
+                        "rawSql": "SELECT\n    d.time,\n    d.value_num\nFROM data d\nJOIN parameters p \n    ON p.param_id = d.param_id\nJOIN enum_values e \n    ON e.enum_id = p.enum_id\n   AND e.value != d.value_num -- capture only error codes. No value = 99 = ON\nWHERE p.instrument_id = $instrument\n  AND p.subsystem = 'FLM'\n  AND p.param_name = 'FilterSwitcherFaultState'\n  AND e.member_name = 'None'\n  AND $__timeFilter(d.time)\nORDER BY d.time\n",
                         "sql": {
                           "columns": [
                             {
@@ -133,441 +174,7 @@
                         }
                       }
                     },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "timeseries",
-            "version": "12.1.0",
-            "spec": {
-              "options": {
-                "legend": {
-                  "calcs": [
-                    "max",
-                    "median"
-                  ],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "single",
-                  "sort": "none"
-                }
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "percent",
-                  "decimals": 0,
-                  "min": 0,
-                  "max": 100,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      },
-                      {
-                        "value": 80,
-                        "color": "yellow"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "fixed",
-                    "fixedColor": "semi-dark-green"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisGridShow": true,
-                    "axisLabel": "",
-                    "axisPlacement": "left",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 20,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "stepBefore",
-                    "lineStyle": {
-                      "fill": "solid"
-                    },
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "never",
-                    "spanNulls": true,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "line"
-                    }
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-15": {
-        "kind": "Panel",
-        "spec": {
-          "id": 15,
-          "title": "Available memory",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${sourceSEM}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "time_series",
-                        "rawQuery": true,
-                        "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'AvailableMBytes.PhysicalMemory'\n    AND subsystem = 'ProcessMonitor'\n    AND component = 'SystemResources'\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', v.time) AS time,\n  avg(v.value_num) AS \"Available memory avg\"\nFROM\n  data v\nWHERE\n  $__timeFilter(v.time)\n  AND v.instrument_id = $instrument\n  AND v.param_id = (\n    SELECT\n      param_id\n    FROM\n      matching_param\n  )\nGROUP BY\n  time\nORDER BY\n  time",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "timeseries",
-            "version": "12.1.0",
-            "spec": {
-              "options": {
-                "legend": {
-                  "calcs": [
-                    "min",
-                    "median"
-                  ],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "single",
-                  "sort": "none"
-                }
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "decmbytes",
-                  "decimals": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      },
-                      {
-                        "value": 512,
-                        "color": "yellow"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "fixed",
-                    "fixedColor": "semi-dark-green"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisGridShow": true,
-                    "axisLabel": "",
-                    "axisPlacement": "left",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 20,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "stepBefore",
-                    "lineStyle": {
-                      "fill": "solid"
-                    },
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "never",
-                    "spanNulls": true,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "line"
-                    }
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-16": {
-        "kind": "Panel",
-        "spec": {
-          "id": 16,
-          "title": "Free disk space C:",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${sourceSEM}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "time_series",
-                        "rawQuery": true,
-                        "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'AvailableGBytes.CDriveSpace'\n    AND subsystem = 'ProcessMonitor'\n    AND component = 'SystemResources'\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', v.time) AS time,\n  avg(v.value_num) AS \"Free space\"\nFROM\n  data v\nWHERE\n  $__timeFilter(v.time)\n  AND v.instrument_id = $instrument\n  AND v.param_id = (\n    SELECT\n      param_id\n    FROM\n      matching_param\n  )\nGROUP BY\n  time\nORDER BY\n  time",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "timeseries",
-            "version": "12.1.0",
-            "spec": {
-              "options": {
-                "legend": {
-                  "calcs": [
-                    "min"
-                  ],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "single",
-                  "sort": "none"
-                }
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "decmbytes",
-                  "mappings": [
-                    {
-                      "type": "value",
-                      "options": {
-                        "100": {
-                          "text": "CRIT",
-                          "color": "red",
-                          "index": 0
-                        },
-                        "200": {
-                          "text": "WARN",
-                          "color": "orange",
-                          "index": 1
-                        }
-                      }
-                    }
-                  ],
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "fixed",
-                    "fixedColor": "#919590"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisGridShow": true,
-                    "axisLabel": "",
-                    "axisPlacement": "left",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 20,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "stepBefore",
-                    "lineStyle": {
-                      "fill": "solid"
-                    },
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "never",
-                    "spanNulls": true,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "fieldMinMax": false
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-17": {
-        "kind": "Panel",
-        "spec": {
-          "id": 17,
-          "title": "xT server",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${sourceSEM}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "WITH off_events AS (\n  SELECT start_time AS time, 0 AS value\n  FROM em_off\n  WHERE instrument_id = $instrument\n    AND $__timeFilter(start_time)\n)\n\nSELECT * FROM off_events\n\nUNION ALL\n\nSELECT\n  $__timeFrom() AS time,\n  1 AS value\nWHERE NOT EXISTS (SELECT 1 FROM off_events)\n\nORDER BY time;",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "B",
+                    "refId": "scan camera",
                     "hidden": false
                   }
                 }
@@ -599,19 +206,27 @@
               },
               "fieldConfig": {
                 "defaults": {
+                  "displayName": "status",
                   "mappings": [
                     {
                       "type": "value",
                       "options": {
-                        "0": {
-                          "text": "DOWN",
-                          "color": "red",
-                          "index": 1
-                        },
-                        "1": {
-                          "text": "UP",
+                        "99": {
+                          "text": "ON",
                           "color": "green",
                           "index": 0
+                        }
+                      }
+                    },
+                    {
+                      "type": "range",
+                      "options": {
+                        "from": 1,
+                        "to": 6,
+                        "result": {
+                          "text": "ERROR",
+                          "color": "red",
+                          "index": 1
                         }
                       }
                     }
@@ -628,9 +243,9 @@
                   "color": {
                     "mode": "fixed"
                   },
-                  "noValue": "1",
+                  "noValue": "99",
                   "custom": {
-                    "axisPlacement": "hidden",
+                    "axisPlacement": "auto",
                     "fillOpacity": 60,
                     "hideFrom": {
                       "legend": false,
@@ -640,6 +255,446 @@
                     "insertNulls": 3600000,
                     "lineWidth": 3,
                     "spanNulls": true
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-2": {
+        "kind": "Panel",
+        "spec": {
+          "id": 2,
+          "title": "AreaScanCamera",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${sourceSEM}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    d.time,\n    d.value_num\nFROM data d\nJOIN parameters p \n    ON p.param_id = d.param_id\nJOIN enum_values e \n    ON e.enum_id = p.enum_id\n   AND e.value = d.value_num -- capture offline = 3\nWHERE p.instrument_id = $instrument\n  AND p.subsystem = 'FluorescenceMicroscope'\n  AND p.param_name = 'OpticalMicroscopeStateParameter'\n  AND e.member_name = 'Offline'\n  AND $__timeFilter(d.time)\nORDER BY d.time\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "scan camera",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "state-timeline",
+            "version": "12.1.0",
+            "spec": {
+              "options": {
+                "alignValue": "center",
+                "legend": {
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
+                },
+                "mergeValues": true,
+                "rowHeight": 0.5,
+                "showValue": "always",
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "displayName": "status",
+                  "mappings": [
+                    {
+                      "type": "value",
+                      "options": {
+                        "3": {
+                          "text": "OFF",
+                          "color": "red",
+                          "index": 0
+                        },
+                        "99": {
+                          "text": "ON",
+                          "color": "green",
+                          "index": 1
+                        }
+                      }
+                    }
+                  ],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "fixed"
+                  },
+                  "noValue": "99",
+                  "custom": {
+                    "axisPlacement": "auto",
+                    "fillOpacity": 60,
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": 3600000,
+                    "lineWidth": 3,
+                    "spanNulls": true
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-20": {
+        "kind": "Panel",
+        "spec": {
+          "id": 20,
+          "title": "Filter type",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${sourceSEM}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH state_agg AS (\n  SELECT\n    p.enum_id,\n    toolkit_experimental.compact_state_agg(\n        d.time,\n        d.value_num::bigint\n    ) AS agg\n  FROM data d\n  JOIN parameters p USING (instrument_id, param_id)\n  WHERE d.instrument_id = $instrument \n    AND p.param_name = 'FilterSwitcherFilterType'\n    AND p.subsystem = 'FLM'\n    AND $__timeFilter(d.time)\n  GROUP BY p.enum_id\n)\n\nSELECT\n  ev.member_name AS state,\n  EXTRACT(EPOCH FROM s.duration) AS duration\nFROM state_agg sa\nCROSS JOIN LATERAL toolkit_experimental.into_int_values(sa.agg) s\nJOIN enum_values ev\n  ON ev.enum_id = sa.enum_id\n AND ev.value = s.state\nORDER BY ev.member_name",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "piechart",
+            "version": "12.1.0",
+            "spec": {
+              "options": {
+                "displayLabels": [
+                  "percent",
+                  "name"
+                ],
+                "legend": {
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
+                },
+                "pieType": "donut",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "s",
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    }
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-21": {
+        "kind": "Panel",
+        "spec": {
+          "id": 21,
+          "title": "Light source",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${sourceSEM}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH state_agg AS (\n  SELECT\n    p.enum_id,\n    toolkit_experimental.compact_state_agg(\n        d.time,\n        d.value_num::bigint\n    ) AS agg\n  FROM data d\n  JOIN parameters p USING (instrument_id, param_id)\n  WHERE d.instrument_id = $instrument \n    AND p.param_name = 'LightSourceLEDColor'\n    AND p.subsystem = 'FLM'\n    AND $__timeFilter(d.time)\n  GROUP BY p.enum_id\n)\n\nSELECT\n  ev.member_name AS state,\n  EXTRACT(EPOCH FROM s.duration) AS duration\nFROM state_agg sa\nCROSS JOIN LATERAL toolkit_experimental.into_int_values(sa.agg) s\nJOIN enum_values ev\n  ON ev.enum_id = sa.enum_id\n AND ev.value = s.state\nORDER BY ev.member_name",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "piechart",
+            "version": "12.1.0",
+            "spec": {
+              "options": {
+                "displayLabels": [
+                  "percent",
+                  "name"
+                ],
+                "legend": {
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
+                },
+                "pieType": "donut",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "s",
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    }
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-22": {
+        "kind": "Panel",
+        "spec": {
+          "id": 22,
+          "title": "Last errors for Objective lens",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${sourceSEM}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    d.time AS \"Time\",\n    p.param_name AS \"Component\",\n    e.member_name AS \"Error\"\nFROM data d\nJOIN parameters p\n    ON p.param_id = d.param_id\n    AND p.instrument_id = $instrument\n    AND p.component = 'RetractableObjective'\n    AND p.param_name LIKE 'Retractable%State'\n    AND p.subsystem = 'FLM'\nJOIN enum_values e\n    ON e.enum_id = p.enum_id\n    AND e.value = d.value_num\n    AND e.member_name IN (\n        'OverTemperature',\n        'PositionerFault',\n        'PowerSupplyOverload',\n        'PowerSupplyFailure',\n        'Error'\n    )\nWHERE $__timeFilter(d.time)\nORDER BY d.time DESC",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "table",
+            "version": "12.1.0",
+            "spec": {
+              "options": {
+                "cellHeight": "sm",
+                "footer": {
+                  "countRows": false,
+                  "enablePagination": true,
+                  "fields": "",
+                  "reducer": [
+                    "sum"
+                  ],
+                  "show": false
+                },
+                "frameIndex": 0,
+                "showHeader": true,
+                "sortBy": [
+                  {
+                    "desc": true,
+                    "displayName": "time"
+                  }
+                ]
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "custom": {
+                    "align": "center",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "inspect": false
                   }
                 },
                 "overrides": []
@@ -668,11 +723,50 @@
                       "spec": {
                         "x": 0,
                         "y": 0,
-                        "width": 12,
-                        "height": 3,
+                        "width": 24,
+                        "height": 2,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-17"
+                          "name": "panel-18"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 2,
+                        "width": 4,
+                        "height": 7,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-20"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 4,
+                        "y": 2,
+                        "width": 4,
+                        "height": 7,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-21"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 8,
+                        "y": 2,
+                        "width": 16,
+                        "height": 7,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-22"
                         }
                       }
                     }
@@ -684,7 +778,7 @@
           {
             "kind": "RowsLayoutRow",
             "spec": {
-              "title": "Microscope PC",
+              "title": "Status",
               "collapse": false,
               "layout": {
                 "kind": "GridLayout",
@@ -699,7 +793,7 @@
                         "height": 7,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-14"
+                          "name": "panel-2"
                         }
                       }
                     },
@@ -712,20 +806,7 @@
                         "height": 7,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-16"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 0,
-                        "y": 7,
-                        "width": 12,
-                        "height": 7,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-15"
+                          "name": "panel-19"
                         }
                       }
                     }
@@ -810,7 +891,7 @@
       "hideTimepicker": false,
       "fiscalYearStartMonth": 0
     },
-    "title": "Module | PC Health",
+    "title": "Module | FLM",
     "variables": [
       {
         "kind": "DatasourceVariable",
