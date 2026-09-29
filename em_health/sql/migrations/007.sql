@@ -32,6 +32,7 @@ $$
       -- 3. Drop history tables for now
       DROP TABLE IF EXISTS events.parameters_history;
       DROP TABLE IF EXISTS events.enum_values_history;
+      DROP TABLE IF EXISTS events.data_staging;
 
       -- 4. Migrate events.instruments
       RAISE NOTICE 'Starting events schema migration..';
@@ -203,18 +204,7 @@ $$
       );
       COMMENT ON TABLE events.parameters_history IS 'Historical HM metadata for each parameter';
 
-      -- 9. Re-creating events.data_staging
-      DROP TABLE IF EXISTS events.data_staging;
-      CREATE UNLOGGED TABLE IF NOT EXISTS events.data_staging (
-        time timestamptz NOT NULL,
-        instrument_id BIGINT NOT NULL,
-        param_id BIGINT NOT NULL,
-        value_num DOUBLE PRECISION,
-        value_text TEXT
-      );
-      COMMENT ON TABLE events.data_staging IS 'Staging table for bulk COPY inserts';
-
-      -- 10. Migrate old params table: param_id is kept, instrument_id changes
+      -- 9. Migrate old params table: param_id is kept, instrument_id changes
       INSERT INTO events.parameters_new (
         instrument_id,
         param_id,
@@ -272,7 +262,7 @@ $$
            JOIN events.instruments_new i
           ON i.id = im.new_id;
 
-      -- 11. Convert to rowstore and alter events.data
+      -- 10. Convert to rowstore and alter events.data
       SELECT job_id
       INTO job
       FROM
@@ -345,7 +335,7 @@ $$
 
       PERFORM alter_job(job, scheduled => TRUE);
 
-      -- 12. Swap tables
+      -- 11. Swap tables
       ALTER TABLE events.instruments RENAME TO instruments_old;
       ALTER TABLE events.instruments_new RENAME TO instruments;
 
@@ -358,7 +348,7 @@ $$
       ALTER TABLE events.parameters RENAME TO parameters_old;
       ALTER TABLE events.parameters_new RENAME TO parameters;
 
-      -- 13. Create new funcs and update parameters_log_after_update()
+      -- 12. Create new funcs and update parameters_log_after_update()
       RAISE NOTICE 'Creating new functions..';
       EXECUTE $sql$
 CREATE OR REPLACE FUNCTION events.import_instrument(
@@ -815,7 +805,7 @@ $sql$;
         FOR EACH ROW
       EXECUTE FUNCTION events.parameters_log_after_update();
 
-      -- 14. Validate all
+      -- 13. Validate all
       SELECT count(*) INTO old_count FROM events.instruments_old;
       SELECT count(*) INTO new_count FROM events.instruments;
       SELECT count(*) INTO map_count FROM events.instruments_id_map;
@@ -850,7 +840,7 @@ $sql$;
         RAISE EXCEPTION 'Parameter mapping failed: % parameters have no destination', new_count;
       END IF;
 
-      -- 15. Drop old tables
+      -- 14. Drop old tables
       RAISE NOTICE 'Removing old tables..';
       DROP TABLE IF EXISTS events.instruments_id_map;
       DROP TABLE IF EXISTS events.enum_values_old CASCADE;
@@ -858,7 +848,7 @@ $sql$;
       DROP TABLE IF EXISTS events.parameters_old CASCADE;
       DROP TABLE IF EXISTS events.instruments_old CASCADE;
 
-      -- 16. Adjust uec.errors unique index for instrument_id type change
+      -- 15. Adjust uec.errors unique index for instrument_id type change
       ALTER TABLE uec.errors
         DROP CONSTRAINT IF EXISTS errors_time_instrument_id_errorid_key;
 
@@ -869,7 +859,7 @@ $sql$;
         ADD CONSTRAINT errors_instrument_id_errorid_time_key
           UNIQUE (instrument_id, errorid, time);
 
-      -- 17. Update schema version
+      -- 16. Update schema version
       SET ROLE postgres;
       UPDATE public.schema_info SET version = 7;
     END IF;

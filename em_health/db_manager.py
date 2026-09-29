@@ -103,10 +103,15 @@ class DatabaseManager(PgClient):
         :param rows: Iterable of tuples
         :param chunk_size: Number of bytes to read at a time
         """
-        query = """
-            COPY events.data_staging (time, instrument_id, param_id, value_num, value_text)
-            FROM STDIN WITH (FORMAT text)
-        """
+        self.cur.execute("""
+        CREATE TEMP TABLE data_staging (
+              time timestamptz NOT NULL,
+              instrument_id BIGINT NOT NULL,
+              param_id BIGINT NOT NULL,
+              value_num DOUBLE PRECISION,
+              value_text TEXT
+            ) ON COMMIT DELETE ROWS
+        """)
 
         def format_col(col: Any) -> str:
             if col is None:
@@ -131,6 +136,10 @@ class DatabaseManager(PgClient):
             if buffer:
                 yield ''.join(buffer)
 
+        query = """
+            COPY data_staging (time, instrument_id, param_id, value_num, value_text)
+            FROM STDIN WITH (FORMAT text)
+        """
         # avg row size is ~ 48 bytes, below will give about ~175k rows per chunk
         max_size = int(os.getenv("WRITE_DATA_CHUNK_SIZE", chunk_size))  # 8 Mb
         t0 = time.perf_counter()
@@ -138,14 +147,12 @@ class DatabaseManager(PgClient):
             for chunk in stream_chunks(rows, max_size):
                 copy.write(chunk)
 
-        query = """
+        self.cur.execute("""
             INSERT INTO events.data(time, instrument_id, param_id, value_num, value_text)
             SELECT time, instrument_id, param_id, value_num, value_text
-            FROM events.data_staging
-            ON CONFLICT DO NOTHING;
-            TRUNCATE TABLE events.data_staging;
-        """
-        self.cur.execute(query)
+            FROM data_staging
+            ON CONFLICT DO NOTHING
+        """)
         self.conn.commit()
         t1 = time.perf_counter()
         logger.debug(f"INSERT into events.data done in: {t1-t0:.4f} s")

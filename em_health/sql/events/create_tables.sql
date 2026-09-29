@@ -124,17 +124,6 @@ CREATE TABLE IF NOT EXISTS events.parameters_history (
 
 COMMENT ON TABLE events.parameters_history IS 'Historical HM metadata for each parameter';
 
--- Creating events.data_staging
-CREATE UNLOGGED TABLE IF NOT EXISTS events.data_staging (
-  time timestamptz NOT NULL,
-  instrument_id BIGINT NOT NULL,
-  param_id BIGINT NOT NULL,
-  value_num DOUBLE PRECISION,
-  value_text TEXT
-);
-
-COMMENT ON TABLE events.data_staging IS 'Staging table for bulk COPY inserts';
-
 -- Creating events.data
 CREATE TABLE IF NOT EXISTS events.data (
   time timestamptz NOT NULL,
