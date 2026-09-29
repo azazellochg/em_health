@@ -121,7 +121,7 @@ class PgClient(BaseDBClient):
 
     def execute_file(self,
                      fn,
-                     variables: dict[str, str] | None) -> None:
+                     variables: dict[str, str] | None = None) -> None:
         """ Execute an SQL file.
         :param fn: Path to the .sql file.
         :param variables: Dictionary of variable names and values.
@@ -143,9 +143,9 @@ class PgClient(BaseDBClient):
     def run_query(
             self,
             query: str,
-            identifiers: dict[str, str] | None,
-            strings: dict[str, Any] | None,
-            values: tuple | None,
+            identifiers: dict[str, str] | None = None,
+            strings: dict[str, Any] | None = None,
+            values: tuple | None = None,
             mode: Literal["fetchone", "fetchmany", "fetchall", "commit", None] = "commit"
     ):
         """

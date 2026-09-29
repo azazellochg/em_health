@@ -30,7 +30,6 @@ SELECT tables_are('events'::name, ARRAY [
   'enum_values',
   'parameters',
   'parameters_history',
-  'data_staging',
   'data'
   ]);
 
