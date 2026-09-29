@@ -30,7 +30,7 @@ import gzip
 from datetime import datetime, timezone
 import json
 import xml.etree.ElementTree as ET  # https://github.com/lxml/lxml/blob/master/doc/performance.txt#L293
-from typing import Iterable
+from collections.abc import Iterable
 
 from em_health.db_manager import DatabaseManager
 from em_health.utils.tools import logger

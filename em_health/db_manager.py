@@ -29,7 +29,8 @@ import time
 from datetime import datetime
 import json
 import hashlib
-from typing import Iterable, Any
+from collections.abc import Iterable
+from typing import Any
 from psycopg.types.json import Jsonb
 
 from em_health.db_client import PgClient

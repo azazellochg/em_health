@@ -28,7 +28,7 @@ import os
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Literal, Optional, Dict, Any
+from typing import Literal, Any
 import psycopg
 from psycopg import sql
 
@@ -121,7 +121,7 @@ class PgClient(BaseDBClient):
 
     def execute_file(self,
                      fn,
-                     variables: Optional[dict[str, str]] = None) -> None:
+                     variables: dict[str, str] | None) -> None:
         """ Execute an SQL file.
         :param fn: Path to the .sql file.
         :param variables: Dictionary of variable names and values.
@@ -143,11 +143,10 @@ class PgClient(BaseDBClient):
     def run_query(
             self,
             query: str,
-            identifiers: Optional[Dict[str, str]] = None,
-            strings: Optional[Dict[str, Any]] = None,
-            values: Optional[tuple] = None,
-            mode: Literal["fetchone", "fetchmany", "fetchall", "commit", None] = "commit",
-            row_factory: Optional[Any] = None,
+            identifiers: dict[str, str] | None,
+            strings: dict[str, Any] | None,
+            values: tuple | None,
+            mode: Literal["fetchone", "fetchmany", "fetchall", "commit", None] = "commit"
     ):
         """
         Execute an SQL query and optionally return results.
@@ -157,11 +156,7 @@ class PgClient(BaseDBClient):
         :param strings: dict for literal values to be embedded (strings, etc.).
         :param values: tuple for parameterized query values (%s placeholders).
         :param mode: fetch mode or commit.
-        :param row_factory: cursor row factory to customize output.
         """
-        if row_factory is not None:
-            self.cur.row_factory = row_factory
-
         # Compose SQL query with identifiers and literals
         sql_query = sql.SQL(query)
         format_args = {}
