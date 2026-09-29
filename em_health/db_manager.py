@@ -104,13 +104,13 @@ class DatabaseManager(PgClient):
         :param chunk_size: Number of bytes to read at a time
         """
         self.cur.execute("""
-        CREATE TEMP TABLE data_staging (
-              time timestamptz NOT NULL,
-              instrument_id BIGINT NOT NULL,
-              param_id BIGINT NOT NULL,
-              value_num DOUBLE PRECISION,
-              value_text TEXT
-            ) ON COMMIT DELETE ROWS
+                         CREATE TEMP TABLE data_staging (
+                             time timestamptz NOT NULL,
+                             instrument_id BIGINT NOT NULL,
+                             param_id BIGINT NOT NULL,
+                             value_num DOUBLE PRECISION,
+                             value_text TEXT
+                         ) ON COMMIT DELETE ROWS
         """)
 
         def format_col(col: Any) -> str:
@@ -148,10 +148,10 @@ class DatabaseManager(PgClient):
                 copy.write(chunk)
 
         self.cur.execute("""
-            INSERT INTO events.data(time, instrument_id, param_id, value_num, value_text)
-            SELECT time, instrument_id, param_id, value_num, value_text
-            FROM data_staging
-            ON CONFLICT DO NOTHING
+                         INSERT INTO events.data(time, instrument_id, param_id, value_num, value_text)
+                         SELECT time, instrument_id, param_id, value_num, value_text
+                         FROM data_staging
+                         ON CONFLICT DO NOTHING
         """)
         self.conn.commit()
         t1 = time.perf_counter()
@@ -168,13 +168,14 @@ class DatabaseManager(PgClient):
             # for standard mat. views we need to manually remove the job
             proc = f"refresh_{view.split('.')[-1]}"
             self.run_query("""
-                SELECT delete_job(job_id)
-                FROM timescaledb_information.jobs
-                WHERE proc_name = {proc}
-            """, strings={"proc": proc})
+                           SELECT delete_job(job_id)
+                           FROM timescaledb_information.jobs
+                           WHERE proc_name = {proc}
+            """, strings={"proc": proc}, mode=None)
 
             self.run_query("DROP PROCEDURE IF EXISTS {proc}",
-                           {"proc": proc})
+                           {"proc": proc}, mode=None)
+            self.conn.commit()
 
         logger.info("Dropped MVIEW %s", view)
 
@@ -183,18 +184,20 @@ class DatabaseManager(PgClient):
         proc = f"refresh_{view.split('.')[-1]}"
 
         self.run_query("""
-            CREATE OR REPLACE PROCEDURE {proc}(
-                job_id int,
-                config jsonb
-            )
-            LANGUAGE SQL
-            AS $$
+                       CREATE OR REPLACE PROCEDURE {proc}(
+                           job_id int,
+                           config jsonb
+                           )
+                           LANGUAGE SQL
+                       AS $$
               REFRESH MATERIALIZED VIEW {view};
             $$;
-        """, {"proc": proc, "view": view})
+        """, {"proc": proc, "view": view}, mode=None)
 
         self.run_query("SELECT add_job({proc}, {period})",
-                       strings={"proc": proc, "period": interval})
+                       strings={"proc": proc, "period": interval}, mode=None)
+        self.conn.commit()
+
         logger.info("Scheduled MVIEW refresh for %s every %s", view, interval)
 
     def schedule_cagg_refresh(self,

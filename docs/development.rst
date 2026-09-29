@@ -91,7 +91,8 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
     * parameters - parameters metadata
     * parameters_history - old/replaced parameters
     * data - main events data table for all instruments
-    * data_staging - staging table for bulk data inserts with COPY
+
+* data_staging - temporary staging table for bulk data inserts with COPY
 
 * uec - schema for storing UECs / Alarms. UEC codes are unified across different instruments
 
