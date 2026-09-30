@@ -2,6 +2,7 @@ DO
 $$
   DECLARE
     current_version INTEGER;
+    job_cmp INTEGER;
     job INTEGER;
     chunk REGCLASS;
     old_count BIGINT;
@@ -263,8 +264,16 @@ $$
           ON i.id = im.new_id;
 
       -- 10. Convert to rowstore and alter events.data
+      FOR job IN
+        SELECT job_id
+        FROM timescaledb_information.jobs
+        WHERE proc_schema = 'pganalyze'
+      LOOP
+        PERFORM alter_job(job, scheduled => FALSE);
+      END LOOP;
+
       SELECT job_id
-      INTO job
+      INTO job_cmp
       FROM
         timescaledb_information.jobs
       WHERE
@@ -272,7 +281,7 @@ $$
         AND hypertable_schema = 'events'
         AND hypertable_name = 'data';
 
-      PERFORM alter_job(job, scheduled => FALSE);
+      PERFORM alter_job(job_cmp, scheduled => FALSE);
 
       FOR chunk IN SELECT show_chunks('events.data') LOOP
         RAISE NOTICE 'Converting % to rowstore', chunk;
@@ -312,6 +321,7 @@ $$
                 );
       END LOOP;
 
+      RAISE NOTICE 'Updating events.data column types..';
       ALTER TABLE events.data
         ALTER COLUMN instrument_id TYPE BIGINT,
         ALTER COLUMN param_id TYPE BIGINT;
@@ -322,7 +332,7 @@ $$
       FROM events.instruments_id_map m
       WHERE d.instrument_id = m.old_id;
 
-      RAISE NOTICE 'Updating events.data with new indexes..';
+      RAISE NOTICE 'Updating events.data with new index and FK..';
 
       ALTER TABLE events.data
         ADD CONSTRAINT data_instrument_param_time_key
@@ -333,7 +343,7 @@ $$
           FOREIGN KEY (instrument_id, param_id)
             REFERENCES events.parameters_new (instrument_id, param_id);
 
-      PERFORM alter_job(job, scheduled => TRUE);
+      PERFORM alter_job(job_cmp, scheduled => TRUE);
 
       -- 11. Swap tables
       ALTER TABLE events.instruments RENAME TO instruments_old;
@@ -847,6 +857,14 @@ $sql$;
       DROP TABLE IF EXISTS events.enum_types_old CASCADE;
       DROP TABLE IF EXISTS events.parameters_old CASCADE;
       DROP TABLE IF EXISTS events.instruments_old CASCADE;
+
+      FOR job IN
+        SELECT job_id
+        FROM timescaledb_information.jobs
+        WHERE proc_schema = 'pganalyze'
+      LOOP
+        PERFORM alter_job(job, scheduled => TRUE);
+      END LOOP;
 
       -- 15. Adjust uec.errors unique index for instrument_id type change
       ALTER TABLE uec.errors
