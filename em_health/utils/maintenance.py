@@ -77,10 +77,9 @@ def check_versions(dbname: str, fn: Path):
         logger.warning(f"Timescale version mismatch: server {ts_version_server} (db {dbname}), backup {ts_version}")
 
 
-def erase_db(dbname: str, ts_version: str | None = None, do_init: bool = False) -> None:
+def erase_db(dbname: str, ts_version: str = "", do_init: bool = False) -> None:
     """Erase existing DB and optionally re-initialize it."""
-    version_clause = f" VERSION '{ts_version}'" if ts_version else ""
-    run_command(f'{PG_EXEC} /usr/local/bin/reset-db.sh {dbname} {int(do_init)} "{version_clause}"')
+    run_command(f'{PG_EXEC} /usr/local/bin/reset-db.sh {dbname} {int(do_init)} {ts_version}')
 
 
 def backup(dbname: str = "tem") -> Path:
@@ -102,8 +101,6 @@ def backup(dbname: str = "tem") -> Path:
         logger.info("Backing up TimescaleDB '%s' to %s", dbname, pg_host_backup.resolve())
         run_command(f"{PG_EXEC} pg_dump -Fc -d {dbname} -f {pg_backup}")
         return pg_backup
-    else:
-        raise ValueError(f"Unknown database: {dbname}")
 
 
 def list_backups() -> list[Path]:
@@ -200,6 +197,19 @@ def update() -> None:
     restore(grafana_backup, "grafana", update=True)
 
     logger.info("Finished updating")
+
+
+def check_db_schema():
+    """Check database schema vs app schema."""
+    from em_health.db_manager import TEM_SCHEMA_VERSION, SEM_SCHEMA_VERSION, DatabaseManager as DBM
+    for dbname, schema in [("tem", TEM_SCHEMA_VERSION), ("sem", SEM_SCHEMA_VERSION)]:
+        logger.info("Checking database %s schema version", dbname)
+        with DBM(dbname, username="postgres", password="POSTGRES_PASSWORD") as db:
+            current_ver = db.run_query("SELECT version FROM public.schema_info", mode="fetchone")
+            current_ver = current_ver[0]
+        if current_ver != schema:
+            raise Exception(f"Your actual {dbname} DB schema v{current_ver} does not match "
+                            f"application v{schema}\nRun 'emhealth db -d {dbname} migrate'")
 
 
 def main(action: str, dbname: str = "tem") -> None:

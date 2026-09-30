@@ -5,8 +5,6 @@ CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit CASCADE;
 
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 
-CREATE EXTENSION IF NOT EXISTS pgstattuple;
-
 CREATE EXTENSION IF NOT EXISTS pgtap;
 
 CREATE EXTENSION IF NOT EXISTS amcheck;
@@ -82,10 +80,5 @@ ALTER ROLE pganalyze SET search_path = pganalyze,public;
 ALTER ROLE grafana SET search_path = events,uec,pganalyze,public;
 
 -- set current schema version --
-INSERT INTO public.schema_info (
-  version
-)
-VALUES
-  (
-    6
-  );
+INSERT INTO public.schema_info (version)
+VALUES (7);

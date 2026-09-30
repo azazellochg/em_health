@@ -12,8 +12,6 @@ psql -v ON_ERROR_STOP=1 <<EOSQL
     CREATE ROLE grafana WITH LOGIN PASSWORD '${POSTGRES_GRAFANA_PASSWORD}';
     CREATE ROLE emhealth WITH LOGIN PASSWORD '${POSTGRES_EMHEALTH_PASSWORD}';
     CREATE ROLE pganalyze WITH LOGIN PASSWORD '${POSTGRES_PGANALYZE_PASSWORD}' CONNECTION LIMIT 5;
-    GRANT pg_stat_scan_tables TO grafana;
-    GRANT pg_read_all_stats TO grafana;
     GRANT pg_monitor, pg_read_server_files TO pganalyze;
 EOSQL
 

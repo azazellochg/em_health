@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "4350492f-ef51-4e3f-a22b-14c55eee6a97",
-    "generation": 2,
-    "creationTimestamp": "2026-03-11T16:17:05Z",
+    "generation": 1,
+    "creationTimestamp": "2026-07-09T09:04:12Z",
     "labels": {},
     "annotations": {}
   },
@@ -17,10 +17,10 @@
             "kind": "DataQuery",
             "group": "grafana",
             "version": "v0",
-            "spec": {},
             "labels": {
               "grafana.app/export-label": "grafana-1"
-            }
+            },
+            "spec": {}
           },
           "enable": true,
           "hide": true,

@@ -2,9 +2,9 @@
   "apiVersion": "dashboard.grafana.app/v2",
   "kind": "Dashboard",
   "metadata": {
-    "name": "bdc45e8d-6118-44ea-89f6-00c345b7016b",
+    "name": "bdc45e8d-6118-44ea-89f6-00c573b7016b",
     "generation": 2,
-    "creationTimestamp": "2026-02-24T15:53:45Z",
+    "creationTimestamp": "2026-07-09T09:04:11Z",
     "labels": {},
     "annotations": {}
   },
@@ -17,19 +17,13 @@
             "kind": "DataQuery",
             "group": "grafana",
             "version": "v0",
-            "spec": {},
-            "labels": {
-              "grafana.app/export-label": "grafana-1"
-            }
+            "spec": {}
           },
           "enable": true,
           "hide": true,
           "iconColor": "rgba(0, 211, 255, 1)",
           "name": "Annotations & Alerts",
-          "builtIn": true,
-          "legacyOptions": {
-            "type": "dashboard"
-          }
+          "builtIn": true
         }
       },
       {
@@ -40,13 +34,13 @@
             "group": "grafana-postgresql-datasource",
             "version": "v0",
             "datasource": {
-              "name": "${sourceSEM}"
+              "name": "${sourceTEM}"
             },
             "spec": {
               "editorMode": "code",
               "format": "table",
               "rawQuery": true,
-              "rawSql": "WITH target_instrument AS (\n  SELECT id, name\n  FROM instruments\n  WHERE id IN ($instrument)\n)\n\nSELECT\n  o.start_time AS time,\n  o.end_time AS timeEnd,\n  t.name || ' OFF' AS title,\n  'SEM server offline' AS text\nFROM em_off o\nJOIN target_instrument t\n  ON o.instrument_id = t.id\n",
+              "rawSql": "WITH target_instrument AS (\n  SELECT id, name\n  FROM instruments\n  WHERE id IN ($instrument)\n)\n\nSELECT\n  o.start_time AS time,\n  o.end_time AS timeEnd,\n  t.name || ' OFF' AS title,\n  'TEM server offline' AS text\nFROM em_off o\nJOIN target_instrument t\n  ON o.instrument_id = t.id\n",
               "refId": "Anno",
               "sql": {
                 "columns": [
@@ -70,7 +64,7 @@
           "enable": true,
           "hide": false,
           "iconColor": "red",
-          "name": "SEM off",
+          "name": "TEM off",
           "filter": {
             "ids": [
               6
@@ -102,13 +96,13 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "datasource": {
-                        "name": "${sourceSEM}"
+                        "name": "${sourceTEM}"
                       },
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH target_param AS (\n  SELECT enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_id = $param\n)\n\nSELECT\n et.id AS enum_id,\n et.name AS enum_name,\n ev.member_name,\n ev.value\nFROM enum_values ev\nJOIN enum_types et ON et.id = ev.enum_id\nWHERE et.instrument_id = $instrument\n  AND (\n    NOT EXISTS (SELECT 1 FROM target_param)\n    OR et.id IN (SELECT enum_id FROM target_param)\n  )\nORDER BY ev.value",
+                        "rawSql": "WITH target_param AS (\n  SELECT enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_id = $param\n)\n\nSELECT\n et.enum_id,\n et.name AS enum_name,\n ev.member_name,\n ev.value\nFROM enum_values ev\nJOIN enum_types et ON et.enum_id = ev.enum_id\nWHERE et.instrument_id = $instrument\n  AND (\n    NOT EXISTS (SELECT 1 FROM target_param)\n    OR et.enum_id IN (SELECT enum_id FROM target_param)\n  )\nORDER BY ev.value",
                         "sql": {
                           "columns": [
                             {
@@ -147,19 +141,11 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
-                "footer": {
-                  "countRows": false,
-                  "enablePagination": true,
-                  "fields": "",
-                  "reducer": [
-                    "sum"
-                  ],
-                  "show": false
-                },
+                "enablePagination": true,
                 "showHeader": true,
                 "sortBy": []
               },
@@ -180,11 +166,14 @@
                   "custom": {
                     "align": "center",
                     "cellOptions": {
-                      "type": "auto",
-                      "wrapText": false
+                      "type": "auto"
                     },
                     "filterable": true,
-                    "inspect": false
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false,
+                    "wrapText": false
                   }
                 },
                 "overrides": []
@@ -212,7 +201,7 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "datasource": {
-                        "name": "${sourceSEM}"
+                        "name": "${sourceTEM}"
                       },
                       "spec": {
                         "editorMode": "code",
@@ -257,19 +246,11 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
-                "footer": {
-                  "countRows": false,
-                  "enablePagination": true,
-                  "fields": "",
-                  "reducer": [
-                    "sum"
-                  ],
-                  "show": false
-                },
+                "enablePagination": true,
                 "showHeader": true,
                 "sortBy": [
                   {
@@ -295,11 +276,14 @@
                   "custom": {
                     "align": "center",
                     "cellOptions": {
-                      "type": "auto",
-                      "wrapText": true
+                      "type": "auto"
                     },
                     "filterable": false,
-                    "inspect": false
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false,
+                    "wrapText": true
                   }
                 },
                 "overrides": [
@@ -376,7 +360,7 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "datasource": {
-                        "name": "${sourceSEM}"
+                        "name": "${sourceTEM}"
                       },
                       "spec": {
                         "editorMode": "code",
@@ -425,9 +409,13 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
+                "annotations": {
+                  "clustering": -1,
+                  "multiLane": false
+                },
                 "legend": {
                   "calcs": [],
                   "displayMode": "list",
@@ -482,6 +470,7 @@
                       "type": "linear"
                     },
                     "showPoints": "always",
+                    "showValues": false,
                     "spanNulls": true,
                     "stacking": {
                       "group": "A",
@@ -517,7 +506,7 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "datasource": {
-                        "name": "${sourceSEM}"
+                        "name": "${sourceTEM}"
                       },
                       "spec": {
                         "editorMode": "code",
@@ -566,19 +555,11 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.1.0",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
-                "footer": {
-                  "countRows": false,
-                  "enablePagination": true,
-                  "fields": "",
-                  "reducer": [
-                    "sum"
-                  ],
-                  "show": false
-                },
+                "enablePagination": true,
                 "showHeader": true
               },
               "fieldConfig": {
@@ -601,6 +582,9 @@
                       "type": "auto"
                     },
                     "filterable": true,
+                    "footer": {
+                      "reducers": []
+                    },
                     "inspect": false
                   }
                 },
@@ -631,7 +615,7 @@
                         "x": 0,
                         "y": 0,
                         "width": 24,
-                        "height": 7,
+                        "height": 5,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-3"
@@ -742,11 +726,11 @@
     "preload": false,
     "tags": [
       "dev",
-      "sem"
+      "tem"
     ],
     "timeSettings": {
       "timezone": "Europe/London",
-      "from": "now-1h",
+      "from": "now-7d",
       "to": "now",
       "autoRefresh": "",
       "autoRefreshIntervals": [
@@ -782,13 +766,14 @@
             "group": "grafana-postgresql-datasource",
             "version": "v0",
             "datasource": {
-              "name": "${sourceSEM}"
+              "name": "${sourceTEM}"
             },
             "spec": {
               "__legacyStringValue": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nWHERE is_active IS TRUE\nORDER BY name;\n"
             }
           },
           "regex": "",
+          "regexApplyTo": "value",
           "sort": "alphabeticalAsc",
           "definition": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nWHERE is_active IS TRUE\nORDER BY name;\n",
           "options": [],
@@ -813,13 +798,14 @@
             "group": "grafana-postgresql-datasource",
             "version": "v0",
             "datasource": {
-              "name": "${sourceSEM}"
+              "name": "${sourceTEM}"
             },
             "spec": {
               "__legacyStringValue": "SELECT subsystem\nFROM parameters\nWHERE instrument_id = $instrument\n"
             }
           },
           "regex": "",
+          "regexApplyTo": "value",
           "sort": "alphabeticalAsc",
           "definition": "SELECT subsystem\nFROM parameters\nWHERE instrument_id = $instrument\n",
           "options": [],
@@ -844,13 +830,14 @@
             "group": "grafana-postgresql-datasource",
             "version": "v0",
             "datasource": {
-              "name": "${sourceSEM}"
+              "name": "${sourceTEM}"
             },
             "spec": {
               "__legacyStringValue": "SELECT component\nFROM parameters\nWHERE instrument_id = $instrument\nAND subsystem = '$subsystem'\n"
             }
           },
           "regex": "",
+          "regexApplyTo": "value",
           "sort": "alphabeticalAsc",
           "definition": "SELECT component\nFROM parameters\nWHERE instrument_id = $instrument\nAND subsystem = '$subsystem'\n",
           "options": [],
@@ -875,13 +862,14 @@
             "group": "grafana-postgresql-datasource",
             "version": "v0",
             "datasource": {
-              "name": "${sourceSEM}"
+              "name": "${sourceTEM}"
             },
             "spec": {
               "__legacyStringValue": "SELECT param_id AS __value,\nparam_name AS __text\nFROM parameters\nWHERE instrument_id = $instrument \nAND subsystem = '$subsystem'\nAND component IN (${component:sqlstring})\n"
             }
           },
           "regex": "",
+          "regexApplyTo": "value",
           "sort": "alphabeticalAsc",
           "definition": "SELECT param_id AS __value,\nparam_name AS __text\nFROM parameters\nWHERE instrument_id = $instrument \nAND subsystem = '$subsystem'\nAND component IN (${component:sqlstring})\n",
           "options": [],
@@ -893,10 +881,10 @@
       {
         "kind": "DatasourceVariable",
         "spec": {
-          "name": "sourceSEM",
+          "name": "sourceTEM",
           "pluginId": "grafana-postgresql-datasource",
           "refresh": "onDashboardLoad",
-          "regex": "/^sem$/",
+          "regex": "/^tem$/",
           "current": {
             "text": "",
             "value": ""

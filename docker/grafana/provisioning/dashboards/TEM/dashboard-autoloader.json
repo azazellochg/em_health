@@ -4,7 +4,7 @@
   "metadata": {
     "name": "4395e67b-0280-47fd-94a8-655603f10800",
     "generation": 2,
-    "creationTimestamp": "2026-04-08T13:42:31Z",
+    "creationTimestamp": "2026-07-09T09:04:12Z",
     "labels": {},
     "annotations": {}
   },
@@ -22,19 +22,13 @@
               "matchAny": false,
               "tags": [],
               "type": "dashboard"
-            },
-            "labels": {
-              "grafana.app/export-label": "grafana-1"
             }
           },
           "enable": true,
           "hide": true,
           "iconColor": "rgba(0, 211, 255, 1)",
           "name": "Annotations & Alerts",
-          "builtIn": true,
-          "legacyOptions": {
-            "type": "dashboard"
-          }
+          "builtIn": true
         }
       },
       {
@@ -157,7 +151,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -423,7 +417,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -681,9 +675,13 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
+                "annotations": {
+                  "clustering": -1,
+                  "multiLane": false
+                },
                 "legend": {
                   "calcs": [
                     "min",
@@ -831,9 +829,13 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
+                "annotations": {
+                  "clustering": -1,
+                  "multiLane": false
+                },
                 "legend": {
                   "calcs": [],
                   "displayMode": "list",
@@ -960,7 +962,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -1093,9 +1095,13 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
+                "annotations": {
+                  "clustering": -1,
+                  "multiLane": false
+                },
                 "legend": {
                   "calcs": [
                     "min",
@@ -1251,9 +1257,13 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
+                "annotations": {
+                  "clustering": -1,
+                  "multiLane": false
+                },
                 "legend": {
                   "calcs": [],
                   "displayMode": "list",
@@ -1396,7 +1406,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -1540,7 +1550,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -1660,7 +1670,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -1815,7 +1825,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -1938,7 +1948,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH last_cryo AS (\n  SELECT\n    end_time\n  FROM\n    tem_cryocycle_daily,\n    state_periods(agg, 1) -- boolean = 1 where value>0\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'Autoloader'\n  ORDER BY\n    end_time DESC\n  LIMIT\n    1\n)\nSELECT\n  COALESCE(SUM(lcd.daily_cassette_count), 0) AS cassette_loads_since_cryocycle\nFROM\n  load_counters_daily lcd\n  CROSS JOIN last_cryo lc\nWHERE\n  lcd.day > lc.end_time",
+                        "rawSql": "WITH last_cryo AS (\n  SELECT\n    end_time\n  FROM\n    tem_cryocycle_daily,\n    state_periods(agg, 1) -- boolean = 1 where value>0\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'Autoloader'\n  ORDER BY\n    end_time DESC\n  LIMIT\n    1\n)\nSELECT\n  COALESCE(SUM(lcd.daily_cassette_count), 0) AS cassette_loads_since_cryocycle\nFROM\n  load_counters_daily lcd\n  CROSS JOIN last_cryo lc\nWHERE\n  lcd.instrument_id = $instrument AND lcd.day > lc.end_time",
                         "sql": {
                           "columns": [
                             {
@@ -1970,7 +1980,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.4.2",
+            "version": "13.1.0-25893932881",
             "spec": {
               "options": {
                 "colorMode": "value",

@@ -25,13 +25,14 @@
 # **************************************************************************
 
 import os
+import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Literal, Optional, Dict, Any
+from typing import Literal, Any
 import psycopg
 from psycopg import sql
 
-from em_health.utils.tools import logger
+from em_health.utils.tools import logger, PG_LOG_LEVELS
 
 
 class BaseDBClient(ABC):
@@ -99,6 +100,11 @@ class PgClient(BaseDBClient):
         super().__init__(db_name, 5432, **kwargs)
         self.host = os.getenv('POSTGRES_HOST', 'localhost')
 
+    @staticmethod
+    def postgres_notice_handler(notice):
+        level = PG_LOG_LEVELS.get(notice.severity, logging.INFO)
+        logger.log(level, notice.message_primary)
+
     def connect(self):
         self.conn = psycopg.connect(
             host=self.host,
@@ -108,13 +114,14 @@ class PgClient(BaseDBClient):
             password=self.password,
             application_name="EMHealth"
         )
+        self.conn.add_notice_handler(self.postgres_notice_handler)
         self.cur = self.conn.cursor()
         logger.info("Connected to PostgreSQL %s@%s: database %s",
                     self.username, self.host, self.db_name)
 
     def execute_file(self,
                      fn,
-                     variables: Optional[dict[str, str]] = None) -> None:
+                     variables: dict[str, str] | None = None) -> None:
         """ Execute an SQL file.
         :param fn: Path to the .sql file.
         :param variables: Dictionary of variable names and values.
@@ -136,11 +143,10 @@ class PgClient(BaseDBClient):
     def run_query(
             self,
             query: str,
-            identifiers: Optional[Dict[str, str]] = None,
-            strings: Optional[Dict[str, Any]] = None,
-            values: Optional[tuple] = None,
-            mode: Literal["fetchone", "fetchmany", "fetchall", "commit", None] = "commit",
-            row_factory: Optional[Any] = None,
+            identifiers: dict[str, str] | None = None,
+            strings: dict[str, Any] | None = None,
+            values: tuple | None = None,
+            mode: Literal["fetchone", "fetchmany", "fetchall", "commit", None] = "commit"
     ):
         """
         Execute an SQL query and optionally return results.
@@ -150,11 +156,7 @@ class PgClient(BaseDBClient):
         :param strings: dict for literal values to be embedded (strings, etc.).
         :param values: tuple for parameterized query values (%s placeholders).
         :param mode: fetch mode or commit.
-        :param row_factory: cursor row factory to customize output.
         """
-        if row_factory is not None:
-            self.cur.row_factory = row_factory
-
         # Compose SQL query with identifiers and literals
         sql_query = sql.SQL(query)
         format_args = {}
@@ -169,7 +171,7 @@ class PgClient(BaseDBClient):
 
         self.cur.execute(sql_query, values)
 
-        if mode == "fetchone":
+        if mode == "fetchone": # single row
             return self.cur.fetchone()
         elif mode == "fetchmany":
             return self.cur.fetchmany()
