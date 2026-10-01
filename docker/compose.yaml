@@ -2,7 +2,7 @@ name: emhealth
 
 services:
   timescaledb:
-    image: ghcr.io/azazellochg/timescaledb:0.1a6
+    image: ghcr.io/azazellochg/timescaledb:0.1a11
     container_name: emhealth-db
     restart: unless-stopped
     env_file:
@@ -60,7 +60,7 @@ services:
       - emhealth-net
 
   renderer:
-    image: docker.io/grafana/grafana-image-renderer:v5.8.3@sha256:25315b071f540f01ba7265a0e3ea299afcf80db13664646a92ea21f92f63714c
+    image: docker.io/grafana/grafana-image-renderer:v5.12.5@sha256:76542ccc4c045e5ff9f80f87b25de6fcc71b31222172de5031a8ceba33772ee1
     container_name: emhealth-renderer
     restart: unless-stopped
     command: server --server.auth-token ${GRAFANA_RENDER_TOKEN}
@@ -72,7 +72,7 @@ services:
       - emhealth-net
 
   grafana:
-    image: docker.io/grafana/grafana:13.1.0-25893932881@sha256:aea3197f32a06715686c5672db2c143af2c3993724fef51534594468cb5d39ff
+    image: docker.io/grafana/grafana:13.2-slim@sha256:b6b738cd706a1b23190e60546425cb624150d8e015a41ee67a1a4b155457278d
     container_name: emhealth-grafana
     restart: unless-stopped
     ports:
