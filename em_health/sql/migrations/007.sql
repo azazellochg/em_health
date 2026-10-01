@@ -19,6 +19,14 @@ $$
       REVOKE pg_stat_scan_tables FROM grafana;
       REVOKE pg_read_all_stats FROM grafana;
 
+      FOR job IN
+        SELECT job_id
+        FROM timescaledb_information.jobs
+        WHERE proc_schema = 'pganalyze'
+      LOOP
+        PERFORM alter_job(job, scheduled => FALSE);
+      END LOOP;
+
       -- 2. Remove ALL old triggers
       SET ROLE emhealth;
       DROP TRIGGER IF EXISTS enum_values_upsert_before_insert ON events.enum_values;
@@ -264,14 +272,6 @@ $$
           ON i.id = im.new_id;
 
       -- 10. Convert to rowstore and alter events.data
-      FOR job IN
-        SELECT job_id
-        FROM timescaledb_information.jobs
-        WHERE proc_schema = 'pganalyze'
-      LOOP
-        PERFORM alter_job(job, scheduled => FALSE);
-      END LOOP;
-
       SELECT job_id
       INTO job_cmp
       FROM
@@ -858,14 +858,6 @@ $sql$;
       DROP TABLE IF EXISTS events.parameters_old CASCADE;
       DROP TABLE IF EXISTS events.instruments_old CASCADE;
 
-      FOR job IN
-        SELECT job_id
-        FROM timescaledb_information.jobs
-        WHERE proc_schema = 'pganalyze'
-      LOOP
-        PERFORM alter_job(job, scheduled => TRUE);
-      END LOOP;
-
       -- 15. Adjust uec.errors unique index for instrument_id type change
       ALTER TABLE uec.errors
         DROP CONSTRAINT IF EXISTS errors_time_instrument_id_errorid_key;
@@ -877,8 +869,16 @@ $sql$;
         ADD CONSTRAINT errors_instrument_id_errorid_time_key
           UNIQUE (instrument_id, errorid, time);
 
-      -- 16. Update schema version
+      -- 16. Enable pganalyze jobs and update schema version
       SET ROLE postgres;
+      FOR job IN
+        SELECT job_id
+        FROM timescaledb_information.jobs
+        WHERE proc_schema = 'pganalyze'
+      LOOP
+        PERFORM alter_job(job, scheduled => TRUE);
+      END LOOP;
+
       UPDATE public.schema_info SET version = 7;
     END IF;
   END
