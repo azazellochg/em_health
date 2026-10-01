@@ -1,8 +1,8 @@
 Changelog
 =========
 
-Version 0.1a9
-^^^^^^^^^^^^^
+Version 0.1a10
+^^^^^^^^^^^^^^
 
 * remove import skip-duplicates arg, we always use COPY and ignore duplicates from data_staging table
 * remove enum_values_history and related triggers
