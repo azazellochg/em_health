@@ -26,3 +26,5 @@ done
 
 echo "Running timescaledb-tune..."
 timescaledb-tune -quiet -yes
+echo "Running pgtune..."
+/usr/local/bin/pgtune.sh -y
