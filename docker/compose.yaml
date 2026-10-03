@@ -45,8 +45,6 @@ services:
       -c auto_explain.log_parameter_max_length=0
       -c archive_command='pgbackrest --stanza=main archive-push %p'
       -c archive_mode=on
-      -c max_wal_senders=3
-      -c wal_level=replica
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 5s

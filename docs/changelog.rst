@@ -4,7 +4,7 @@ Changelog
 Version 0.1a11
 ^^^^^^^^^^^^^^
 
-* update docker images
+* update podman images
 
 Version 0.1a10
 ^^^^^^^^^^^^^^
