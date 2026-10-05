@@ -160,36 +160,36 @@ class FDWManager:
                 );
 
                -- Subsystems
-                INSERT INTO uec.subsystem (SubsystemID, IdentifyingName)
+                INSERT INTO uec.subsystem (subsystem_id, name)
                 SELECT DISTINCT SubsystemID, Subsystem
                 FROM new_error_types
-                ON CONFLICT (SubsystemID) DO NOTHING;
+                ON CONFLICT (subsystem_id) DO NOTHING;
 
                 -- Device Types
-                INSERT INTO uec.device_type (DeviceTypeID, IdentifyingName)
+                INSERT INTO uec.device_type (device_type_id, name)
                 SELECT DISTINCT DeviceTypeID, DeviceType
                 FROM new_error_types
-                ON CONFLICT (DeviceTypeID) DO NOTHING;
+                ON CONFLICT (device_type_id) DO NOTHING;
 
                 -- Device Instances
-                INSERT INTO uec.device_instance (DeviceInstanceID, DeviceTypeID, IdentifyingName)
+                INSERT INTO uec.device_instance (device_instance_id, device_type_id, name)
                 SELECT DISTINCT DeviceInstanceID, DeviceTypeID, DeviceInstance
                 FROM new_error_types
-                ON CONFLICT (DeviceInstanceID, DeviceTypeID) DO NOTHING;
+                ON CONFLICT (device_instance_id, device_type_id) DO NOTHING;
 
                 -- Error Codes
-                INSERT INTO uec.error_code (DeviceTypeID, ErrorCodeID, IdentifyingName)
+                INSERT INTO uec.error_code (device_type_id, error_code_id, name)
                 SELECT DISTINCT DeviceTypeID, ErrorCodeID, ErrorCode
                 FROM new_error_types
-                ON CONFLICT (DeviceTypeID, ErrorCodeID) DO NOTHING;
+                ON CONFLICT (device_type_id, error_code_id) DO NOTHING;
 
                 -- Error definitions
                 INSERT INTO uec.error_definitions (
-                    ErrorDefinitionID,
-                    SubsystemID,
-                    DeviceTypeID,
-                    ErrorCodeID,
-                    DeviceInstanceID
+                    error_definition_id,
+                    subsystem_id,
+                    device_type_id,
+                    error_code_id,
+                    device_instance_id
                 )
                 SELECT
                     n.ErrorDefinitionID,
@@ -198,22 +198,22 @@ class FDWManager:
                     n.ErrorCodeID,
                     n.DeviceInstanceID
                 FROM new_error_types n
-                ON CONFLICT (ErrorDefinitionID) DO NOTHING;
+                ON CONFLICT (error_definition_id) DO NOTHING;
 
                 -- Error notifications
-                INSERT INTO uec.errors (time, instrument_id, ErrorID, MessageText)
+                INSERT INTO uec.errors (time, instrument_id, error_id, message)
                 SELECT
                     en.ErrorDtm,
                     {self.instr_id},
-                    ed.ErrorDefinitionID,
+                    ed.error_definition_id,
                     en.MessageText
                 FROM {self.fdw_schema}.error_notifications en
-                JOIN uec.error_definitions ed ON ed.ErrorDefinitionID = en.ErrorDefinitionID
+                JOIN uec.error_definitions ed ON ed.error_definition_id = en.ErrorDefinitionID
                 WHERE en.ErrorDtm > COALESCE(
                     (SELECT MAX(time) FROM uec.errors WHERE instrument_id = {self.instr_id}),
                     '1900-01-01'
                 )
-                ON CONFLICT (time, instrument_id, ErrorID) DO NOTHING;
+                ON CONFLICT (time, instrument_id, error_id) DO NOTHING;
             END;
             $$;
         """)
