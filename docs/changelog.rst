@@ -5,6 +5,8 @@ Version 0.1a11
 ^^^^^^^^^^^^^^
 
 * update podman images
+* update pgbackrest config and setup
+* update uec schema column names
 
 Version 0.1a10
 ^^^^^^^^^^^^^^
