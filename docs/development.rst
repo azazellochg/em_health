@@ -124,6 +124,7 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
     * vacuum_stats
     * stat_statements
     * queries
+    * sys_info
     * sys_stats
     * stat_explains
 

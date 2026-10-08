@@ -113,6 +113,7 @@ def main(dbname, action, force=False):
                     DROP TABLE IF EXISTS pganalyze.queries CASCADE;
                     DROP TABLE IF EXISTS pganalyze.stat_statements CASCADE;
                     DROP TABLE IF EXISTS pganalyze.stat_explains CASCADE;
+                    DROP TABLE IF EXISTS pganalyze.sys_info CASCADE;
                     DROP TABLE IF EXISTS pganalyze.sys_stats CASCADE;
                 """)
                 db.create_tables()
