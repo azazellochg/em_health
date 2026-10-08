@@ -5,6 +5,7 @@ services:
     image: ghcr.io/azazellochg/timescaledb:0.1a11
     container_name: emhealth-db
     restart: unless-stopped
+    shm_size: 128mb
     env_file:
       - .env
     environment:
@@ -36,6 +37,7 @@ services:
       -c log_truncate_on_rotation=on
       -c log_filename='postgresql-%Y-%m-%d.log'
       -c log_line_prefix=''
+      -c log_statement='ddl'
       -c log_autovacuum_min_duration=0
       -c auto_explain.log_format='json'
       -c auto_explain.log_min_duration=${MIN_QUERY_EXPLAIN}
@@ -61,6 +63,7 @@ services:
     image: docker.io/grafana/grafana-image-renderer:v5.12.5@sha256:76542ccc4c045e5ff9f80f87b25de6fcc71b31222172de5031a8ceba33772ee1
     container_name: emhealth-renderer
     restart: unless-stopped
+    shm_size: 2gb
     command: server --server.auth-token ${GRAFANA_RENDER_TOKEN}
     cap_drop:
       - ALL
@@ -73,6 +76,7 @@ services:
     image: docker.io/grafana/grafana:13.2-slim@sha256:b6b738cd706a1b23190e60546425cb624150d8e015a41ee67a1a4b155457278d
     container_name: emhealth-grafana
     restart: unless-stopped
+    shm_size: 128mb
     ports:
       - "3000:3000"
     depends_on:
