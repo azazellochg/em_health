@@ -11,7 +11,7 @@ services:
     environment:
       POSTGRES_INITDB_ARGS: --locale=C --encoding=UTF8
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/18/docker
       - ../em_health/sql:/sql:ro
@@ -87,6 +87,7 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD} # initial password, used only on first startup
       GF_SECURITY_DISABLE_GRAVATAR: true
       GF_AUTH_ANONYMOUS_HIDE_VERSION: true
+      GF_PLUGINS_PREINSTALL: yesoreyeram-infinity-datasource
       GF_LIVE_MAX_CONNECTIONS: 0
       GF_METRICS_ENABLED: false
       GF_SERVER_ENABLE_GZIP: true
