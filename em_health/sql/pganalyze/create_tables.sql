@@ -118,13 +118,27 @@ CREATE TABLE IF NOT EXISTS pganalyze.stat_explains (
   PRIMARY KEY (queryid, time)
 );
 
-CREATE TABLE IF NOT EXISTS pganalyze.sys_stats (
-  time timestamptz NOT NULL DEFAULT NOW() UNIQUE,
-  load1 DOUBLE PRECISION NOT NULL,
-  load5 DOUBLE PRECISION NOT NULL,
-  load15 DOUBLE PRECISION NOT NULL,
-  cpu_count INT NOT NULL,
-  mem_total BIGINT NOT NULL,
-  mem_free BIGINT NOT NULL,
-  mem_avail BIGINT NOT NULL
+CREATE TABLE IF NOT EXISTS pganalyze.sys_info (
+  hostname TEXT PRIMARY KEY,
+  os_name TEXT,
+  kernel_name TEXT,
+  kernel_version TEXT,
+  cpu_count INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS pganalyze.sys_stats (
+  time timestamptz NOT NULL DEFAULT NOW(),
+  metric TEXT NOT NULL,
+  value DOUBLE PRECISION NOT NULL,
+  labels JSONB,
+  UNIQUE (metric, labels, time)
+)
+WITH (
+  tsdb.hypertable,
+  tsdb.chunk_interval = :var_pgstats_chunk_size,
+  tsdb.partition_column = 'time',
+  tsdb.segmentby = 'metric',
+  tsdb.orderby = 'time DESC'
+);
+
+SELECT add_retention_policy('pganalyze.sys_stats', drop_after => INTERVAL :var_pgstats_retention);

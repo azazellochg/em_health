@@ -91,6 +91,13 @@ def dev_cmd(args):
         from em_health.db_manager import main as func
         func(dbname, action)
 
+    elif action == "create-service":
+        from em_health.utils.create_service import main as func
+        func(script_fn="system_stats.py",
+             service_name="emhealth-collector",
+             desc="EMHealth System Metrics Collector",
+             restart=10)
+
 
 COMMAND_DISPATCH = {
     "import": import_cmd,
@@ -174,6 +181,7 @@ def main():
                       help="Erase existing pganalyze data and recreate tables")
 
     dev_subparsers.add_parser("import-uec", help="Import UEC data from microscope servers")
+    dev_subparsers.add_parser("create-service", help="Create systemd service file for host statistics collector")
 
     args = parser.parse_args()
 

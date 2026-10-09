@@ -36,8 +36,8 @@ from psycopg.types.json import Jsonb
 from em_health.db_client import PgClient
 from em_health.utils.tools import logger, profile
 
-TEM_SCHEMA_VERSION = 7
-SEM_SCHEMA_VERSION = 7
+TEM_SCHEMA_VERSION = 8
+SEM_SCHEMA_VERSION = 8
 
 
 class DatabaseManager(PgClient):

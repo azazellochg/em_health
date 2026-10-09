@@ -62,6 +62,7 @@ def get_pg_version() -> str:
         capture_output=True)
     return result.stdout.strip()
 
+
 def check_versions(dbname: str, fn: Path):
     """Compare backup file with server versions."""
     pg_version = fn.name.split("_")[2]
@@ -92,6 +93,7 @@ def backup(dbname: str = "tem") -> Path:
         run_command(f"{MANAGER} stop {GRAFANA_CONTAINER}")
         run_command(f"{MANAGER} cp {GRAFANA_CONTAINER}:/var/lib/grafana/grafana.db {grafana_backup}")
         run_command(f"{MANAGER} start {GRAFANA_CONTAINER}")
+        logger.info("Backup completed")
         return grafana_backup
     elif dbname in ["tem", "sem"]:
         pg_version = get_pg_version()
@@ -100,6 +102,7 @@ def backup(dbname: str = "tem") -> Path:
         pg_host_backup = BACKUP_HOST_PATH / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
         logger.info("Backing up TimescaleDB '%s' to %s", dbname, pg_host_backup.resolve())
         run_command(f"{PG_EXEC} pg_dump -Fc -d {dbname} -f {pg_backup}")
+        logger.info("Backup completed")
         return pg_backup
 
 
@@ -157,23 +160,25 @@ def update() -> None:
         print("EMHealth 0.1a6+ does not support PostgreSQL 17. "
               "Check documentation at https://em-health.readthedocs.io/latest/maintenance.html#updating-postgresql-from-v17-to-v18")
 
+    if MANAGER == "podman":
+        mgr_cmd = "podman-compose"
+    else:
+        mgr_cmd = f"docker compose"
+
     # migrate db schema
     from em_health.db_manager import main as db_manager
+    grafana_backup = backup("grafana")
+    # shutdown grafana during migration
+    run_command(f"{mgr_cmd} -f {COMPOSE_FILE} down grafana")
     db_manager("tem", "migrate")
     db_manager("sem", "migrate")
 
     # backup db
     pg_backup_tem = backup("tem")
     pg_backup_sem = backup("sem")
-    grafana_backup = backup("grafana")
 
     # update containers
     chdir_docker_dir()
-
-    if MANAGER == "podman":
-        mgr_cmd = "podman-compose"
-    else:
-        mgr_cmd = f"docker compose"
 
     for cmd in [
         f"{mgr_cmd} -f {COMPOSE_FILE} down -v",
@@ -218,7 +223,7 @@ def main(action: str, dbname: str = "tem") -> None:
         update()
 
     elif action == "backup":
-        backup(dbname)
+        _ = backup(dbname)
 
     elif action == "restore":
         confirm = input(f"Restoring will DELETE existing {dbname} database.\nType YES to continue: ")
