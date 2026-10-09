@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # **************************************************************************
 # *
 # * Authors:     Grigory Sharov (gsharov@mrclmb.ac.uk) [1]
@@ -30,7 +29,6 @@ import platform
 import subprocess
 import fcntl
 import time
-import json
 from datetime import datetime, timezone
 from pathlib import Path
 from psycopg.types.json import Jsonb
@@ -38,10 +36,9 @@ from psycopg.types.json import Jsonb
 from em_health.db_analyze import DatabaseAnalyzer
 from em_health.utils.tools import logger
 
+
 FAST_INTERVAL = 15  # 15 sec
 SLOW_INTERVAL = 900  # 15 min
-DB_RETRY_INTERVAL = 10
-DB_MAX_ATTEMPTS = 5
 
 MANAGER = os.getenv("MANAGER_TYPE", "podman")
 if MANAGER not in ["docker", "podman"]:
@@ -426,7 +423,7 @@ def get_os_name():
 
 
 def acquire_lock():
-    lock_path = "/tmp/emhealth-system-collector.lock"
+    lock_path = "/tmp/emhealth-collector.lock"
     lock_file = open(lock_path, "w")
 
     try:
@@ -532,7 +529,7 @@ def run_collector(collector, db):
 
             try:
                 metrics = collector.collect_fast()
-                logger.debug(json.dumps(metrics, sort_keys=True, indent=2))
+                #logger.debug(json.dumps(metrics, sort_keys=True, indent=2))
             except Exception:
                 logger.exception("Fast collection failed")
             else:
@@ -546,7 +543,7 @@ def run_collector(collector, db):
 
             try:
                 metrics = collector.collect_slow()
-                logger.debug(json.dumps(metrics, sort_keys=True, indent=2))
+                #logger.debug(json.dumps(metrics, sort_keys=True, indent=2))
             except Exception:
                 logger.exception("Slow collection failed")
             else:
@@ -563,12 +560,7 @@ def run_collector(collector, db):
 
 
 def main():
-    try:
-        lock_file = acquire_lock()
-    except Exception as e:
-        logger.error("%s", e)
-        return
-
+    _ = acquire_lock()
     os_name = get_os_name()
     hostname = platform.node()
     kernel_name = platform.system()
@@ -584,20 +576,11 @@ def main():
     }
 
     collector = SystemCollector()
-    for attempt in range(1, DB_MAX_ATTEMPTS + 1):
-        try:
-            with DatabaseAnalyzer("tem", username="pganalyze", password="POSTGRES_PGANALYZE_PASSWORD") as db:
-                db.run_query("SELECT pganalyze.import_sysinfo(%s)",
-                             values=(Jsonb(static_metrics),))
-                logger.debug(json.dumps(static_metrics, sort_keys=True, indent=2))
-                run_collector(collector, db)
-
-        except Exception:
-            logger.exception("Collector/DB session failed (%d/%d)", attempt, DB_MAX_ATTEMPTS)
-            if attempt < DB_MAX_ATTEMPTS:
-                time.sleep(DB_RETRY_INTERVAL)
-
-    logger.error("Collector stopped after %d failed DB attempts", DB_MAX_ATTEMPTS)
+    with DatabaseAnalyzer("tem", username="pganalyze", password="POSTGRES_PGANALYZE_PASSWORD") as db:
+        db.run_query("SELECT pganalyze.import_sysinfo(%s)",
+                     values=(Jsonb(static_metrics),))
+        #logger.debug(json.dumps(static_metrics, sort_keys=True, indent=2))
+        run_collector(collector, db)
 
 
 if __name__ == "__main__":

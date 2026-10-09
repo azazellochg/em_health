@@ -4,11 +4,17 @@ Changelog
 Version 0.1a11
 ^^^^^^^^^^^^^^
 
-* update podman images
+* update podman images. PG 18.6
 * update pgbackrest config and setup
 * update uec schema column names
 * implement host metrics collector, update pganalyze schema/funcs
 * add infinity datasource plugin for Grafana
+* postgres connection limited to container host only
+* change shm size for containers
+* add infinity datasource for grafana
+* connection limits for all PG roles
+* add pgtune.sh script on top of timescaledb-tune
+
 
 Version 0.1a10
 ^^^^^^^^^^^^^^

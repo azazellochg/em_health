@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "ee46beab-c046-42b1-b547-23990e2ec0f3",
-    "generation": 5,
-    "creationTimestamp": "2026-08-19T16:14:59Z",
+    "generation": 4,
+    "creationTimestamp": "2026-10-01T14:29:57Z",
     "labels": {},
     "annotations": {}
   },
@@ -84,7 +84,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -143,7 +143,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  name AS \"Name\",\n  short_desc AS \"Description\",\n  setting AS \"Current value\",\n  boot_val AS \"Default value\",\n  unit AS \"Unit\",\n  min_val || ' to ' || max_val AS \"Range\"\nFROM\n  pg_settings\nWHERE\n  name IN (\n    'shared_buffers',\n    'work_mem',\n    'max_connections',\n    'max_worker_processes',\n    'max_parallel_workers',\n    'max_locks_per_transaction',\n    'wal_buffers',\n    'min_wal_size',\n    'max_wal_size',\n    'autovacuum_max_workers',\n    'autovacuum_worker_slots',\n    'autovacuum_work_mem',\n    'maintenance_work_mem',\n    'effective_cache_size',\n    'jit',\n    'default_toast_compression'\n  )\nORDER BY \"Name\"",
+                        "rawSql": "SELECT\n  name AS \"Name\",\n  short_desc AS \"Description\",\n  setting AS \"Current value\",\n  boot_val AS \"Default value\",\n  unit AS \"Unit\",\n  min_val || ' to ' || max_val AS \"Range\"\nFROM\n  pg_settings\nWHERE\n  name IN (\n    'autovacuum_analyze_scale_factor',\n    'autovacuum_max_workers',\n    'autovacuum_naptime',\n    'autovacuum_vacuum_cost_delay',\n    'autovacuum_vacuum_cost_limit',\n    'autovacuum_vacuum_insert_scale_factor',\n    'autovacuum_vacuum_scale_factor',\n    'autovacuum_vacuum_threshold',\n    'autovacuum_work_mem',\n    'autovacuum_worker_slots',\n    'checkpoint_completion_target',\n    'checkpoint_timeout',\n    'default_statistics_target',\n    'default_toast_compression',\n    'effective_cache_size',\n    'effective_io_concurrency',\n    'jit',\n    'maintenance_work_mem',\n    'max_connections',\n    'max_locks_per_transaction',\n    'max_parallel_maintenance_workers',\n    'max_parallel_workers',\n    'max_parallel_workers_per_gather',\n    'max_wal_size',\n    'max_worker_processes',\n    'min_wal_size',\n    'random_page_cost',\n    'shared_buffers',\n    'statement_timeout',\n    'temp_buffers',\n    'wal_buffers',\n    'wal_compression',\n    'work_mem'\n  )\nORDER BY \"Name\"",
                         "sql": {
                           "columns": [
                             {
@@ -175,7 +175,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -279,204 +279,6 @@
           }
         }
       },
-      "panel-33": {
-        "kind": "Panel",
-        "spec": {
-          "id": 33,
-          "title": "Tuning work_mem",
-          "description": "For most TimescaleDB servers, 64 MB to 256 MB is appropriate.\n\nwork_mem controls how much memory PostgreSQL allocates for each sort, hash join, or hash aggregate operation before spilling to temporary files on disk. The critical detail: this is per operation, not per connection. ",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "SELECT\n    pg_size_bytes(current_setting('work_mem')) / 1024 / 1024 AS current_value,\n    GREATEST(\n        1,\n        LEAST(\n            256,\n            pg_size_bytes(current_setting('shared_buffers')) /\n            current_setting('max_connections')::int / 1024 / 1024\n        )\n    ) AS recommended",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "stat",
-            "version": "13.1.0-25893932881",
-            "spec": {
-              "options": {
-                "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "/.*/",
-                  "values": true
-                },
-                "showPercentChange": false,
-                "textMode": "value_and_name",
-                "wideLayout": true
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "decmbytes",
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "thresholds"
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-34": {
-        "kind": "Panel",
-        "spec": {
-          "id": 34,
-          "title": "Tuning maintenance_work_mem",
-          "description": "Used for VACUUM, create indexes and chunk compression. Multiply by number of workers to see the potential memory consumption during peak compression activity.",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "SELECT\n  pg_size_bytes(current_setting('maintenance_work_mem')) AS current_value,\n  current_setting('timescaledb.max_background_workers')::int AS workers",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "stat",
-            "version": "13.1.0-25893932881",
-            "spec": {
-              "options": {
-                "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "/.*/",
-                  "values": true
-                },
-                "showPercentChange": false,
-                "textMode": "auto",
-                "wideLayout": true
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "thresholds"
-                  }
-                },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "current_value"
-                    },
-                    "properties": [
-                      {
-                        "id": "unit",
-                        "value": "decbytes"
-                      }
-                    ]
-                  }
-                ]
-              }
-            }
-          }
-        }
-      },
       "panel-35": {
         "kind": "Panel",
         "spec": {
@@ -531,7 +333,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -648,7 +450,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -751,6 +553,43 @@
             }
           }
         }
+      },
+      "panel-40": {
+        "kind": "Panel",
+        "spec": {
+          "id": 40,
+          "title": "Tuning guides",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "text",
+            "version": "13.2.3",
+            "spec": {
+              "options": {
+                "code": {
+                  "language": "plaintext",
+                  "showLineNumbers": false,
+                  "showMiniMap": false
+                },
+                "content": "- [PGTune](https://pgtune.leopard.in.ua/)\n- [TimeScale docs](https://www.tigerdata.com/docs/deploy/self-hosted/configuration/about-configuration)\n- [PG wiki](https://wiki.postgresql.org/wiki/Tuning_Your_PostgreSQL_Server)",
+                "mode": "markdown"
+              },
+              "fieldConfig": {
+                "defaults": {},
+                "overrides": []
+              }
+            }
+          }
+        }
       }
     },
     "layout": {
@@ -775,37 +614,24 @@
             "spec": {
               "x": 6,
               "y": 0,
-              "width": 4,
+              "width": 3,
               "height": 4,
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-34"
-              }
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "x": 6,
-              "y": 4,
-              "width": 4,
-              "height": 4,
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-33"
-              }
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "x": 6,
-              "y": 8,
-              "width": 4,
-              "height": 3,
               "element": {
                 "kind": "ElementReference",
                 "name": "panel-35"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 9,
+              "y": 0,
+              "width": 4,
+              "height": 4,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-40"
               }
             }
           },
