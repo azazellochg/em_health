@@ -31,3 +31,14 @@ datasources:
       sslmode: disable
       postgresVersion: 1500
       timescaledb: true
+
+  - name: json
+    type: "yesoreyeram-infinity-datasource"
+    uid: infinity
+    access: proxy
+    basicAuth: false
+    isDefault: false
+    jsonData:
+      auth_method: "none"
+      pdcInjected: false
+    readOnly: false

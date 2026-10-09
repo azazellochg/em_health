@@ -7,6 +7,8 @@ Version 0.1a11
 * update podman images
 * update pgbackrest config and setup
 * update uec schema column names
+* implement host metrics collector, update pganalyze schema/funcs
+* add infinity datasource plugin for Grafana
 
 Version 0.1a10
 ^^^^^^^^^^^^^^
