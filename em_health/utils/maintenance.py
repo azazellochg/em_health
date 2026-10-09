@@ -62,6 +62,7 @@ def get_pg_version() -> str:
         capture_output=True)
     return result.stdout.strip()
 
+
 def check_versions(dbname: str, fn: Path):
     """Compare backup file with server versions."""
     pg_version = fn.name.split("_")[2]
