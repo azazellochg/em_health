@@ -32,12 +32,12 @@ from em_health.utils.tools import logger
 
 
 def main(script_fn: str,
-         service_fn: str,
+         service_name: str,
          desc: str,
          restart: int = 10):
     """ Create systemd service file for the current user.
     :param script_fn: Python script to run
-    :param service_fn: output systemd filename
+    :param service_name: output systemd service name
     :param desc: service description
     :param restart: restart service every N seconds
     """
@@ -47,7 +47,7 @@ def main(script_fn: str,
     script = script_path.parent / script_fn
     python_path = Path(sys.executable).resolve()
     systemd_dir = Path.home() / ".config" / "systemd" / "user"
-    service_file = systemd_dir / service_fn
+    service_file = systemd_dir / f"{service_name}.service"
 
     systemd_dir.mkdir(parents=True, exist_ok=True)
     content = f"""
@@ -76,4 +76,4 @@ WantedBy=default.target
                 "Run:\n\tsystemctl --user daemon-reload\n"
                 "\tsystemctl --user enable --now %s",
                 os.path.abspath(service_file),
-                service_fn)
+                f"{service_name}.service")
