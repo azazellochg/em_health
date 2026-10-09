@@ -71,7 +71,7 @@ FROM docker.io/library/postgres:18.6-trixie@sha256:5a5a84b19854a9ffaa54082c166ff
 
 # --------- Metadata ----------
 LABEL org.opencontainers.image.title="Custom PostgreSQL image with TimescaleDB, Toolkit & TDS-FDW" \
-      org.opencontainers.image.description='Postgres 18.6 + TimescaleDB 2.30.2 + Toolkit 1.26.0 + TDS-FDW 2.0.5' \
+      org.opencontainers.image.description="Postgres 18.6 + TimescaleDB 2.30.2 + Toolkit 1.26.0 + TDS-FDW 2.0.5" \
       org.opencontainers.image.version="0.1a11" \
       org.opencontainers.image.authors="Grigory Sharov <gsharov@mrclmb.ac.uk>" \
       org.opencontainers.image.licenses="GPL-3.0-or-later" \
