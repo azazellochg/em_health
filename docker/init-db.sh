@@ -2,8 +2,7 @@
 set -eu
 
 echo "Create or upgrade pgBackRest stanza..."
-pgbackrest --stanza=main stanza-create || :
-pgbackrest --stanza=main stanza-upgrade
+pgbackrest --stanza=main stanza-upgrade || pgbackrest --stanza=main stanza-create
 pgbackrest --stanza=main check
 
 psql -v ON_ERROR_STOP=1 <<EOSQL
