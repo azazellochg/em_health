@@ -29,9 +29,9 @@ $$
         tsdb.orderby = 'time DESC'
         );
 
-      SELECT add_retention_policy('pganalyze.sys_stats', drop_after => INTERVAL '3 months');
+      PERFORM add_retention_policy('pganalyze.sys_stats', drop_after => INTERVAL '3 months');
 
-      SELECT delete_job(job_id)
+      PERFORM delete_job(job_id)
       FROM timescaledb_information.jobs
       WHERE proc_name = 'parse_sysinfo';
 
@@ -115,6 +115,7 @@ $func$;
 $sql$;
 
       -- 4. Update schema version
+      SET ROLE postgres;
       UPDATE public.schema_info SET version = 8;
     END IF;
   END
