@@ -63,7 +63,7 @@ All ``EMHealth`` application actions are saved into `emhealth.log`. PostgreSQL l
 
 .. code-block::
 
-    docker exec -it emhealth-db bash
+    podman exec -it emhealth-db bash
     cd /var/lib/postgresql/data/log
     cat *.csv
 
@@ -71,7 +71,7 @@ Grafana logs are accessible via:
 
 .. code-block::
 
-    docker logs emhealth-grafana
+    podman logs emhealth-grafana
 
 Database structure
 ^^^^^^^^^^^^^^^^^^
@@ -124,6 +124,7 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
     * vacuum_stats
     * stat_statements
     * queries
+    * sys_info
     * sys_stats
     * stat_explains
 

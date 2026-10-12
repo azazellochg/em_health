@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "46837677-7190-44c2-b9bb-db869089ba49",
-    "generation": 31,
-    "creationTimestamp": "2026-08-14T13:00:32Z",
+    "generation": 4,
+    "creationTimestamp": "2026-10-01T14:29:57Z",
     "labels": {},
     "annotations": {}
   },
@@ -73,6 +73,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -206,6 +210,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -341,6 +349,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -355,7 +367,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -448,6 +460,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -462,7 +478,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "annotations": {
@@ -602,6 +618,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "time series",
@@ -616,7 +636,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "annotations": {
@@ -756,6 +776,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "tables",
@@ -770,7 +794,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -949,6 +973,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -963,7 +991,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -1080,6 +1108,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -1094,7 +1126,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -1174,6 +1206,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -1188,7 +1224,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -1246,7 +1282,7 @@
         "spec": {
           "id": 2,
           "title": "Chunks",
-          "description": "",
+          "description": "param_id min/max are available only when chunk skipping is enabled",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1266,7 +1302,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    c.chunk_name AS \"Name\",\n    (cds).total_bytes AS \"Total size\",\n    (cds).index_bytes AS \"Index size\",\n    c.is_compressed AS \"Compressed\",\n    c.range_start::text AS \"Start time\",\n    c.range_end::text   AS \"End time\"\nFROM timescaledb_information.chunks c\nJOIN LATERAL chunks_detailed_size('$schema' || '.' || '$table') AS cds ON cds.chunk_name = c.chunk_name\nWHERE c.hypertable_schema = '$schema'\n    AND c.hypertable_name = '$table'\nORDER BY range_end DESC;\n",
+                        "rawSql": "SELECT\n    c.chunk_name AS \"Name\",\n    s.range_start AS \"param_id min\",\n    s.range_end AS \"param_id max\",\n    c.is_compressed AS \"Compressed\",\n    cds.total_bytes AS \"Total size\",\n    cds.index_bytes AS \"Index size\",\n    c.range_start::text AS \"Start time\",\n    c.range_end::text AS \"End time\"\nFROM timescaledb_information.chunks c\nJOIN _timescaledb_catalog.hypertable h\n    ON h.schema_name = c.hypertable_schema\n   AND h.table_name = c.hypertable_name\nJOIN _timescaledb_catalog.chunk ch\n    ON ch.hypertable_id = h.id\n   AND ch.relid = format('%I.%I', c.chunk_schema, c.chunk_name)::regclass\nLEFT JOIN _timescaledb_catalog.chunk_column_stats s\n    ON s.chunk_id = ch.id\n   AND s.column_name = 'param_id'\nJOIN LATERAL chunks_detailed_size('$schema.$table') cds\n    ON cds.chunk_name = c.chunk_name\nWHERE c.hypertable_schema = '$schema'\n  AND c.hypertable_name = '$table'\nORDER BY c.range_end DESC;",
                         "sql": {
                           "columns": [
                             {
@@ -1284,6 +1320,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -1298,7 +1338,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -1416,6 +1456,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -1430,7 +1474,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -1511,6 +1555,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -1631,6 +1679,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -1743,6 +1795,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -1872,6 +1928,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "B",
@@ -2028,6 +2088,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",

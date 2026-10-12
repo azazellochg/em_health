@@ -51,6 +51,7 @@ SELECT tables_are('pganalyze'::name, ARRAY [
   'queries',
   'stat_statements',
   'stat_explains',
+  'sys_info',
   'sys_stats'
   ]);
 

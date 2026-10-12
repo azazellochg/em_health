@@ -114,5 +114,5 @@ def profile(fn):
 
 def run_command(command: str, capture_output: bool = False, check: bool = True) -> subprocess.CompletedProcess:
     """Run a shell command with logging."""
-    logger.info("Running command: %s", command)
+    logger.debug("Running command: %s", command)
     return subprocess.run(command, shell=True, check=check, capture_output=capture_output, text=True)

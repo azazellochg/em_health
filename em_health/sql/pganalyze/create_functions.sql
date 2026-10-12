@@ -503,59 +503,76 @@ BEGIN
 END;
 $$;
 
--- parse sysinfo
-DROP FUNCTION IF EXISTS pganalyze.parse_sysinfo;
+-- import sysinfo
+DROP FUNCTION IF EXISTS pganalyze.import_sysinfo;
 
-CREATE FUNCTION pganalyze.parse_sysinfo(job_id INT = NULL, config jsonb = NULL) RETURNS VOID
+CREATE FUNCTION pganalyze.import_sysinfo(p_info_dict JSONB)
+  RETURNS VOID
+  LANGUAGE plpgsql AS
+$$
+BEGIN
+  INSERT INTO pganalyze.sys_info (
+    hostname,
+    os_name,
+    kernel_name,
+    kernel_version,
+    cpu_count
+  )
+  VALUES (
+    p_info_dict ->> 'hostname',
+    p_info_dict ->> 'os_name',
+    p_info_dict ->> 'kernel_name',
+    p_info_dict ->> 'kernel_version',
+    (p_info_dict ->> 'cpu_count')::INTEGER
+  )
+  ON CONFLICT (hostname) DO UPDATE SET
+    os_name = excluded.os_name,
+    kernel_name = excluded.kernel_name,
+    kernel_version = excluded.kernel_version,
+    cpu_count = excluded.cpu_count
+  WHERE
+    ROW (
+      pganalyze.sys_info.os_name,
+      pganalyze.sys_info.kernel_name,
+      pganalyze.sys_info.kernel_version,
+      pganalyze.sys_info.cpu_count
+      )
+      IS DISTINCT FROM ROW (
+      excluded.os_name,
+      excluded.kernel_name,
+      excluded.kernel_version,
+      excluded.cpu_count
+      );
+END;
+$$;
+
+-- import sysstats
+DROP FUNCTION IF EXISTS pganalyze.import_sysstats;
+
+CREATE FUNCTION pganalyze.import_sysstats(
+  p_time timestamptz,
+  p_stats_dict JSONB
+)
+  RETURNS VOID
   LANGUAGE plpgsql AS
 $$
 BEGIN
   INSERT INTO pganalyze.sys_stats (
-    load1,
-    load5,
-    load15,
-    cpu_count,
-    mem_total,
-    mem_free,
-    mem_avail
+    time,
+    metric,
+    value,
+    labels
   )
-  WITH loadavg AS (
-    SELECT REGEXP_SPLIT_TO_ARRAY(PG_READ_FILE('/proc/loadavg', 0, 100), ' ') AS parts
-  ),
-    cpu AS (
-      SELECT
-        COUNT(*) AS cpu_count
-      FROM
-        UNNEST(STRING_TO_ARRAY(PG_READ_FILE('/proc/stat', 0, 2000), E'\n')) AS line
-      WHERE
-        line ~ '^cpu[0-9]+'
-    ),
-    mem AS (
-      SELECT
-        MAX(CASE WHEN line LIKE 'MemTotal:%'
-                   THEN TRIM(REGEXP_REPLACE(SPLIT_PART(line, ':', 2), '[^0-9]', '', 'g'))::BIGINT END) AS mem_total,
-        MAX(CASE WHEN line LIKE 'MemFree:%'
-                   THEN TRIM(REGEXP_REPLACE(SPLIT_PART(line, ':', 2), '[^0-9]', '', 'g'))::BIGINT END) AS mem_free,
-        MAX(CASE WHEN line LIKE 'MemAvailable:%'
-                   THEN TRIM(REGEXP_REPLACE(SPLIT_PART(line, ':', 2), '[^0-9]', '', 'g'))::BIGINT END) AS mem_avail
-      FROM
-        (
-          -- only read first 200 bytes of meminfo, which always covers first 3 lines
-          SELECT UNNEST(STRING_TO_ARRAY(PG_READ_FILE('/proc/meminfo', 0, 200), E'\n')) AS line
-        ) t
-    )
   SELECT
-    parts[1]::DOUBLE PRECISION AS load1,
-    parts[2]::DOUBLE PRECISION AS load5,
-    parts[3]::DOUBLE PRECISION AS load15,
-    cpu_count,
-    mem.mem_total,
-    mem.mem_free,
-    mem.mem_avail
-  FROM
-    loadavg,
-    cpu,
-    mem;
+    p_time,
+    item->>'metric',
+    (item->>'value')::double precision,
+    CASE
+      WHEN item - 'metric' - 'value' = '{}'::jsonb
+        THEN NULL
+      ELSE item - 'metric' - 'value'
+      END
+  FROM jsonb_array_elements(p_stats_dict) AS item;
 END;
 $$;
 
