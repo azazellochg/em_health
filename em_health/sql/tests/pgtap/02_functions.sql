@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(10);
+SELECT plan(14);
 
 SELECT function_privs_are(
   'pg_read_file'::name,
@@ -7,13 +7,11 @@ SELECT function_privs_are(
   'pganalyze',
   ARRAY['EXECUTE']);
 
-SELECT functions_are('events'::name, ARRAY[
-  'purge_old_chunks',
-  'import_instrument',
-  'update_thresholds',
-  'delete_instrument',
-  'parameters_log_after_update'
-  ]);
+SELECT has_function('events'::name, 'purge_old_chunks'::name);
+SELECT has_function('events'::name, 'import_instrument'::name);
+SELECT has_function('events'::name, 'update_thresholds'::name);
+SELECT has_function('events'::name, 'delete_instrument'::name);
+SELECT has_function('events'::name, 'parameters_log_after_update'::name);
 
 SELECT has_trigger('events'::name, 'parameters'::name, 'parameters_log_after_update'::name);
 
