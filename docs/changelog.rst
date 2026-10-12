@@ -14,6 +14,10 @@ Version 0.1a11
 * add infinity datasource for grafana
 * connection limits for all PG roles
 * add pgtune.sh script on top of timescaledb-tune
+* create Systemd unit files for watchdog and host metrics collector
+* disconnect all roles during migration
+* remove unused project deps
+* log DDL statements in PG
 
 
 Version 0.1a10
