@@ -34,12 +34,14 @@ from em_health.utils.tools import logger
 def main(script_fn: str,
          service_name: str,
          desc: str,
-         restart: int = 10):
-    """ Create systemd service file for the current user.
+         restart: int = 10,
+         **kwargs):
+    """ Create systemd unit file for the current user.
     :param script_fn: Python script to run
     :param service_name: output systemd service name
     :param desc: service description
     :param restart: restart service every N seconds
+    :param kwargs: custom arguments for script_fn
     """
     script_path = Path(__file__).resolve()
     project_dir = script_path.parents[2]
@@ -48,6 +50,10 @@ def main(script_fn: str,
     python_path = Path(sys.executable).resolve()
     systemd_dir = Path.home() / ".config" / "systemd" / "user"
     service_file = systemd_dir / f"{service_name}.service"
+    if kwargs:
+        opts = ' '.join([f"-{k} {v}" for k, v in kwargs.items()])
+    else:
+        opts = None
 
     systemd_dir.mkdir(parents=True, exist_ok=True)
     content = f"""
@@ -58,11 +64,13 @@ After=network.target
 [Service]
 Type=simple
 EnvironmentFile={env_file}
-ExecStart={python_path} {script}
+ExecStart={python_path} {script} {opts}
 WorkingDirectory={project_dir}
 
 Restart=on-failure
 RestartSec={restart}
+KillSignal=SIGTERM
+TimeoutStopSec=120
 
 [Install]
 WantedBy=default.target

@@ -67,7 +67,7 @@ class DatabaseAnalyzer(DatabaseManager):
 
 
 def main(dbname, action, force=False):
-    if action == "pganalyze":
+    if action == "reset-stat":
         with DatabaseAnalyzer(dbname, username="pganalyze", password="POSTGRES_PGANALYZE_PASSWORD") as db:
             db.delete_jobs()
 

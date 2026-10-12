@@ -29,6 +29,7 @@ import platform
 import subprocess
 import fcntl
 import time
+import argparse
 from datetime import datetime, timezone
 from pathlib import Path
 from psycopg.types.json import Jsonb
@@ -36,9 +37,6 @@ from psycopg.types.json import Jsonb
 from em_health.db_analyze import DatabaseAnalyzer
 from em_health.utils.tools import logger
 
-
-FAST_INTERVAL = 15  # 15 sec
-SLOW_INTERVAL = 900  # 15 min
 
 MANAGER = os.getenv("MANAGER_TYPE", "podman")
 if MANAGER not in ["docker", "podman"]:
@@ -518,7 +516,10 @@ class SystemCollector:
             self._get_cgroup_path(container)
 
 
-def run_collector(collector, db):
+def run_collector(collector: SystemCollector,
+                  db: DatabaseAnalyzer,
+                  fast_int: int,
+                  slow_int: int):
     next_fast = time.monotonic()
     next_slow = next_fast
 
@@ -536,7 +537,7 @@ def run_collector(collector, db):
                 db.run_query("SELECT pganalyze.import_sysstats(%s, %s)",
                              values=(collection_time, Jsonb(metrics)))
 
-            next_fast += FAST_INTERVAL
+            next_fast += fast_int
 
         if now >= next_slow:
             collection_time = datetime.now(timezone.utc)
@@ -550,7 +551,7 @@ def run_collector(collector, db):
                 db.run_query("SELECT pganalyze.import_sysstats(%s, %s)",
                              values=(collection_time, Jsonb(metrics)))
 
-            next_slow += SLOW_INTERVAL
+            next_slow += slow_int
 
         next_run = min(next_fast, next_slow)
         sleep_for = next_run - time.monotonic()
@@ -560,6 +561,16 @@ def run_collector(collector, db):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f", dest="fast", type=int, default=15,
+                        help="Fast time interval in seconds (default: 15)")
+    parser.add_argument("-s", dest="slow", type=int, default=900,
+                        help="Slow time interval in seconds (default: 900)")
+
+    args = parser.parse_args()
+    fast_int = int(args.fast)
+    slow_int = int(args.slow)
+
     _ = acquire_lock()
     os_name = get_os_name()
     hostname = platform.node()
@@ -580,7 +591,7 @@ def main():
         db.run_query("SELECT pganalyze.import_sysinfo(%s)",
                      values=(Jsonb(static_metrics),))
         #logger.debug(json.dumps(static_metrics, sort_keys=True, indent=2))
-        run_collector(collector, db)
+        run_collector(collector, db, fast_int, slow_int)
 
 
 if __name__ == "__main__":
