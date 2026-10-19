@@ -47,6 +47,7 @@ SELECT tables_are('pganalyze'::name, ARRAY [
   'database_stats',
   'table_stats',
   'index_stats',
+  'io_stats',
   'vacuum_stats',
   'queries',
   'stat_statements',

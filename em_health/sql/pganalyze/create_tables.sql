@@ -19,7 +19,14 @@ CREATE TABLE IF NOT EXISTS pganalyze.database_stats (
   frozen_mxid_age BIGINT NOT NULL,
   db_size BIGINT NOT NULL,
   wal_lsn pg_lsn NOT NULL,
-  xmin_horizon BIGINT NOT NULL
+  xmin_horizon BIGINT NOT NULL,
+  wal_archived_count BIGINT NOT NULL,
+  wal_failed_count BIGINT NOT NULL,
+  chk_timed BIGINT NOT NULL,
+  chk_requested BIGINT NOT NULL,
+  chk_write_time DOUBLE PRECISION NOT NULL,
+  chk_sync_time DOUBLE PRECISION NOT NULL,
+  chk_buffers_written BIGINT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS pganalyze.table_stats (
@@ -64,13 +71,32 @@ CREATE TABLE IF NOT EXISTS pganalyze.vacuum_stats (
   PRIMARY KEY (relid, started_at)
 );
 
+CREATE TABLE IF NOT EXISTS pganalyze.io_stats (
+  collected_at timestamptz NOT NULL,
+  backend_type text NOT NULL,
+  reads BIGINT,
+  writes BIGINT,
+  hits BIGINT,
+  read_time DOUBLE PRECISION,
+  write_time DOUBLE PRECISION,
+  fsync_time DOUBLE PRECISION,
+  fsyncs BIGINT,
+  extends BIGINT,
+  evictions BIGINT,
+  reuses BIGINT,
+  writebacks BIGINT,
+  read_bytes BIGINT,
+  write_bytes BIGINT,
+  PRIMARY KEY (collected_at, backend_type)
+);
+
 CREATE TABLE IF NOT EXISTS pganalyze.queries (
   queryid BIGINT NOT NULL PRIMARY KEY,
   query TEXT
 );
 
 CREATE TABLE IF NOT EXISTS pganalyze.stat_statements (
-  collected_at timestamptz NOT NULL DEFAULT NOW(),
+  time timestamptz NOT NULL DEFAULT NOW(),
   userid oid NOT NULL,
   queryid BIGINT NOT NULL REFERENCES pganalyze.queries (queryid) ON DELETE CASCADE,
   plans BIGINT NOT NULL,
@@ -94,15 +120,15 @@ CREATE TABLE IF NOT EXISTS pganalyze.stat_statements (
   wal_records BIGINT NOT NULL,
   wal_fpi BIGINT NOT NULL,
   wal_bytes BIGINT NOT NULL DEFAULT 0,
-  PRIMARY KEY (queryid, userid, collected_at)
+  PRIMARY KEY (queryid, userid, time)
   -- To define an index as a UNIQUE or PRIMARY KEY index, the index must include the time column and the partitioning column
 )
 WITH (
   tsdb.hypertable,
   tsdb.chunk_interval = :var_pgstats_chunk_size,
-  tsdb.partition_column = 'collected_at',
+  tsdb.partition_column = 'time',
   tsdb.segmentby = 'queryid',
-  tsdb.orderby = 'collected_at DESC'
+  tsdb.orderby = 'time DESC'
   );
 
 SELECT add_retention_policy('pganalyze.stat_statements', drop_after => INTERVAL :var_pgstats_retention);

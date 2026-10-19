@@ -34,10 +34,11 @@ Performance statistics is inspired by `Pganalyze <https://pganalyze.com/>`_ and 
 * database statistics (updated every 10 min)
 * tables statistics (updated every 10 min)
 * index statistics (updated every 10 min)
+* I/O statistics (updated every 1 min)
 * auto-VACUUM statistics (updated every 1 min)
 * query statistics (updated every 1 min)
-* CPU and RAM host statistics (updated every 1 min)
-* auto-EXPLAIN plans (for queries longer than 500ms)
+* host OS statistics (updated every 15 s and 15 min)
+* auto-EXPLAIN plans (for queries longer than 500 ms)
 
 Statistics retention time is 3 months.
 

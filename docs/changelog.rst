@@ -8,10 +8,9 @@ Version 0.1a11
 * update pgbackrest config and setup
 * update uec schema column names
 * implement host metrics collector, update pganalyze schema/funcs
-* add infinity datasource plugin for Grafana
 * postgres connection limited to container host only
 * change shm size for containers
-* add infinity datasource for grafana
+* add infinity datasource and plugin for Grafana
 * connection limits for all PG roles
 * add pgtune.sh script on top of timescaledb-tune
 * create Systemd unit files for watchdog and host metrics collector

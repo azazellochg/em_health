@@ -13,6 +13,7 @@ $$
 
       -- 2. Refactor pganalyze.sys_stats and add sys_info
       SET ROLE pganalyze;
+      ALTER TABLE pganalyze.stat_statements RENAME collected_at TO time;
       DROP TABLE IF EXISTS pganalyze.sys_stats;
       CREATE TABLE IF NOT EXISTS pganalyze.sys_stats (
         time timestamptz NOT NULL DEFAULT NOW(),
@@ -112,7 +113,85 @@ BEGIN
   FROM jsonb_array_elements(p_stats_dict) AS item;
 END;
 $func$;
+
+CREATE FUNCTION pganalyze.get_io_stats(job_id INT = NULL, config jsonb = NULL)
+  RETURNS VOID
+  LANGUAGE plpgsql AS
+$func$
+DECLARE
+  snapshot_time timestamptz := NOW();
+
+BEGIN
+  INSERT INTO pganalyze.io_stats (
+    collected_at,
+    backend_type,
+    reads,
+    writes,
+    hits,
+    read_time,
+    write_time,
+    fsync_time,
+    fsyncs,
+    extends,
+    evictions,
+    reuses,
+    writebacks,
+    read_bytes,
+    write_bytes
+  )
+  SELECT
+    snapshot_time,
+    backend_type,
+    SUM(reads) AS reads,
+    SUM(writes) AS writes,
+    SUM(hits) AS hits,
+    SUM(read_time) AS read_time,
+    SUM(write_time) AS write_time,
+    SUM(fsync_time) AS fsync_time,
+    SUM(fsyncs) AS fsyncs,
+    SUM(extends) AS extends,
+    SUM(evictions) AS evictions,
+    SUM(reuses) AS reuses,
+    SUM(writebacks) AS writebacks,
+    SUM(read_bytes) AS read_bytes,
+    SUM(write_bytes) AS write_bytes
+  FROM pg_stat_io
+  GROUP BY backend_type;
+END;
+$func$;
 $sql$;
+
+      -- 4. Add new columns to pganalyze.database_stats
+      ALTER TABLE pganalyze.database_stats
+        ADD COLUMN wal_archived_count BIGINT NOT NULL DEFAULT 0,
+        ADD COLUMN wal_failed_count BIGINT NOT NULL DEFAULT 0,
+        ADD COLUMN chk_timed BIGINT NOT NULL DEFAULT 0,
+        ADD COLUMN chk_requested BIGINT NOT NULL DEFAULT 0,
+        ADD COLUMN chk_write_time DOUBLE PRECISION NOT NULL DEFAULT 0,
+        ADD COLUMN chk_sync_time DOUBLE PRECISION NOT NULL DEFAULT 0,
+        ADD COLUMN chk_buffers_written BIGINT NOT NULL DEFAULT 0;
+
+      -- 5. New table and job pganalyze.io_stats
+      CREATE TABLE IF NOT EXISTS pganalyze.io_stats (
+        collected_at timestamptz NOT NULL,
+        backend_type text NOT NULL,
+        reads BIGINT,
+        writes BIGINT,
+        hits BIGINT,
+        read_time DOUBLE PRECISION,
+        write_time DOUBLE PRECISION,
+        fsync_time DOUBLE PRECISION,
+        fsyncs BIGINT,
+        extends BIGINT,
+        evictions BIGINT,
+        reuses BIGINT,
+        writebacks BIGINT,
+        read_bytes BIGINT,
+        write_bytes BIGINT,
+        PRIMARY KEY (collected_at, backend_type)
+      );
+
+      SELECT add_job('pganalyze.get_io_stats', schedule_interval=>'1 min'::INTERVAL);
 
       -- 4. Update schema version
       SET ROLE postgres;

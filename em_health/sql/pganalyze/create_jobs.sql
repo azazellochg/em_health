@@ -8,4 +8,6 @@ SELECT add_job('pganalyze.get_table_stats', schedule_interval=>'10 min'::INTERVA
 
 SELECT add_job('pganalyze.get_index_stats', schedule_interval=>'10 min'::INTERVAL);
 
+SELECT add_job('pganalyze.get_io_stats', schedule_interval=>'1 min'::INTERVAL);
+
 SELECT add_job('pganalyze.purge_stats', schedule_interval=>'1 day'::INTERVAL, config => '{"drop_after":"3 months"}');

@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(14);
+SELECT plan(15);
 
 SELECT function_privs_are(
   'pg_read_file'::name,
@@ -19,6 +19,7 @@ SELECT functions_are('pganalyze'::name, ARRAY[
   'get_db_stats',
   'get_table_stats',
   'get_index_stats',
+  'get_io_stats',
   'get_stat_statements',
   'parse_logs',
   'import_sysinfo',
@@ -35,6 +36,9 @@ SELECT isnt_empty('SELECT * FROM pganalyze.table_stats');
 
 SELECT pganalyze.get_index_stats();
 SELECT isnt_empty('SELECT * FROM pganalyze.index_stats');
+
+SELECT pganalyze.get_io_stats();
+SELECT isnt_empty('SELECT * FROM pganalyze.io_stats');
 
 SELECT pganalyze.get_stat_statements();
 SELECT isnt_empty('SELECT * FROM pganalyze.stat_statements');

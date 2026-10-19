@@ -25,7 +25,14 @@ BEGIN
     frozen_mxid_age,
     db_size,
     wal_lsn,
-    xmin_horizon
+    xmin_horizon,
+    wal_archived_count,
+    wal_failed_count,
+    chk_timed,
+    chk_requested,
+    chk_write_time,
+    chk_sync_time,
+    chk_buffers_written
   )
   WITH xmin_candidates AS (
     SELECT
@@ -74,12 +81,21 @@ BEGIN
     mxid_age(d.datminmxid) AS frozen_mxid_age,
     PG_DATABASE_SIZE(CURRENT_DATABASE()) AS db_size,
     pg_current_wal_lsn() AS wal_lsn,
-    tx.xmin_horizon
+    tx.xmin_horizon,
+    a.archived_count AS wal_archived_count,
+    a.failed_count AS wal_failed_count,
+    c.num_timed AS chk_timed,
+    c.num_requested AS chk_requested,
+    c.write_time AS chk_write_time,
+    c.sync_time AS chk_sync_time,
+    c.buffers_written AS chk_buffers_written
   FROM
     pg_catalog.pg_stat_database s
     JOIN pg_catalog.pg_database d
       ON s.datname = d.datname
     CROSS JOIN true_xmin tx
+    CROSS JOIN pg_stat_archiver a
+    CROSS JOIN pg_stat_checkpointer c
   WHERE
     s.datname = CURRENT_DATABASE();
 END;
@@ -266,6 +282,54 @@ BEGIN
 END;
 $$;
 
+-- get_io_stats
+DROP FUNCTION IF EXISTS pganalyze.get_io_stats;
+
+CREATE FUNCTION pganalyze.get_io_stats(job_id INT = NULL, config jsonb = NULL) RETURNS VOID
+  LANGUAGE plpgsql AS
+$$
+DECLARE
+  snapshot_time timestamptz := NOW();
+
+BEGIN
+  INSERT INTO pganalyze.io_stats (
+    collected_at,
+    backend_type,
+    reads,
+    writes,
+    hits,
+    read_time,
+    write_time,
+    fsync_time,
+    fsyncs,
+    extends,
+    evictions,
+    reuses,
+    writebacks,
+    read_bytes,
+    write_bytes
+  )
+  SELECT
+    snapshot_time,
+    backend_type,
+    SUM(reads) AS reads,
+    SUM(writes) AS writes,
+    SUM(hits) AS hits,
+    SUM(read_time) AS read_time,
+    SUM(write_time) AS write_time,
+    SUM(fsync_time) AS fsync_time,
+    SUM(fsyncs) AS fsyncs,
+    SUM(extends) AS extends,
+    SUM(evictions) AS evictions,
+    SUM(reuses) AS reuses,
+    SUM(writebacks) AS writebacks,
+    SUM(read_bytes) AS read_bytes,
+    SUM(write_bytes) AS write_bytes
+  FROM pg_stat_io
+  GROUP BY backend_type;
+END;
+$$;
+
 -- get_stat_statements
 DROP FUNCTION IF EXISTS pganalyze.get_stat_statements;
 
@@ -294,7 +358,7 @@ BEGIN
     )
 
   INSERT INTO pganalyze.stat_statements (
-    collected_at,
+    time,
     userid,
     queryid,
     plans,
