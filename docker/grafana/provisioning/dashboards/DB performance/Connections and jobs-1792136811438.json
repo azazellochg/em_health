@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "2ddfc99a-7e8a-402c-9f3f-b06c67af2509",
-    "generation": 11,
-    "creationTimestamp": "2026-08-14T13:14:44Z",
+    "generation": 3,
+    "creationTimestamp": "2026-10-14T08:43:23Z",
     "labels": {},
     "annotations": {}
   },
@@ -73,6 +73,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -87,7 +91,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -174,6 +178,43 @@
           }
         }
       },
+      "panel-10": {
+        "kind": "Panel",
+        "spec": {
+          "id": 10,
+          "title": "Job errors are only visible to job owners or superusers",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "text",
+            "version": "13.2.3",
+            "spec": {
+              "options": {
+                "code": {
+                  "language": "sql",
+                  "showLineNumbers": false,
+                  "showMiniMap": false
+                },
+                "content": "SELECT\n  job_id,\n  proc_schema,\n  proc_name,\n  finish_time,\n  err_message\nFROM\n  timescaledb_information.job_errors\nORDER BY\n finish_time DESC;",
+                "mode": "code"
+              },
+              "fieldConfig": {
+                "defaults": {},
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
       "panel-3": {
         "kind": "Panel",
         "spec": {
@@ -217,6 +258,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -231,7 +276,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -312,6 +357,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -326,7 +375,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -478,6 +527,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -502,7 +555,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -577,7 +630,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "text",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "code": {
@@ -682,10 +735,23 @@
                         "x": 7,
                         "y": 12,
                         "width": 17,
-                        "height": 9,
+                        "height": 17,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-9"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 21,
+                        "width": 7,
+                        "height": 8,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-10"
                         }
                       }
                     }
@@ -729,7 +795,7 @@
         "tags": [
           "perf"
         ],
-        "asDropdown": false,
+        "asDropdown": true,
         "targetBlank": false,
         "includeVars": true,
         "keepTime": true
@@ -815,6 +881,10 @@
             },
             "spec": {
               "__legacyStringValue": "SELECT pg_get_functiondef(p.oid) AS definition\nFROM pg_proc p\nJOIN pg_namespace n ON n.oid = p.pronamespace\nJOIN timescaledb_information.jobs j\n  ON j.proc_name = p.proname\n AND j.proc_schema = n.nspname\nWHERE j.job_id = $jobid"
+            },
+            "labels": {
+              "grafana.app/export-label": "grafana-postgresql-datasource-1",
+              "grafana.app/export-datasource-name": "${source}"
             }
           },
           "regex": "",
