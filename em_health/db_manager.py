@@ -360,8 +360,8 @@ def main(dbname, action, days=None):
                         db.schedule_cagg_refresh(view, start_offset="4 days",  end_offset="1 day", interval="12 hours")
                     db.enable_rt_cagg(view)
                 else:
-                    db.create_mview(view, f"{schema}/mviews/{name}.sql")
-                    db.schedule_mview_refresh(view)
+                        db.create_mview(view, f"{schema}/mviews/{name}.sql")
+                        db.schedule_mview_refresh(view)
 
     elif action == "erase":
         print(f"!!! WARNING: You are about to DELETE ALL DATA from database {dbname} !!!")

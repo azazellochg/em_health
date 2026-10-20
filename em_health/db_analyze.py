@@ -60,6 +60,17 @@ class DatabaseAnalyzer(DatabaseManager):
             self.cur.executemany("SELECT delete_job(%s)", jobs)
             self.conn.commit()
 
+    def create_views(self) -> None:
+        """ Create materialized views. """
+        for view in [
+            "pganalyze.index_bloat",
+            "pganalyze.table_bloat"
+        ]:
+            schema, name = view.split(".")
+            self.drop_mview(view)
+            self.create_mview(view, f"{schema}/mviews/{name}.sql")
+            self.schedule_mview_refresh(view)
+
     def schedule_jobs(self) -> None:
         """ Schedule functions as TimescaleDB jobs. """
         self.execute_file(self.get_path("pganalyze/create_jobs.sql"))
@@ -86,4 +97,5 @@ def main(dbname, action, force=False):
                 db.create_tables()
 
             db.create_funcs()
+            db.create_views()
             db.schedule_jobs()

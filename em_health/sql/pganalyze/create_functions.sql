@@ -214,7 +214,7 @@ BEGIN
 
     chunk_indexes AS (
       SELECT
-        REGEXP_REPLACE(s.indexrelname, '^(_hyper_[0-9]+_[0-9]+_chunk|[0-9]+_[0-9]+)_', '') AS indexrelname,
+        REGEXP_REPLACE(s.indexrelname, '^(.*?_chunk_|(?:[0-9]+_)+)', '') AS indexrelname, -- match pkey, unique and normal indexes on chunks
         s.relid,
         ch.hypertable_schema,
         ch.hypertable_name,
