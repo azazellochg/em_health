@@ -123,6 +123,7 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
     * table_stats
     * index_stats
     * vacuum_stats
+    * io_stats
     * stat_statements
     * queries
     * sys_info

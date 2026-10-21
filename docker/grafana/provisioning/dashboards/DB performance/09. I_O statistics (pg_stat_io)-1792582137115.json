@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "adh5lj8",
-    "generation": 15,
-    "creationTimestamp": "2026-10-14T14:14:17Z",
+    "generation": 2,
+    "creationTimestamp": "2026-10-15T14:40:56Z",
     "labels": {},
     "annotations": {}
   },
@@ -316,6 +316,10 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "tem",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
@@ -339,10 +343,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "tem"
                       }
                     },
                     "refId": "A",
@@ -1784,7 +1784,7 @@
       "hideTimepicker": false,
       "fiscalYearStartMonth": 0
     },
-    "title": "I/O statistics (pg_stat_io)",
+    "title": "09. I/O statistics (pg_stat_io)",
     "variables": [
       {
         "kind": "QueryVariable",

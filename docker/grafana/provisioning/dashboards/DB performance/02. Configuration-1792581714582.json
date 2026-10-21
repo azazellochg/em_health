@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "ee46beab-c046-42b1-b547-23990e2ec0f3",
-    "generation": 4,
-    "creationTimestamp": "2026-10-14T14:19:01Z",
+    "generation": 2,
+    "creationTimestamp": "2026-10-16T07:48:33Z",
     "labels": {},
     "annotations": {}
   },
@@ -17,10 +17,10 @@
             "kind": "DataQuery",
             "group": "grafana",
             "version": "v0",
-            "spec": {},
             "labels": {
               "grafana.app/export-label": "grafana-1"
-            }
+            },
+            "spec": {}
           },
           "enable": true,
           "hide": true,
@@ -51,6 +51,10 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${datasource}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
                       "datasource": {
                         "name": "${datasource}"
                       },
@@ -76,10 +80,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "${datasource}"
                       }
                     },
                     "refId": "A",
@@ -518,6 +518,10 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${datasource}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
                       "datasource": {
                         "name": "${datasource}"
                       },
@@ -544,10 +548,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "${datasource}"
                       }
                     },
                     "refId": "A",
@@ -710,7 +710,7 @@
       "hideTimepicker": true,
       "fiscalYearStartMonth": 0
     },
-    "title": "Configuration",
+    "title": "02. Configuration",
     "variables": [
       {
         "kind": "DatasourceVariable",

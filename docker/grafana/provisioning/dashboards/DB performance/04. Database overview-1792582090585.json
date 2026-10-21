@@ -2,9 +2,9 @@
   "apiVersion": "dashboard.grafana.app/v2",
   "kind": "Dashboard",
   "metadata": {
-    "name": "ee46beab-c046-42b1-b547-23550e2ec0f3",
-    "generation": 5,
-    "creationTimestamp": "2026-10-14T14:14:17Z",
+    "name": "ee46beab-c046-45a5-b547-23990e2ec0f3",
+    "generation": 2,
+    "creationTimestamp": "2026-10-20T13:35:01Z",
     "labels": {},
     "annotations": {}
   },
@@ -30,11 +30,11 @@
     "cursorSync": "Off",
     "editable": true,
     "elements": {
-      "panel-31": {
+      "panel-21": {
         "kind": "Panel",
         "spec": {
-          "id": 31,
-          "title": "WAL-related settings",
+          "id": 21,
+          "title": "Total tuples rate",
           "description": "",
           "links": [],
           "data": {
@@ -48,11 +48,520 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${source}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
                       "spec": {
                         "editorMode": "code",
-                        "format": "table",
+                        "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  name AS \"Name\",\n  short_desc AS \"Description\",\n  setting AS \"Current value\",\n  boot_val AS \"Default value\",\n  unit AS \"Unit\",\n  min_val || ' to ' || max_val AS \"Range\"\nFROM\n  pg_settings\nWHERE\n  name IN (\n    'archive_mode',\n    'archive_command',\n    'archive_library',\n    'wal_keep_size',\n    'min_wal_size',\n    'max_wal_size',\n    'max_slot_wal_keep_size',\n    'checkpoint_timeout'\n  )\nORDER BY \"Name\"",
+                        "rawSql": "SELECT\n    bucket AS time,\n    (\n        rate(counter_agg(collected_at, tup_inserted)) +\n        rate(counter_agg(collected_at, tup_updated)) +\n        rate(counter_agg(collected_at, tup_deleted)) +\n        rate(counter_agg(collected_at, tup_fetched)) +\n        rate(counter_agg(collected_at, tup_returned))\n    ) AS total_tuples_rate_per_sec\nFROM (\n    SELECT\n        time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n        collected_at,\n        tup_inserted,\n        tup_updated,\n        tup_deleted,\n        tup_fetched,\n        tup_returned\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(collected_at)\n) sub\nGROUP BY bucket\nORDER BY bucket;\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {
+                "interval": "20m"
+              }
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.3",
+            "spec": {
+              "options": {
+                "colorMode": "none",
+                "graphMode": "area",
+                "justifyMode": "center",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "last"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": true,
+                "textMode": "value",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "tps",
+                  "decimals": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "fixed",
+                    "fixedColor": "#1f78c1"
+                  },
+                  "fieldMinMax": false
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-22": {
+        "kind": "Panel",
+        "spec": {
+          "id": 22,
+          "title": "Tuples rate",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${source}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    bucket AS time,\n    rate(counter_agg(collected_at, tup_inserted)) AS inserted,\n    rate(counter_agg(collected_at, tup_updated)) AS updated,\n    rate(counter_agg(collected_at, tup_deleted)) AS deleted,\n    rate(counter_agg(collected_at, tup_fetched)) AS fetched,\n    rate(counter_agg(collected_at, tup_returned)) AS returned\nFROM (\n    SELECT\n        time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n        collected_at,\n        tup_inserted,\n        tup_updated,\n        tup_deleted,\n        tup_fetched,\n        tup_returned\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(collected_at)\n) sub\nGROUP BY bucket\nORDER BY bucket;\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {
+                "interval": "20m"
+              }
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.2.3",
+            "spec": {
+              "options": {
+                "annotations": {
+                  "clustering": -1,
+                  "multiLane": false
+                },
+                "legend": {
+                  "calcs": [
+                    "max",
+                    "mean"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "tps",
+                  "decimals": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "palette-classic",
+                    "fixedColor": "#1f78c1"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "left",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "fieldMinMax": false
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-23": {
+        "kind": "Panel",
+        "spec": {
+          "id": 23,
+          "title": "Total transactions rate",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${source}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    bucket AS time,\n    (\n        rate(counter_agg(collected_at, xact_commit)) +\n        rate(counter_agg(collected_at, xact_rollback))\n    ) AS total_xact_rate_per_sec\nFROM (\n    SELECT\n        time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n        collected_at,\n        xact_commit,\n        xact_rollback\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(collected_at)\n) sub\nGROUP BY bucket\nORDER BY bucket;\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {
+                "interval": "20m"
+              }
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.3",
+            "spec": {
+              "options": {
+                "colorMode": "none",
+                "graphMode": "area",
+                "justifyMode": "center",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "last"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": true,
+                "textMode": "value",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "tps",
+                  "decimals": 2,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "fixed",
+                    "fixedColor": "#1f78c1"
+                  },
+                  "fieldMinMax": false
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-24": {
+        "kind": "Panel",
+        "spec": {
+          "id": 24,
+          "title": "Transactions rate",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${source}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    bucket AS time,\n    rate(counter_agg(collected_at, xact_commit)) AS commits,\n    rate(counter_agg(collected_at, xact_rollback)) AS rollbacks\nFROM (\n    SELECT\n        time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n        collected_at,\n        xact_commit,\n        xact_rollback\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(collected_at)\n) sub\nGROUP BY bucket\nORDER BY bucket;\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {
+                "interval": "20m"
+              }
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.2.3",
+            "spec": {
+              "options": {
+                "annotations": {
+                  "clustering": -1,
+                  "multiLane": false
+                },
+                "legend": {
+                  "calcs": [
+                    "max",
+                    "mean"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "tps",
+                  "decimals": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "palette-classic",
+                    "fixedColor": "#1f78c1"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 2,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "fieldMinMax": false
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-25": {
+        "kind": "Panel",
+        "spec": {
+          "id": 25,
+          "title": "Temp files",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${source}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  collected_at AS time,\n  temp_files - LAG(temp_files) OVER (ORDER BY collected_at) AS temp_files,\n  temp_bytes - LAG(temp_bytes) OVER (ORDER BY collected_at) AS temp_bytes\nFROM pganalyze.database_stats\nWHERE $__timeFilter(collected_at) \nORDER BY collected_at\n",
                         "sql": {
                           "columns": [
                             {
@@ -83,13 +592,259 @@
           },
           "vizConfig": {
             "kind": "VizConfig",
-            "group": "table",
+            "group": "stat",
             "version": "13.2.3",
             "spec": {
               "options": {
-                "cellHeight": "sm",
-                "enablePagination": false,
-                "showHeader": true
+                "colorMode": "none",
+                "graphMode": "area",
+                "justifyMode": "center",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "last"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": true,
+                "textMode": "value",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "fixed",
+                    "fixedColor": "#1f78c1"
+                  },
+                  "fieldMinMax": false
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "temp_bytes"
+                    },
+                    "properties": [
+                      {
+                        "id": "unit",
+                        "value": "decbytes"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "temp_files"
+                    },
+                    "properties": [
+                      {
+                        "id": "unit",
+                        "value": "files"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "panel-27": {
+        "kind": "Panel",
+        "spec": {
+          "id": 27,
+          "title": "Deadlocks",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${source}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  collected_at AS time,\n  deadlocks\nFROM pganalyze.database_stats\nORDER BY collected_at\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.3",
+            "spec": {
+              "options": {
+                "colorMode": "none",
+                "graphMode": "area",
+                "justifyMode": "center",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "last"
+                  ],
+                  "fields": "/^deadlocks$/",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "value",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "fixed",
+                    "fixedColor": "#1f78c1"
+                  },
+                  "fieldMinMax": false
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-28": {
+        "kind": "Panel",
+        "spec": {
+          "id": 28,
+          "title": "",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${source}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    'PostgreSQL' AS component,\n    current_setting('server_version') AS version\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.3",
+            "spec": {
+              "options": {
+                "colorMode": "none",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [],
+                  "fields": "/^version$/",
+                  "values": true
+                },
+                "showPercentChange": false,
+                "text": {
+                  "valueSize": 28
+                },
+                "textMode": "value_and_name",
+                "wideLayout": false
               },
               "fieldConfig": {
                 "defaults": {
@@ -104,92 +859,19 @@
                   },
                   "color": {
                     "mode": "fixed"
-                  },
-                  "custom": {
-                    "align": "left",
-                    "cellOptions": {
-                      "type": "auto"
-                    },
-                    "footer": {
-                      "reducers": []
-                    },
-                    "inspect": false,
-                    "wrapText": true
                   }
                 },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Name"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.filterable",
-                        "value": true
-                      },
-                      {
-                        "id": "links",
-                        "value": [
-                          {
-                            "targetBlank": true,
-                            "title": "Show details",
-                            "url": "https://postgresqlco.nf/doc/en/param/${__data.fields.Name}"
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "scope": "series",
-                      "options": "Unit"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.width",
-                        "value": 60
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "scope": "series",
-                      "options": "Default value"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.width",
-                        "value": 120
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "scope": "series",
-                      "options": "Range"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.width",
-                        "value": 140
-                      }
-                    ]
-                  }
-                ]
+                "overrides": []
               }
             }
           }
         }
       },
-      "panel-41": {
+      "panel-29": {
         "kind": "Panel",
         "spec": {
-          "id": 41,
-          "title": "pg_wal directory size",
+          "id": 29,
+          "title": "Uptime",
           "description": "",
           "links": [],
           "data": {
@@ -203,11 +885,18 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${source}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
                       "spec": {
                         "editorMode": "code",
-                        "format": "time_series",
+                        "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  time_bucket('$agg_interval' :: INTERVAL, time) AS time,\n  AVG(value) AS value\nFROM\n  pganalyze.sys_stats\nWHERE\n  metric = 'postgres_wal_size_bytes'\n  AND $__timeFilter(time)\nGROUP BY\n  time\nORDER BY\n  time",
+                        "rawSql": "SELECT extract(epoch from current_timestamp - pg_postmaster_start_time()) as \"Uptime\"",
                         "sql": {
                           "columns": [
                             {
@@ -232,49 +921,135 @@
                   }
                 }
               ],
-              "transformations": [
-                {
-                  "kind": "Transformation",
-                  "group": "organize",
-                  "spec": {
-                    "options": {
-                      "excludeByName": {},
-                      "includeByName": {},
-                      "indexByName": {},
-                      "renameByName": {
-                        "postgres_data_size_bytes": "Total PGDATA size",
-                        "postgres_log_size_bytes": "Logs size",
-                        "postgres_wal_size_bytes": "WAL size"
-                      }
-                    }
-                  }
-                }
-              ],
+              "transformations": [],
               "queryOptions": {}
             }
           },
           "vizConfig": {
             "kind": "VizConfig",
-            "group": "timeseries",
+            "group": "stat",
             "version": "13.2.3",
             "spec": {
               "options": {
-                "legend": {
+                "colorMode": "none",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
                   "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": false
+                  "fields": "/^Uptime$/",
+                  "values": true
                 },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "s",
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "fixed"
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-31": {
+        "kind": "Panel",
+        "spec": {
+          "id": 31,
+          "title": "DB size",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${source}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  collected_at AS time,\n  db_size\nFROM pganalyze.database_stats\nWHERE $__timeFilter(collected_at) \nORDER BY collected_at\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
                 }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.3",
+            "spec": {
+              "options": {
+                "colorMode": "none",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "/^db_size$/",
+                  "values": false
+                },
+                "showPercentChange": true,
+                "textMode": "auto",
+                "wideLayout": true
               },
               "fieldConfig": {
                 "defaults": {
                   "unit": "decbytes",
-                  "decimals": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -285,46 +1060,7 @@
                     ]
                   },
                   "color": {
-                    "mode": "palette-classic",
-                    "fixedColor": "semi-dark-green"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisGridShow": true,
-                    "axisLabel": "",
-                    "axisPlacement": "left",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 20,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "stepBefore",
-                    "lineStyle": {
-                      "fill": "solid"
-                    },
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "never",
-                    "showValues": false,
-                    "spanNulls": true,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "line"
-                    }
+                    "mode": "fixed"
                   }
                 },
                 "overrides": []
@@ -333,12 +1069,12 @@
           }
         }
       },
-      "panel-42": {
+      "panel-34": {
         "kind": "Panel",
         "spec": {
-          "id": 42,
-          "title": "WAL generation rate",
-          "description": "Approximate WAL generation rate from current WAL LSN movement. High rate with no retention issue points to workload-driven WAL growth.",
+          "id": 34,
+          "title": "I/O block operations",
+          "description": "Time spent reading/writing file blocks",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -351,168 +1087,35 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "time_series",
-                        "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  irate_right(summary) AS \"WAL generated\"\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, collected_at) AS bucket,\n      counter_agg(collected_at, pg_wal_lsn_diff(wal_lsn, '0/0'::pg_lsn)) AS summary\n    FROM\n      pganalyze.database_stats\n    WHERE\n     $__timeFilter(collected_at)\n    GROUP BY bucket\n  ) t\nORDER BY\n  time\n",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "timeseries",
-            "version": "13.2.3",
-            "spec": {
-              "options": {
-                "legend": {
-                  "calcs": [
-                    "lastNotNull",
-                    "max"
-                  ],
-                  "displayMode": "table",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "Bps",
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "palette-classic",
-                    "fixedColor": "semi-dark-green"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisGridShow": true,
-                    "axisLabel": "",
-                    "axisPlacement": "left",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 20,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "stepBefore",
-                    "lineStyle": {
-                      "fill": "solid"
-                    },
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "never",
-                    "showValues": false,
-                    "spanNulls": true,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "line"
-                    }
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-43": {
-        "kind": "Panel",
-        "spec": {
-          "id": 43,
-          "title": "WAL archive success and errors",
-          "description": "WAL archive activity and failures. A rising failed count indicates archive_command or archive library trouble that can keep completed WAL files in pg_wal.",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${datasource}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "time_series",
-                        "rawQuery": true,
-                        "rawSql": "SELECT\n  collected_at AS time,\n  wal_archived_count AS archived_count,\n  wal_failed_count AS failed_count\nFROM\n  pganalyze.database_stats\nWHERE\n  $__timeFilter(collected_at)\nORDER BY\n  time",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      },
                       "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "${datasource}"
+                        "grafana.app/export-datasource-name": "${source}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    bucket as time,\n    (\n      delta(counter_agg(collected_at, blk_read_time)) +\n      delta(counter_agg(collected_at, blk_write_time))\n    ) AS blk_io_time_ms\nFROM (\n    SELECT\n        time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n        collected_at,\n        blk_read_time,\n        blk_write_time\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(collected_at)\n) sub\nGROUP BY bucket\nORDER BY bucket;\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
                       }
                     },
                     "refId": "A",
@@ -521,31 +1124,36 @@
                 }
               ],
               "transformations": [],
-              "queryOptions": {}
+              "queryOptions": {
+                "interval": "20m"
+              }
             }
           },
           "vizConfig": {
             "kind": "VizConfig",
-            "group": "timeseries",
+            "group": "stat",
             "version": "13.2.3",
             "spec": {
               "options": {
-                "legend": {
+                "colorMode": "none",
+                "graphMode": "area",
+                "justifyMode": "center",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
                   "calcs": [
                     "last"
                   ],
-                  "displayMode": "table",
-                  "placement": "bottom",
-                  "showLegend": true
+                  "fields": "/^blk_io_time_ms$/",
+                  "values": false
                 },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
+                "showPercentChange": true,
+                "textMode": "value",
+                "wideLayout": true
               },
               "fieldConfig": {
                 "defaults": {
+                  "unit": "ms",
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -556,14 +1164,120 @@
                     ]
                   },
                   "color": {
-                    "mode": "palette-classic",
-                    "fixedColor": "semi-dark-green"
+                    "mode": "fixed",
+                    "fixedColor": "#1f78c1"
+                  },
+                  "fieldMinMax": false
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-35": {
+        "kind": "Panel",
+        "spec": {
+          "id": 35,
+          "title": "Cache hit ratio",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${source}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    bucket as time,\n    (delta(counter_agg(collected_at, blks_hit)))::double precision\n      / NULLIF(\n          delta(counter_agg(collected_at, blks_hit))\n        + delta(counter_agg(collected_at, blks_read)),\n          0\n        ) * 100.0 AS cache_hit_ratio\nFROM (\n    SELECT\n        time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n        collected_at,\n        blks_hit,\n        blks_read\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(collected_at)\n) sub\nGROUP BY bucket\nORDER BY bucket;\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {
+                "interval": "20m"
+              }
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.2.3",
+            "spec": {
+              "options": {
+                "annotations": {
+                  "clustering": -1,
+                  "multiLane": false
+                },
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "table",
+                  "placement": "right",
+                  "showLegend": false
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "percent",
+                  "max": 100,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "orange"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "fixed",
+                    "fixedColor": "#1f78c1"
                   },
                   "custom": {
                     "axisBorderShow": false,
                     "axisCenteredZero": false,
                     "axisColorMode": "text",
-                    "axisGridShow": true,
                     "axisLabel": "",
                     "axisPlacement": "left",
                     "barAlignment": 0,
@@ -577,10 +1291,7 @@
                       "viz": false
                     },
                     "insertNulls": false,
-                    "lineInterpolation": "stepBefore",
-                    "lineStyle": {
-                      "fill": "solid"
-                    },
+                    "lineInterpolation": "linear",
                     "lineWidth": 2,
                     "pointSize": 5,
                     "scaleDistribution": {
@@ -588,15 +1299,16 @@
                     },
                     "showPoints": "auto",
                     "showValues": false,
-                    "spanNulls": true,
+                    "spanNulls": false,
                     "stacking": {
                       "group": "A",
                       "mode": "none"
                     },
                     "thresholdsStyle": {
-                      "mode": "line"
+                      "mode": "off"
                     }
-                  }
+                  },
+                  "fieldMinMax": false
                 },
                 "overrides": []
               }
@@ -604,11 +1316,11 @@
           }
         }
       },
-      "panel-44": {
+      "panel-36": {
         "kind": "Panel",
         "spec": {
-          "id": 44,
-          "title": "WAL location (bytes)",
+          "id": 36,
+          "title": "Total locks",
           "description": "",
           "links": [],
           "data": {
@@ -622,152 +1334,18 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "datasource": {
-                        "name": "${datasource}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "time_series",
-                        "rawQuery": true,
-                        "rawSql": "SELECT\n  collected_at AS time,\n  pg_wal_lsn_diff(wal_lsn, '0/0' :: pg_lsn) AS wal_position_bytes\nFROM\n  pganalyze.database_stats\nORDER BY\n  collected_at",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      },
                       "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "${datasource}"
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "timeseries",
-            "version": "13.2.3",
-            "spec": {
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": false
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "decbytes",
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "palette-classic",
-                    "fixedColor": "semi-dark-green"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisGridShow": true,
-                    "axisLabel": "",
-                    "axisPlacement": "left",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 20,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "stepBefore",
-                    "lineStyle": {
-                      "fill": "solid"
-                    },
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "never",
-                    "showValues": false,
-                    "spanNulls": true,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "line"
-                    }
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-45": {
-        "kind": "Panel",
-        "spec": {
-          "id": 45,
-          "title": "Archive lag bytes",
-          "description": "Bytes between current WAL position and last archived WAL finish LSN.",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
+                        "grafana.app/export-datasource-name": "${source}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
                       "datasource": {
-                        "name": "${datasource}"
+                        "name": "${source}"
                       },
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH wal_config AS (\n    SELECT pg_size_bytes(current_setting('wal_segment_size')) AS segment_size\n)\nSELECT\n    pg_wal_lsn_diff(\n        pg_current_wal_lsn(),\n        (\n            (\n                substring(a.last_archived_wal FROM 1 FOR 8) || '/' ||\n                substring(a.last_archived_wal FROM 9 FOR 8)\n            )::pg_lsn + c.segment_size\n        )\n    ) AS archive_lag_bytes\nFROM pg_stat_archiver a\nCROSS JOIN wal_config c\nWHERE a.last_archived_wal IS NOT NULL",
+                        "rawSql": "SELECT COUNT(*) AS total_locks\nFROM pg_locks\nWHERE database = (SELECT oid FROM pg_database WHERE datname = current_database())",
                         "sql": {
                           "columns": [
                             {
@@ -785,10 +1363,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "${datasource}"
                       }
                     },
                     "refId": "A",
@@ -806,23 +1380,23 @@
             "version": "13.2.3",
             "spec": {
               "options": {
-                "colorMode": "value",
+                "colorMode": "none",
                 "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
+                "justifyMode": "center",
+                "orientation": "horizontal",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
                   "calcs": [],
-                  "fields": "",
-                  "values": false
+                  "fields": "/^total_locks$/",
+                  "values": true
                 },
                 "showPercentChange": false,
-                "textMode": "auto",
+                "textMode": "value",
                 "wideLayout": true
               },
               "fieldConfig": {
                 "defaults": {
-                  "unit": "decbytes",
+                  "decimals": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -833,8 +1407,10 @@
                     ]
                   },
                   "color": {
-                    "mode": "thresholds"
-                  }
+                    "mode": "fixed",
+                    "fixedColor": "#1f78c1"
+                  },
+                  "fieldMinMax": false
                 },
                 "overrides": []
               }
@@ -842,12 +1418,12 @@
           }
         }
       },
-      "panel-46": {
+      "panel-38": {
         "kind": "Panel",
         "spec": {
-          "id": 46,
-          "title": "Top 10 queries by WAL bytes/s",
-          "description": "Top WAL-producing query IDs from pg_stat_statements. Use when pg_wal grows because the workload is generating WAL quickly rather than because WAL is retained.",
+          "id": 38,
+          "title": "Query runtime",
+          "description": "",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -860,14 +1436,18 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${source}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
                       "datasource": {
-                        "name": "${datasource}"
+                        "name": "${source}"
                       },
                       "spec": {
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "WITH rates AS (\n    SELECT\n        queryid,\n        time_bucket('$agg_interval'::interval, time) AS bucket,\n        irate_right(counter_agg(time, wal_bytes)) AS value\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(time)\n    GROUP BY queryid, bucket\n),\ntop_queries AS (\n    SELECT queryid\n    FROM rates\n    GROUP BY queryid\n    ORDER BY AVG(value) DESC\n    LIMIT 10\n)\nSELECT\n    r.queryid::text,\n    r.bucket AS time,\n    r.value AS query\nFROM rates r\nJOIN top_queries t USING (queryid)\nORDER BY time",
+                        "rawSql": "WITH statement_rates AS (\n    SELECT\n        time_bucket(INTERVAL '$__interval', time) AS bucket,\n        queryid,\n        rate(counter_agg(time, total_exec_time)) AS exec_time_rate,\n        rate(counter_agg(time, calls)) AS calls_rate\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(time)\n    GROUP BY 1, queryid\n)\n\nSELECT\n    bucket AS time,\n    SUM(calls_rate) AS \"Calls/sec (QPS)\",\n    SUM(exec_time_rate) / 1000.0 AS \"Query duration (sec/sec)\"\nFROM statement_rates\nGROUP BY bucket\n",
                         "sql": {
                           "columns": [
                             {
@@ -885,10 +1465,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "${datasource}"
                       }
                     },
                     "refId": "A",
@@ -897,7 +1473,9 @@
                 }
               ],
               "transformations": [],
-              "queryOptions": {}
+              "queryOptions": {
+                "interval": "5m"
+              }
             }
           },
           "vizConfig": {
@@ -906,9 +1484,13 @@
             "version": "13.2.3",
             "spec": {
               "options": {
+                "annotations": {
+                  "clustering": -1,
+                  "multiLane": false
+                },
                 "legend": {
                   "calcs": [
-                    "lastNotNull",
+                    "mean",
                     "max"
                   ],
                   "displayMode": "table",
@@ -923,7 +1505,6 @@
               },
               "fieldConfig": {
                 "defaults": {
-                  "unit": "Bps",
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -934,20 +1515,18 @@
                     ]
                   },
                   "color": {
-                    "mode": "palette-classic",
-                    "fixedColor": "semi-dark-green"
+                    "mode": "palette-classic"
                   },
                   "custom": {
-                    "axisBorderShow": false,
+                    "axisBorderShow": true,
                     "axisCenteredZero": false,
                     "axisColorMode": "text",
-                    "axisGridShow": true,
                     "axisLabel": "",
-                    "axisPlacement": "left",
+                    "axisPlacement": "auto",
                     "barAlignment": 0,
                     "barWidthFactor": 0.6,
                     "drawStyle": "line",
-                    "fillOpacity": 20,
+                    "fillOpacity": 0,
                     "gradientMode": "none",
                     "hideFrom": {
                       "legend": false,
@@ -955,16 +1534,13 @@
                       "viz": false
                     },
                     "insertNulls": false,
-                    "lineInterpolation": "stepBefore",
-                    "lineStyle": {
-                      "fill": "solid"
-                    },
-                    "lineWidth": 1,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 2,
                     "pointSize": 5,
                     "scaleDistribution": {
                       "type": "linear"
                     },
-                    "showPoints": "never",
+                    "showPoints": "auto",
                     "showValues": false,
                     "spanNulls": true,
                     "stacking": {
@@ -972,7 +1548,7 @@
                       "mode": "none"
                     },
                     "thresholdsStyle": {
-                      "mode": "line"
+                      "mode": "off"
                     }
                   }
                 },
@@ -982,110 +1558,11 @@
           }
         }
       },
-      "panel-47": {
+      "panel-39": {
         "kind": "Panel",
         "spec": {
-          "id": 47,
-          "title": "Retained WAL by replication slot",
-          "description": "WAL retained by replication slot restart_lsn. A large or growing value often identifies an abandoned or lagging slot.",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${datasource}"
-                      },
-                      "spec": {
-                        "dataset": "tem",
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "SELECT\n  slot_name,\n  plugin,\n  pg_wal_lsn_diff(\n    pg_current_wal_lsn(),\n    restart_lsn\n  ) AS restart_lsn_lag_bytes\nFROM\n  pg_replication_slots\nWHERE\n  restart_lsn IS NOT NULL\nORDER BY\n  restart_lsn_lag_bytes DESC",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "${datasource}"
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "table",
-            "version": "13.2.3",
-            "spec": {
-              "options": {
-                "cellHeight": "sm",
-                "showHeader": true
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "thresholds"
-                  },
-                  "custom": {
-                    "align": "auto",
-                    "cellOptions": {
-                      "type": "auto"
-                    },
-                    "footer": {
-                      "reducers": []
-                    },
-                    "inspect": false
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-48": {
-        "kind": "Panel",
-        "spec": {
-          "id": 48,
-          "title": "Replication slots",
+          "id": 39,
+          "title": "",
           "description": "",
           "links": [],
           "data": {
@@ -1099,15 +1576,18 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${source}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
                       "datasource": {
-                        "name": "${datasource}"
+                        "name": "${source}"
                       },
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    COUNT(*) FILTER (WHERE active) AS active_slots,\n    COUNT(*) FILTER (WHERE NOT active) AS inactive_slots\nFROM pg_replication_slots",
+                        "rawSql": "SELECT\n  (\n    last(value, time) FILTER (\n      WHERE\n        metric = 'node_load15'\n    ) / NULLIF($cpu_count, 0)\n  ) * 100 AS \"CPU (total $cpu_count)\",\n  (\n    (\n      last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_MemTotal_bytes'\n      ) - last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_MemFree_bytes'\n      ) - last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_Buffers_bytes'\n      ) - last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_Cached_bytes'\n      ) - last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_SReclaimable_bytes'\n      )\n    ) / NULLIF(\n      last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_MemTotal_bytes'\n      ),\n      0\n    )\n  ) * 100 AS \"RAM\"\nFROM\n  pganalyze.sys_stats\nWHERE\n  metric IN (\n    'node_load15',\n    'node_memory_MemTotal_bytes',\n    'node_memory_MemFree_bytes',\n    'node_memory_Buffers_bytes',\n    'node_memory_Cached_bytes',\n    'node_memory_SReclaimable_bytes'\n  )",
                         "sql": {
                           "columns": [
                             {
@@ -1125,10 +1605,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "${datasource}"
                       }
                     },
                     "refId": "A",
@@ -1137,108 +1613,10 @@
                 }
               ],
               "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "stat",
-            "version": "13.2.3",
-            "spec": {
-              "options": {
-                "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "",
-                  "values": false
-                },
-                "showPercentChange": false,
-                "textMode": "auto",
-                "wideLayout": true
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "thresholds"
-                  }
-                },
-                "overrides": []
+              "queryOptions": {
+                "interval": "10m"
               }
             }
-          }
-        }
-      },
-      "panel-49": {
-        "kind": "Panel",
-        "spec": {
-          "id": 49,
-          "title": "Current Instance role",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${datasource}"
-                      },
-                      "spec": {
-                        "dataset": "tem",
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "SELECT\n  CASE\n    WHEN pg_is_in_recovery() THEN 'STANDBY'\n    ELSE 'PRIMARY'\n  END AS server_role",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "${datasource}"
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
           },
           "vizConfig": {
             "kind": "VizConfig",
@@ -1247,117 +1625,351 @@
             "spec": {
               "options": {
                 "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "/^server_role$/",
-                  "values": false
-                },
-                "showPercentChange": false,
-                "textMode": "value",
-                "wideLayout": true
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "thresholds"
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-50": {
-        "kind": "Panel",
-        "spec": {
-          "id": 50,
-          "title": "Max lag across replicas",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${datasource}"
-                      },
-                      "spec": {
-                        "dataset": "tem",
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "SELECT\n    COALESCE(MAX(pg_wal_lsn_diff(\n        pg_current_wal_lsn(), flush_lsn\n    )), 0) AS flush_lag,\n\n    COALESCE(MAX(pg_wal_lsn_diff(\n        pg_current_wal_lsn(), write_lsn\n    )), 0) AS write_lag,\n\n    COALESCE(MAX(pg_wal_lsn_diff(\n        pg_current_wal_lsn(), replay_lsn\n    )), 0) AS replay_lag\nFROM pg_stat_replication",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "${datasource}"
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "stat",
-            "version": "13.2.3",
-            "spec": {
-              "options": {
-                "colorMode": "value",
-                "graphMode": "area",
+                "graphMode": "none",
                 "justifyMode": "center",
                 "orientation": "auto",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
                   "calcs": [],
-                  "fields": "",
+                  "fields": "/.*/",
                   "values": false
                 },
                 "showPercentChange": false,
                 "textMode": "value_and_name",
+                "wideLayout": false
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "percent",
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "fixed",
+                    "fixedColor": "light-blue"
+                  },
+                  "fieldMinMax": false
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-40": {
+        "kind": "Panel",
+        "spec": {
+          "id": 40,
+          "title": "Storage",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${source}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH user_hypertables AS (\n    SELECT hypertable_schema,\n           hypertable_name\n    FROM timescaledb_information.hypertables\n    WHERE hypertable_schema NOT LIKE '_timescale%'\n),\nall_chunks AS (\n    SELECT\n        c.hypertable_schema,\n        c.hypertable_name,\n        ch.chunk_name,\n        ch.is_compressed\n    FROM user_hypertables c\n    JOIN timescaledb_information.chunks ch\n      ON ch.hypertable_name = c.hypertable_name\n     AND ch.hypertable_schema = c.hypertable_schema\n),\nchunk_sizes AS (\n    SELECT\n        ac.is_compressed,\n        cds.total_bytes\n    FROM all_chunks ac\n    JOIN LATERAL chunks_detailed_size(ac.hypertable_schema || '.' || ac.hypertable_name) cds\n       ON cds.chunk_name = ac.chunk_name\n)\nSELECT\n    SUM(CASE WHEN is_compressed = false THEN total_bytes ELSE 0 END) AS \"Rowstore\",\n    SUM(CASE WHEN is_compressed = true THEN total_bytes ELSE 0 END) AS \"Columnstore\",\n    SUM(total_bytes) AS \"Storage used\"\nFROM chunk_sizes;\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "barchart",
+            "version": "13.2.3",
+            "spec": {
+              "options": {
+                "barRadius": 0.25,
+                "barWidth": 0.5,
+                "fullHighlight": false,
+                "groupWidth": 0.7,
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "orientation": "horizontal",
+                "showValue": "always",
+                "stacking": "normal",
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "desc"
+                },
+                "xField": "Storage used",
+                "xTickLabelRotation": 0,
+                "xTickLabelSpacing": 100
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "decbytes",
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "fillOpacity": 60,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineWidth": 3,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-41": {
+        "kind": "Panel",
+        "spec": {
+          "id": 41,
+          "title": "Status",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${source}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT 1 AS \"Running\"",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.3",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [],
+                  "fields": "/.*/",
+                  "values": true
+                },
+                "showPercentChange": false,
+                "textMode": "name",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-43": {
+        "kind": "Panel",
+        "spec": {
+          "id": 43,
+          "title": "WAL size for all DBs",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${source}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  collected_at AS time,\n  pg_wal_lsn_diff(\n    wal_lsn,\n    LAG(wal_lsn) OVER (ORDER BY collected_at)\n  ) AS wal_bytes\nFROM pganalyze.database_stats\nWHERE $__timeFilter(collected_at)\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {
+                "interval": "20m"
+              }
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.3",
+            "spec": {
+              "options": {
+                "colorMode": "none",
+                "graphMode": "area",
+                "justifyMode": "center",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "/^wal_bytes$/",
+                  "values": false
+                },
+                "showPercentChange": true,
+                "textMode": "value",
                 "wideLayout": true
               },
               "fieldConfig": {
@@ -1373,407 +1985,10 @@
                     ]
                   },
                   "color": {
-                    "mode": "thresholds"
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-51": {
-        "kind": "Panel",
-        "spec": {
-          "id": 51,
-          "title": "Replication slots",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${datasource}"
-                      },
-                      "spec": {
-                        "dataset": "tem",
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "SELECT\n    COUNT(*) FILTER (WHERE active) AS active_slots,\n    COUNT(*) FILTER (WHERE NOT active) AS inactive_slots\nFROM pg_replication_slots",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "${datasource}"
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "stat",
-            "version": "13.2.3",
-            "spec": {
-              "options": {
-                "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "",
-                  "values": false
-                },
-                "showPercentChange": false,
-                "textMode": "auto",
-                "wideLayout": true
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
+                    "mode": "fixed",
+                    "fixedColor": "#1f78c1"
                   },
-                  "color": {
-                    "mode": "thresholds"
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-52": {
-        "kind": "Panel",
-        "spec": {
-          "id": 52,
-          "title": "Checkpointer durations",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${datasource}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "time_series",
-                        "rawQuery": true,
-                        "rawSql": "SELECT\n    bucket AS time,\n    delta(write_summary) AS \"Write time\",\n    delta(sync_summary) AS \"Sync time\",\n    delta(buffers_summary) * 8 * 1024 AS \"Buffers written\"\nFROM (\n    SELECT\n        time_bucket('$agg_interval'::interval, collected_at) AS bucket,\n        counter_agg(collected_at, chk_write_time) AS write_summary,\n        counter_agg(collected_at, chk_sync_time) AS sync_summary,\n        counter_agg(collected_at, chk_buffers_written) AS buffers_summary\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(collected_at)\n    GROUP BY 1\n) t\nORDER BY 1",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "${datasource}"
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {
-                "interval": "10m"
-              }
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "timeseries",
-            "version": "13.2.3",
-            "spec": {
-              "options": {
-                "legend": {
-                  "calcs": [
-                    "mean"
-                  ],
-                  "displayMode": "table",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "ms",
-                  "decimals": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "palette-classic",
-                    "fixedColor": "semi-dark-green"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisGridShow": true,
-                    "axisLabel": "",
-                    "axisPlacement": "left",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "bars",
-                    "fillOpacity": 20,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "stepBefore",
-                    "lineStyle": {
-                      "fill": "solid"
-                    },
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "showValues": false,
-                    "spanNulls": true,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "line"
-                    }
-                  }
-                },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "scope": "series",
-                      "options": "Buffers written"
-                    },
-                    "properties": [
-                      {
-                        "id": "unit",
-                        "value": "decbytes"
-                      },
-                      {
-                        "id": "custom.axisPlacement",
-                        "value": "auto"
-                      }
-                    ]
-                  }
-                ]
-              }
-            }
-          }
-        }
-      },
-      "panel-53": {
-        "kind": "Panel",
-        "spec": {
-          "id": 53,
-          "title": "Checkpoints",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${datasource}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "time_series",
-                        "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  delta(summary_req) AS \"Requested\",\n  delta(summary_timed) AS \"Timed\"\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, collected_at) AS bucket,\n      counter_agg(collected_at, chk_requested) AS summary_req,\n      counter_agg(collected_at, chk_timed) AS summary_timed\n    FROM\n      pganalyze.database_stats\n    WHERE\n      $__timeFilter(collected_at)\n    GROUP BY\n      bucket\n  ) t\nORDER BY\n  time",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "${datasource}"
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {
-                "interval": "10m"
-              }
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "timeseries",
-            "version": "13.2.3",
-            "spec": {
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "table",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "decimals": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "palette-classic",
-                    "fixedColor": "semi-dark-green"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisGridShow": true,
-                    "axisLabel": "",
-                    "axisPlacement": "left",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "bars",
-                    "fillOpacity": 20,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "stepBefore",
-                    "lineStyle": {
-                      "fill": "solid"
-                    },
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "showValues": false,
-                    "spanNulls": true,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "line"
-                    }
-                  }
+                  "fieldMinMax": false
                 },
                 "overrides": []
               }
@@ -1789,7 +2004,7 @@
           {
             "kind": "RowsLayoutRow",
             "spec": {
-              "title": "WAL parameters",
+              "title": "Server",
               "collapse": false,
               "layout": {
                 "kind": "GridLayout",
@@ -1800,21 +2015,8 @@
                       "spec": {
                         "x": 0,
                         "y": 0,
-                        "width": 24,
-                        "height": 10,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-31"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 0,
-                        "y": 10,
-                        "width": 12,
-                        "height": 7,
+                        "width": 2,
+                        "height": 3,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-41"
@@ -1824,10 +2026,62 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 12,
-                        "y": 10,
-                        "width": 12,
-                        "height": 7,
+                        "x": 2,
+                        "y": 0,
+                        "width": 7,
+                        "height": 3,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-28"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 9,
+                        "y": 0,
+                        "width": 6,
+                        "height": 6,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-40"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 15,
+                        "y": 0,
+                        "width": 2,
+                        "height": 6,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-31"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 17,
+                        "y": 0,
+                        "width": 2,
+                        "height": 6,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-25"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 19,
+                        "y": 0,
+                        "width": 3,
+                        "height": 6,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-43"
@@ -1837,39 +2091,13 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 0,
-                        "y": 17,
-                        "width": 3,
-                        "height": 7,
+                        "x": 22,
+                        "y": 0,
+                        "width": 2,
+                        "height": 3,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-45"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 3,
-                        "y": 17,
-                        "width": 9,
-                        "height": 7,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-42"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 12,
-                        "y": 17,
-                        "width": 12,
-                        "height": 7,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-44"
+                          "name": "panel-36"
                         }
                       }
                     },
@@ -1877,38 +2105,38 @@
                       "kind": "GridLayoutItem",
                       "spec": {
                         "x": 0,
-                        "y": 24,
-                        "width": 12,
-                        "height": 16,
+                        "y": 3,
+                        "width": 2,
+                        "height": 3,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-46"
+                          "name": "panel-29"
                         }
                       }
                     },
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 12,
-                        "y": 24,
-                        "width": 12,
-                        "height": 7,
+                        "x": 2,
+                        "y": 3,
+                        "width": 7,
+                        "height": 3,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-53"
+                          "name": "panel-39"
                         }
                       }
                     },
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 12,
-                        "y": 31,
-                        "width": 12,
-                        "height": 9,
+                        "x": 22,
+                        "y": 3,
+                        "width": 2,
+                        "height": 3,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-52"
+                          "name": "panel-27"
                         }
                       }
                     }
@@ -1920,7 +2148,7 @@
           {
             "kind": "RowsLayoutRow",
             "spec": {
-              "title": "Replication",
+              "title": "Database KPIs",
               "collapse": false,
               "layout": {
                 "kind": "GridLayout",
@@ -1931,24 +2159,11 @@
                       "spec": {
                         "x": 0,
                         "y": 0,
-                        "width": 5,
-                        "height": 5,
+                        "width": 13,
+                        "height": 9,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-48"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 5,
-                        "y": 0,
-                        "width": 8,
-                        "height": 5,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-47"
+                          "name": "panel-38"
                         }
                       }
                     },
@@ -1957,11 +2172,11 @@
                       "spec": {
                         "x": 13,
                         "y": 0,
-                        "width": 3,
-                        "height": 5,
+                        "width": 11,
+                        "height": 9,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-49"
+                          "name": "panel-35"
                         }
                       }
                     },
@@ -1969,25 +2184,64 @@
                       "kind": "GridLayoutItem",
                       "spec": {
                         "x": 0,
-                        "y": 5,
-                        "width": 5,
-                        "height": 5,
+                        "y": 9,
+                        "width": 3,
+                        "height": 4,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-51"
+                          "name": "panel-21"
                         }
                       }
                     },
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 5,
-                        "y": 5,
-                        "width": 8,
-                        "height": 5,
+                        "x": 3,
+                        "y": 9,
+                        "width": 10,
+                        "height": 12,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-50"
+                          "name": "panel-22"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 13,
+                        "y": 9,
+                        "width": 11,
+                        "height": 12,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-24"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 13,
+                        "width": 3,
+                        "height": 4,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-23"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 17,
+                        "width": 3,
+                        "height": 4,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-34"
                         }
                       }
                     }
@@ -2022,19 +2276,26 @@
     ],
     "timeSettings": {
       "timezone": "Europe/London",
-      "from": "now-7d",
+      "from": "now-24h",
       "to": "now",
       "autoRefresh": "",
-      "autoRefreshIntervals": [],
+      "autoRefreshIntervals": [
+        "10m",
+        "30m",
+        "1h",
+        "2h",
+        "12h",
+        "1d"
+      ],
       "hideTimepicker": false,
       "fiscalYearStartMonth": 0
     },
-    "title": "WAL, checkpoints and replication",
+    "title": "04. Database overview",
     "variables": [
       {
         "kind": "DatasourceVariable",
         "spec": {
-          "name": "datasource",
+          "name": "source",
           "pluginId": "grafana-postgresql-datasource",
           "refresh": "onDashboardLoad",
           "regex": "",
@@ -2052,72 +2313,180 @@
         }
       },
       {
-        "kind": "IntervalVariable",
+        "kind": "QueryVariable",
         "spec": {
-          "name": "agg_interval",
-          "query": "1m,10m,30m,1h,6h,12h,1d,7d,14d,30d",
+          "name": "cpu_count",
           "current": {
-            "text": "1m",
-            "value": "1m"
+            "text": "",
+            "value": ""
           },
-          "options": [
-            {
-              "selected": true,
-              "text": "1m",
-              "value": "1m"
+          "hide": "hideVariable",
+          "refresh": "onDashboardLoad",
+          "skipUrlSync": false,
+          "query": {
+            "kind": "DataQuery",
+            "group": "grafana-postgresql-datasource",
+            "version": "v0",
+            "labels": {
+              "grafana.app/export-datasource-name": "${source}",
+              "grafana.app/export-label": "grafana-postgresql-datasource-1"
             },
-            {
-              "selected": false,
-              "text": "10m",
-              "value": "10m"
+            "datasource": {
+              "name": "${source}"
             },
-            {
-              "selected": false,
-              "text": "30m",
-              "value": "30m"
-            },
-            {
-              "selected": false,
-              "text": "1h",
-              "value": "1h"
-            },
-            {
-              "selected": false,
-              "text": "6h",
-              "value": "6h"
-            },
-            {
-              "selected": false,
-              "text": "12h",
-              "value": "12h"
-            },
-            {
-              "selected": false,
-              "text": "1d",
-              "value": "1d"
-            },
-            {
-              "selected": false,
-              "text": "7d",
-              "value": "7d"
-            },
-            {
-              "selected": false,
-              "text": "14d",
-              "value": "14d"
-            },
-            {
-              "selected": false,
-              "text": "30d",
-              "value": "30d"
+            "spec": {
+              "editorMode": "code",
+              "format": "table",
+              "query": "SELECT\n  cpu_count\nFROM pganalyze.sys_info\nLIMIT 1",
+              "rawQuery": true,
+              "rawSql": "SELECT\n  cpu_count\nFROM pganalyze.sys_info\nLIMIT 1",
+              "refId": "SQLVariableQueryEditor-VariableQuery",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
             }
-          ],
-          "auto": true,
-          "auto_min": "10s",
-          "auto_count": 30,
-          "refresh": "onTimeRangeChanged",
-          "hide": "dontHide",
-          "skipUrlSync": false
+          },
+          "regex": "",
+          "regexApplyTo": "value",
+          "sort": "disabled",
+          "definition": "SELECT\n  cpu_count\nFROM pganalyze.sys_info\nLIMIT 1",
+          "options": [],
+          "multi": false,
+          "includeAll": false,
+          "allowCustomValue": false
+        }
+      },
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "name": "server_major",
+          "current": {
+            "text": "",
+            "value": ""
+          },
+          "hide": "hideVariable",
+          "refresh": "onDashboardLoad",
+          "skipUrlSync": false,
+          "query": {
+            "kind": "DataQuery",
+            "group": "grafana-postgresql-datasource",
+            "version": "v0",
+            "labels": {
+              "grafana.app/export-datasource-name": "${source}",
+              "grafana.app/export-label": "grafana-postgresql-datasource-1"
+            },
+            "datasource": {
+              "name": "${source}"
+            },
+            "spec": {
+              "dataset": "tem",
+              "editorMode": "code",
+              "format": "table",
+              "meta": {},
+              "query": "SELECT floor(current_setting('server_version_num')::int/10000) AS server_major",
+              "rawQuery": true,
+              "rawSql": "SELECT floor(current_setting('server_version_num')::int/10000) AS server_major",
+              "refId": "SQLVariableQueryEditor-VariableQuery",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          },
+          "regex": "",
+          "regexApplyTo": "value",
+          "sort": "disabled",
+          "definition": "SELECT floor(current_setting('server_version_num')::int/10000) AS server_major",
+          "options": [],
+          "multi": false,
+          "includeAll": false,
+          "allowCustomValue": false
+        }
+      },
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "name": "server_minor",
+          "current": {
+            "text": "",
+            "value": ""
+          },
+          "hide": "hideVariable",
+          "refresh": "onDashboardLoad",
+          "skipUrlSync": false,
+          "query": {
+            "kind": "DataQuery",
+            "group": "grafana-postgresql-datasource",
+            "version": "v0",
+            "labels": {
+              "grafana.app/export-datasource-name": "${source}",
+              "grafana.app/export-label": "grafana-postgresql-datasource-1"
+            },
+            "datasource": {
+              "name": "${source}"
+            },
+            "spec": {
+              "dataset": "tem",
+              "editorMode": "code",
+              "format": "table",
+              "query": "SELECT (current_setting('server_version_num')::int % 10000) AS server_minor",
+              "rawQuery": true,
+              "rawSql": "SELECT (current_setting('server_version_num')::int % 10000) AS server_minor",
+              "refId": "SQLVariableQueryEditor-VariableQuery",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          },
+          "regex": "",
+          "regexApplyTo": "value",
+          "sort": "disabled",
+          "definition": "SELECT (current_setting('server_version_num')::int % 10000) AS server_minor",
+          "options": [],
+          "multi": false,
+          "includeAll": false,
+          "allowCustomValue": false
         }
       }
     ]
