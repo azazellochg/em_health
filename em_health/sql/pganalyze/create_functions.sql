@@ -119,7 +119,8 @@ BEGIN
       COALESCE(SUM(s.n_tup_upd), 0) AS tup_upd,
       COALESCE(SUM(s.n_tup_del), 0) AS tup_del,
       COALESCE(SUM(s.n_dead_tup), 0) AS num_dead_rows,
-      COALESCE(SUM(s.n_live_tup), 0) AS num_live_rows
+      COALESCE(SUM(s.n_live_tup), 0) AS num_live_rows,
+      COALESCE(SUM(s.seq_scan), 0) AS seq_scans
     FROM
       timescaledb_information.chunks ch
       JOIN pg_namespace n
@@ -147,7 +148,8 @@ BEGIN
     tup_upd,
     tup_del,
     num_dead_rows,
-    num_live_rows
+    num_live_rows,
+    seq_scans
   )
   SELECT
     NOW() AS collected_at,
@@ -162,7 +164,8 @@ BEGIN
     CASE WHEN ht.hypertable_name IS NOT NULL THEN COALESCE(cs.tup_upd, 0) ELSE COALESCE(st.n_tup_upd, 0) END AS tup_upd,
     CASE WHEN ht.hypertable_name IS NOT NULL THEN COALESCE(cs.tup_del, 0) ELSE COALESCE(st.n_tup_del, 0) END AS tup_del,
     CASE WHEN ht.hypertable_name IS NOT NULL THEN COALESCE(cs.num_dead_rows, 0) ELSE COALESCE(st.n_dead_tup, 0) END AS num_dead_rows,
-    CASE WHEN ht.hypertable_name IS NOT NULL THEN COALESCE(cs.num_live_rows, 0) ELSE COALESCE(st.n_live_tup, 0) END AS num_live_rows
+    CASE WHEN ht.hypertable_name IS NOT NULL THEN COALESCE(cs.num_live_rows, 0) ELSE COALESCE(st.n_live_tup, 0) END AS num_live_rows,
+    CASE WHEN ht.hypertable_name IS NOT NULL THEN COALESCE(cs.seq_scans, 0) ELSE COALESCE(st.seq_scan, 0) END AS seq_scans
 
   FROM
     pg_catalog.pg_statio_user_tables s

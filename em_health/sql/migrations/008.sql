@@ -193,9 +193,14 @@ $sql$;
 
       SELECT add_job('pganalyze.get_io_stats', schedule_interval=>'1 min'::INTERVAL);
 
-      -- 4. Update schema version
+      -- 6. Add new column to pganalyze.table_stats
+      ALTER TABLE pganalyze.table_stats
+        ADD COLUMN seq_scans BIGINT NOT NULL DEFAULT 0;
+
+      -- 7. Update schema version
       SET ROLE postgres;
       UPDATE public.schema_info SET version = 8;
+      RAISE NOTICE 'Please run "emhealth dev -d tem reset-stat -f" and "emhealth dev -d sem reset-stat -f"';
     END IF;
   END
 $$

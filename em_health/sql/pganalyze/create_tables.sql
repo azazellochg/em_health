@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS pganalyze.table_stats (
   tup_del BIGINT NOT NULL,
   num_dead_rows BIGINT NOT NULL,
   num_live_rows BIGINT NOT NULL,
+  seq_scans BIGINT NOT NULL,
   PRIMARY KEY (relid, collected_at)
 );
 
