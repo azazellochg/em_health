@@ -25,7 +25,14 @@ BEGIN
     frozen_mxid_age,
     db_size,
     wal_lsn,
-    xmin_horizon
+    xmin_horizon,
+    wal_archived_count,
+    wal_failed_count,
+    chk_timed,
+    chk_requested,
+    chk_write_time,
+    chk_sync_time,
+    chk_buffers_written
   )
   WITH xmin_candidates AS (
     SELECT
@@ -74,12 +81,21 @@ BEGIN
     mxid_age(d.datminmxid) AS frozen_mxid_age,
     PG_DATABASE_SIZE(CURRENT_DATABASE()) AS db_size,
     pg_current_wal_lsn() AS wal_lsn,
-    tx.xmin_horizon
+    tx.xmin_horizon,
+    a.archived_count AS wal_archived_count,
+    a.failed_count AS wal_failed_count,
+    c.num_timed AS chk_timed,
+    c.num_requested AS chk_requested,
+    c.write_time AS chk_write_time,
+    c.sync_time AS chk_sync_time,
+    c.buffers_written AS chk_buffers_written
   FROM
     pg_catalog.pg_stat_database s
     JOIN pg_catalog.pg_database d
       ON s.datname = d.datname
     CROSS JOIN true_xmin tx
+    CROSS JOIN pg_stat_archiver a
+    CROSS JOIN pg_stat_checkpointer c
   WHERE
     s.datname = CURRENT_DATABASE();
 END;
@@ -103,7 +119,8 @@ BEGIN
       COALESCE(SUM(s.n_tup_upd), 0) AS tup_upd,
       COALESCE(SUM(s.n_tup_del), 0) AS tup_del,
       COALESCE(SUM(s.n_dead_tup), 0) AS num_dead_rows,
-      COALESCE(SUM(s.n_live_tup), 0) AS num_live_rows
+      COALESCE(SUM(s.n_live_tup), 0) AS num_live_rows,
+      COALESCE(SUM(s.seq_scan), 0) AS seq_scans
     FROM
       timescaledb_information.chunks ch
       JOIN pg_namespace n
@@ -131,7 +148,8 @@ BEGIN
     tup_upd,
     tup_del,
     num_dead_rows,
-    num_live_rows
+    num_live_rows,
+    seq_scans
   )
   SELECT
     NOW() AS collected_at,
@@ -146,7 +164,8 @@ BEGIN
     CASE WHEN ht.hypertable_name IS NOT NULL THEN COALESCE(cs.tup_upd, 0) ELSE COALESCE(st.n_tup_upd, 0) END AS tup_upd,
     CASE WHEN ht.hypertable_name IS NOT NULL THEN COALESCE(cs.tup_del, 0) ELSE COALESCE(st.n_tup_del, 0) END AS tup_del,
     CASE WHEN ht.hypertable_name IS NOT NULL THEN COALESCE(cs.num_dead_rows, 0) ELSE COALESCE(st.n_dead_tup, 0) END AS num_dead_rows,
-    CASE WHEN ht.hypertable_name IS NOT NULL THEN COALESCE(cs.num_live_rows, 0) ELSE COALESCE(st.n_live_tup, 0) END AS num_live_rows
+    CASE WHEN ht.hypertable_name IS NOT NULL THEN COALESCE(cs.num_live_rows, 0) ELSE COALESCE(st.n_live_tup, 0) END AS num_live_rows,
+    CASE WHEN ht.hypertable_name IS NOT NULL THEN COALESCE(cs.seq_scans, 0) ELSE COALESCE(st.seq_scan, 0) END AS seq_scans
 
   FROM
     pg_catalog.pg_statio_user_tables s
@@ -198,7 +217,7 @@ BEGIN
 
     chunk_indexes AS (
       SELECT
-        REGEXP_REPLACE(s.indexrelname, '^(_hyper_[0-9]+_[0-9]+_chunk|[0-9]+_[0-9]+)_', '') AS indexrelname,
+        REGEXP_REPLACE(s.indexrelname, '^(.*?_chunk_|(?:[0-9]+_)+)', '') AS indexrelname, -- match pkey, unique and normal indexes on chunks
         s.relid,
         ch.hypertable_schema,
         ch.hypertable_name,
@@ -266,6 +285,54 @@ BEGIN
 END;
 $$;
 
+-- get_io_stats
+DROP FUNCTION IF EXISTS pganalyze.get_io_stats;
+
+CREATE FUNCTION pganalyze.get_io_stats(job_id INT = NULL, config jsonb = NULL) RETURNS VOID
+  LANGUAGE plpgsql AS
+$$
+DECLARE
+  snapshot_time timestamptz := NOW();
+
+BEGIN
+  INSERT INTO pganalyze.io_stats (
+    collected_at,
+    backend_type,
+    reads,
+    writes,
+    hits,
+    read_time,
+    write_time,
+    fsync_time,
+    fsyncs,
+    extends,
+    evictions,
+    reuses,
+    writebacks,
+    read_bytes,
+    write_bytes
+  )
+  SELECT
+    snapshot_time,
+    backend_type,
+    SUM(reads) AS reads,
+    SUM(writes) AS writes,
+    SUM(hits) AS hits,
+    SUM(read_time) AS read_time,
+    SUM(write_time) AS write_time,
+    SUM(fsync_time) AS fsync_time,
+    SUM(fsyncs) AS fsyncs,
+    SUM(extends) AS extends,
+    SUM(evictions) AS evictions,
+    SUM(reuses) AS reuses,
+    SUM(writebacks) AS writebacks,
+    SUM(read_bytes) AS read_bytes,
+    SUM(write_bytes) AS write_bytes
+  FROM pg_stat_io
+  GROUP BY backend_type;
+END;
+$$;
+
 -- get_stat_statements
 DROP FUNCTION IF EXISTS pganalyze.get_stat_statements;
 
@@ -294,7 +361,7 @@ BEGIN
     )
 
   INSERT INTO pganalyze.stat_statements (
-    collected_at,
+    time,
     userid,
     queryid,
     plans,
@@ -503,59 +570,76 @@ BEGIN
 END;
 $$;
 
--- parse sysinfo
-DROP FUNCTION IF EXISTS pganalyze.parse_sysinfo;
+-- import sysinfo
+DROP FUNCTION IF EXISTS pganalyze.import_sysinfo;
 
-CREATE FUNCTION pganalyze.parse_sysinfo(job_id INT = NULL, config jsonb = NULL) RETURNS VOID
+CREATE FUNCTION pganalyze.import_sysinfo(p_info_dict JSONB)
+  RETURNS VOID
+  LANGUAGE plpgsql AS
+$$
+BEGIN
+  INSERT INTO pganalyze.sys_info (
+    hostname,
+    os_name,
+    kernel_name,
+    kernel_version,
+    cpu_count
+  )
+  VALUES (
+    p_info_dict ->> 'hostname',
+    p_info_dict ->> 'os_name',
+    p_info_dict ->> 'kernel_name',
+    p_info_dict ->> 'kernel_version',
+    (p_info_dict ->> 'cpu_count')::INTEGER
+  )
+  ON CONFLICT (hostname) DO UPDATE SET
+    os_name = excluded.os_name,
+    kernel_name = excluded.kernel_name,
+    kernel_version = excluded.kernel_version,
+    cpu_count = excluded.cpu_count
+  WHERE
+    ROW (
+      pganalyze.sys_info.os_name,
+      pganalyze.sys_info.kernel_name,
+      pganalyze.sys_info.kernel_version,
+      pganalyze.sys_info.cpu_count
+      )
+      IS DISTINCT FROM ROW (
+      excluded.os_name,
+      excluded.kernel_name,
+      excluded.kernel_version,
+      excluded.cpu_count
+      );
+END;
+$$;
+
+-- import sysstats
+DROP FUNCTION IF EXISTS pganalyze.import_sysstats;
+
+CREATE FUNCTION pganalyze.import_sysstats(
+  p_time timestamptz,
+  p_stats_dict JSONB
+)
+  RETURNS VOID
   LANGUAGE plpgsql AS
 $$
 BEGIN
   INSERT INTO pganalyze.sys_stats (
-    load1,
-    load5,
-    load15,
-    cpu_count,
-    mem_total,
-    mem_free,
-    mem_avail
+    time,
+    metric,
+    value,
+    labels
   )
-  WITH loadavg AS (
-    SELECT REGEXP_SPLIT_TO_ARRAY(PG_READ_FILE('/proc/loadavg', 0, 100), ' ') AS parts
-  ),
-    cpu AS (
-      SELECT
-        COUNT(*) AS cpu_count
-      FROM
-        UNNEST(STRING_TO_ARRAY(PG_READ_FILE('/proc/stat', 0, 2000), E'\n')) AS line
-      WHERE
-        line ~ '^cpu[0-9]+'
-    ),
-    mem AS (
-      SELECT
-        MAX(CASE WHEN line LIKE 'MemTotal:%'
-                   THEN TRIM(REGEXP_REPLACE(SPLIT_PART(line, ':', 2), '[^0-9]', '', 'g'))::BIGINT END) AS mem_total,
-        MAX(CASE WHEN line LIKE 'MemFree:%'
-                   THEN TRIM(REGEXP_REPLACE(SPLIT_PART(line, ':', 2), '[^0-9]', '', 'g'))::BIGINT END) AS mem_free,
-        MAX(CASE WHEN line LIKE 'MemAvailable:%'
-                   THEN TRIM(REGEXP_REPLACE(SPLIT_PART(line, ':', 2), '[^0-9]', '', 'g'))::BIGINT END) AS mem_avail
-      FROM
-        (
-          -- only read first 200 bytes of meminfo, which always covers first 3 lines
-          SELECT UNNEST(STRING_TO_ARRAY(PG_READ_FILE('/proc/meminfo', 0, 200), E'\n')) AS line
-        ) t
-    )
   SELECT
-    parts[1]::DOUBLE PRECISION AS load1,
-    parts[2]::DOUBLE PRECISION AS load5,
-    parts[3]::DOUBLE PRECISION AS load15,
-    cpu_count,
-    mem.mem_total,
-    mem.mem_free,
-    mem.mem_avail
-  FROM
-    loadavg,
-    cpu,
-    mem;
+    p_time,
+    item->>'metric',
+    (item->>'value')::double precision,
+    CASE
+      WHEN item - 'metric' - 'value' = '{}'::jsonb
+        THEN NULL
+      ELSE item - 'metric' - 'value'
+      END
+  FROM jsonb_array_elements(p_stats_dict) AS item;
 END;
 $$;
 

@@ -61,6 +61,8 @@ To use the new values from `docker/.env`, run:
 
     sh em_health/utils/update-passwd.sh
 
+.. note:: To run `generate-keys.sh` script you need to have OpenSSL installed
+
 
 Creating a Windows Task
 ^^^^^^^^^^^^^^^^^^^^^^^

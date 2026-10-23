@@ -34,10 +34,11 @@ Performance statistics is inspired by `Pganalyze <https://pganalyze.com/>`_ and 
 * database statistics (updated every 10 min)
 * tables statistics (updated every 10 min)
 * index statistics (updated every 10 min)
+* I/O statistics (updated every 1 min)
 * auto-VACUUM statistics (updated every 1 min)
 * query statistics (updated every 1 min)
-* CPU and RAM host statistics (updated every 1 min)
-* auto-EXPLAIN plans (for queries longer than 500ms)
+* host OS statistics (updated every 15 s and 15 min)
+* auto-EXPLAIN plans (for queries longer than 500 ms)
 
 Statistics retention time is 3 months.
 
@@ -63,7 +64,7 @@ All ``EMHealth`` application actions are saved into `emhealth.log`. PostgreSQL l
 
 .. code-block::
 
-    docker exec -it emhealth-db bash
+    podman exec -it emhealth-db bash
     cd /var/lib/postgresql/data/log
     cat *.csv
 
@@ -71,7 +72,7 @@ Grafana logs are accessible via:
 
 .. code-block::
 
-    docker logs emhealth-grafana
+    podman logs emhealth-grafana
 
 Database structure
 ^^^^^^^^^^^^^^^^^^
@@ -122,8 +123,10 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
     * table_stats
     * index_stats
     * vacuum_stats
+    * io_stats
     * stat_statements
     * queries
+    * sys_info
     * sys_stats
     * stat_explains
 

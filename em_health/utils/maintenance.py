@@ -31,6 +31,8 @@ from packaging.version import Version
 
 from em_health.utils.tools import logger, run_command
 
+TEM_SCHEMA_VERSION = 8
+SEM_SCHEMA_VERSION = 8
 MANAGER = os.getenv("MANAGER_TYPE")
 COMPOSE_FILE = "compose.yaml"
 PG_CONTAINER = "emhealth-db"
@@ -62,6 +64,7 @@ def get_pg_version() -> str:
         capture_output=True)
     return result.stdout.strip()
 
+
 def check_versions(dbname: str, fn: Path):
     """Compare backup file with server versions."""
     pg_version = fn.name.split("_")[2]
@@ -92,6 +95,7 @@ def backup(dbname: str = "tem") -> Path:
         run_command(f"{MANAGER} stop {GRAFANA_CONTAINER}")
         run_command(f"{MANAGER} cp {GRAFANA_CONTAINER}:/var/lib/grafana/grafana.db {grafana_backup}")
         run_command(f"{MANAGER} start {GRAFANA_CONTAINER}")
+        logger.info("Backup completed")
         return grafana_backup
     elif dbname in ["tem", "sem"]:
         pg_version = get_pg_version()
@@ -100,6 +104,7 @@ def backup(dbname: str = "tem") -> Path:
         pg_host_backup = BACKUP_HOST_PATH / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
         logger.info("Backing up TimescaleDB '%s' to %s", dbname, pg_host_backup.resolve())
         run_command(f"{PG_EXEC} pg_dump -Fc -d {dbname} -f {pg_backup}")
+        logger.info("Backup completed")
         return pg_backup
 
 
@@ -157,23 +162,23 @@ def update() -> None:
         print("EMHealth 0.1a6+ does not support PostgreSQL 17. "
               "Check documentation at https://em-health.readthedocs.io/latest/maintenance.html#updating-postgresql-from-v17-to-v18")
 
-    # migrate db schema
-    from em_health.db_manager import main as db_manager
-    db_manager("tem", "migrate")
-    db_manager("sem", "migrate")
-
-    # backup db
-    pg_backup_tem = backup("tem")
-    pg_backup_sem = backup("sem")
-    grafana_backup = backup("grafana")
-
-    # update containers
-    chdir_docker_dir()
-
     if MANAGER == "podman":
         mgr_cmd = "podman-compose"
     else:
         mgr_cmd = f"docker compose"
+
+    # migrate db schema
+    from em_health.db_manager import main as db_manager
+    grafana_backup = backup("grafana")
+    migrate("tem")
+    migrate("sem")
+
+    # backup db
+    pg_backup_tem = backup("tem")
+    pg_backup_sem = backup("sem")
+
+    # update containers
+    chdir_docker_dir()
 
     for cmd in [
         f"{mgr_cmd} -f {COMPOSE_FILE} down -v",
@@ -199,9 +204,40 @@ def update() -> None:
     logger.info("Finished updating")
 
 
+def migrate(dbname: str):
+    """ Migrate db to the latest version. """
+    latest_ver = TEM_SCHEMA_VERSION if dbname == "tem" else SEM_SCHEMA_VERSION
+    from em_health.db_manager import DatabaseManager as DBM
+
+    with DBM(dbname, username="postgres", password="POSTGRES_PASSWORD") as db:
+        current_ver = db.run_query("SELECT version FROM public.schema_info", mode="fetchone")
+        current_ver = current_ver[0]
+        logger.info("Current schema version: %s", current_ver)
+
+        if current_ver < latest_ver:
+            db.run_query("REVOKE CONNECT ON DATABASE {dbname} FROM PUBLIC", {"dbname": dbname})
+            db.run_query("""
+                SELECT pg_terminate_backend(pid)
+                FROM pg_stat_activity
+                WHERE datname = %s
+                  AND pid <> pg_backend_pid();
+            """, values=(dbname,))
+
+            for v in range(current_ver + 1, latest_ver + 1):
+                view_fn = db.get_path(target=f"migrations/{v:03d}.sql")
+                db.execute_file(view_fn)
+
+            db.run_query("GRANT CONNECT ON DATABASE {dbname} TO PUBLIC", {"dbname": dbname})
+            logger.info("Database schema migrated to version %s", latest_ver)
+        elif current_ver == latest_ver:
+            logger.info("Database schema is up-to-date")
+        else:
+            raise ValueError("Schema version is higher than expected")
+
+
 def check_db_schema():
     """Check database schema vs app schema."""
-    from em_health.db_manager import TEM_SCHEMA_VERSION, SEM_SCHEMA_VERSION, DatabaseManager as DBM
+    from em_health.db_manager import DatabaseManager as DBM
     for dbname, schema in [("tem", TEM_SCHEMA_VERSION), ("sem", SEM_SCHEMA_VERSION)]:
         logger.info("Checking database %s schema version", dbname)
         with DBM(dbname, username="postgres", password="POSTGRES_PASSWORD") as db:
@@ -217,8 +253,11 @@ def main(action: str, dbname: str = "tem") -> None:
     if action == "update":
         update()
 
+    elif action == "migrate":
+        migrate(dbname)
+
     elif action == "backup":
-        backup(dbname)
+        _ = backup(dbname)
 
     elif action == "restore":
         confirm = input(f"Restoring will DELETE existing {dbname} database.\nType YES to continue: ")

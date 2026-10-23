@@ -2,9 +2,9 @@
   "apiVersion": "dashboard.grafana.app/v2",
   "kind": "Dashboard",
   "metadata": {
-    "name": "d0e487ca-67bd-4aa2-93fa-02b2afc1e2e3",
-    "generation": 23,
-    "creationTimestamp": "2026-08-14T13:00:15Z",
+    "name": "ee46beab-c046-42b1-b547-23550e2ec0f3",
+    "generation": 2,
+    "creationTimestamp": "2026-10-20T16:11:04Z",
     "labels": {},
     "annotations": {}
   },
@@ -30,11 +30,11 @@
     "cursorSync": "Off",
     "editable": true,
     "elements": {
-      "panel-1": {
+      "panel-31": {
         "kind": "Panel",
         "spec": {
-          "id": 1,
-          "title": "Autovacuum counters",
+          "id": 31,
+          "title": "WAL-related settings",
           "description": "",
           "links": [],
           "data": {
@@ -48,14 +48,11 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "datasource": {
-                        "name": "${source}"
-                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  COUNT(*) AS \"Total\",\n  COUNT(*) FILTER (WHERE wraparound) AS \"Anti-wraparound\",\n  ROUND(\n    COALESCE(\n      SUM(EXTRACT(EPOCH FROM (finished_at - started_at)))\n      / (($__to - $__from) / 1000.0),\n      0\n    ),\n    1\n  ) AS \"Avg. workers\"\nFROM pganalyze.vacuum_stats\nWHERE $__timeFilter(started_at);",
+                        "rawSql": "SELECT\n  name AS \"Name\",\n  short_desc AS \"Description\",\n  setting AS \"Current value\",\n  boot_val AS \"Default value\",\n  unit AS \"Unit\",\n  min_val || ' to ' || max_val AS \"Range\"\nFROM\n  pg_settings\nWHERE\n  name IN (\n    'archive_mode',\n    'archive_command',\n    'archive_library',\n    'wal_keep_size',\n    'min_wal_size',\n    'max_wal_size',\n    'max_slot_wal_keep_size',\n    'checkpoint_timeout'\n  )\nORDER BY \"Name\"",
                         "sql": {
                           "columns": [
                             {
@@ -76,219 +73,6 @@
                       }
                     },
                     "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "stat",
-            "version": "13.1.0-25893932881",
-            "spec": {
-              "options": {
-                "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [
-                    "lastNotNull"
-                  ],
-                  "fields": "/.*/",
-                  "values": true
-                },
-                "showPercentChange": false,
-                "textMode": "auto",
-                "wideLayout": true
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "thresholds"
-                  }
-                },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "scope": "series",
-                      "options": "Avg. workers"
-                    },
-                    "properties": [
-                      {
-                        "id": "decimals",
-                        "value": 1
-                      }
-                    ]
-                  }
-                ]
-              }
-            }
-          }
-        }
-      },
-      "panel-10": {
-        "kind": "Panel",
-        "spec": {
-          "id": 10,
-          "title": "Transaction ID Utilization",
-          "description": "How much transaction ID space is utilized among the actual maximum available transaction IDs, in percent.",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${source}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "SELECT\n  ROUND(100.0 * age(datfrozenxid) / 4294967296, 4) AS xid_utilization_percent\nFROM pg_database\nWHERE datname = current_database()",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "stat",
-            "version": "13.1.0-25893932881",
-            "spec": {
-              "options": {
-                "colorMode": "value",
-                "graphMode": "none",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "/^xid_utilization_percent$/",
-                  "values": true
-                },
-                "showPercentChange": false,
-                "textMode": "value",
-                "wideLayout": false
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "percent",
-                  "decimals": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      },
-                      {
-                        "value": 90,
-                        "color": "#EAB839"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "thresholds"
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-11": {
-        "kind": "Panel",
-        "spec": {
-          "id": 11,
-          "title": "VACUUM summary",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${source}"
-                      },
-                      "spec": {
-                        "dataset": "sem",
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "SELECT\n    n.nspname || '.' || c.relname AS \"Table\",\n    COUNT(*) AS \"Count\",\n    SUM(v.tuples_removed) || ' (' ||\n    ROUND(\n        SUM(v.tuples_removed)\n        / NULLIF(SUM(v.tuples_removed + v.tuples_remain), 0) * 100.0,\n        2\n    ) || '%)' AS \"Tuples removed\",\n    SUM(v.index_scans) AS \"Index scans\",\n    SUM(v.pages_removed) AS \"Pages removed\",\n    MAX(v.finished_at - v.started_at) AS \"Max duration\",\n    MAX(v.finished_at) AS \"Last vacuum\"\nFROM pganalyze.vacuum_stats v\nJOIN pg_class c\n    ON c.oid = v.hypertable_relid\nJOIN pg_namespace n\n    ON n.oid = c.relnamespace\nGROUP BY\n    v.hypertable_relid,\n    n.nspname,\n    c.relname\nORDER BY SUM(v.tuples_removed) DESC",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "B",
                     "hidden": false
                   }
                 }
@@ -300,12 +84,11 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "cellHeight": "sm",
-                "enablePagination": true,
-                "frameIndex": 0,
+                "enablePagination": false,
                 "showHeader": true
               },
               "fieldConfig": {
@@ -320,41 +103,79 @@
                     ]
                   },
                   "color": {
-                    "mode": "thresholds"
+                    "mode": "fixed"
                   },
                   "custom": {
-                    "align": "center",
+                    "align": "left",
                     "cellOptions": {
                       "type": "auto"
                     },
                     "footer": {
                       "reducers": []
                     },
-                    "inspect": false
+                    "inspect": false,
+                    "wrapText": true
                   }
                 },
                 "overrides": [
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Max duration"
+                      "options": "Name"
                     },
                     "properties": [
                       {
-                        "id": "unit",
-                        "value": "s"
+                        "id": "custom.filterable",
+                        "value": true
+                      },
+                      {
+                        "id": "links",
+                        "value": [
+                          {
+                            "targetBlank": true,
+                            "title": "Show details",
+                            "url": "https://postgresqlco.nf/doc/en/param/${__data.fields.Name}"
+                          }
+                        ]
                       }
                     ]
                   },
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Count"
+                      "scope": "series",
+                      "options": "Unit"
                     },
                     "properties": [
                       {
                         "id": "custom.width",
-                        "value": 100
+                        "value": 60
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Default value"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 120
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Range"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 140
                       }
                     ]
                   }
@@ -364,107 +185,11 @@
           }
         }
       },
-      "panel-12": {
+      "panel-41": {
         "kind": "Panel",
         "spec": {
-          "id": 12,
-          "title": "Xmin Horizon Assigned",
-          "description": "How long ago the xmin horizon was assigned, indicating up to which point VACUUM can clean up dead rows.",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${source}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "WITH current_horizon AS (\n  SELECT\n    xmin_horizon\n  FROM\n    pganalyze.database_stats\n  WHERE\n    xmin_horizon <> 0\n  ORDER BY\n    collected_at DESC\n  LIMIT 1\n)\nSELECT\n  EXTRACT(EPOCH FROM (NOW() - MIN(ds.collected_at))) AS assigned_seconds_ago\nFROM\n  pganalyze.database_stats ds\n  CROSS JOIN current_horizon ch\nWHERE\n  ds.xmin_horizon = ch.xmin_horizon;",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "stat",
-            "version": "13.1.0-25893932881",
-            "spec": {
-              "options": {
-                "colorMode": "value",
-                "graphMode": "none",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "/.*/",
-                  "values": true
-                },
-                "showPercentChange": false,
-                "textMode": "value",
-                "wideLayout": true
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "s",
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "thresholds"
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-14": {
-        "kind": "Panel",
-        "spec": {
-          "id": 14,
-          "title": "Approaching Transaction ID Wraparound",
+          "id": 41,
+          "title": "pg_wal directory size",
           "description": "",
           "links": [],
           "data": {
@@ -478,14 +203,11 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "datasource": {
-                        "name": "${source}"
-                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "WITH threshold AS (\n  SELECT setting::bigint AS \"autovacuum_freeze_max_age\"\n  FROM pg_settings\n  WHERE name ='autovacuum_freeze_max_age'\n)\n\nSELECT\n  collected_at AS time,\n  frozen_xid_age,\n  (SELECT autovacuum_freeze_max_age FROM threshold) AS autovacuum_freeze_max_age\nFROM pganalyze.database_stats\nORDER BY collected_at",
+                        "rawSql": "SELECT\n  time_bucket('$agg_interval' :: INTERVAL, time) AS time,\n  AVG(value) AS value\nFROM\n  pganalyze.sys_stats\nWHERE\n  metric = 'postgres_wal_size_bytes'\n  AND $__timeFilter(time)\nGROUP BY\n  time\nORDER BY\n  time",
                         "sql": {
                           "columns": [
                             {
@@ -510,22 +232,33 @@
                   }
                 }
               ],
-              "transformations": [],
-              "queryOptions": {
-                "interval": "10m"
-              }
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "organize",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {},
+                      "includeByName": {},
+                      "indexByName": {},
+                      "renameByName": {
+                        "postgres_data_size_bytes": "Total PGDATA size",
+                        "postgres_log_size_bytes": "Logs size",
+                        "postgres_wal_size_bytes": "WAL size"
+                      }
+                    }
+                  }
+                }
+              ],
+              "queryOptions": {}
             }
           },
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
-                "annotations": {
-                  "clustering": -1,
-                  "multiLane": false
-                },
                 "legend": {
                   "calcs": [],
                   "displayMode": "list",
@@ -540,315 +273,7 @@
               },
               "fieldConfig": {
                 "defaults": {
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "left",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 60,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "never",
-                    "showValues": false,
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  }
-                },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "autovacuum_freeze_max_age"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.fillOpacity",
-                        "value": 0
-                      },
-                      {
-                        "id": "custom.lineStyle",
-                        "value": {
-                          "dash": [
-                            10,
-                            10
-                          ],
-                          "fill": "dash"
-                        }
-                      }
-                    ]
-                  }
-                ]
-              }
-            }
-          }
-        }
-      },
-      "panel-15": {
-        "kind": "Panel",
-        "spec": {
-          "id": 15,
-          "title": "Approaching Multixact ID Wraparound",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${source}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "time_series",
-                        "rawQuery": true,
-                        "rawSql": "WITH threshold AS (\n  SELECT setting::bigint AS \"autovacuum_multixact_freeze_max_age\"\n  FROM pg_settings\n  WHERE name ='autovacuum_multixact_freeze_max_age'\n)\n\nSELECT\n  collected_at AS time,\n  frozen_mxid_age,\n  (SELECT autovacuum_multixact_freeze_max_age FROM threshold) AS autovacuum_multixact_freeze_max_age\nFROM pganalyze.database_stats\nORDER BY collected_at",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {
-                "interval": "10m"
-              }
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "timeseries",
-            "version": "13.1.0-25893932881",
-            "spec": {
-              "options": {
-                "annotations": {
-                  "clustering": -1,
-                  "multiLane": false
-                },
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": false
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "left",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 60,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "never",
-                    "showValues": false,
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  }
-                },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "autovacuum_multixact_freeze_max_age"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.fillOpacity",
-                        "value": 0
-                      },
-                      {
-                        "id": "custom.lineStyle",
-                        "value": {
-                          "dash": [
-                            10,
-                            10
-                          ],
-                          "fill": "dash"
-                        }
-                      }
-                    ]
-                  }
-                ]
-              }
-            }
-          }
-        }
-      },
-      "panel-17": {
-        "kind": "Panel",
-        "spec": {
-          "id": 17,
-          "title": "Max I/O impact",
-          "description": "Theoretical maximum impact that VACUUM can have on your system",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${source}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "WITH settings AS (\n  SELECT\n    (CASE \n       WHEN (SELECT setting FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_limit') = '-1'\n       THEN (SELECT setting::numeric FROM pg_settings WHERE name = 'vacuum_cost_limit')\n       ELSE (SELECT setting::numeric FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_limit')\n     END) AS vacuum_cost_limit_effective,\n    (SELECT setting::numeric FROM pg_settings WHERE name = 'vacuum_cost_page_miss') AS vacuum_cost_page_miss,\n    (SELECT setting::numeric FROM pg_settings WHERE name = 'vacuum_cost_page_dirty') AS vacuum_cost_page_dirty,\n    (SELECT setting::numeric FROM pg_settings WHERE name = 'autovacuum_vacuum_cost_delay') AS autovacuum_vacuum_cost_delay,\n    8192 AS block_size_bytes -- 8kB block size\n)\nSELECT\n  (vacuum_cost_limit_effective / vacuum_cost_page_miss * block_size_bytes / autovacuum_vacuum_cost_delay) * 1000 AS \"read\",\n  (vacuum_cost_limit_effective / vacuum_cost_page_dirty * block_size_bytes / autovacuum_vacuum_cost_delay) * 1000 AS \"write\"\nFROM settings\n",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "stat",
-            "version": "13.1.0-25893932881",
-            "spec": {
-              "options": {
-                "colorMode": "value",
-                "graphMode": "none",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "/.*/",
-                  "values": true
-                },
-                "showPercentChange": false,
-                "textMode": "value_and_name",
-                "wideLayout": false
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "Bps",
+                  "unit": "decbytes",
                   "decimals": 0,
                   "thresholds": {
                     "mode": "absolute",
@@ -860,7 +285,46 @@
                     ]
                   },
                   "color": {
-                    "mode": "thresholds"
+                    "mode": "palette-classic",
+                    "fixedColor": "semi-dark-green"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisGridShow": true,
+                    "axisLabel": "",
+                    "axisPlacement": "left",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 20,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "stepBefore",
+                    "lineStyle": {
+                      "fill": "solid"
+                    },
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": true,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "line"
+                    }
                   }
                 },
                 "overrides": []
@@ -869,12 +333,12 @@
           }
         }
       },
-      "panel-4": {
+      "panel-42": {
         "kind": "Panel",
         "spec": {
-          "id": 4,
-          "title": "Est. Table Bloat",
-          "description": "The estimated overall table bloat on this  database - this is a very rough estimate and should be reviewed for individual tables. Compressed chunks are excluded and only tables > 1MB are considered.",
+          "id": 42,
+          "title": "WAL generation rate",
+          "description": "Approximate WAL generation rate from current WAL LSN movement. High rate with no retention issue points to workload-driven WAL growth. Use agg_interval > 10m",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -887,14 +351,11 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "datasource": {
-                        "name": "${source}"
-                      },
                       "spec": {
                         "editorMode": "code",
-                        "format": "table",
+                        "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "WITH compressed_chunks AS (\n    SELECT\n        chunk_schema,\n        chunk_name\n    FROM timescaledb_information.chunks\n    WHERE is_compressed = true\n),\ntables AS (\n    SELECT\n        p.schemaname,\n        p.tablename\n    FROM pg_tables p\n    WHERE p.schemaname NOT SIMILAR TO '(pg_catalog|information_schema%)'\n      AND NOT EXISTS (\n          SELECT 1\n          FROM compressed_chunks c\n          WHERE c.chunk_schema = p.schemaname\n            AND c.chunk_name = p.tablename\n      )\n),\nbloat_data AS (\n    SELECT\n        stats.table_len,\n        (stats.table_len - stats.approx_tuple_len) AS bloat_bytes\n    FROM tables t\n    CROSS JOIN LATERAL pgstattuple_approx(\n        format('%I.%I', t.schemaname, t.tablename)\n    ) stats\n    WHERE stats.table_len >= 1048576  -- 1 MB minimum\n)\nSELECT\n    COALESCE(SUM(bloat_bytes), 0) AS total_bloat_bytes,\n    COALESCE(\n        ROUND(\n            100.0 * SUM(bloat_bytes)\n            / NULLIF(SUM(table_len), 0),\n            2\n        ),\n        0\n    ) AS bloat_percent\nFROM bloat_data",
+                        "rawSql": "SELECT\n  bucket AS time,\n  irate_right(summary) AS \"WAL generated\"\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, collected_at) AS bucket,\n      counter_agg(collected_at, pg_wal_lsn_diff(wal_lsn, '0/0'::pg_lsn)) AS summary\n    FROM\n      pganalyze.database_stats\n    WHERE\n     $__timeFilter(collected_at)\n    GROUP BY bucket\n  ) t\nORDER BY\n  time\n",
                         "sql": {
                           "columns": [
                             {
@@ -925,27 +386,28 @@
           },
           "vizConfig": {
             "kind": "VizConfig",
-            "group": "stat",
-            "version": "13.1.0-25893932881",
+            "group": "timeseries",
+            "version": "13.2.3",
             "spec": {
               "options": {
-                "colorMode": "value",
-                "graphMode": "none",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "",
-                  "values": true
+                "legend": {
+                  "calcs": [
+                    "lastNotNull",
+                    "max"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
                 },
-                "showPercentChange": false,
-                "textMode": "value",
-                "wideLayout": true
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
               "fieldConfig": {
                 "defaults": {
-                  "decimals": 2,
+                  "unit": "Bps",
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -956,48 +418,60 @@
                     ]
                   },
                   "color": {
-                    "mode": "thresholds"
+                    "mode": "palette-classic",
+                    "fixedColor": "semi-dark-green"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisGridShow": true,
+                    "axisLabel": "",
+                    "axisPlacement": "left",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 20,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "stepBefore",
+                    "lineStyle": {
+                      "fill": "solid"
+                    },
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": true,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "line"
+                    }
                   }
                 },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "scope": "series",
-                      "options": "bloat_percent"
-                    },
-                    "properties": [
-                      {
-                        "id": "unit",
-                        "value": "percent"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "scope": "series",
-                      "options": "total_bloat_bytes"
-                    },
-                    "properties": [
-                      {
-                        "id": "unit",
-                        "value": "decbytes"
-                      }
-                    ]
-                  }
-                ]
+                "overrides": []
               }
             }
           }
         }
       },
-      "panel-5": {
+      "panel-43": {
         "kind": "Panel",
         "spec": {
-          "id": 5,
-          "title": "Total tables",
-          "description": "The total number of tables on this database - databases with a lot of tables can often times suffer from more autovacuum scheduling challenges.",
+          "id": 43,
+          "title": "WAL archive success and errors",
+          "description": "WAL archive activity and failures. A rising failed count indicates archive_command or archive library trouble that can keep completed WAL files in pg_wal.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1010,14 +484,18 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${datasource}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
                       "datasource": {
-                        "name": "${source}"
+                        "name": "${datasource}"
                       },
                       "spec": {
                         "editorMode": "code",
-                        "format": "table",
+                        "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT COUNT(*) AS total_tables\nFROM pg_class c\n",
+                        "rawSql": "SELECT\n  collected_at AS time,\n  wal_archived_count AS archived_count,\n  wal_failed_count AS failed_count\nFROM\n  pganalyze.database_stats\nWHERE\n  $__timeFilter(collected_at)\nORDER BY\n  time",
                         "sql": {
                           "columns": [
                             {
@@ -1048,23 +526,23 @@
           },
           "vizConfig": {
             "kind": "VizConfig",
-            "group": "stat",
-            "version": "13.1.0-25893932881",
+            "group": "timeseries",
+            "version": "13.2.3",
             "spec": {
               "options": {
-                "colorMode": "value",
-                "graphMode": "none",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "/^total_tables$/",
-                  "values": true
+                "legend": {
+                  "calcs": [
+                    "last"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
                 },
-                "showPercentChange": false,
-                "textMode": "value",
-                "wideLayout": true
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
               "fieldConfig": {
                 "defaults": {
@@ -1078,7 +556,46 @@
                     ]
                   },
                   "color": {
-                    "mode": "thresholds"
+                    "mode": "palette-classic",
+                    "fixedColor": "semi-dark-green"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisGridShow": true,
+                    "axisLabel": "",
+                    "axisPlacement": "left",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "stepBefore",
+                    "lineStyle": {
+                      "fill": "solid"
+                    },
+                    "lineWidth": 2,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "showValues": false,
+                    "spanNulls": true,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "line"
+                    }
                   }
                 },
                 "overrides": []
@@ -1087,11 +604,11 @@
           }
         }
       },
-      "panel-6": {
+      "panel-44": {
         "kind": "Panel",
         "spec": {
-          "id": 6,
-          "title": "Config settings",
+          "id": 44,
+          "title": "WAL generated (bytes)",
           "description": "",
           "links": [],
           "data": {
@@ -1105,14 +622,397 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${datasource}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
                       "datasource": {
-                        "name": "${source}"
+                        "name": "${datasource}"
                       },
                       "spec": {
                         "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  bucket AS time,\n  delta(summary) AS wal_generated_bytes\nFROM (\n  SELECT\n    time_bucket('$agg_interval'::INTERVAL, collected_at) AS bucket,\n    counter_agg(\n      collected_at,\n      pg_wal_lsn_diff(wal_lsn, '0/0'::pg_lsn)\n    ) AS summary\n  FROM pganalyze.database_stats\n  WHERE $__timeFilter(collected_at)\n  GROUP BY bucket\n) t\nORDER BY time;",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.2.3",
+            "spec": {
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "decbytes",
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "palette-classic",
+                    "fixedColor": "semi-dark-green"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisGridShow": true,
+                    "axisLabel": "",
+                    "axisPlacement": "left",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 20,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "stepBefore",
+                    "lineStyle": {
+                      "fill": "solid"
+                    },
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": true,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "line"
+                    }
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-45": {
+        "kind": "Panel",
+        "spec": {
+          "id": 45,
+          "title": "Archive lag bytes",
+          "description": "Bytes between current WAL position and last archived WAL finish LSN.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${datasource}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
+                      "datasource": {
+                        "name": "${datasource}"
+                      },
+                      "spec": {
+                        "dataset": "tem",
+                        "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "  SELECT\n    name,\n    setting\n  FROM pg_settings\n  WHERE name IN (\n    'autovacuum_max_workers',\n    'autovacuum_vacuum_cost_delay',\n    'autovacuum_vacuum_threshold',\n    'autovacuum_freeze_max_age',\n    'autovacuum_vacuum_insert_threshold',\n    'autovacuum_vacuum_cost_limit',\n    'autovacuum_vacuum_scale_factor',\n    'autovacuum_multixact_freeze_max_age',\n    'autovacuum_vacuum_insert_scale_factor',\n    'autovacuum_naptime',\n    'autovacuum_work_mem'\n  )",
+                        "rawSql": "WITH wal_config AS (\n    SELECT pg_size_bytes(current_setting('wal_segment_size')) AS segment_size\n)\nSELECT\n    pg_wal_lsn_diff(\n        pg_current_wal_lsn(),\n        (\n            (\n                substring(a.last_archived_wal FROM 1 FOR 8) || '/' ||\n                substring(a.last_archived_wal FROM 9 FOR 8)\n            )::pg_lsn + c.segment_size\n        )\n    ) AS archive_lag_bytes\nFROM pg_stat_archiver a\nCROSS JOIN wal_config c\nWHERE a.last_archived_wal IS NOT NULL",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.3",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "decbytes",
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-46": {
+        "kind": "Panel",
+        "spec": {
+          "id": 46,
+          "title": "Top 10 queries by WAL bytes/s",
+          "description": "Top WAL-producing query IDs from pg_stat_statements. Use when pg_wal grows because the workload is generating WAL quickly rather than because WAL is retained.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${datasource}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
+                      "datasource": {
+                        "name": "${datasource}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "WITH rates AS (\n    SELECT\n        queryid,\n        time_bucket('$agg_interval'::interval, time) AS bucket,\n        irate_right(counter_agg(time, wal_bytes)) AS value\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(time)\n    GROUP BY queryid, bucket\n),\ntop_queries AS (\n    SELECT queryid\n    FROM rates\n    GROUP BY queryid\n    ORDER BY AVG(value) DESC\n    LIMIT 10\n)\nSELECT\n    r.queryid::text,\n    r.bucket AS time,\n    r.value AS query\nFROM rates r\nJOIN top_queries t USING (queryid)\nORDER BY time",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.2.3",
+            "spec": {
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "lastNotNull",
+                    "max"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "Bps",
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "palette-classic",
+                    "fixedColor": "semi-dark-green"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisGridShow": true,
+                    "axisLabel": "",
+                    "axisPlacement": "left",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 20,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "stepBefore",
+                    "lineStyle": {
+                      "fill": "solid"
+                    },
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": true,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "line"
+                    }
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-47": {
+        "kind": "Panel",
+        "spec": {
+          "id": 47,
+          "title": "Retained WAL by replication slot",
+          "description": "WAL retained by replication slot restart_lsn. A large or growing value often identifies an abandoned or lagging slot.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${datasource}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
+                      "datasource": {
+                        "name": "${datasource}"
+                      },
+                      "spec": {
+                        "dataset": "tem",
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  slot_name,\n  plugin,\n  pg_wal_lsn_diff(\n    pg_current_wal_lsn(),\n    restart_lsn\n  ) AS restart_lsn_lag_bytes\nFROM\n  pg_replication_slots\nWHERE\n  restart_lsn IS NOT NULL\nORDER BY\n  restart_lsn_lag_bytes DESC",
                         "sql": {
                           "columns": [
                             {
@@ -1144,11 +1044,11 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "cellHeight": "sm",
-                "showHeader": false
+                "showHeader": true
               },
               "fieldConfig": {
                 "defaults": {
@@ -1175,31 +1075,18 @@
                     "inspect": false
                   }
                 },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "setting"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.width",
-                        "value": 100
-                      }
-                    ]
-                  }
-                ]
+                "overrides": []
               }
             }
           }
         }
       },
-      "panel-7": {
+      "panel-48": {
         "kind": "Panel",
         "spec": {
-          "id": 7,
-          "title": "Table bloat info",
-          "description": "Per-table bloat estimates, as calculated by the difference of the actual table size, compared to the average row size * number of rows in the table. For hypertables we only consider uncompressed chunks. Tables with no bloat are filtered out.",
+          "id": 48,
+          "title": "Replication slots",
+          "description": "",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1212,15 +1099,19 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${datasource}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
                       "datasource": {
-                        "name": "${source}"
+                        "name": "${datasource}"
                       },
                       "spec": {
-                        "dataset": "sem",
+                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "/* WARNING: executed with a non-superuser role, the query inspect only tables and materialized view (9.3+) you are granted to read.\n* This query is compatible with PostgreSQL 9.0 and more\n*/\n\nWITH table_options AS (\n  SELECT\n    n.nspname AS schemaname,\n    c.relname AS tblname,\n    COALESCE(\n      (SELECT option_value :: numeric FROM pg_options_to_table(c.reloptions) WHERE option_name = 'autovacuum_vacuum_scale_factor'),\n      current_setting('autovacuum_vacuum_scale_factor') :: numeric\n    ) AS vacuum_scale_factor,\n    COALESCE(\n      (SELECT option_value :: numeric FROM pg_options_to_table(c.reloptions) WHERE option_name = 'autovacuum_vacuum_threshold'),\n      current_setting('autovacuum_vacuum_threshold') :: numeric\n    ) AS vacuum_threshold,\n    c.reltuples :: numeric AS row_count,\n    COALESCE(\n      (SELECT option_value :: numeric FROM pg_options_to_table(c.reloptions) WHERE option_name = 'fillfactor'),\n      100 :: numeric\n    ) AS fillfactor\n  FROM\n    pg_class c\n    JOIN pg_namespace n ON n.oid = c.relnamespace\n  WHERE\n    c.relkind IN ('r', 'm')\n    AND n.nspname NOT SIMILAR TO '(pg_catalog|information_schema|_timescaledb_c%)'\n    AND c.relname NOT SIMILAR TO '(%compress%|bgw%)'\n),\n\nbloat_estimates AS (\nSELECT schemaname, tblname, bs*tblpages AS real_size,\n  (tblpages-est_tblpages)*bs AS extra_size,\n  CASE WHEN tblpages > 0 AND tblpages - est_tblpages > 0\n    THEN 100 * (tblpages - est_tblpages)/tblpages::float\n    ELSE 0\n  END AS extra_pct,\n  CASE WHEN tblpages - est_tblpages_ff > 0\n    THEN (tblpages-est_tblpages_ff)*bs\n    ELSE 0\n  END AS bloat_size,\n  CASE WHEN tblpages > 0 AND tblpages - est_tblpages_ff > 0\n    THEN 100 * (tblpages - est_tblpages_ff)/tblpages::float\n    ELSE 0\n  END AS bloat_pct\n  -- , is_na, tpl_hdr_size, tpl_data_size, (pst).free_percent + (pst).dead_tuple_percent AS real_frag -- (DEBUG INFO)\nFROM (\n  SELECT ceil( reltuples / ( (bs-page_hdr)/tpl_size ) ) + ceil( toasttuples / 4 ) AS est_tblpages,\n    ceil( reltuples / ( (bs-page_hdr)*fillfactor/(tpl_size*100) ) ) + ceil( toasttuples / 4 ) AS est_tblpages_ff,\n    tblpages, fillfactor, bs, tblid, schemaname, tblname, heappages, toastpages, is_na\n    -- , tpl_hdr_size, tpl_data_size, pgstattuple(tblid) AS pst -- (DEBUG INFO)\n  FROM (\n    SELECT\n      ( 4 + tpl_hdr_size + tpl_data_size + (2*ma)\n        - CASE WHEN tpl_hdr_size%ma = 0 THEN ma ELSE tpl_hdr_size%ma END\n        - CASE WHEN ceil(tpl_data_size)::int%ma = 0 THEN ma ELSE ceil(tpl_data_size)::int%ma END\n      ) AS tpl_size, bs - page_hdr AS size_per_block, (heappages + toastpages) AS tblpages, heappages,\n      toastpages, reltuples, toasttuples, bs, page_hdr, tblid, schemaname, tblname, fillfactor, is_na\n      -- , tpl_hdr_size, tpl_data_size\n    FROM (\n      SELECT\n        tbl.oid AS tblid, ns.nspname AS schemaname, tbl.relname AS tblname, tbl.reltuples,\n        tbl.relpages AS heappages, coalesce(toast.relpages, 0) AS toastpages,\n        coalesce(toast.reltuples, 0) AS toasttuples,\n        coalesce(substring(\n          array_to_string(tbl.reloptions, ' ')\n          FROM 'fillfactor=([0-9]+)')::smallint, 100) AS fillfactor,\n        current_setting('block_size')::numeric AS bs,\n        CASE WHEN version()~'mingw32' OR version()~'64-bit|x86_64|ppc64|ia64|amd64' THEN 8 ELSE 4 END AS ma,\n        24 AS page_hdr,\n        23 + CASE WHEN MAX(coalesce(s.null_frac,0)) > 0 THEN ( 7 + count(s.attname) ) / 8 ELSE 0::int END\n           + CASE WHEN bool_or(att.attname = 'oid' and att.attnum < 0) THEN 4 ELSE 0 END AS tpl_hdr_size,\n        sum( (1-coalesce(s.null_frac, 0)) * coalesce(s.avg_width, 0) ) AS tpl_data_size,\n        bool_or(att.atttypid = 'pg_catalog.name'::regtype)\n          OR sum(CASE WHEN att.attnum > 0 THEN 1 ELSE 0 END) <> count(s.attname) AS is_na\n      FROM pg_attribute AS att\n        JOIN pg_class AS tbl ON att.attrelid = tbl.oid\n        JOIN pg_namespace AS ns ON ns.oid = tbl.relnamespace\n        LEFT JOIN pg_stats AS s ON s.schemaname=ns.nspname\n          AND s.tablename = tbl.relname AND s.inherited=false AND s.attname=att.attname\n        LEFT JOIN pg_class AS toast ON tbl.reltoastrelid = toast.oid\n      WHERE NOT att.attisdropped\n        AND tbl.relkind in ('r','m')\n        AND ns.nspname NOT SIMILAR TO '(pg_catalog|information_schema|_timescaledb_c%)' \n        AND tbl.relname NOT SIMILAR TO '(%compress%|bgw%)'\n      AND NOT EXISTS (\n        SELECT 1\n        FROM timescaledb_information.chunks ch\n        WHERE ch.chunk_schema = ns.nspname\n          AND ch.chunk_name = tbl.relname\n          AND ch.is_compressed = true\n      )\n      GROUP BY 1,2,3,4,5,6,7,8,9,10\n      ORDER BY 2,3\n    ) AS s\n  ) AS s2\n) AS s3\nWHERE bs*tblpages > 0\n-- WHERE NOT is_na\n--   AND tblpages*((pst).free_percent + (pst).dead_tuple_percent)::float4/100 >= 1\nORDER BY schemaname, tblname\n),\n\ncagg_map AS (\n  SELECT\n    materialization_hypertable_schema,\n    materialization_hypertable_name,\n    view_schema,\n    view_name\n  FROM timescaledb_information.continuous_aggregates\n)\n\nSELECT\n  COALESCE(\n    cagg.view_schema,\n    ch.hypertable_schema,\n    b.schemaname\n  ) AS \"Schema\",\n\n  COALESCE(\n    cagg.view_name,\n    ch.hypertable_name,\n    b.tblname\n  ) AS \"Table\",\n\n  CASE\n    WHEN ch.chunk_name IS NOT NULL THEN b.tblname\n    ELSE '-'\n  END AS \"Chunk\",\n\n  b.bloat_size AS \"Est. bloat\",\n  b.bloat_pct AS \"Est. bloat %\",\n  opt.vacuum_scale_factor AS \"Scale factor\",\n  opt.vacuum_threshold AS \"Threshold\",\n  st.last_autovacuum AS \"Last vacuum\"\n\nFROM bloat_estimates b\n\nJOIN table_options opt\n  ON opt.schemaname = b.schemaname\n AND opt.tblname = b.tblname\n\nLEFT JOIN pg_stat_user_tables st\n  ON st.schemaname = b.schemaname\n AND st.relname = b.tblname\n\nLEFT JOIN timescaledb_information.chunks ch\n  ON ch.chunk_schema = b.schemaname\n AND ch.chunk_name = b.tblname\n\nLEFT JOIN cagg_map cagg\n  ON cagg.materialization_hypertable_schema = ch.hypertable_schema\n AND cagg.materialization_hypertable_name = ch.hypertable_name\n\nWHERE b.bloat_size > 0\n\nORDER BY b.bloat_pct DESC",
+                        "rawSql": "SELECT\n    COUNT(*) FILTER (WHERE active) AS active_slots,\n    COUNT(*) FILTER (WHERE NOT active) AS inactive_slots\nFROM pg_replication_slots",
                         "sql": {
                           "columns": [
                             {
@@ -1251,155 +1142,26 @@
           },
           "vizConfig": {
             "kind": "VizConfig",
-            "group": "table",
-            "version": "13.1.0-25893932881",
-            "spec": {
-              "options": {
-                "cellHeight": "sm",
-                "enablePagination": true,
-                "showHeader": true,
-                "sortBy": [
-                  {
-                    "desc": true,
-                    "displayName": "Est. bloat"
-                  }
-                ]
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "thresholds"
-                  },
-                  "custom": {
-                    "align": "center",
-                    "cellOptions": {
-                      "type": "auto"
-                    },
-                    "footer": {
-                      "reducers": []
-                    },
-                    "inspect": false
-                  }
-                },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Est. bloat"
-                    },
-                    "properties": [
-                      {
-                        "id": "unit",
-                        "value": "decbytes"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Est. bloat %"
-                    },
-                    "properties": [
-                      {
-                        "id": "unit",
-                        "value": "percent"
-                      }
-                    ]
-                  }
-                ]
-              }
-            }
-          }
-        }
-      },
-      "panel-8": {
-        "kind": "Panel",
-        "spec": {
-          "id": 8,
-          "title": "Next anti-wraparound vacuum",
-          "description": "Minimum time until any table reaches its anti-wraparound VACUUM threshold - this is a function of the rate of transaction ID consumption and the autovacuum_freeze_max_age setting. Higher values are better.",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${source}"
-                      },
-                      "spec": {
-                        "dataset": "sem",
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "WITH current_stats AS (\n  SELECT\n    collected_at,\n    xact_commit + xact_rollback AS total_transactions,\n    LAG(xact_commit + xact_rollback, 144) OVER (\n      ORDER BY\n        collected_at\n    ) AS transactions_24h_ago,\n    LAG(collected_at, 144) OVER (\n      ORDER BY\n        collected_at\n    ) AS collected_at_24h_ago\n  FROM\n    pganalyze.database_stats\n),\nparams AS (\n  SELECT\n    (\n      total_transactions - transactions_24h_ago\n    ) :: numeric / NULLIF(\n      EXTRACT(\n        EPOCH\n        FROM\n          (\n            collected_at - collected_at_24h_ago\n          )\n      ),\n      0\n    ) AS tx_per_sec,\n    current_setting('autovacuum_freeze_max_age') :: bigint AS freeze_max_age,\n    current_setting('autovacuum_multixact_freeze_max_age') :: bigint AS multixact_freeze_max_age\n  FROM\n    current_stats\n  WHERE\n    collected_at = (\n      SELECT\n        MAX(collected_at)\n      FROM\n        pganalyze.database_stats\n    )\n    AND transactions_24h_ago IS NOT NULL\n),\ntables AS (\n  SELECT\n    c.oid :: regclass :: text AS table_name,\n    LEAST(\n      p.freeze_max_age - age(c.relfrozenxid),\n      p.multixact_freeze_max_age - mxid_age(c.relminmxid)\n    ) AS tx_before_wraparound_vacuum\n  FROM\n    pg_class c\n    CROSS JOIN params p\n  WHERE\n    c.relfrozenxid != 0\n    AND c.oid > 16384\n),\nminimum AS (\n  SELECT\n    MIN(tx_before_wraparound_vacuum) AS min_tx_before_wraparound\n  FROM\n    tables\n)\nSELECT\n  min_tx_before_wraparound / NULLIF(p.tx_per_sec, 0) / 3600.0 AS min_hours_until_anti_wraparound_vacuum\nFROM\n  minimum\n  CROSS JOIN params p;",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "B",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
             "group": "stat",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "colorMode": "value",
-                "graphMode": "none",
+                "graphMode": "area",
                 "justifyMode": "auto",
                 "orientation": "auto",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
                   "calcs": [],
                   "fields": "",
-                  "values": true
+                  "values": false
                 },
                 "showPercentChange": false,
-                "textMode": "value",
-                "wideLayout": false
+                "textMode": "auto",
+                "wideLayout": true
               },
               "fieldConfig": {
                 "defaults": {
-                  "unit": "h",
-                  "decimals": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -1419,12 +1181,12 @@
           }
         }
       },
-      "panel-9": {
+      "panel-49": {
         "kind": "Panel",
         "spec": {
-          "id": 9,
-          "title": "Transaction ID Allocation",
-          "description": "The rate of transaction IDs that are allocated per minute, as averaged over the last 24 hours. Higher allocation rates generally mean more freezing will be required.",
+          "id": 49,
+          "title": "Current Instance role",
+          "description": "",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1437,14 +1199,19 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${datasource}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
                       "datasource": {
-                        "name": "${source}"
+                        "name": "${datasource}"
                       },
                       "spec": {
+                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH samples AS (\n    SELECT\n        collected_at,\n        xact_commit + xact_rollback AS total_transactions,\n        LAG(xact_commit + xact_rollback, 144) OVER (\n            ORDER BY collected_at\n        ) AS transactions_24h_ago,\n        LAG(collected_at, 144) OVER (\n            ORDER BY collected_at\n        ) AS collected_at_24h_ago\n    FROM pganalyze.database_stats\n)\nSELECT\n    collected_at AS time,\n    ROUND(\n        (\n            total_transactions - transactions_24h_ago\n        )::numeric\n        /\n        NULLIF(\n            EXTRACT(\n                EPOCH FROM (collected_at - collected_at_24h_ago)\n            ) / 60.0,\n            0\n        ),\n        2\n    ) AS txn_per_minute_24h_avg\nFROM samples\nWHERE transactions_24h_ago IS NOT NULL\nORDER BY collected_at",
+                        "rawSql": "SELECT\n  CASE\n    WHEN pg_is_in_recovery() THEN 'STANDBY'\n    ELSE 'PRIMARY'\n  END AS server_role",
                         "sql": {
                           "columns": [
                             {
@@ -1476,29 +1243,25 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "colorMode": "value",
-                "graphMode": "none",
+                "graphMode": "area",
                 "justifyMode": "auto",
                 "orientation": "auto",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
-                  "calcs": [
-                    "mean"
-                  ],
-                  "fields": "",
+                  "calcs": [],
+                  "fields": "/^server_role$/",
                   "values": false
                 },
                 "showPercentChange": false,
                 "textMode": "value",
-                "wideLayout": false
+                "wideLayout": true
               },
               "fieldConfig": {
                 "defaults": {
-                  "unit": "per minute",
-                  "decimals": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -1510,6 +1273,506 @@
                   },
                   "color": {
                     "mode": "thresholds"
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-50": {
+        "kind": "Panel",
+        "spec": {
+          "id": 50,
+          "title": "Max lag across replicas",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${datasource}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
+                      "datasource": {
+                        "name": "${datasource}"
+                      },
+                      "spec": {
+                        "dataset": "tem",
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    COALESCE(MAX(pg_wal_lsn_diff(\n        pg_current_wal_lsn(), flush_lsn\n    )), 0) AS flush_lag,\n\n    COALESCE(MAX(pg_wal_lsn_diff(\n        pg_current_wal_lsn(), write_lsn\n    )), 0) AS write_lag,\n\n    COALESCE(MAX(pg_wal_lsn_diff(\n        pg_current_wal_lsn(), replay_lsn\n    )), 0) AS replay_lag\nFROM pg_stat_replication",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.3",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "value_and_name",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "decbytes",
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-51": {
+        "kind": "Panel",
+        "spec": {
+          "id": 51,
+          "title": "Replication slots",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${datasource}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
+                      "datasource": {
+                        "name": "${datasource}"
+                      },
+                      "spec": {
+                        "dataset": "tem",
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    COUNT(*) FILTER (WHERE active) AS active_slots,\n    COUNT(*) FILTER (WHERE NOT active) AS inactive_slots\nFROM pg_replication_slots",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.3",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-52": {
+        "kind": "Panel",
+        "spec": {
+          "id": 52,
+          "title": "Checkpointer durations",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${datasource}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
+                      "datasource": {
+                        "name": "${datasource}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    bucket AS time,\n    delta(write_summary) AS \"Write time\",\n    delta(sync_summary) AS \"Sync time\",\n    delta(buffers_summary) * 8 * 1024 AS \"Buffers written\"\nFROM (\n    SELECT\n        time_bucket('$agg_interval'::interval, collected_at) AS bucket,\n        counter_agg(collected_at, chk_write_time) AS write_summary,\n        counter_agg(collected_at, chk_sync_time) AS sync_summary,\n        counter_agg(collected_at, chk_buffers_written) AS buffers_summary\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(collected_at)\n    GROUP BY 1\n) t\nORDER BY 1",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {
+                "interval": "10m"
+              }
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.2.3",
+            "spec": {
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "mean"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "ms",
+                  "decimals": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "palette-classic",
+                    "fixedColor": "semi-dark-green"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisGridShow": true,
+                    "axisLabel": "",
+                    "axisPlacement": "left",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "bars",
+                    "fillOpacity": 20,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "stepBefore",
+                    "lineStyle": {
+                      "fill": "solid"
+                    },
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "showValues": false,
+                    "spanNulls": true,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "line"
+                    }
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Buffers written"
+                    },
+                    "properties": [
+                      {
+                        "id": "unit",
+                        "value": "decbytes"
+                      },
+                      {
+                        "id": "custom.axisPlacement",
+                        "value": "auto"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "panel-53": {
+        "kind": "Panel",
+        "spec": {
+          "id": 53,
+          "title": "Checkpoints",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "labels": {
+                        "grafana.app/export-datasource-name": "${datasource}",
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
+                      },
+                      "datasource": {
+                        "name": "${datasource}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  bucket AS time,\n  delta(summary_req) AS \"Requested\",\n  delta(summary_timed) AS \"Timed\"\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, collected_at) AS bucket,\n      counter_agg(collected_at, chk_requested) AS summary_req,\n      counter_agg(collected_at, chk_timed) AS summary_timed\n    FROM\n      pganalyze.database_stats\n    WHERE\n      $__timeFilter(collected_at)\n    GROUP BY\n      bucket\n  ) t\nORDER BY\n  time",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {
+                "interval": "10m"
+              }
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.2.3",
+            "spec": {
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "palette-classic",
+                    "fixedColor": "semi-dark-green"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisGridShow": true,
+                    "axisLabel": "",
+                    "axisPlacement": "left",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "bars",
+                    "fillOpacity": 20,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "stepBefore",
+                    "lineStyle": {
+                      "fill": "solid"
+                    },
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "showValues": false,
+                    "spanNulls": true,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "line"
+                    }
                   }
                 },
                 "overrides": []
@@ -1526,7 +1789,7 @@
           {
             "kind": "RowsLayoutRow",
             "spec": {
-              "title": "Overview",
+              "title": "WAL parameters",
               "collapse": false,
               "layout": {
                 "kind": "GridLayout",
@@ -1537,90 +1800,50 @@
                       "spec": {
                         "x": 0,
                         "y": 0,
-                        "width": 5,
-                        "height": 12,
+                        "width": 24,
+                        "height": 10,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-6"
+                          "name": "panel-31"
                         }
                       }
                     },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 5,
-                        "y": 0,
-                        "width": 5,
-                        "height": 4,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-1"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 10,
-                        "y": 0,
-                        "width": 14,
-                        "height": 12,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-11"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 5,
-                        "y": 4,
-                        "width": 5,
-                        "height": 4,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-8"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 5,
-                        "y": 8,
-                        "width": 5,
-                        "height": 4,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-17"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          {
-            "kind": "RowsLayoutRow",
-            "spec": {
-              "title": "Bloat",
-              "collapse": false,
-              "layout": {
-                "kind": "GridLayout",
-                "spec": {
-                  "items": [
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
                         "x": 0,
-                        "y": 0,
+                        "y": 10,
+                        "width": 12,
+                        "height": 7,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-41"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 12,
+                        "y": 10,
+                        "width": 12,
+                        "height": 7,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-43"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 17,
                         "width": 3,
-                        "height": 4,
+                        "height": 7,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-4"
+                          "name": "panel-45"
                         }
                       }
                     },
@@ -1628,25 +1851,25 @@
                       "kind": "GridLayoutItem",
                       "spec": {
                         "x": 3,
-                        "y": 0,
-                        "width": 3,
-                        "height": 4,
+                        "y": 17,
+                        "width": 9,
+                        "height": 7,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-5"
+                          "name": "panel-42"
                         }
                       }
                     },
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 6,
-                        "y": 0,
-                        "width": 4,
-                        "height": 4,
+                        "x": 12,
+                        "y": 17,
+                        "width": 12,
+                        "height": 7,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-12"
+                          "name": "panel-44"
                         }
                       }
                     },
@@ -1654,12 +1877,38 @@
                       "kind": "GridLayoutItem",
                       "spec": {
                         "x": 0,
-                        "y": 4,
-                        "width": 24,
-                        "height": 8,
+                        "y": 24,
+                        "width": 12,
+                        "height": 16,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-7"
+                          "name": "panel-46"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 12,
+                        "y": 24,
+                        "width": 12,
+                        "height": 7,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-53"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 12,
+                        "y": 31,
+                        "width": 12,
+                        "height": 9,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-52"
                         }
                       }
                     }
@@ -1671,7 +1920,7 @@
           {
             "kind": "RowsLayoutRow",
             "spec": {
-              "title": "Freezing",
+              "title": "Replication",
               "collapse": false,
               "layout": {
                 "kind": "GridLayout",
@@ -1682,24 +1931,24 @@
                       "spec": {
                         "x": 0,
                         "y": 0,
-                        "width": 4,
-                        "height": 3,
+                        "width": 5,
+                        "height": 5,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-9"
+                          "name": "panel-48"
                         }
                       }
                     },
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 4,
+                        "x": 5,
                         "y": 0,
-                        "width": 9,
-                        "height": 6,
+                        "width": 8,
+                        "height": 5,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-14"
+                          "name": "panel-47"
                         }
                       }
                     },
@@ -1708,11 +1957,11 @@
                       "spec": {
                         "x": 13,
                         "y": 0,
-                        "width": 10,
-                        "height": 6,
+                        "width": 3,
+                        "height": 5,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-15"
+                          "name": "panel-49"
                         }
                       }
                     },
@@ -1720,12 +1969,25 @@
                       "kind": "GridLayoutItem",
                       "spec": {
                         "x": 0,
-                        "y": 3,
-                        "width": 4,
-                        "height": 3,
+                        "y": 5,
+                        "width": 5,
+                        "height": 5,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-10"
+                          "name": "panel-51"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 5,
+                        "y": 5,
+                        "width": 8,
+                        "height": 5,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-50"
                         }
                       }
                     }
@@ -1747,7 +2009,7 @@
         "tags": [
           "perf"
         ],
-        "asDropdown": false,
+        "asDropdown": true,
         "targetBlank": false,
         "includeVars": true,
         "keepTime": true
@@ -1763,23 +2025,16 @@
       "from": "now-7d",
       "to": "now",
       "autoRefresh": "",
-      "autoRefreshIntervals": [
-        "5m",
-        "15m",
-        "30m",
-        "1h",
-        "2h",
-        "1d"
-      ],
+      "autoRefreshIntervals": [],
       "hideTimepicker": false,
       "fiscalYearStartMonth": 0
     },
-    "title": "VACUUM analysis",
+    "title": "10. WAL, checkpoints and replication",
     "variables": [
       {
         "kind": "DatasourceVariable",
         "spec": {
-          "name": "source",
+          "name": "datasource",
           "pluginId": "grafana-postgresql-datasource",
           "refresh": "onDashboardLoad",
           "regex": "",
@@ -1794,6 +2049,75 @@
           "hide": "dontHide",
           "skipUrlSync": false,
           "allowCustomValue": false
+        }
+      },
+      {
+        "kind": "IntervalVariable",
+        "spec": {
+          "name": "agg_interval",
+          "query": "1m,10m,30m,1h,6h,12h,1d,7d,14d,30d",
+          "current": {
+            "text": "1m",
+            "value": "1m"
+          },
+          "options": [
+            {
+              "selected": true,
+              "text": "1m",
+              "value": "1m"
+            },
+            {
+              "selected": false,
+              "text": "10m",
+              "value": "10m"
+            },
+            {
+              "selected": false,
+              "text": "30m",
+              "value": "30m"
+            },
+            {
+              "selected": false,
+              "text": "1h",
+              "value": "1h"
+            },
+            {
+              "selected": false,
+              "text": "6h",
+              "value": "6h"
+            },
+            {
+              "selected": false,
+              "text": "12h",
+              "value": "12h"
+            },
+            {
+              "selected": false,
+              "text": "1d",
+              "value": "1d"
+            },
+            {
+              "selected": false,
+              "text": "7d",
+              "value": "7d"
+            },
+            {
+              "selected": false,
+              "text": "14d",
+              "value": "14d"
+            },
+            {
+              "selected": false,
+              "text": "30d",
+              "value": "30d"
+            }
+          ],
+          "auto": true,
+          "auto_min": "10s",
+          "auto_count": 30,
+          "refresh": "onTimeRangeChanged",
+          "hide": "dontHide",
+          "skipUrlSync": false
         }
       }
     ]
