@@ -45,8 +45,6 @@ jobs:
             org.opencontainers.image.authors=Grigory Sharov <gsharov@mrclmb.ac.uk>
             org.opencontainers.image.licenses=GPL-3.0-or-later
             org.opencontainers.image.source=https://github.com/azazellochg/em_health
-        env:
-          DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
