@@ -17,7 +17,8 @@ Version 0.1a11
 * disconnect all roles during migration
 * remove unused project deps
 * log DDL statements in PG
-
+* new mviews in pganalyze schema
+* new dashboards for health checks, IO, host and WAL metrics
 
 Version 0.1a10
 ^^^^^^^^^^^^^^

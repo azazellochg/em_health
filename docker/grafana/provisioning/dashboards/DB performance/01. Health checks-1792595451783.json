@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "ee46bdfb-c046-42b1-b547-23990e2ec0f3",
-    "generation": 2,
-    "creationTimestamp": "2026-10-21T11:18:00Z",
+    "generation": 19,
+    "creationTimestamp": "2026-10-21T11:21:41Z",
     "labels": {},
     "annotations": {}
   },
@@ -86,10 +86,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
@@ -198,10 +194,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
@@ -304,10 +296,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
@@ -401,10 +389,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
@@ -536,16 +520,12 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  extract(epoch from MAX(finished_at - started_at)) AS \"Max duration\"\nFROM\n  pganalyze.vacuum_stats",
+                        "rawSql": "SELECT\n  extract(epoch from MAX(finished_at - started_at)) AS \"Max duration\"\nFROM\n  pganalyze.vacuum_stats\nWHERE $__timeFilter(finished_at)",
                         "sql": {
                           "columns": [
                             {
@@ -642,16 +622,12 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  COUNT(*) FILTER (WHERE wraparound) AS \"Anti-wraparound\"\nFROM pganalyze.vacuum_stats",
+                        "rawSql": "SELECT\n  COUNT(*) FILTER (WHERE wraparound) AS \"Anti-wraparound\"\nFROM pganalyze.vacuum_stats\nWHERE $__timeFilter(finished_at)",
                         "sql": {
                           "columns": [
                             {
@@ -743,10 +719,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
@@ -841,10 +813,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
@@ -977,10 +945,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
@@ -1083,10 +1047,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
@@ -1175,7 +1135,7 @@
         "kind": "Panel",
         "spec": {
           "id": 52,
-          "title": "WAL generated (last 24h)",
+          "title": "WAL generated",
           "description": "",
           "links": [],
           "data": {
@@ -1189,16 +1149,12 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  pg_wal_lsn_diff(\n    last(wal_lsn, collected_at),\n    first(wal_lsn, collected_at)\n  ) AS wal_generated_bytes\nFROM\n  pganalyze.database_stats\nWHERE\n  collected_at >= NOW() - INTERVAL '24 hours'",
+                        "rawSql": "SELECT\n  pg_wal_lsn_diff(\n    last(wal_lsn, collected_at),\n    first(wal_lsn, collected_at)\n  ) AS wal_generated_bytes\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
                         "sql": {
                           "columns": [
                             {
@@ -1325,10 +1281,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
@@ -1430,10 +1382,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
@@ -1535,10 +1483,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
@@ -1626,7 +1570,7 @@
         "kind": "Panel",
         "spec": {
           "id": 57,
-          "title": "Requested checkpoints (last 24h)",
+          "title": "Requested checkpoints",
           "description": "",
           "links": [],
           "data": {
@@ -1640,16 +1584,12 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  last(chk_requested, collected_at) - first(chk_requested, collected_at) AS requested_checkpoints_24h\nFROM\n  pganalyze.database_stats\nWHERE\n  collected_at >= NOW() - INTERVAL '24 hours'",
+                        "rawSql": "SELECT\n  last(chk_requested, collected_at) - first(chk_requested, collected_at) AS requested_checkpoints_24h\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
                         "sql": {
                           "columns": [
                             {
@@ -1769,7 +1709,7 @@
         "kind": "Panel",
         "spec": {
           "id": 59,
-          "title": "Rows inserted /min",
+          "title": "Rows inserted / min",
           "description": "",
           "links": [],
           "data": {
@@ -1783,16 +1723,12 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  irate_right(counter_agg(collected_at, tup_inserted)) * 60 AS inserted_per_min\nFROM\n  pganalyze.database_stats",
+                        "rawSql": "SELECT\n  irate_right(counter_agg(collected_at, tup_inserted)) * 60 AS inserted_per_min\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
                         "sql": {
                           "columns": [
                             {
@@ -1888,10 +1824,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
@@ -1986,10 +1918,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
@@ -2122,10 +2050,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
@@ -2220,16 +2144,12 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  irate_right(counter_agg(collected_at, tup_updated)) * 60 AS updated_per_min\nFROM\n  pganalyze.database_stats",
+                        "rawSql": "SELECT\n  irate_right(counter_agg(collected_at, tup_updated)) * 60 AS updated_per_min\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
                         "sql": {
                           "columns": [
                             {
@@ -2326,16 +2246,12 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  irate_right(counter_agg(collected_at, tup_deleted)) * 60 AS deleted_per_min\nFROM\n  pganalyze.database_stats",
+                        "rawSql": "SELECT\n  irate_right(counter_agg(collected_at, tup_deleted)) * 60 AS deleted_per_min\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
                         "sql": {
                           "columns": [
                             {
@@ -2418,7 +2334,7 @@
         "kind": "Panel",
         "spec": {
           "id": 66,
-          "title": "WAL write rate (last 24h)",
+          "title": "WAL write rate",
           "description": "Average write-ahead log bytes written per second.",
           "links": [],
           "data": {
@@ -2432,16 +2348,12 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  (\n    pg_wal_lsn_diff(\n      last(wal_lsn, collected_at),\n      first(wal_lsn, collected_at)\n    )\n    /\n    EXTRACT(\n      EPOCH FROM (\n        last(collected_at, collected_at)\n        - first(collected_at, collected_at)\n      )\n    )\n  ) AS wal_bytes_per_second\nFROM pganalyze.database_stats\nWHERE collected_at >= NOW() - INTERVAL '24 hours'",
+                        "rawSql": "SELECT\n  (\n    pg_wal_lsn_diff(\n      last(wal_lsn, collected_at),\n      first(wal_lsn, collected_at)\n    )\n    /\n    EXTRACT(\n      EPOCH FROM (\n        last(collected_at, collected_at)\n        - first(collected_at, collected_at)\n      )\n    )\n  ) AS wal_bytes_per_second\nFROM pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
                         "sql": {
                           "columns": [
                             {
@@ -2524,7 +2436,7 @@
         "kind": "Panel",
         "spec": {
           "id": 67,
-          "title": "Temp files write rate (last 24h)",
+          "title": "Temp files write rate",
           "description": "Average temporary-file bytes written per second. High values mean queries exceed work_mem.",
           "links": [],
           "data": {
@@ -2538,16 +2450,12 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  (\n    last(temp_bytes, collected_at)\n    - first(temp_bytes, collected_at)\n  )::double precision\n  /\n  EXTRACT(\n    EPOCH FROM (\n      last(collected_at, collected_at)\n      - first(collected_at, collected_at)\n    )\n  ) AS temp_bytes_per_second\nFROM pganalyze.database_stats\nWHERE collected_at >= NOW() - INTERVAL '24 hours'",
+                        "rawSql": "SELECT\n  (\n    last(temp_bytes, collected_at)\n    - first(temp_bytes, collected_at)\n  )::double precision\n  /\n  EXTRACT(\n    EPOCH FROM (\n      last(collected_at, collected_at)\n      - first(collected_at, collected_at)\n    )\n  ) AS temp_bytes_per_second\nFROM pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
                         "sql": {
                           "columns": [
                             {
@@ -2682,16 +2590,12 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  irate_right(counter_agg(collected_at, xact_commit + xact_rollback)) * 60 AS tx_per_min\nFROM\n  pganalyze.database_stats",
+                        "rawSql": "SELECT\n  irate_right(counter_agg(collected_at, xact_commit + xact_rollback)) * 60 AS tx_per_min\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
                         "sql": {
                           "columns": [
                             {
@@ -2787,16 +2691,12 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  100.0 *\n  irate_right(counter_agg(collected_at, xact_rollback))\n  /\n  NULLIF(\n    irate_right(\n      counter_agg(collected_at, xact_commit + xact_rollback)\n    ),\n    0\n  ) AS rollback_pct\nFROM pganalyze.database_stats;",
+                        "rawSql": "SELECT\n  100.0 *\n  irate_right(counter_agg(collected_at, xact_rollback))\n  /\n  NULLIF(\n    irate_right(\n      counter_agg(collected_at, xact_commit + xact_rollback)\n    ),\n    0\n  ) AS rollback_pct\nFROM pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
                         "sql": {
                           "columns": [
                             {
@@ -2893,10 +2793,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
@@ -3036,16 +2932,12 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  SUM(qps) AS qps\nFROM (\n  SELECT\n    irate_right(counter_agg(time, calls)) AS qps\n  FROM pganalyze.stat_statements\n  WHERE time >= now() - interval '24 hours'\n  GROUP BY queryid, userid\n) s",
+                        "rawSql": "SELECT\n  SUM(qps) AS qps\nFROM (\n  SELECT\n    irate_right(counter_agg(time, calls)) AS qps\n  FROM pganalyze.stat_statements\n  WHERE $__timeFilter(time)\n  GROUP BY queryid, userid\n) s",
                         "sql": {
                           "columns": [
                             {
@@ -3141,16 +3033,12 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH per_query AS (\n    SELECT\n        queryid,\n        userid,\n        delta(counter_agg(time, total_exec_time)) AS exec_time_delta,\n        delta(counter_agg(time, calls::double precision)) AS calls_delta\n    FROM pganalyze.stat_statements\n    WHERE time >= NOW() - INTERVAL '24 hours'\n    GROUP BY queryid, userid\n)\nSELECT\n    SUM(exec_time_delta)\n        / NULLIF(SUM(calls_delta), 0) AS avg_query_time_ms\nFROM per_query\nWHERE exec_time_delta >= 0\n  AND calls_delta >= 0",
+                        "rawSql": "WITH per_query AS (\n    SELECT\n        queryid,\n        userid,\n        delta(counter_agg(time, total_exec_time)) AS exec_time_delta,\n        delta(counter_agg(time, calls::double precision)) AS calls_delta\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(time)\n    GROUP BY queryid, userid\n)\nSELECT\n    SUM(exec_time_delta)\n        / NULLIF(SUM(calls_delta), 0) AS avg_query_time_ms\nFROM per_query\nWHERE exec_time_delta >= 0\n  AND calls_delta >= 0",
                         "sql": {
                           "columns": [
                             {
@@ -3285,10 +3173,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
@@ -3390,16 +3274,12 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH stats AS (\n    SELECT\n        delta(counter_agg(collected_at, blks_hit::double precision))\n            AS hits_delta,\n        delta(counter_agg(collected_at, blks_read::double precision))\n            AS reads_delta\n    FROM pganalyze.database_stats\n    WHERE collected_at >= NOW() - INTERVAL '24 hours'\n)\nSELECT\n    ROUND(\n        (100.0 * hits_delta /\n         NULLIF(hits_delta + reads_delta, 0))::numeric,\n        2\n    ) AS avg_buffer_cache_hit_rate_pct\nFROM stats",
+                        "rawSql": "WITH stats AS (\n    SELECT\n        delta(counter_agg(collected_at, blks_hit::double precision))\n            AS hits_delta,\n        delta(counter_agg(collected_at, blks_read::double precision))\n            AS reads_delta\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(collected_at)\n)\nSELECT\n    ROUND(\n        (100.0 * hits_delta /\n         NULLIF(hits_delta + reads_delta, 0))::numeric,\n        2\n    ) AS avg_buffer_cache_hit_rate_pct\nFROM stats",
                         "sql": {
                           "columns": [
                             {
@@ -3534,10 +3414,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
@@ -3677,10 +3553,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
@@ -4375,26 +4247,30 @@
         "keepTime": true
       }
     ],
-    "liveNow": false,
+    "liveNow": true,
     "preload": false,
     "tags": [
       "perf"
     ],
     "timeSettings": {
       "timezone": "Europe/London",
-      "from": "now-7d",
+      "from": "now-24h",
       "to": "now",
       "autoRefresh": "",
       "autoRefreshIntervals": [
         "10m",
         "30m",
         "1h",
-        "2h",
+        "3h",
+        "6h",
         "12h",
-        "1d"
+        "24h",
+        "2d",
+        "7d"
       ],
-      "hideTimepicker": true,
-      "fiscalYearStartMonth": 0
+      "hideTimepicker": false,
+      "fiscalYearStartMonth": 0,
+      "nowDelay": "1m"
     },
     "title": "01. Health checks",
     "variables": [
@@ -4413,10 +4289,6 @@
             "kind": "DataQuery",
             "group": "yesoreyeram-infinity-datasource",
             "version": "v0",
-            "labels": {
-              "grafana.app/export-datasource-name": "json",
-              "grafana.app/export-label": "yesoreyeram-infinity-datasource-1"
-            },
             "spec": {
               "infinityQuery": {
                 "columns": [],
@@ -4465,10 +4337,6 @@
             "kind": "DataQuery",
             "group": "grafana-postgresql-datasource",
             "version": "v0",
-            "labels": {
-              "grafana.app/export-datasource-name": "tem",
-              "grafana.app/export-label": "grafana-postgresql-datasource-1"
-            },
             "spec": {
               "dataset": "tem",
               "editorMode": "code",
@@ -4521,10 +4389,6 @@
             "kind": "DataQuery",
             "group": "grafana-postgresql-datasource",
             "version": "v0",
-            "labels": {
-              "grafana.app/export-datasource-name": "tem",
-              "grafana.app/export-label": "grafana-postgresql-datasource-1"
-            },
             "spec": {
               "dataset": "tem",
               "editorMode": "code",
@@ -4577,10 +4441,6 @@
             "kind": "DataQuery",
             "group": "yesoreyeram-infinity-datasource",
             "version": "v0",
-            "labels": {
-              "grafana.app/export-datasource-name": "json",
-              "grafana.app/export-label": "yesoreyeram-infinity-datasource-1"
-            },
             "spec": {
               "infinityQuery": {
                 "columns": [],
