@@ -12,7 +12,7 @@ Version 0.1a11
 * change shm size for containers
 * add infinity datasource and plugin for Grafana
 * connection limits for all PG roles
-* add pgtune.sh script on top of timescaledb-tune
+* add pgtune.sh script replacing timescaledb-tune
 * create Systemd unit files for watchdog and host metrics collector
 * disconnect all roles during migration
 * remove unused project deps

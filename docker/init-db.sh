@@ -5,6 +5,7 @@ echo "Create or upgrade pgBackRest stanza..."
 pgbackrest --stanza=main stanza-upgrade || pgbackrest --stanza=main stanza-create
 pgbackrest --stanza=main check
 
+echo "Create databases and roles..."
 psql -v ON_ERROR_STOP=1 <<EOSQL
     CREATE DATABASE tem;
     CREATE DATABASE sem;
@@ -23,7 +24,5 @@ for db in tem sem; do
   --dbname="$db" -f /sql/init_db.sql
 done
 
-echo "Running timescaledb-tune..."
-timescaledb-tune -quiet -yes
-echo "Running pgtune..."
+echo "Running pgtune.sh..."
 /usr/local/bin/pgtune.sh -y

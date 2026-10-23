@@ -176,7 +176,7 @@ cmp_max_conns() {
 }
 
 cmp_shared_buffers() {
-    # Start with 25% RAM, then optimize queries before changing it. Timescale uncompressed chunks must fit into this
+    # Start with 25% RAM, then optimize queries before changing it. Timescale uncompressed chunk indexes must fit into this
     # Return MB
     echo $(( MEMORY_BYTES / 4 / 1024 / 1024 ))
 }
@@ -187,7 +187,7 @@ cmp_cache_size() {
 }
 
 cmp_work_mem() {
-    # 16Mb at least. 64-256Mb for analytical queries. If we ran out, temp files will be created. We can increase this on the fly for heavy queries - check temp files in plans.
+    # 16Mb at least. 64-256Mb for analytical queries. If we run out, temp files will be created. We can increase this on the fly for heavy queries - check temp files in plans.
     # (RAM - shared_buffers) / ((max_connections + max_worker_processes) * 3)
     # Return kB.
 
@@ -390,9 +390,6 @@ apply() {
     set_cfg_value "random_page_cost" "1.1"
     set_cfg_value "jit" "off"
     set_cfg_value "default_toast_compression" "lz4"
-
-    pg_ctl -D "$PGDATA" restart
-    echo "PostgreSQL restarted successfully."
 }
 
 # --------------------------------------------------------------------
