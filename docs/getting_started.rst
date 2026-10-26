@@ -141,6 +141,13 @@ Automated Import Setup
 
        sudo loginctl enable-linger <username>
 
+7. Verify the service status or check the logs:
+
+  .. code-block::
+
+      systemctl --user status emhealth-importer.service
+      journalctl --user -f -u emhealth-importer.service
+
 Post-Import Steps
 ^^^^^^^^^^^^^^^^^
 

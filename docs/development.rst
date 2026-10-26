@@ -22,6 +22,13 @@ There are a few limitations:
 * You should not rename dashboards or folders via GUI as this will conflict with provisioned files. Do it directly in the files if really needed.
 * Some provisioned resources (alerts, contact points, datasources) cannot be modified from the GUI. You can create new ones though.
 
+Reset Grafana password
+^^^^^^^^^^^^^^^^^^^^^^
+
+If you forgot admin password for Grafana, you can reset it with:
+
+  .. code-block:: podman exec -it emhealth-grafana grafana cli admin reset-admin-password new_password
+
 
 DB performance metrics
 ^^^^^^^^^^^^^^^^^^^^^^

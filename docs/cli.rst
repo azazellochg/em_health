@@ -215,7 +215,7 @@ Description
 ^^^^^^^^^^^
 
 The periodic database statistics collection is enabled by default. Below command can be used if you
-modify the pganalyze tables or functions and want to update the jobs. The output is used in dashboards under *DB performance* folder.
+modify the pganalyze tables or functions and want to update the jobs and views. The output is used in dashboards under *DB performance* folder.
 Optional `f` flag will erase existing database statistics.
 
 Syntax
@@ -223,7 +223,7 @@ Syntax
 
 .. code-block::
 
-    emhealth dev -d tem reset-stat [-f]
+    emhealth dev -d tem create-stats [-f]
 
 ----
 

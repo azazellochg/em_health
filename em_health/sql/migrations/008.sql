@@ -200,7 +200,7 @@ $sql$;
       -- 7. Update schema version
       SET ROLE postgres;
       UPDATE public.schema_info SET version = 8;
-      RAISE NOTICE 'Please run "emhealth dev -d tem reset-stat -f" and "emhealth dev -d sem reset-stat -f"';
+      RAISE NOTICE 'Please run "emhealth dev -d tem create-stats -f" and "emhealth dev -d sem create-stats -f"';
     END IF;
   END
 $$

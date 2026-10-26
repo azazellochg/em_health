@@ -94,7 +94,7 @@ def dev_cmd(args):
     if dbname not in ["tem", "sem"]:
         raise ValueError(f"Database '{dbname}' not recognized. 'tem' or 'sem' only")
 
-    if action == "reset-stat":
+    if action == "create-stats":
         from em_health.db_analyze import main as func
         func(dbname, action, getattr(args, "force", False))
 
@@ -190,7 +190,7 @@ def main():
                             help="Database name (default: tem)")
     dev_subparsers = dev_parser.add_subparsers(dest="action", required=True)
 
-    perf = dev_subparsers.add_parser("reset-stat", help="Reset DB performance statistics")
+    perf = dev_subparsers.add_parser("create-stats", help="Create DB performance statistics")
     perf.add_argument("-f", "--force", dest="force", action="store_true",
                       help="Erase existing pganalyze data and recreate tables")
 
