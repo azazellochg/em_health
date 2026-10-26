@@ -1026,6 +1026,13 @@ groups:
                 maxDataPoints: 43200
                 rawQuery: true
                 rawSql: |-
+                    WITH memory AS (
+                      SELECT value AS mem_total
+                      FROM pganalyze.sys_stats
+                      WHERE metric = 'node_memory_MemTotal_bytes'
+                      ORDER BY time DESC
+                      LIMIT 1
+                    )
                     SELECT
                       CASE
                         WHEN mem_total < 2147483648 :: bigint THEN (
@@ -1039,11 +1046,7 @@ groups:
                         ) :: int
                       END AS value
                     FROM
-                      pganalyze.sys_stats
-                    ORDER BY
-                      time DESC
-                    LIMIT
-                      1
+                      memory
                 refId: A
                 sql:
                     columns:
@@ -1135,24 +1138,27 @@ groups:
                 maxDataPoints: 43200
                 rawQuery: true
                 rawSql: |-
-                    SELECT
-                      (
-                        pg_size_bytes(current_setting('work_mem')) < GREATEST(
-                          1048576 :: bigint,
-                          LEAST(
-                            (
-                              mem_total :: numeric - pg_size_bytes(current_setting('shared_buffers'))
-                            ) / current_setting('max_connections') :: bigint,
-                            268435456 :: bigint
-                          )
+                  WITH memory AS (
+                    SELECT value AS memory_bytes
+                    FROM pganalyze.sys_stats
+                    WHERE metric = 'node_memory_MemTotal_bytes'
+                    ORDER BY time DESC
+                    LIMIT 1
+                  )
+                  SELECT
+                    (
+                      pg_size_bytes(current_setting('work_mem')) < GREATEST(
+                        1048576 :: bigint,
+                        LEAST(
+                          (
+                            memory_bytes - pg_size_bytes(current_setting('shared_buffers'))
+                          ) / current_setting('max_connections') :: bigint,
+                          268435456 :: bigint
                         )
-                      ) :: int AS value
-                    FROM
-                      pganalyze.sys_stats
-                    ORDER BY
-                      time DESC
-                    LIMIT
-                      1;
+                      )
+                    ) :: int AS value
+                  FROM
+                  memory;
                 refId: A
                 sql:
                     columns:
