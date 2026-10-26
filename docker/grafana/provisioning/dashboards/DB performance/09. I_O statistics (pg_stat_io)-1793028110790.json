@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "adh5lj8",
-    "generation": 2,
-    "creationTimestamp": "2026-10-15T14:40:56Z",
+    "generation": 10,
+    "creationTimestamp": "2026-10-23T13:57:11Z",
     "labels": {},
     "annotations": {}
   },
@@ -52,7 +52,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  irate_right(summary_read) AS read,\n  irate_right(summary_write) AS write\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, collected_at) AS bucket,\n      counter_agg(collected_at, read_bytes) AS summary_read,\n      counter_agg(collected_at, write_bytes) AS summary_write\n    FROM\n      pganalyze.io_stats\n    WHERE\n      $__timeFilter(collected_at) \n    GROUP BY\n      bucket\n  ) t\n  ORDER BY time\n  ",
+                        "rawSql": "WITH summary AS (\n  SELECT\n    collected_at AS time,\n    SUM(read_bytes) AS read_bytes,\n    SUM(write_bytes) AS write_bytes\n  FROM\n    pganalyze.io_stats\n  WHERE\n    $__timeFilter(collected_at)\n  GROUP BY\n    time\n),\nbucketed AS (\n  SELECT\n    time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n    counter_agg(time, read_bytes) AS summary_read,\n    counter_agg(time, write_bytes) AS summary_write\n  FROM\n    summary\n  GROUP BY\n    bucket\n)\nSELECT\n  bucket AS time,\n  irate_right(summary_read) AS read,\n  irate_right(summary_write) AS write\nFROM\n  bucketed\nORDER BY\n  time",
                         "sql": {
                           "columns": [
                             {
@@ -186,7 +186,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  irate_right(summary_read) AS read,\n  irate_right(summary_write) AS write,\n  irate_right(summary_fsync) AS fsync\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, collected_at) AS bucket,\n      counter_agg(collected_at, read_time) AS summary_read,\n      counter_agg(collected_at, write_time) AS summary_write,\n      counter_agg(collected_at, fsync_time) AS summary_fsync\n    FROM\n      pganalyze.io_stats\n    WHERE\n      $__timeFilter(collected_at) \n    GROUP BY\n      bucket\n  ) t\n  ORDER BY time\n  ",
+                        "rawSql": "WITH summary AS (\n  SELECT\n    collected_at AS time,\n    SUM(read_time) AS read_time,\n    SUM(write_time) AS write_time,\n    SUM(fsync_time) AS fsync_time\n  FROM\n    pganalyze.io_stats\n  WHERE\n    $__timeFilter(collected_at)\n  GROUP BY\n    time\n),\nbucketed AS (\n  SELECT\n    time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n    counter_agg(time, read_time) AS summary_read,\n    counter_agg(time, write_time) AS summary_write,\n    counter_agg(time, fsync_time) AS summary_fsync\n  FROM\n    summary\n  GROUP BY\n    bucket\n)\nSELECT\n  bucket AS time,\n  irate_right(summary_read) AS read,\n  irate_right(summary_write) AS write,\n  irate_right(summary_fsync) AS fsync\nFROM\n  bucketed\nORDER BY\n  time",
                         "sql": {
                           "columns": [
                             {
@@ -316,16 +316,12 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "tem",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "WITH per_bucket AS (\n  SELECT\n    time_bucket('$agg_interval', collected_at) AS time,\n    delta(counter_agg(collected_at, hits)) AS hits_delta,\n    delta(counter_agg(collected_at, reads)) AS reads_delta\n  FROM\n    pganalyze.io_stats\n  WHERE\n    $__timeFilter(collected_at)\n  GROUP BY\n    1\n)\nSELECT\n  time,\n  100.0 * hits_delta / NULLIF(hits_delta + reads_delta, 0) AS io_hit_percent\nFROM\n  per_bucket\nORDER BY\n  time;",
+                        "rawSql": "WITH summary AS (\n  SELECT\n    collected_at AS time,\n    SUM(hits) AS hits,\n    SUM(reads) AS reads\n  FROM\n    pganalyze.io_stats\n  WHERE\n    $__timeFilter(collected_at)\n  GROUP BY\n    time\n),\nbucketed AS (\n  SELECT\n    time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n    counter_agg(time, hits) AS summary_hit,\n    counter_agg(time, reads) AS summary_read\n  FROM\n    summary\n  GROUP BY\n    bucket\n),\ndeltas AS (\n  SELECT\n    bucket AS time,\n    delta(summary_hit) AS hits,\n    delta(summary_read) AS reads\n  FROM\n    bucketed\n)\nSELECT\n  time,\n  100.0 * hits / NULLIF(hits + reads, 0) AS io_hit_percent\nFROM\n  deltas\nORDER BY time",
                         "sql": {
                           "columns": [
                             {
@@ -439,7 +435,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  irate_right(summary_read) AS read,\n  irate_right(summary_write) AS write,\n  irate_right(summary_hits) AS hits\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, collected_at) AS bucket,\n      counter_agg(collected_at, reads) AS summary_read,\n      counter_agg(collected_at, writes) AS summary_write,\n      counter_agg(collected_at, hits) AS summary_hits\n    FROM\n      pganalyze.io_stats\n    WHERE\n      $__timeFilter(collected_at) \n    GROUP BY\n      bucket\n  ) t\n  ORDER BY time\n  ",
+                        "rawSql": "WITH summary AS (\n  SELECT\n    collected_at AS time,\n    SUM(reads) AS reads,\n    SUM(writes) AS writes,\n    SUM(hits) AS hits\n  FROM\n    pganalyze.io_stats\n  WHERE\n    $__timeFilter(collected_at)\n  GROUP BY\n    time\n),\nbucketed AS (\n  SELECT\n    time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n    counter_agg(time, reads) AS summary_read,\n    counter_agg(time, writes) AS summary_write,\n    counter_agg(time, hits) AS summary_hits\n  FROM\n    summary\n  GROUP BY\n    bucket\n)\nSELECT\n  bucket AS time,\n  irate_right(summary_read) AS read,\n  irate_right(summary_write) AS write,\n  irate_right(summary_hits) AS hits\nFROM\n  bucketed\nORDER BY\n  time",
                         "sql": {
                           "columns": [
                             {
@@ -863,7 +859,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  irate_right(summary) AS \"Writebacks\"\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, collected_at) AS bucket,\n      counter_agg(collected_at, writebacks) AS summary\n    FROM\n      pganalyze.io_stats\n    WHERE\n      $__timeFilter(collected_at) \n    GROUP BY\n      bucket\n  ) t\n  ORDER BY time\n  ",
+                        "rawSql": "WITH summary AS (\n  SELECT\n    collected_at AS time,\n    SUM(writebacks) AS writebacks\n  FROM\n    pganalyze.io_stats\n  WHERE\n    $__timeFilter(collected_at)\n  GROUP BY\n    time\n),\nbucketed AS (\n  SELECT\n    time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n    counter_agg(time, writebacks) AS summary_write\n  FROM\n    summary\n  GROUP BY\n    bucket\n)\nSELECT\n  bucket AS time,\n  irate_right(summary_write) AS \"Writebacks\"\nFROM\n  bucketed\nORDER BY\n  time",
                         "sql": {
                           "columns": [
                             {
@@ -1008,7 +1004,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  irate_right(summary) AS \"Fsyncs\"\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, collected_at) AS bucket,\n      counter_agg(collected_at, fsyncs) AS summary\n    FROM\n      pganalyze.io_stats\n    WHERE\n      $__timeFilter(collected_at) \n    GROUP BY\n      bucket\n  ) t\n  ORDER BY time\n  ",
+                        "rawSql": "WITH summary AS (\n  SELECT\n    collected_at AS time,\n    SUM(fsyncs) AS fsyncs\n  FROM\n    pganalyze.io_stats\n  WHERE\n    $__timeFilter(collected_at)\n  GROUP BY\n    time\n),\nbucketed AS (\n  SELECT\n    time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n    counter_agg(time, fsyncs) AS summary_fsync\n  FROM\n    summary\n  GROUP BY\n    bucket\n)\nSELECT\n  bucket AS time,\n  irate_right(summary_fsync) AS \"Fsyncs\"\nFROM\n  bucketed\nORDER BY\n  time",
                         "sql": {
                           "columns": [
                             {
@@ -1153,7 +1149,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  irate_right(summary) AS \"Extends\"\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, collected_at) AS bucket,\n      counter_agg(collected_at, extends) AS summary\n    FROM\n      pganalyze.io_stats\n    WHERE\n      $__timeFilter(collected_at) \n    GROUP BY\n      bucket\n  ) t\n  ORDER BY time\n  ",
+                        "rawSql": "WITH summary AS (\n  SELECT\n    collected_at AS time,\n    SUM(extends) AS extends\n  FROM\n    pganalyze.io_stats\n  WHERE\n    $__timeFilter(collected_at)\n  GROUP BY\n    time\n),\nbucketed AS (\n  SELECT\n    time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n    counter_agg(time, extends) AS summary_extend\n  FROM\n    summary\n  GROUP BY\n    bucket\n)\nSELECT\n  bucket AS time,\n  irate_right(summary_extend) AS \"Extends\"\nFROM\n  bucketed\nORDER BY\n  time",
                         "sql": {
                           "columns": [
                             {
@@ -1298,7 +1294,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  irate_right(summary_evict) AS evictions,\n  irate_right(summary_reuse) AS reuses\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, collected_at) AS bucket,\n      counter_agg(collected_at, evictions) AS summary_evict,\n      counter_agg(collected_at, reuses) AS summary_reuse\n    FROM\n      pganalyze.io_stats\n    WHERE\n      $__timeFilter(collected_at) \n    GROUP BY\n      bucket\n  ) t\n  ORDER BY time\n  ",
+                        "rawSql": "WITH summary AS (\n  SELECT\n    collected_at AS time,\n    SUM(evictions) AS evictions,\n    SUM(reuses) AS reuses\n  FROM\n    pganalyze.io_stats\n  WHERE\n    $__timeFilter(collected_at)\n  GROUP BY\n    time\n),\nbucketed AS (\n  SELECT\n    time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n    counter_agg(time, evictions) AS summary_eviction,\n    counter_agg(time, reuses) AS summary_reuse\n  FROM\n    summary\n  GROUP BY\n    bucket\n)\nSELECT\n  bucket AS time,\n  irate_right(summary_eviction) AS \"Evictions\",\n  irate_right(summary_reuse) AS \"Reuses\"\nFROM\n  bucketed\nORDER BY\n  time",
                         "sql": {
                           "columns": [
                             {
@@ -1777,8 +1773,8 @@
     ],
     "timeSettings": {
       "timezone": "Europe/London",
-      "from": "2026-10-12T12:37:13.512Z",
-      "to": "2026-10-12T14:07:16.970Z",
+      "from": "now-24h",
+      "to": "now",
       "autoRefresh": "",
       "autoRefreshIntervals": [],
       "hideTimepicker": false,

@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "afh7lj8",
-    "generation": 15,
-    "creationTimestamp": "2026-10-26T12:08:31Z",
+    "generation": 2,
+    "creationTimestamp": "2026-10-26T13:18:18Z",
     "labels": {},
     "annotations": {}
   },
@@ -76,7 +76,7 @@
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "sem"
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -205,7 +205,7 @@
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "sem"
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -304,7 +304,7 @@
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "sem"
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -403,7 +403,7 @@
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "sem"
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -542,7 +542,7 @@
       "to": "2026-10-12T14:07:16.970Z",
       "autoRefresh": "",
       "autoRefreshIntervals": [],
-      "hideTimepicker": false,
+      "hideTimepicker": true,
       "fiscalYearStartMonth": 0
     },
     "title": "11. Indexes",
