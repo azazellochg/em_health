@@ -2,15 +2,15 @@
 set -eu
 
 echo "Create or upgrade pgBackRest stanza..."
-pgbackrest --stanza=main stanza-create || :
-pgbackrest --stanza=main stanza-upgrade
+pgbackrest --stanza=main stanza-upgrade || pgbackrest --stanza=main stanza-create
 pgbackrest --stanza=main check
 
+echo "Create databases and roles..."
 psql -v ON_ERROR_STOP=1 <<EOSQL
     CREATE DATABASE tem;
     CREATE DATABASE sem;
-    CREATE ROLE grafana WITH LOGIN PASSWORD '${POSTGRES_GRAFANA_PASSWORD}';
-    CREATE ROLE emhealth WITH LOGIN PASSWORD '${POSTGRES_EMHEALTH_PASSWORD}';
+    CREATE ROLE grafana WITH LOGIN PASSWORD '${POSTGRES_GRAFANA_PASSWORD}' CONNECTION LIMIT 100;
+    CREATE ROLE emhealth WITH LOGIN PASSWORD '${POSTGRES_EMHEALTH_PASSWORD}' CONNECTION LIMIT 100;
     CREATE ROLE pganalyze WITH LOGIN PASSWORD '${POSTGRES_PGANALYZE_PASSWORD}' CONNECTION LIMIT 5;
     GRANT pg_monitor, pg_read_server_files TO pganalyze;
 EOSQL
@@ -24,5 +24,5 @@ for db in tem sem; do
   --dbname="$db" -f /sql/init_db.sql
 done
 
-echo "Running timescaledb-tune..."
-timescaledb-tune -quiet -yes
+echo "Running pgtune.sh..."
+/usr/local/bin/pgtune.sh -y

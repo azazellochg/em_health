@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "f5f755f6-d55b-4f89-bfd7-36281dc0eec7",
-    "generation": 20,
-    "creationTimestamp": "2026-08-14T12:58:49Z",
+    "generation": 2,
+    "creationTimestamp": "2026-10-29T14:28:37Z",
     "labels": {},
     "annotations": {}
   },
@@ -56,7 +56,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH bucketed AS (\n    SELECT\n        time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n        delta(counter_agg(collected_at, calls)) AS delta_calls,\n        delta(counter_agg(collected_at, total_plan_time)) +\n        delta(counter_agg(collected_at, total_exec_time)) AS delta_total_time,\n        delta(counter_agg(collected_at, blk_read_time)) +\n        delta(counter_agg(collected_at, blk_write_time)) AS delta_total_io\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(collected_at)\n    GROUP BY bucket, queryid\n)\nSELECT\n    bucket AS time,\n    approx_percentile(0.5, percentile_agg(delta_total_time / NULLIF(delta_calls,0))) AS \"Median time\",\n    approx_percentile(0.95, percentile_agg(delta_total_time / NULLIF(delta_calls,0))) AS \"P95 time\",\n    SUM(delta_total_io) / NULLIF(SUM(delta_calls),0) AS \"Avg I/O time\"\nFROM bucketed\nWHERE delta_calls > 0\nGROUP BY bucket\n",
+                        "rawSql": "WITH bucketed AS (\n    SELECT\n        time_bucket(INTERVAL '$__interval', time) AS bucket,\n        delta(counter_agg(time, calls)) AS delta_calls,\n        delta(counter_agg(time, total_plan_time)) +\n        delta(counter_agg(time, total_exec_time)) AS delta_total_time,\n        delta(counter_agg(time, blk_read_time)) +\n        delta(counter_agg(time, blk_write_time)) AS delta_total_io\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(time)\n    GROUP BY bucket, queryid\n)\nSELECT\n    bucket AS time,\n    approx_percentile(0.5, percentile_agg(delta_total_time / NULLIF(delta_calls,0))) AS \"Median time\",\n    approx_percentile(0.95, percentile_agg(delta_total_time / NULLIF(delta_calls,0))) AS \"P95 time\",\n    SUM(delta_total_io) / NULLIF(SUM(delta_calls),0) AS \"Avg I/O time\"\nFROM bucketed\nWHERE delta_calls > 0\nGROUP BY bucket\n",
                         "sql": {
                           "columns": [
                             {
@@ -74,6 +74,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "B",
@@ -90,7 +94,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "annotations": {
@@ -190,7 +194,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH query_range AS (\n    SELECT\n        delta(counter_agg(collected_at, calls)) AS calls_delta,\n\n        delta(counter_agg(collected_at, total_exec_time)) AS total_time_delta,\n\n        delta(counter_agg(collected_at, shared_blks_read)) AS shared_blks_read_delta,\n        delta(counter_agg(collected_at, local_blks_read)) AS local_blks_read_delta,\n        delta(counter_agg(collected_at, temp_blks_read)) AS temp_blks_read_delta,\n\n        delta(counter_agg(collected_at, blk_read_time)) AS blk_read_time_delta,\n        delta(counter_agg(collected_at, blk_write_time)) AS blk_write_time_delta\n\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(collected_at)\n      AND queryid = $queryid\n)\nSELECT\n    total_time_delta\n        / NULLIF(calls_delta, 0)\n        AS \"Avg time per call\",\n\n    (blk_read_time_delta + blk_write_time_delta)\n        / NULLIF(calls_delta, 0)\n        AS \"Avg I/O time per call\",\n\n    (\n        shared_blks_read_delta\n        + local_blks_read_delta\n        + temp_blks_read_delta\n    ) * current_setting('block_size')::bigint\n        / NULLIF(calls_delta, 0)\n        AS \"Data read per call\",\n\n    calls_delta AS \"Total calls\"\nFROM query_range\n",
+                        "rawSql": "WITH query_range AS (\n    SELECT\n        delta(counter_agg(time, calls)) AS calls_delta,\n\n        delta(counter_agg(time, total_exec_time)) AS total_time_delta,\n\n        delta(counter_agg(time, shared_blks_read)) AS shared_blks_read_delta,\n        delta(counter_agg(time, local_blks_read)) AS local_blks_read_delta,\n        delta(counter_agg(time, temp_blks_read)) AS temp_blks_read_delta,\n\n        delta(counter_agg(time, blk_read_time)) AS blk_read_time_delta,\n        delta(counter_agg(time, blk_write_time)) AS blk_write_time_delta\n\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(time)\n      AND queryid = $queryid\n)\nSELECT\n    total_time_delta\n        / NULLIF(calls_delta, 0)\n        AS \"Avg time per call\",\n\n    (blk_read_time_delta + blk_write_time_delta)\n        / NULLIF(calls_delta, 0)\n        AS \"Avg I/O time per call\",\n\n    (\n        shared_blks_read_delta\n        + local_blks_read_delta\n        + temp_blks_read_delta\n    ) * current_setting('block_size')::bigint\n        / NULLIF(calls_delta, 0)\n        AS \"Data read per call\",\n\n    calls_delta AS \"Total calls\"\nFROM query_range\n",
                         "sql": {
                           "columns": [
                             {
@@ -208,6 +212,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -222,7 +230,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -329,6 +337,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -343,7 +355,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "logs",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "dedupStrategy": "none",
@@ -440,7 +452,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH agg AS (\n    SELECT\n        userid,\n        queryid,\n        delta(counter_agg(collected_at, calls)) AS total_calls,\n        delta(counter_agg(collected_at, total_plan_time)) AS total_plan_time,\n        delta(counter_agg(collected_at, total_exec_time)) AS total_exec_time,\n        delta(counter_agg(collected_at, blk_read_time)) AS total_blk_read_time,\n        delta(counter_agg(collected_at, blk_write_time)) AS total_blk_write_time\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(collected_at)\n    GROUP BY queryid, userid\n)\nSELECT\n    a.queryid::text,\n    q.query AS \"Query\",\n    ((a.total_plan_time + a.total_exec_time) / NULLIF(a.total_calls, 0)) AS \"Avg time\",\n    (a.total_calls / NULLIF((($__to - $__from) / 1000) / 60, 0)) AS \"Calls/min\",\n    ((a.total_plan_time + a.total_exec_time) / NULLIF(SUM(a.total_plan_time + a.total_exec_time) OVER (), 0) * 100) AS \"% of all runtime\",\n    ((a.total_blk_read_time + a.total_blk_write_time) / NULLIF(SUM(a.total_blk_read_time + a.total_blk_write_time) OVER (), 0) * 100) AS \"% of all I/O\",\n    r.rolname AS \"User\"\nFROM agg a\nJOIN pganalyze.queries q ON q.queryid = a.queryid\nJOIN pg_roles r ON r.oid = a.userid\nWHERE a.total_calls > 0\nAND (\n       '$query_type' = 'All'\n\n    OR (\n        '$query_type' = 'SELECT'\n        AND (q.query ~* '^\\s*SELECT(\\s|$)' OR q.query ~* '^\\s*WITH\\s.*SELECT')\n    )\n\n    OR (\n        '$query_type' = 'INSERT/UPDATE/DELETE'\n        AND q.query ~* '^\\s*(INSERT|UPDATE|DELETE|MERGE)(\\s|$)'\n    )\n\n    OR (\n        '$query_type' = 'DDL etc.'\n        AND q.query ~* '^\\s*(CREATE|ALTER|DROP|TRUNCATE|COMMENT|RENAME|VACUUM|ANALYZE|BEGIN|COMMIT|ROLLBACK|SET|CALL|REFRESH)(\\s|$)'\n    )\n)\nORDER BY \"Avg time\" DESC\n",
+                        "rawSql": "WITH agg AS (\n    SELECT\n        userid,\n        queryid,\n        delta(counter_agg(time, calls)) AS total_calls,\n        delta(counter_agg(time, total_plan_time)) AS total_plan_time,\n        delta(counter_agg(time, total_exec_time)) AS total_exec_time,\n        delta(counter_agg(time, blk_read_time)) AS total_blk_read_time,\n        delta(counter_agg(time, blk_write_time)) AS total_blk_write_time\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(time)\n    GROUP BY queryid, userid\n)\nSELECT\n    a.queryid::text,\n    q.query AS \"Query\",\n    ((a.total_plan_time + a.total_exec_time) / NULLIF(a.total_calls, 0)) AS \"Avg time\",\n    (a.total_calls / NULLIF((($__to - $__from) / 1000) / 60, 0)) AS \"Calls/min\",\n    ((a.total_plan_time + a.total_exec_time) / NULLIF(SUM(a.total_plan_time + a.total_exec_time) OVER (), 0) * 100) AS \"% of all runtime\",\n    ((a.total_blk_read_time + a.total_blk_write_time) / NULLIF(SUM(a.total_blk_read_time + a.total_blk_write_time) OVER (), 0) * 100) AS \"% of all I/O\",\n    r.rolname AS \"User\"\nFROM agg a\nJOIN pganalyze.queries q ON q.queryid = a.queryid\nJOIN pg_roles r ON r.oid = a.userid\nWHERE a.total_calls > 0\nAND (\n       '$query_type' = 'All'\n\n    OR (\n        '$query_type' = 'SELECT'\n        AND (q.query ~* '^\\s*SELECT(\\s|$)' OR q.query ~* '^\\s*WITH\\s.*SELECT')\n    )\n\n    OR (\n        '$query_type' = 'INSERT/UPDATE/DELETE'\n        AND q.query ~* '^\\s*(INSERT|UPDATE|DELETE|MERGE)(\\s|$)'\n    )\n\n    OR (\n        '$query_type' = 'DDL etc.'\n        AND q.query ~* '^\\s*(CREATE|ALTER|DROP|TRUNCATE|COMMENT|RENAME|VACUUM|ANALYZE|BEGIN|COMMIT|ROLLBACK|SET|CALL|REFRESH)(\\s|$)'\n    )\n)\nORDER BY \"Avg time\" DESC\n",
                         "sql": {
                           "columns": [
                             {
@@ -458,6 +470,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "B",
@@ -474,7 +490,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -483,7 +499,7 @@
                 "sortBy": [
                   {
                     "desc": true,
-                    "displayName": "Avg time"
+                    "displayName": "% of all I/O"
                   }
                 ]
               },
@@ -627,7 +643,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    time_bucket(INTERVAL '$__interval', collected_at) AS time,\n    delta(counter_agg(collected_at, total_exec_time)) AS \"Total time\",\n    delta(counter_agg(collected_at, blk_read_time))\n      + delta(counter_agg(collected_at, blk_write_time))\n        AS \"Total I/O time\",\n    delta(counter_agg(collected_at, calls)) AS \"Calls\"\nFROM pganalyze.stat_statements\nWHERE $__timeFilter(collected_at) \n  AND queryid = $queryid  \nGROUP BY time",
+                        "rawSql": "SELECT\n    time_bucket(INTERVAL '$__interval', time) AS time,\n    delta(counter_agg(time, total_exec_time)) AS \"Total time\",\n    delta(counter_agg(time, blk_read_time))\n      + delta(counter_agg(time, blk_write_time))\n        AS \"Total I/O time\",\n    delta(counter_agg(time, calls)) AS \"Calls\"\nFROM pganalyze.stat_statements\nWHERE $__timeFilter(time) \n  AND queryid = $queryid  \nGROUP BY time_bucket(INTERVAL '$__interval', time)",
                         "sql": {
                           "columns": [
                             {
@@ -645,6 +661,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -661,7 +681,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "annotations": {
@@ -703,7 +723,7 @@
                     "axisPlacement": "auto",
                     "barAlignment": 0,
                     "barWidthFactor": 0.6,
-                    "drawStyle": "line",
+                    "drawStyle": "points",
                     "fillOpacity": 0,
                     "gradientMode": "none",
                     "hideFrom": {
@@ -714,7 +734,7 @@
                     "insertNulls": false,
                     "lineInterpolation": "linear",
                     "lineWidth": 1,
-                    "pointSize": 5,
+                    "pointSize": 6,
                     "scaleDistribution": {
                       "type": "linear"
                     },
@@ -774,7 +794,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "WITH query_stats AS (\n    SELECT\n        time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n\n        delta(counter_agg(collected_at, shared_blks_hit))\n            AS shared_blks_hit_delta,\n\n        delta(counter_agg(collected_at, shared_blks_read))\n            AS shared_blks_read_delta,\n\n        delta(counter_agg(collected_at, local_blks_read))\n            AS local_blks_read_delta,\n\n        delta(counter_agg(collected_at, temp_blks_read))\n            AS temp_blks_read_delta,\n\n        delta(counter_agg(collected_at, calls))\n            AS calls_delta\n\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(collected_at)\n      AND queryid = $queryid\n\n    GROUP BY bucket\n)\nSELECT\n    bucket AS time,\n\n    100.0 * shared_blks_hit_delta\n        / NULLIF(\n            shared_blks_hit_delta + shared_blks_read_delta,\n            0\n        ) AS \"Buffer cache %\",\n\n    100.0 * shared_blks_read_delta\n        / NULLIF(\n            shared_blks_hit_delta + shared_blks_read_delta,\n            0\n        ) AS \"From disk %\",\n\n    (\n        shared_blks_read_delta\n        + local_blks_read_delta\n        + temp_blks_read_delta\n    ) * current_setting('block_size')::bigint\n        / NULLIF(calls_delta, 0)\n        AS \"Bytes read per call\"\n\nFROM query_stats\nORDER BY time;",
+                        "rawSql": "WITH query_stats AS (\n    SELECT\n        time_bucket(INTERVAL '$__interval', time) AS bucket,\n\n        delta(counter_agg(time, shared_blks_hit))\n            AS shared_blks_hit_delta,\n\n        delta(counter_agg(time, shared_blks_read))\n            AS shared_blks_read_delta,\n\n        delta(counter_agg(time, local_blks_read))\n            AS local_blks_read_delta,\n\n        delta(counter_agg(time, temp_blks_read))\n            AS temp_blks_read_delta,\n\n        delta(counter_agg(time, calls))\n            AS calls_delta\n\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(time)\n      AND queryid = $queryid\n\n    GROUP BY bucket\n)\nSELECT\n    bucket AS time,\n\n    100.0 * shared_blks_hit_delta\n        / NULLIF(\n            shared_blks_hit_delta + shared_blks_read_delta,\n            0\n        ) AS \"Buffer cache %\",\n\n    100.0 * shared_blks_read_delta\n        / NULLIF(\n            shared_blks_hit_delta + shared_blks_read_delta,\n            0\n        ) AS \"From disk %\",\n\n    (\n        shared_blks_read_delta\n        + local_blks_read_delta\n        + temp_blks_read_delta\n    ) * current_setting('block_size')::bigint\n        / NULLIF(calls_delta, 0)\n        AS \"Bytes read per call\"\n\nFROM query_stats\nORDER BY time;",
                         "sql": {
                           "columns": [
                             {
@@ -792,6 +812,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -808,7 +832,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "annotations": {
@@ -862,7 +886,7 @@
                     "insertNulls": false,
                     "lineInterpolation": "linear",
                     "lineWidth": 1,
-                    "pointSize": 5,
+                    "pointSize": 6,
                     "scaleDistribution": {
                       "type": "linear"
                     },
@@ -916,7 +940,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "text",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "code": {
@@ -1015,8 +1039,8 @@
                                 "spec": {
                                   "x": 0,
                                   "y": 3,
-                                  "width": 12,
-                                  "height": 6,
+                                  "width": 24,
+                                  "height": 10,
                                   "element": {
                                     "kind": "ElementReference",
                                     "name": "panel-5"
@@ -1026,10 +1050,10 @@
                               {
                                 "kind": "GridLayoutItem",
                                 "spec": {
-                                  "x": 12,
-                                  "y": 3,
-                                  "width": 12,
-                                  "height": 6,
+                                  "x": 0,
+                                  "y": 13,
+                                  "width": 24,
+                                  "height": 9,
                                   "element": {
                                     "kind": "ElementReference",
                                     "name": "panel-6"
@@ -1111,7 +1135,7 @@
         "tags": [
           "perf"
         ],
-        "asDropdown": false,
+        "asDropdown": true,
         "targetBlank": false,
         "includeVars": true,
         "keepTime": true
@@ -1139,7 +1163,7 @@
       "hideTimepicker": false,
       "fiscalYearStartMonth": 0
     },
-    "title": "Queries",
+    "title": "08. Queries",
     "variables": [
       {
         "kind": "DatasourceVariable",

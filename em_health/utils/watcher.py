@@ -26,8 +26,9 @@
 
 import os
 import sys
-import time
+import signal
 import threading
+import argparse
 from concurrent.futures import ThreadPoolExecutor
 from watchdog.observers.polling import PollingObserver
 from watchdog.events import PatternMatchingEventHandler
@@ -40,75 +41,137 @@ class FileWatcher:
     def __init__(self,
                  path: str,
                  json_fn: str,
-                 interval: int = None,
-                 stable_time: int = None,
-                 max_workers: int = None):
+                 interval: int = 300,
+                 stable_time: int = 10,
+                 max_workers: int = 4):
         """
-        Watch for XML file creation and ensure a file is fully written before processing.
-        :param path: Folder to watch
-        :param json_fn: JSON file name
-        :param interval: Polling interval in seconds
-        :param stable_time: Number of times to check the file for the size change
-        :param max_workers: Number of files to import in parallel
+        Watch for XML files and import them once their size is stable.
+        :param path: Directory to watch.
+        :param json_fn: Path to the JSON settings file.
+        :param interval: Watchdog polling interval in seconds.
+        :param stable_time: Number of consecutive stable-size checks required.
+        :param max_workers: Maximum number of concurrent XML imports.
         """
         self.path = path
         self.json_fn = json_fn
-        self.interval = interval or int(os.getenv("WATCH_INTERVAL", 300))
-        self.stable_time = stable_time or int(os.getenv("WATCH_SIZE_COUNTER", 10))
-        self.max_workers = max_workers or int(os.getenv("WATCH_MAX_WORKERS", 4))
+        self.interval = int(os.getenv("WATCH_INTERVAL", interval))
+        self.stable_time = int(os.getenv("WATCH_SIZE_COUNTER", stable_time))
+        self.max_workers = int(os.getenv("WATCH_MAX_WORKERS", max_workers))
         self.observer = PollingObserver(timeout=self.interval)
-        self.executor = ThreadPoolExecutor(max_workers=self.max_workers)
-        self.processed_files = set()
+        self.stability_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="file-stability")
+        self.import_executor = ThreadPoolExecutor(max_workers=self.max_workers, thread_name_prefix="xml-import")
+        self.in_progress = set()
         self.lock = threading.Lock()
+        self.stop_event = threading.Event()
 
     def start(self):
-        """Start the file watcher and process files as they appear."""
+        """Run the observer until shutdown is requested or it fails."""
         event_handler = PatternMatchingEventHandler(
             patterns=["*_data.xml", "*_data.xml.gz"],
             ignore_directories=True
         )
         event_handler.on_created = self.on_file_detected
         event_handler.on_modified = self.on_file_detected
-
-        self.observer.schedule(event_handler, self.path, recursive=False)
-        self.observer.start()
-        logger.info("Watching %s for XML files (*_data.xml, *_data.xml.gz)...", self.path)
+        observer_started = False
 
         try:
-            while self.observer.is_alive():
+            self.observer.schedule(event_handler, self.path, recursive=False)
+            self.observer.start()
+            observer_started = True
+
+            logger.info("Watching %s for XML files (*_data.xml, *_data.xml.gz)...", self.path)
+
+            while not self.stop_event.is_set():
                 self.observer.join(1)
-        except KeyboardInterrupt:
-            logger.info("Stopping watcher...")
-            self.observer.stop()
+
+                if not self.observer.is_alive() and not self.stop_event.is_set():
+                    raise RuntimeError("Watchdog stopped unexpectedly")
+
+        except Exception:
+            logger.exception("Watchdog failed")
+            raise
+
         finally:
-            self.executor.shutdown(wait=True)
-            self.observer.join()
+            self.stop_event.set()
+
+            try:
+                if observer_started:
+                    self.observer.stop()
+                    self.observer.join()
+            finally:
+                try:
+                    # Finish stability checks before shutting down the executor
+                    self.stability_executor.shutdown(wait=True)
+                finally:
+                    # Allow submitted imports to finish
+                    self.import_executor.shutdown(wait=True)
+
+            logger.info("File watcher stopped")
+
+    def request_stop(self):
+        """Request graceful shutdown."""
+        logger.info("Shutdown requested")
+        self.stop_event.set()
 
     def on_file_detected(self, event):
-        filepath = event.src_path
+        """Schedule a stability check for a newly detected or updated file."""
+        if self.stop_event.is_set():
+            return
+
+        filepath = os.path.abspath(event.src_path)
+
         with self.lock:
-            if filepath in self.processed_files:
+            if self.stop_event.is_set() or filepath in self.in_progress:
                 return
-            self.processed_files.add(filepath)
+
+            self.in_progress.add(filepath)
 
         logger.info("Detected file: %s", filepath)
-        threading.Thread(target=self._wait_and_submit, args=(filepath,), daemon=True).start()
+
+        try:
+            self.stability_executor.submit(self._wait_and_submit,filepath)
+        except RuntimeError:
+            with self.lock:
+                self.in_progress.discard(filepath)
+
+            if not self.stop_event.is_set():
+                logger.exception("Could not schedule stability check for %s", filepath)
 
     def _wait_and_submit(self, filepath: str):
-        """Wait until file is stable, then submit for processing."""
-        if self.wait_until_complete(filepath):
-            self.executor.submit(self.process_file, filepath)
+        """Wait until a file is stable, then schedule its import."""
+        submitted = False
+
+        try:
+            if self.wait_until_complete(filepath) and not self.stop_event.is_set():
+                self.import_executor.submit(self.process_file,filepath)
+                submitted = True
+
+        except Exception:
+            logger.exception("Failed to schedule import for %s", filepath)
+
+        finally:
+            if not submitted:
+                with self.lock:
+                    self.in_progress.discard(filepath)
 
     def wait_until_complete(self, filepath: str) -> bool:
-        """Wait until the file size is stable for self.stable_time seconds."""
+        """
+        Wait until file size remains stable for the configured
+        number of consecutive checks.
+        """
         last_size = -1
         stable_counter = 0
 
-        while stable_counter < self.stable_time:
+        while stable_counter < self.stable_time and not self.stop_event.is_set():
             try:
                 current_size = os.path.getsize(filepath)
+
             except FileNotFoundError:
                 logger.warning("File disappeared: %s", filepath)
+                return False
+
+            except OSError:
+                logger.exception("Cannot access file %s", filepath)
                 return False
 
             if current_size == last_size:
@@ -117,32 +180,75 @@ class FileWatcher:
                 stable_counter = 0
                 last_size = current_size
 
-            time.sleep(3)
+            if self.stop_event.wait(3):
+                return False
+
+        if self.stop_event.is_set():
+            return False
 
         logger.info("File is ready: %s (%d bytes)", filepath, last_size)
         return True
 
     def process_file(self, filepath: str):
-        """Run the XML import on a ready file."""
+        """Import a stable XML file."""
         try:
-            import_main(os.path.abspath(filepath),
-                        os.path.abspath(self.json_fn))
-        except Exception as e:
-            logger.error("Error importing %s: %s", filepath, str(e))
+            import_main(filepath, self.json_fn)
+        except Exception:
+            logger.exception("Error importing %s", filepath)
         finally:
+            # Permit subsequent updates to the same filename.
             with self.lock:
-                self.processed_files.discard(filepath)
+                self.in_progress.discard(filepath)
 
 
-def main(input_path, json_fn, interval):
+def main():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        "-i",
+        dest="input",
+        required=True,
+        help="Target directory with XML data files",
+    )
+    parser.add_argument(
+        "-s",
+        dest="settings",
+        required=True,
+        help="Path to instruments.json with metadata",
+    )
+    parser.add_argument(
+        "-t",
+        dest="interval",
+        type=int,
+        default=300,
+        help="Polling interval in seconds (default: 300)",
+    )
+
+    args = parser.parse_args()
+
+    input_path = os.path.abspath(args.input)
+    json_fn = os.path.abspath(args.settings)
+
     if not os.path.isdir(input_path):
         logger.error("Invalid directory: %s", input_path)
         sys.exit(1)
 
-    # Validate JSON file
-    if not (os.path.exists(json_fn) and json_fn.endswith(".json")):
+    if not (os.path.isfile(json_fn) and json_fn.endswith(".json")):
         logger.error("Settings file '%s' not found or is not a .json file.", json_fn)
         sys.exit(1)
 
-    watcher = FileWatcher(path=input_path, json_fn=json_fn, interval=interval)
+    try:
+        watcher = FileWatcher(path=input_path, json_fn=json_fn, interval=args.interval)
+    except (ValueError, OSError):
+        logger.exception("Invalid watcher configuration")
+        sys.exit(1)
+
+    # Python signal handlers must be registered in the main thread.
+    signal.signal(signal.SIGTERM, lambda signum, frame: watcher.request_stop())
+    signal.signal(signal.SIGINT, lambda signum, frame: watcher.request_stop())
+
     watcher.start()
+
+
+if __name__ == "__main__":
+    main()

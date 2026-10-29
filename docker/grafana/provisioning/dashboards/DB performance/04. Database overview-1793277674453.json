@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "ee46beab-c046-45a5-b547-23990e2ec0f3",
-    "generation": 11,
-    "creationTimestamp": "2026-08-14T12:59:34Z",
+    "generation": 7,
+    "creationTimestamp": "2026-10-23T13:57:12Z",
     "labels": {},
     "annotations": {}
   },
@@ -73,6 +73,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -89,7 +93,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "colorMode": "none",
@@ -176,6 +180,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -192,7 +200,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "annotations": {
@@ -316,6 +324,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -332,7 +344,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "colorMode": "none",
@@ -419,6 +431,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -435,7 +451,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "annotations": {
@@ -559,6 +575,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -573,7 +593,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "colorMode": "none",
@@ -684,6 +704,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -698,7 +722,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "colorMode": "none",
@@ -759,14 +783,11 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "datasource": {
-                        "name": "${source}"
-                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    'PostgreSQL' AS component,\n    current_setting('server_version') AS version\n\nUNION ALL\n\nSELECT\n    initcap(extname) AS component,\n    extversion AS version\nFROM pg_extension\nWHERE extname LIKE 'timescale%'\nORDER BY component;",
+                        "rawSql": "SELECT\n    'PostgreSQL' AS component,\n    current_setting('server_version') AS version\n",
                         "sql": {
                           "columns": [
                             {
@@ -784,6 +805,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-2",
+                        "grafana.app/export-datasource-name": "tem"
                       }
                     },
                     "refId": "A",
@@ -798,7 +823,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "colorMode": "none",
@@ -857,9 +882,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "datasource": {
-                        "name": "${source}"
-                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
@@ -882,6 +904,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-2",
+                        "grafana.app/export-datasource-name": "tem"
                       }
                     },
                     "refId": "A",
@@ -896,7 +922,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "colorMode": "none",
@@ -978,6 +1004,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -992,7 +1022,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "colorMode": "none",
@@ -1076,6 +1106,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -1092,7 +1126,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "colorMode": "none",
@@ -1178,6 +1212,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -1194,7 +1232,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "annotations": {
@@ -1315,6 +1353,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -1329,7 +1371,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "colorMode": "none",
@@ -1395,7 +1437,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "WITH statement_rates AS (\n    SELECT\n        time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n        queryid,\n        rate(counter_agg(collected_at, total_exec_time)) AS exec_time_rate,\n        rate(counter_agg(collected_at, calls)) AS calls_rate\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(collected_at)\n    GROUP BY 1, queryid\n)\n\nSELECT\n    bucket AS time,\n    SUM(calls_rate) AS \"Calls/sec (QPS)\",\n    SUM(exec_time_rate) / 1000.0 AS \"Query duration (sec/sec)\"\nFROM statement_rates\nGROUP BY bucket\n",
+                        "rawSql": "WITH statement_rates AS (\n    SELECT\n        time_bucket(INTERVAL '$__interval', time) AS bucket,\n        queryid,\n        rate(counter_agg(time, total_exec_time)) AS exec_time_rate,\n        rate(counter_agg(time, calls)) AS calls_rate\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(time)\n    GROUP BY 1, queryid\n)\n\nSELECT\n    bucket AS time,\n    SUM(calls_rate) AS \"Calls/sec (QPS)\",\n    SUM(exec_time_rate) / 1000.0 AS \"Query duration (sec/sec)\"\nFROM statement_rates\nGROUP BY bucket\n",
                         "sql": {
                           "columns": [
                             {
@@ -1413,6 +1455,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -1429,7 +1475,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "annotations": {
@@ -1524,14 +1570,11 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "datasource": {
-                        "name": "${source}"
-                      },
                       "spec": {
                         "editorMode": "code",
-                        "format": "time_series",
+                        "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  time,\n  load15 / cpu_count * 100 AS \"CPU (total $cpu_count)\",\n  (mem_total - mem_avail) / mem_total::double precision * 100 AS \"RAM\"\n  FROM pganalyze.sys_stats\n  WHERE $__timeFilter(time)\nORDER BY time;\n",
+                        "rawSql": "SELECT\n  (\n    last(value, time) FILTER (\n      WHERE\n        metric = 'node_load15'\n    ) / NULLIF($cpu_count, 0)\n  ) * 100 AS \"CPU (total $cpu_count)\",\n  (\n    (\n      last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_MemTotal_bytes'\n      ) - last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_MemFree_bytes'\n      ) - last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_Buffers_bytes'\n      ) - last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_Cached_bytes'\n      ) - last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_SReclaimable_bytes'\n      )\n    ) / NULLIF(\n      last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_MemTotal_bytes'\n      ),\n      0\n    )\n  ) * 100 AS \"RAM\"\nFROM\n  pganalyze.sys_stats\nWHERE\n  metric IN (\n    'node_load15',\n    'node_memory_MemTotal_bytes',\n    'node_memory_MemFree_bytes',\n    'node_memory_Buffers_bytes',\n    'node_memory_Cached_bytes',\n    'node_memory_SReclaimable_bytes'\n  )",
                         "sql": {
                           "columns": [
                             {
@@ -1549,6 +1592,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-2",
+                        "grafana.app/export-datasource-name": "tem"
                       }
                     },
                     "refId": "A",
@@ -1565,24 +1612,22 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
-                "colorMode": "none",
-                "graphMode": "area",
+                "colorMode": "value",
+                "graphMode": "none",
                 "justifyMode": "center",
-                "orientation": "horizontal",
+                "orientation": "auto",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
-                  "calcs": [
-                    "last"
-                  ],
-                  "fields": "",
+                  "calcs": [],
+                  "fields": "/.*/",
                   "values": false
                 },
                 "showPercentChange": false,
                 "textMode": "value_and_name",
-                "wideLayout": true
+                "wideLayout": false
               },
               "fieldConfig": {
                 "defaults": {
@@ -1593,10 +1638,6 @@
                       {
                         "value": 0,
                         "color": "green"
-                      },
-                      {
-                        "value": 80,
-                        "color": "#EAB839"
                       }
                     ]
                   },
@@ -1655,6 +1696,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -1669,7 +1714,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "barchart",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "barRadius": 0.25,
@@ -1755,9 +1800,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "datasource": {
-                        "name": "${source}"
-                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
@@ -1780,6 +1822,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-2",
+                        "grafana.app/export-datasource-name": "tem"
                       }
                     },
                     "refId": "A",
@@ -1794,7 +1840,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -1850,9 +1896,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "datasource": {
-                        "name": "${source}"
-                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "time_series",
@@ -1875,6 +1918,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-2",
+                        "grafana.app/export-datasource-name": "tem"
                       }
                     },
                     "refId": "A",
@@ -1891,7 +1938,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.1.0-25893932881",
+            "version": "13.2.3",
             "spec": {
               "options": {
                 "colorMode": "none",
@@ -1966,24 +2013,11 @@
                       "spec": {
                         "x": 2,
                         "y": 0,
-                        "width": 5,
-                        "height": 6,
+                        "width": 7,
+                        "height": 3,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-28"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 7,
-                        "y": 0,
-                        "width": 2,
-                        "height": 6,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-39"
                         }
                       }
                     },
@@ -2062,6 +2096,19 @@
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-29"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 2,
+                        "y": 3,
+                        "width": 7,
+                        "height": 3,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-39"
                         }
                       }
                     },
@@ -2201,7 +2248,7 @@
         "tags": [
           "perf"
         ],
-        "asDropdown": false,
+        "asDropdown": true,
         "targetBlank": false,
         "includeVars": true,
         "keepTime": true
@@ -2228,7 +2275,7 @@
       "hideTimepicker": false,
       "fiscalYearStartMonth": 0
     },
-    "title": "Overview",
+    "title": "04. Database overview",
     "variables": [
       {
         "kind": "DatasourceVariable",
@@ -2265,17 +2312,159 @@
             "kind": "DataQuery",
             "group": "grafana-postgresql-datasource",
             "version": "v0",
-            "datasource": {
-              "name": "${source}"
-            },
             "spec": {
-              "__legacyStringValue": "SELECT\n  cpu_count\nFROM pganalyze.sys_stats\nORDER BY time DESC LIMIT 1"
+              "editorMode": "code",
+              "format": "table",
+              "query": "SELECT\n  cpu_count\nFROM pganalyze.sys_info\nLIMIT 1",
+              "rawQuery": true,
+              "rawSql": "SELECT\n  cpu_count\nFROM pganalyze.sys_info\nLIMIT 1",
+              "refId": "SQLVariableQueryEditor-VariableQuery",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            },
+            "labels": {
+              "grafana.app/export-label": "grafana-postgresql-datasource-2",
+              "grafana.app/export-datasource-name": "tem"
             }
           },
           "regex": "",
           "regexApplyTo": "value",
           "sort": "disabled",
-          "definition": "SELECT\n  cpu_count\nFROM pganalyze.sys_stats\nORDER BY time DESC LIMIT 1",
+          "definition": "SELECT\n  cpu_count\nFROM pganalyze.sys_info\nLIMIT 1",
+          "options": [],
+          "multi": false,
+          "includeAll": false,
+          "allowCustomValue": false
+        }
+      },
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "name": "server_major",
+          "current": {
+            "text": "",
+            "value": ""
+          },
+          "hide": "hideVariable",
+          "refresh": "onDashboardLoad",
+          "skipUrlSync": false,
+          "query": {
+            "kind": "DataQuery",
+            "group": "grafana-postgresql-datasource",
+            "version": "v0",
+            "datasource": {
+              "name": "${source}"
+            },
+            "spec": {
+              "dataset": "tem",
+              "editorMode": "code",
+              "format": "table",
+              "meta": {},
+              "query": "SELECT floor(current_setting('server_version_num')::int/10000) AS server_major",
+              "rawQuery": true,
+              "rawSql": "SELECT floor(current_setting('server_version_num')::int/10000) AS server_major",
+              "refId": "SQLVariableQueryEditor-VariableQuery",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            },
+            "labels": {
+              "grafana.app/export-label": "grafana-postgresql-datasource-1",
+              "grafana.app/export-datasource-name": "${source}"
+            }
+          },
+          "regex": "",
+          "regexApplyTo": "value",
+          "sort": "disabled",
+          "definition": "SELECT floor(current_setting('server_version_num')::int/10000) AS server_major",
+          "options": [],
+          "multi": false,
+          "includeAll": false,
+          "allowCustomValue": false
+        }
+      },
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "name": "server_minor",
+          "current": {
+            "text": "",
+            "value": ""
+          },
+          "hide": "hideVariable",
+          "refresh": "onDashboardLoad",
+          "skipUrlSync": false,
+          "query": {
+            "kind": "DataQuery",
+            "group": "grafana-postgresql-datasource",
+            "version": "v0",
+            "datasource": {
+              "name": "${source}"
+            },
+            "spec": {
+              "dataset": "tem",
+              "editorMode": "code",
+              "format": "table",
+              "query": "SELECT (current_setting('server_version_num')::int % 10000) AS server_minor",
+              "rawQuery": true,
+              "rawSql": "SELECT (current_setting('server_version_num')::int % 10000) AS server_minor",
+              "refId": "SQLVariableQueryEditor-VariableQuery",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            },
+            "labels": {
+              "grafana.app/export-label": "grafana-postgresql-datasource-1",
+              "grafana.app/export-datasource-name": "${source}"
+            }
+          },
+          "regex": "",
+          "regexApplyTo": "value",
+          "sort": "disabled",
+          "definition": "SELECT (current_setting('server_version_num')::int % 10000) AS server_minor",
           "options": [],
           "multi": false,
           "includeAll": false,

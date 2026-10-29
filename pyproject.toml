@@ -20,13 +20,12 @@ dependencies = [
     'psycopg[binary]',
     'watchdog',
     'python-dotenv',
-    'requests',
     'packaging',
     'podman-compose'
 ]
 
 [project.optional-dependencies]
-dev = ["mypy", "memory-profiler", "pandas", "numpy"]
+dev = ["mypy", "memory-profiler"]
 
 [project.urls]
 Homepage = "https://github.com/azazellochg/em_health"

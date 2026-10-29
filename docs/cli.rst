@@ -51,7 +51,7 @@ Watchdog
 Description
 ^^^^^^^^^^^
 
-Watch directory for XML file changes and trigger import. The watchdog can import several files in parallel.
+Create Systemd unit file to watch a directory for XML file changes and trigger import. The watchdog can import several files in parallel.
 Optional `t` argument specifies the polling interval in seconds, the default is 5 minutes.
 
 Syntax
@@ -59,7 +59,7 @@ Syntax
 
 .. code-block::
 
-    emhealth watch -i /path/to/xml/dir -s em_health/instruments.json [-t 300]
+    emhealth create-watcher -i /path/to/xml/dir -s em_health/instruments.json [-t 300]
 
 ----
 
@@ -141,7 +141,7 @@ Backup
 Description
 ^^^^^^^^^^^
 
-Perform a logical backup of TimescaleDB (both TEM and SEM) or a physical backup of Grafana databases. The backups are saved into `BACKUP_DIR` folder.
+Perform a logical backup of TimescaleDB (either TEM or SEM) or a physical backup of Grafana databases. The backups are saved into `BACKUP_DIR` folder.
 
 Syntax
 ^^^^^^
@@ -215,7 +215,7 @@ Description
 ^^^^^^^^^^^
 
 The periodic database statistics collection is enabled by default. Below command can be used if you
-modify the pganalyze tables or functions and want to update the jobs. The output is used in dashboards under *DB performance* folder.
+modify the pganalyze tables or functions and want to update the jobs and views. The output is used in dashboards under *DB performance* folder.
 Optional `f` flag will erase existing database statistics.
 
 Syntax
@@ -223,7 +223,7 @@ Syntax
 
 .. code-block::
 
-    emhealth dev -d tem pganalyze [-f]
+    emhealth dev -d tem create-stats [-f]
 
 ----
 
@@ -240,3 +240,15 @@ as well as the *server* field with IP address for each instrument in the `instru
 .. code-block::
 
     emhealth dev -d tem import-uec
+
+----
+
+Create Service
+~~~~~~~~~~~~~~
+
+Create Systemd unit file for host OS statistics collector which populates `pganalyze.sys_info` and `pganalyze.sys_stats` tables.
+Optionally, you can change the default time intervals (in seconds) for metrics collection.
+
+.. code-block::
+
+    emhealth dev -d tem create-service [-f FAST] [-s SLOW]

@@ -122,11 +122,31 @@ Automated Import Setup
 
 .. note:: The task will run only when a user is logged on. This is because in Windows the network drives are mounted on a per-user basis.
 
-4. Start the watchdog service, which checks the directory every 5 minutes for modified files matching \*_data.xml or \*_data.xml.gz:
+4. Create Systemd unit file for the watchdog service, which will check the directory every 5 minutes for modified files matching \*_data.xml or \*_data.xml.gz:
 
    .. code-block::
 
-       emhealth watch -i /path/to/xml/dir -s em_health/instruments.json -t 300
+       emhealth create-watcher -i /path/to/xml/dir -s em_health/instruments.json -t 300
+
+5. Enable created user service which will run in the background:
+
+   .. code-block::
+
+       systemctl --user daemon-reload
+       systemctl --user enable --now emhealth-importer.service
+
+6. You may want to enable lingering to allow Systemd user manager running in the background even after all interactive login sessions end or before the user logs in. Alternatively, you will need to modify the unit file to run it as a system service.
+
+   .. code-block::
+
+       sudo loginctl enable-linger <username>
+
+7. Verify the service status or check the logs:
+
+  .. code-block::
+
+      systemctl --user status emhealth-importer.service
+      journalctl --user -f -u emhealth-importer.service
 
 Post-Import Steps
 ^^^^^^^^^^^^^^^^^
@@ -141,4 +161,4 @@ Post-Import Steps
 2. Access Grafana dashboards at http://localhost:3000
 
    - Login with *admin* account
-   - Navigate to "TEM" folder for instrument dashboards
+   - Navigate to "TEM" or "SEM" folder for instrument dashboards
