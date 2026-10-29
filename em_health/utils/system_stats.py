@@ -327,23 +327,26 @@ def read_pgdata_usage(metrics):
     if sizes is None:
         return
 
-    log_size_bytes, wal_size_bytes, data_size_bytes = sizes
+    log_size_bytes, wal_size_bytes, data_size_bytes, backup_size_bytes = sizes
 
-    metrics.append({
-        "metric": "postgres_data_size_bytes",
-        "value": data_size_bytes
-    })
-
-    metrics.append({
-        "metric": "postgres_wal_size_bytes",
-        "value": wal_size_bytes
-    })
-
-    metrics.append({
-        "metric": "postgres_log_size_bytes",
-        "value": log_size_bytes
-    })
-
+    metrics.extend(
+        {
+            "metric": "postgres_data_size_bytes",
+            "value": data_size_bytes
+        },
+        {
+            "metric": "postgres_wal_size_bytes",
+            "value": wal_size_bytes
+        },
+        {
+            "metric": "postgres_log_size_bytes",
+            "value": log_size_bytes
+        },
+        {
+            "metric": "postgres_backup_size_bytes",
+            "value": backup_size_bytes
+        }
+    )
 
 # ------ Util funcs -------------------------------------------------------------------------------
 def get_docker_cgroup_path(container):
@@ -390,20 +393,20 @@ def get_pgdata_bytes():
                 "emhealth-db",
                 "sh",
                 "-c",
-                'du -s $PGDATA/log $PGDATA/pg_wal $PGDATA',
+                'du -s $PGDATA/log $PGDATA/pg_wal $PGDATA /backups',
             ],
             capture_output=True,
             text=True,
             check=True,
         )
+        sizes = [line.split()[0] for line in result.stdout.splitlines()]
+        values = [int(size) * 1024 if size.isdigit() else 0 for size in sizes]
 
-        sizes = [int(line.split()[0]) * 1024 for line in result.stdout.splitlines()]
-
-        if len(sizes) != 3:
-            logger.error("du cmd failed, expected 3 values, got %d", len(sizes))
+        if len(values) != 4:
+            logger.error("du cmd failed, expected 4 values, got %d", len(values))
             return None
 
-        return tuple(sizes)
+        return tuple(values)
 
     except Exception as e:
         logger.exception("Failed to get PGDATA sizes: %s", e)
