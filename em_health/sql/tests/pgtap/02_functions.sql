@@ -24,7 +24,9 @@ SELECT functions_are('pganalyze'::name, ARRAY[
   'parse_logs',
   'import_sysinfo',
   'import_sysstats',
-  'purge_stats'
+  'purge_stats',
+  'refresh_index_bloat',
+  'refresh_table_bloat'
   ]);
 
 -- PGANALYZE functions

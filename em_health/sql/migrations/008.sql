@@ -191,7 +191,7 @@ $sql$;
         PRIMARY KEY (collected_at, backend_type)
       );
 
-      SELECT add_job('pganalyze.get_io_stats', schedule_interval=>'1 min'::INTERVAL);
+      PERFORM add_job('pganalyze.get_io_stats', schedule_interval=>'1 min'::INTERVAL);
 
       -- 6. Add new column to pganalyze.table_stats
       ALTER TABLE pganalyze.table_stats
