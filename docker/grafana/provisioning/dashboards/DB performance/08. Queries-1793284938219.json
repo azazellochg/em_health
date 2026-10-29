@@ -4,7 +4,7 @@
   "metadata": {
     "name": "f5f755f6-d55b-4f89-bfd7-36281dc0eec7",
     "generation": 2,
-    "creationTimestamp": "2026-10-20T13:39:40Z",
+    "creationTimestamp": "2026-10-29T14:28:37Z",
     "labels": {},
     "annotations": {}
   },
@@ -48,10 +48,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "${source}",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "datasource": {
                         "name": "${source}"
                       },
@@ -78,6 +74,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "B",
@@ -187,10 +187,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "${source}",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "datasource": {
                         "name": "${source}"
                       },
@@ -216,6 +212,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -312,10 +312,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "${source}",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "datasource": {
                         "name": "${source}"
                       },
@@ -341,6 +337,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -444,10 +444,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "${source}",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "datasource": {
                         "name": "${source}"
                       },
@@ -474,6 +470,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "B",
@@ -499,7 +499,7 @@
                 "sortBy": [
                   {
                     "desc": true,
-                    "displayName": "Avg time"
+                    "displayName": "% of all I/O"
                   }
                 ]
               },
@@ -636,10 +636,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "${source}",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "datasource": {
                         "name": "${source}"
                       },
@@ -647,7 +643,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    time_bucket(INTERVAL '$__interval', time) AS time,\n    delta(counter_agg(time, total_exec_time)) AS \"Total time\",\n    delta(counter_agg(time, blk_read_time))\n      + delta(counter_agg(time, blk_write_time))\n        AS \"Total I/O time\",\n    delta(counter_agg(time, calls)) AS \"Calls\"\nFROM pganalyze.stat_statements\nWHERE $__timeFilter(time) \n  AND queryid = $queryid  \nGROUP BY time",
+                        "rawSql": "SELECT\n    time_bucket(INTERVAL '$__interval', time) AS time,\n    delta(counter_agg(time, total_exec_time)) AS \"Total time\",\n    delta(counter_agg(time, blk_read_time))\n      + delta(counter_agg(time, blk_write_time))\n        AS \"Total I/O time\",\n    delta(counter_agg(time, calls)) AS \"Calls\"\nFROM pganalyze.stat_statements\nWHERE $__timeFilter(time) \n  AND queryid = $queryid  \nGROUP BY time_bucket(INTERVAL '$__interval', time)",
                         "sql": {
                           "columns": [
                             {
@@ -665,6 +661,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -723,7 +723,7 @@
                     "axisPlacement": "auto",
                     "barAlignment": 0,
                     "barWidthFactor": 0.6,
-                    "drawStyle": "line",
+                    "drawStyle": "points",
                     "fillOpacity": 0,
                     "gradientMode": "none",
                     "hideFrom": {
@@ -734,7 +734,7 @@
                     "insertNulls": false,
                     "lineInterpolation": "linear",
                     "lineWidth": 1,
-                    "pointSize": 5,
+                    "pointSize": 6,
                     "scaleDistribution": {
                       "type": "linear"
                     },
@@ -787,10 +787,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "${source}",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "datasource": {
                         "name": "${source}"
                       },
@@ -816,6 +812,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -886,7 +886,7 @@
                     "insertNulls": false,
                     "lineInterpolation": "linear",
                     "lineWidth": 1,
-                    "pointSize": 5,
+                    "pointSize": 6,
                     "scaleDistribution": {
                       "type": "linear"
                     },
@@ -1039,8 +1039,8 @@
                                 "spec": {
                                   "x": 0,
                                   "y": 3,
-                                  "width": 12,
-                                  "height": 6,
+                                  "width": 24,
+                                  "height": 10,
                                   "element": {
                                     "kind": "ElementReference",
                                     "name": "panel-5"
@@ -1050,10 +1050,10 @@
                               {
                                 "kind": "GridLayoutItem",
                                 "spec": {
-                                  "x": 12,
-                                  "y": 3,
-                                  "width": 12,
-                                  "height": 6,
+                                  "x": 0,
+                                  "y": 13,
+                                  "width": 24,
+                                  "height": 9,
                                   "element": {
                                     "kind": "ElementReference",
                                     "name": "panel-6"

@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "adh7lj8",
-    "generation": 4,
-    "creationTimestamp": "2026-10-26T12:07:34Z",
+    "generation": 2,
+    "creationTimestamp": "2026-10-29T13:35:10Z",
     "labels": {},
     "annotations": {}
   },
@@ -637,7 +637,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    time_bucket('$agg_interval', time) as time,\n        (\n            MAX(value) FILTER (WHERE metric = 'node_memory_MemTotal_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_MemFree_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_Buffers_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_Cached_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_SReclaimable_bytes')\n        ) AS Application,\n    (MAX(value) FILTER (WHERE metric = 'node_memory_Cached_bytes') + MAX(value) FILTER (WHERE metric = 'node_memory_SReclaimable_bytes')) AS Cached,\n    MAX(value) FILTER (WHERE metric = 'node_memory_Buffers_bytes') AS Buffers,\n    MAX(value) FILTER (WHERE metric = 'node_memory_MemFree_bytes') AS Free,\n    MAX(value) FILTER (WHERE metric = 'node_memory_MemTotal_bytes') AS Total\nFROM pganalyze.sys_stats\nWHERE\n    metric LIKE 'node_memory%'\n    AND $__timeFilter(time)\nGROUP BY time\nORDER BY time",
+                        "rawSql": "SELECT\n    time_bucket('$agg_interval', time) as time,\n        (\n            MAX(value) FILTER (WHERE metric = 'node_memory_MemTotal_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_MemFree_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_Buffers_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_Cached_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_SReclaimable_bytes')\n        ) AS Application,\n    (MAX(value) FILTER (WHERE metric = 'node_memory_Cached_bytes') + MAX(value) FILTER (WHERE metric = 'node_memory_SReclaimable_bytes')) AS Cached,\n    MAX(value) FILTER (WHERE metric = 'node_memory_Buffers_bytes') AS Buffers,\n    MAX(value) FILTER (WHERE metric = 'node_memory_MemFree_bytes') AS Free,\n    MAX(value) FILTER (WHERE metric = 'node_memory_MemTotal_bytes') AS Total\nFROM pganalyze.sys_stats\nWHERE\n    metric LIKE 'node_memory%'\n    AND $__timeFilter(time)\nGROUP BY time_bucket('$agg_interval', time)\n",
                         "sql": {
                           "columns": [
                             {
@@ -1815,8 +1815,15 @@
                     "options": {
                       "excludeByName": {},
                       "includeByName": {},
-                      "indexByName": {},
+                      "indexByName": {
+                        "Time": 0,
+                        "postgres_backup_size_bytes": 4,
+                        "postgres_data_size_bytes": 1,
+                        "postgres_log_size_bytes": 2,
+                        "postgres_wal_size_bytes": 3
+                      },
                       "renameByName": {
+                        "postgres_backup_size_bytes": "Backups size",
                         "postgres_data_size_bytes": "Total PGDATA size",
                         "postgres_log_size_bytes": "Logs size",
                         "postgres_wal_size_bytes": "WAL size"
