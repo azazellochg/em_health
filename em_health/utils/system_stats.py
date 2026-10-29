@@ -329,7 +329,7 @@ def read_pgdata_usage(metrics):
 
     log_size_bytes, wal_size_bytes, data_size_bytes, backup_size_bytes = sizes
 
-    metrics.extend(
+    metrics.extend([
         {
             "metric": "postgres_data_size_bytes",
             "value": data_size_bytes
@@ -346,7 +346,7 @@ def read_pgdata_usage(metrics):
             "metric": "postgres_backup_size_bytes",
             "value": backup_size_bytes
         }
-    )
+    ])
 
 # ------ Util funcs -------------------------------------------------------------------------------
 def get_docker_cgroup_path(container):
