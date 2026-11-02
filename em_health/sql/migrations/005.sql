@@ -264,7 +264,7 @@ $sql$;
       -- 14. Update schema version
       COMMENT ON TABLE public.schema_info IS 'Global schema version';
       GRANT SELECT ON TABLE public.schema_info TO PUBLIC;
-      UPDATE public.schema_info SET version = 5;
+      UPDATE public.schema_info SET version = 5, updated = NOW();
     END IF;
   END
 $$

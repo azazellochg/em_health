@@ -2,6 +2,7 @@ DO
 $$
   DECLARE
     current_version INTEGER;
+    r RECORD;
   BEGIN
     -- Get current schema version
     SELECT MAX(version) INTO current_version FROM public.schema_info;
@@ -197,9 +198,20 @@ $sql$;
       ALTER TABLE pganalyze.table_stats
         ADD COLUMN seq_scans BIGINT NOT NULL DEFAULT 0;
 
-      -- 7. Update schema version
+      -- 7. Drop all CAGGS due to toolkit upgrade
+      SET ROLE emhealth;
+      FOR r IN
+        SELECT view_schema, view_name
+        FROM timescaledb_information.continuous_aggregates
+        WHERE hypertable_schema = 'events'
+          AND hypertable_name = 'data'
+      LOOP
+        EXECUTE format('DROP MATERIALIZED VIEW IF EXISTS %I.%I CASCADE', r.view_schema, r.view_name);
+      END LOOP;
+
+      -- 8. Update schema version
       SET ROLE postgres;
-      UPDATE public.schema_info SET version = 8;
+      UPDATE public.schema_info SET version = 8, updated = NOW();
       RAISE NOTICE 'Please run "emhealth dev -d tem create-stats -f" and "emhealth dev -d sem create-stats -f"';
     END IF;
   END
