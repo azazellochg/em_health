@@ -18,7 +18,7 @@ Version 0.1a11
 * remove unused project deps
 * log DDL statements in PG
 * new mviews in pganalyze schema
-* new dashboards for health checks, IO, host and WAL metrics
+* new dashboards for indexes, health checks, IO, host and WAL metrics
 
 Version 0.1a10
 ^^^^^^^^^^^^^^

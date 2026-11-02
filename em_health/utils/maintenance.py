@@ -168,7 +168,6 @@ def update() -> None:
         mgr_cmd = f"docker compose"
 
     # migrate db schema
-    from em_health.db_manager import main as db_manager
     grafana_backup = backup("grafana")
     migrate("tem")
     migrate("sem")
