@@ -3,27 +3,42 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "afh7lj8",
-    "generation": 2,
-    "creationTimestamp": "2026-10-26T13:18:18Z",
-    "labels": {},
-    "annotations": {}
+    "namespace": "default",
+    "uid": "fcd8f0bb-f683-48fd-b839-a02a08d0f855",
+    "resourceVersion": "1793620103656000",
+    "generation": 1,
+    "creationTimestamp": "2026-11-02T11:48:23Z",
+    "labels": {
+      "grafana.app/deprecatedInternalID": "530460819734528"
+    },
+    "annotations": {
+      "grafana.app/createdBy": "access-policy:service",
+      "grafana.app/folder": "ag23nl8kefmyod",
+      "grafana.app/managedBy": "classic-file-provisioning",
+      "grafana.app/managerId": "dashboards",
+      "grafana.app/sourceChecksum": "4c7347456c5620a164e9c3a1f84e0afa",
+      "grafana.app/sourcePath": "/etc/grafana/provisioning/dashboards/DB performance/11. Indexes-1793620079152.json",
+      "grafana.app/sourceTimestamp": "1793620079000",
+      "grafana.app/folderTitle": "DB performance",
+      "grafana.app/folderUrl": "/dashboards/f/ag23nl8kefmyod/db-performance"
+    }
   },
   "spec": {
     "annotations": [
       {
         "kind": "AnnotationQuery",
         "spec": {
-          "query": {
-            "kind": "DataQuery",
-            "group": "grafana",
-            "version": "v0",
-            "spec": {}
-          },
+          "builtIn": true,
           "enable": true,
           "hide": true,
           "iconColor": "rgba(0, 211, 255, 1)",
           "name": "Annotations & Alerts",
-          "builtIn": true
+          "query": {
+            "group": "grafana",
+            "kind": "DataQuery",
+            "spec": {},
+            "version": "v0"
+          }
         }
       }
     ],
@@ -33,10 +48,6 @@
       "panel-46": {
         "kind": "Panel",
         "spec": {
-          "id": 46,
-          "title": "Top 10 biggest indexes",
-          "description": "",
-          "links": [],
           "data": {
             "kind": "QueryGroup",
             "spec": {
@@ -44,18 +55,18 @@
                 {
                   "kind": "PanelQuery",
                   "spec": {
+                    "hidden": false,
                     "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
                       "datasource": {
                         "name": "${source}"
                       },
+                      "group": "grafana-postgresql-datasource",
+                      "kind": "DataQuery",
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH last_timestamp AS (\n  SELECT MAX(collected_at) AS time\n  FROM pganalyze.index_stats\n)\n\nSELECT\n  c.relname AS \"Index\",\n  i.schemaname || '.' || s.relid::regclass AS \"Table\",\n  s.size_bytes AS \"Size\",\n  b.bloat_ratio_percent AS \"Est. bloat\",\n  s.scan AS \"Scans\",\n  i.last_idx_scan AS \"Last scan\"\nFROM\n  pganalyze.index_stats s\n  JOIN pg_stat_user_indexes i USING (relid)\n  JOIN pg_class c ON c.oid = i.indexrelid\n  LEFT JOIN pganalyze.index_bloat b ON b.indexrelname = c.relname\nWHERE \n  collected_at = (SELECT time from last_timestamp)\nORDER BY s.size_bytes DESC\nLIMIT 10",
+                        "rawSql": "WITH last_timestamp AS (\n  SELECT MAX(collected_at) AS time\n  FROM pganalyze.index_stats\n)\n\nSELECT\n  i.indexrelname AS \"Index\",\n  i.schemaname || '.' || i.relname AS \"Table\",\n  s.size_bytes AS \"Size\",\n  b.bloat_ratio_percent AS \"Est. bloat\",\n  s.scan AS \"Scans\",\n  i.last_idx_scan AS \"Last scan\"\nFROM\n  pganalyze.index_stats s\n  JOIN pg_stat_user_indexes i USING (indexrelid)\n  LEFT JOIN pganalyze.index_bloat b ON b.indexrelname = i.indexrelname\nWHERE \n  collected_at = (SELECT time from last_timestamp)\nORDER BY s.size_bytes DESC\nLIMIT 10",
                         "sql": {
                           "columns": [
                             {
@@ -74,43 +85,26 @@
                           "limit": 50
                         }
                       },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "${source}"
-                      }
+                      "version": "v0"
                     },
-                    "refId": "A",
-                    "hidden": false
+                    "refId": "A"
                   }
                 }
               ],
-              "transformations": [],
-              "queryOptions": {}
+              "queryOptions": {},
+              "transformations": []
             }
           },
+          "description": "",
+          "id": 46,
+          "links": [],
+          "title": "Top 10 biggest indexes",
           "vizConfig": {
-            "kind": "VizConfig",
             "group": "table",
-            "version": "13.2.3",
+            "kind": "VizConfig",
             "spec": {
-              "options": {
-                "cellHeight": "sm",
-                "showHeader": true
-              },
               "fieldConfig": {
                 "defaults": {
-                  "decimals": 0,
-                  "min": 0,
-                  "max": 100,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
                   "color": {
                     "mode": "thresholds"
                   },
@@ -123,14 +117,26 @@
                       "reducers": []
                     },
                     "inspect": false
+                  },
+                  "decimals": 0,
+                  "max": 100,
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
                   }
                 },
                 "overrides": [
                   {
                     "matcher": {
                       "id": "byName",
-                      "scope": "series",
-                      "options": "Size"
+                      "options": "Size",
+                      "scope": "series"
                     },
                     "properties": [
                       {
@@ -142,8 +148,8 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "scope": "series",
-                      "options": "Est. bloat"
+                      "options": "Est. bloat",
+                      "scope": "series"
                     },
                     "properties": [
                       {
@@ -153,18 +159,19 @@
                     ]
                   }
                 ]
+              },
+              "options": {
+                "cellHeight": "sm",
+                "showHeader": true
               }
-            }
+            },
+            "version": "13.2.3"
           }
         }
       },
       "panel-47": {
         "kind": "Panel",
         "spec": {
-          "id": 47,
-          "title": "Invalid indexes",
-          "description": "",
-          "links": [],
           "data": {
             "kind": "QueryGroup",
             "spec": {
@@ -172,13 +179,13 @@
                 {
                   "kind": "PanelQuery",
                   "spec": {
+                    "hidden": false,
                     "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
                       "datasource": {
                         "name": "${source}"
                       },
+                      "group": "grafana-postgresql-datasource",
+                      "kind": "DataQuery",
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
@@ -203,40 +210,26 @@
                           "limit": 50
                         }
                       },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "${source}"
-                      }
+                      "version": "v0"
                     },
-                    "refId": "A",
-                    "hidden": false
+                    "refId": "A"
                   }
                 }
               ],
-              "transformations": [],
-              "queryOptions": {}
+              "queryOptions": {},
+              "transformations": []
             }
           },
+          "description": "",
+          "id": 47,
+          "links": [],
+          "title": "Invalid indexes",
           "vizConfig": {
-            "kind": "VizConfig",
             "group": "table",
-            "version": "13.2.3",
+            "kind": "VizConfig",
             "spec": {
-              "options": {
-                "cellHeight": "sm",
-                "showHeader": true
-              },
               "fieldConfig": {
                 "defaults": {
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
                   "color": {
                     "mode": "thresholds"
                   },
@@ -249,21 +242,31 @@
                       "reducers": []
                     },
                     "inspect": false
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
                   }
                 },
                 "overrides": []
+              },
+              "options": {
+                "cellHeight": "sm",
+                "showHeader": true
               }
-            }
+            },
+            "version": "13.2.3"
           }
         }
       },
       "panel-48": {
         "kind": "Panel",
         "spec": {
-          "id": 48,
-          "title": "Unused indexes (non-PK)",
-          "description": "Scans < 10",
-          "links": [],
           "data": {
             "kind": "QueryGroup",
             "spec": {
@@ -271,19 +274,19 @@
                 {
                   "kind": "PanelQuery",
                   "spec": {
+                    "hidden": false,
                     "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
                       "datasource": {
                         "name": "${source}"
                       },
+                      "group": "grafana-postgresql-datasource",
+                      "kind": "DataQuery",
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  s.indexrelname AS \"Index\",\n  format('%I.%I', s.schemaname, s.relname) AS \"Table\",\n  s.idx_scan AS \"Scans\"\nFROM\n  pg_stat_user_indexes s\n  JOIN pg_index i USING (indexrelid)\nWHERE\n  NOT i.indisprimary\n  AND s.idx_scan <10\n  AND s.schemaname NOT IN ('pg_catalog', 'information_schema')\n  AND s.schemaname NOT LIKE '_timescaledb%'\nORDER BY s.schemaname, s.relname",
+                        "rawSql": "WITH latest AS (\n  SELECT\n    DISTINCT ON (i.indexrelid) i.indexrelid,\n    format('%I.%I', s.schemaname, s.relname) AS \"Table\",\n    s.indexrelname AS \"Index\",\n    i.scan AS \"Scans\"\n  FROM\n    pganalyze.index_stats i\n    JOIN pg_stat_user_indexes s USING (indexrelid)\n  WHERE\n    s.indexrelname NOT LIKE '%_pkey'\n  ORDER BY\n    i.indexrelid,\n    i.collected_at DESC\n)\nSELECT\n  \"Table\",\n  \"Index\",\n  \"Scans\"\nFROM\n  latest\nWHERE\n  \"Scans\" < 10\nORDER BY\n  \"Table\"",
                         "sql": {
                           "columns": [
                             {
@@ -302,40 +305,26 @@
                           "limit": 50
                         }
                       },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "${source}"
-                      }
+                      "version": "v0"
                     },
-                    "refId": "A",
-                    "hidden": false
+                    "refId": "A"
                   }
                 }
               ],
-              "transformations": [],
-              "queryOptions": {}
+              "queryOptions": {},
+              "transformations": []
             }
           },
+          "description": "Scans < 10",
+          "id": 48,
+          "links": [],
+          "title": "Unused indexes (non-PK)",
           "vizConfig": {
-            "kind": "VizConfig",
             "group": "table",
-            "version": "13.2.3",
+            "kind": "VizConfig",
             "spec": {
-              "options": {
-                "cellHeight": "sm",
-                "showHeader": true
-              },
               "fieldConfig": {
                 "defaults": {
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
                   "color": {
                     "mode": "thresholds"
                   },
@@ -348,21 +337,31 @@
                       "reducers": []
                     },
                     "inspect": false
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
                   }
                 },
                 "overrides": []
+              },
+              "options": {
+                "cellHeight": "sm",
+                "showHeader": true
               }
-            }
+            },
+            "version": "13.2.3"
           }
         }
       },
       "panel-49": {
         "kind": "Panel",
         "spec": {
-          "id": 49,
-          "title": "Duplicate indexes",
-          "description": "",
-          "links": [],
           "data": {
             "kind": "QueryGroup",
             "spec": {
@@ -370,13 +369,13 @@
                 {
                   "kind": "PanelQuery",
                   "spec": {
+                    "hidden": false,
                     "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
                       "datasource": {
                         "name": "${source}"
                       },
+                      "group": "grafana-postgresql-datasource",
+                      "kind": "DataQuery",
                       "spec": {
                         "dataset": "tem",
                         "editorMode": "code",
@@ -401,40 +400,26 @@
                           "limit": 50
                         }
                       },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "${source}"
-                      }
+                      "version": "v0"
                     },
-                    "refId": "A",
-                    "hidden": false
+                    "refId": "A"
                   }
                 }
               ],
-              "transformations": [],
-              "queryOptions": {}
+              "queryOptions": {},
+              "transformations": []
             }
           },
+          "description": "",
+          "id": 49,
+          "links": [],
+          "title": "Duplicate indexes",
           "vizConfig": {
-            "kind": "VizConfig",
             "group": "table",
-            "version": "13.2.3",
+            "kind": "VizConfig",
             "spec": {
-              "options": {
-                "cellHeight": "sm",
-                "showHeader": true
-              },
               "fieldConfig": {
                 "defaults": {
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
                   "color": {
                     "mode": "thresholds"
                   },
@@ -447,11 +432,25 @@
                       "reducers": []
                     },
                     "inspect": false
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
                   }
                 },
                 "overrides": []
+              },
+              "options": {
+                "cellHeight": "sm",
+                "showHeader": true
               }
-            }
+            },
+            "version": "13.2.3"
           }
         }
       }
@@ -463,53 +462,53 @@
           {
             "kind": "GridLayoutItem",
             "spec": {
-              "x": 0,
-              "y": 0,
-              "width": 24,
-              "height": 11,
               "element": {
                 "kind": "ElementReference",
                 "name": "panel-46"
-              }
+              },
+              "height": 11,
+              "width": 24,
+              "x": 0,
+              "y": 0
             }
           },
           {
             "kind": "GridLayoutItem",
             "spec": {
-              "x": 0,
-              "y": 11,
-              "width": 12,
-              "height": 7,
               "element": {
                 "kind": "ElementReference",
                 "name": "panel-47"
-              }
+              },
+              "height": 7,
+              "width": 12,
+              "x": 0,
+              "y": 11
             }
           },
           {
             "kind": "GridLayoutItem",
             "spec": {
-              "x": 12,
-              "y": 11,
-              "width": 12,
-              "height": 7,
               "element": {
                 "kind": "ElementReference",
                 "name": "panel-48"
-              }
+              },
+              "height": 7,
+              "width": 12,
+              "x": 12,
+              "y": 11
             }
           },
           {
             "kind": "GridLayoutItem",
             "spec": {
-              "x": 0,
-              "y": 18,
-              "width": 12,
-              "height": 7,
               "element": {
                 "kind": "ElementReference",
                 "name": "panel-49"
-              }
+              },
+              "height": 7,
+              "width": 12,
+              "x": 0,
+              "y": 18
             }
           }
         ]
@@ -517,18 +516,18 @@
     },
     "links": [
       {
-        "title": "Dashboards",
-        "type": "dashboards",
+        "asDropdown": true,
         "icon": "external link",
-        "tooltip": "",
-        "url": "",
+        "includeVars": true,
+        "keepTime": true,
         "tags": [
           "perf"
         ],
-        "asDropdown": true,
         "targetBlank": false,
-        "includeVars": true,
-        "keepTime": true
+        "title": "Dashboards",
+        "tooltip": "",
+        "type": "dashboards",
+        "url": ""
       }
     ],
     "liveNow": true,
@@ -537,34 +536,34 @@
       "perf"
     ],
     "timeSettings": {
-      "timezone": "Europe/London",
-      "from": "2026-10-12T12:37:13.512Z",
-      "to": "2026-10-12T14:07:16.970Z",
       "autoRefresh": "",
       "autoRefreshIntervals": [],
+      "fiscalYearStartMonth": 0,
+      "from": "2026-10-12T12:37:13.512Z",
       "hideTimepicker": true,
-      "fiscalYearStartMonth": 0
+      "timezone": "Europe/London",
+      "to": "2026-10-12T14:07:16.970Z"
     },
     "title": "11. Indexes",
     "variables": [
       {
         "kind": "DatasourceVariable",
         "spec": {
-          "name": "source",
-          "pluginId": "grafana-postgresql-datasource",
-          "refresh": "onDashboardLoad",
-          "regex": "",
+          "allowCustomValue": false,
           "current": {
             "text": "",
             "value": ""
           },
-          "options": [],
-          "multi": false,
+          "hide": "dontHide",
           "includeAll": false,
           "label": "Database",
-          "hide": "dontHide",
-          "skipUrlSync": false,
-          "allowCustomValue": false
+          "multi": false,
+          "name": "source",
+          "options": [],
+          "pluginId": "grafana-postgresql-datasource",
+          "refresh": "onDashboardLoad",
+          "regex": "",
+          "skipUrlSync": false
         }
       }
     ]

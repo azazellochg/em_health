@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "ee46bdfb-c046-42b1-b547-23990e2ec0f3",
-    "generation": 2,
-    "creationTimestamp": "2026-10-26T13:18:18Z",
+    "generation": 3,
+    "creationTimestamp": "2026-10-29T14:54:53Z",
     "labels": {},
     "annotations": {}
   },
@@ -1058,7 +1058,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH wal_config AS (\n    SELECT pg_size_bytes(current_setting('wal_segment_size')) AS segment_size\n)\nSELECT\n    pg_wal_lsn_diff(\n        pg_current_wal_lsn(),\n        (\n            (\n                substring(a.last_archived_wal FROM 1 FOR 8) || '/' ||\n                substring(a.last_archived_wal FROM 9 FOR 8)\n            )::pg_lsn + c.segment_size\n        )\n    ) AS archive_lag_bytes\nFROM pg_stat_archiver a\nCROSS JOIN wal_config c\nWHERE a.last_archived_wal IS NOT NULL",
+                        "rawSql": "WITH wal_config AS (\n    SELECT\n        pg_size_bytes(\n            current_setting('wal_segment_size')\n        ) AS segment_size\n),\narchived AS (\n    SELECT\n        a.last_archived_wal,\n        c.segment_size,\n        ('x' || substring(a.last_archived_wal FROM 9 FOR 8))::bit(32)::bigint AS log_id,\n        ('x' || substring(a.last_archived_wal FROM 17 FOR 8))::bit(32)::bigint AS segment_no\n    FROM pg_stat_archiver a\n    CROSS JOIN wal_config c\n    WHERE a.last_archived_wal IS NOT NULL\n),\narchived_lsn AS (\n    SELECT\n        (\n            to_hex(\n                log_id +\n                ((segment_no * segment_size + segment_size)\n                 / 4294967296)::bigint\n            )\n            || '/'\n            || lpad(\n                to_hex(\n                    ((segment_no * segment_size + segment_size)\n                     % 4294967296)::bigint\n                ),\n                8,\n                '0'\n            )\n        )::pg_lsn AS archived_end_lsn\n    FROM archived\n)\nSELECT\n    pg_current_wal_lsn() AS current_lsn,\n    archived_end_lsn,\n    GREATEST(\n        0,\n        pg_wal_lsn_diff(\n            pg_current_wal_lsn(),\n            archived_end_lsn\n        )\n    ) AS archive_lag_bytes,\n    pg_size_pretty(\n        GREATEST(\n            0,\n            pg_wal_lsn_diff(\n                pg_current_wal_lsn(),\n                archived_end_lsn\n            )\n        )::bigint\n    ) AS archive_lag\nFROM archived_lsn;",
                         "sql": {
                           "columns": [
                             {
@@ -1100,7 +1100,7 @@
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
                   "calcs": [],
-                  "fields": "/.*/",
+                  "fields": "/^archive_lag_bytes$/",
                   "values": true
                 },
                 "showPercentChange": false,
@@ -3580,7 +3580,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH invalid_indexes AS (\n  SELECT\n    COUNT(*) AS total\n  FROM\n    pg_index i\n    JOIN pg_class c ON c.oid = i.indexrelid\n    JOIN pg_namespace n ON n.oid = c.relnamespace\n  WHERE\n    NOT i.indisvalid\n    AND n.nspname NOT IN ('pg_catalog', 'information_schema')\n),\nunused_indexes AS (\n  SELECT\n    COUNT(*) AS total\n  FROM\n    pg_stat_user_indexes s\n    JOIN pg_index i ON i.indexrelid = s.indexrelid\n  WHERE\n    NOT i.indisprimary\n    AND s.idx_scan < 10\n    AND s.schemaname NOT IN ('pg_catalog', 'information_schema')\n    AND s.schemaname NOT LIKE '_timescaledb%'\n),\nduplicate_indexes AS (\n  SELECT\n    COUNT(*) AS total\n  FROM\n    (\n      SELECT\n        indrelid,\n        indkey,\n        indclass,\n        indcollation,\n        indoption,\n        indexprs,\n        indpred,\n        indisunique,\n        am.amname\n      FROM\n        pg_index i\n        JOIN pg_class c ON c.oid = i.indexrelid\n        JOIN pg_am am ON am.oid = c.relam\n      WHERE\n        i.indisvalid\n      GROUP BY\n        indrelid,\n        indkey,\n        indclass,\n        indcollation,\n        indoption,\n        indexprs,\n        indpred,\n        indisunique,\n        am.amname\n      HAVING\n        COUNT(*) > 1\n    ) d\n)\nSELECT\n  (\n    SELECT\n      total\n    FROM\n      invalid_indexes\n  ) AS invalid,\n  (\n    SELECT\n      total\n    FROM\n      unused_indexes\n  ) AS unused,\n  (\n    SELECT\n      total\n    FROM\n      duplicate_indexes\n  ) AS duplicate",
+                        "rawSql": "WITH invalid_indexes AS (\n  SELECT\n    COUNT(*) AS total\n  FROM\n    pg_index i\n    JOIN pg_class c ON c.oid = i.indexrelid\n    JOIN pg_namespace n ON n.oid = c.relnamespace\n  WHERE\n    NOT i.indisvalid\n    AND n.nspname NOT IN ('pg_catalog', 'information_schema')\n),\nunused_indexes AS (\nWITH latest AS (\n    SELECT DISTINCT ON (i.indexrelid)\n        i.indexrelid,\n        i.scan\n    FROM\n        pganalyze.index_stats i\n    JOIN\n        pg_stat_user_indexes s USING (indexrelid)\n    WHERE\n        s.indexrelname NOT LIKE '%_pkey'\n    ORDER BY\n        i.indexrelid,\n        i.collected_at DESC\n)\nSELECT\n    COUNT(DISTINCT indexrelid) AS total\nFROM\n    latest\nWHERE\n    scan < 10\n),\nduplicate_indexes AS (\n  SELECT\n    COUNT(*) AS total\n  FROM\n    (\n      SELECT\n        indrelid,\n        indkey,\n        indclass,\n        indcollation,\n        indoption,\n        indexprs,\n        indpred,\n        indisunique,\n        am.amname\n      FROM\n        pg_index i\n        JOIN pg_class c ON c.oid = i.indexrelid\n        JOIN pg_am am ON am.oid = c.relam\n      WHERE\n        i.indisvalid\n      GROUP BY\n        indrelid,\n        indkey,\n        indclass,\n        indcollation,\n        indoption,\n        indexprs,\n        indpred,\n        indisunique,\n        am.amname\n      HAVING\n        COUNT(*) > 1\n    ) d\n)\nSELECT\n  (\n    SELECT\n      total\n    FROM\n      invalid_indexes\n  ) AS invalid,\n  (\n    SELECT\n      total\n    FROM\n      unused_indexes\n  ) AS unused,\n  (\n    SELECT\n      total\n    FROM\n      duplicate_indexes\n  ) AS duplicate",
                         "sql": {
                           "columns": [
                             {

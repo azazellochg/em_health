@@ -307,8 +307,8 @@ printf "\n---WAL settings recommendations---\n"
 log "checkpoint_timeout" "$PG_CHK_TIMEOUT" "30min"
 log "checkpoint_completion_target" "$PG_CHK_TGT" "0.9"
 log "wal_buffers" "$PG_WAL_BUFFERS" "16MB"
-log "min_wal_size" "$PG_MIN_WAL" "4GB"
-log "max_wal_size" "$PG_MAX_WAL" "20GB"
+log "min_wal_size" "$PG_MIN_WAL" "2GB"
+log "max_wal_size" "$PG_MAX_WAL" "4GB"
 log "wal_compression" "$PG_WAL_CMP" "lz4"
 
 printf "\n---Misc settings recommendations---\n"
@@ -378,8 +378,8 @@ apply() {
     set_cfg_value "checkpoint_timeout" "'30min'"
     set_cfg_value "checkpoint_completion_target" "0.9"
     set_cfg_value "wal_buffers" "'16MB'"
-    set_cfg_value "min_wal_size" "'4GB'"
-    set_cfg_value "max_wal_size" "'20GB'"
+    set_cfg_value "min_wal_size" "'2GB'"
+    set_cfg_value "max_wal_size" "'4GB'"
     set_cfg_value "wal_compression" "'lz4'"
 
     # Misc
