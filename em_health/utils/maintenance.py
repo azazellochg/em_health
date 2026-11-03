@@ -113,7 +113,7 @@ def list_backups() -> list[Path]:
     return [f for f in BACKUP_HOST_PATH.iterdir() if f.suffix in (".db", ".dump")]
 
 
-def restore(backup_file: Path, target_db: str, update: bool = False) -> None:
+def restore(backup_file: Path, target_db: str, is_grafana: bool = False) -> None:
     """Restore TimescaleDB or Grafana from a backup file."""
     if target_db == "grafana" and backup_file.suffix == ".db":
         # Grafana restore
@@ -126,7 +126,7 @@ def restore(backup_file: Path, target_db: str, update: bool = False) -> None:
             "chown 472:root /var/lib/grafana/grafana.db'",
             f"{MANAGER} start {GRAFANA_CONTAINER}",
         ]
-        if update:
+        if is_grafana:
             commands.append(f"{MANAGER} exec {GRAFANA_CONTAINER} grafana cli plugins update-all")
         for cmd in commands:
             run_command(cmd)
@@ -172,7 +172,7 @@ def update() -> None:
     else:
         mgr_cmd = f"docker compose"
 
-    # migrate db schema
+    # backup grafana and migrate db schemas
     grafana_backup = backup("grafana")
     migrate("tem")
     migrate("sem")
@@ -203,7 +203,12 @@ def update() -> None:
             'ALTER EXTENSION tds_fdw UPDATE;"'
         )
 
-    restore(grafana_backup, "grafana", update=True)
+    restore(grafana_backup, "grafana", is_grafana=True)
+
+    # update stats for pganalyze
+    from em_health.db_analyze import main as func
+    func("tem", "create-stats")
+    func("sem", "create-stats")
 
     logger.info("Finished updating")
 
