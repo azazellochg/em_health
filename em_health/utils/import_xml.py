@@ -239,8 +239,8 @@ class ImportXML:
         dt = datetime.fromisoformat(ts)
         return dt.astimezone(timezone.utc)
 
-    @staticmethod
-    def __convert_value(param_id: int,
+    def __convert_value(self,
+                        param_id: int,
                         value: str,
                         value_type: str):
         """ Convert the param value according to type.
@@ -258,7 +258,8 @@ class ImportXML:
             else:
                 raise ValueError
         except (ValueError, TypeError):
-            logger.error(f"Cannot convert '{value}' to {value_type} for param {param_id}")
+            logger.error(f"Cannot convert '{value}' to {value_type} for param {param_id}",
+                         extra={"prefix": self.instrument_name})
             return None, None
 
 

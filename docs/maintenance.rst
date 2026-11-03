@@ -24,24 +24,24 @@ Our suggestion is to setup a cron job on the host to periodically run full and i
 .. code-block::
 
     # Full backup every Sunday at 02:00
-    0 2 * * 0 /usr/bin/podman exec emhealth-db pgbackrest --stanza=main --type=full backup >> /home/user/emhealth-backup.log 2>&1
+    0 2 * * 0 /usr/bin/podman exec emhealth-db pgbackrest --stanza=main --type=full backup >> $HOME/emhealth-backup.log 2>&1
     # Incremental backup Monday-Saturday at 02:00
-    0 2 * * 1-6 /usr/bin/podman exec emhealth-db pgbackrest --stanza=main --type=incr backup >> /home/user/emhealth-backup.log 2>&1
+    0 2 * * 1-6 /usr/bin/podman exec emhealth-db pgbackrest --stanza=main --type=incr backup >> $HOME/emhealth-backup.log 2>&1
 
 By default we keep 2 full backups and archive WAL continuously. See `docker/pgbackrest.conf` for details.
 
-To do the PITR:
+To test the point-in-time recovery (PITR):
 
 .. code-block::
 
-    podman stop emhealth-db
-    podman volume rm pgdata
-    podman volume create pgdata
     cd em_health
+    podman-compose -f docker/compose.yaml down
+    podman volume create emhealth_pgdata_restored
+    export BACKUP_DIR="..."
     podman run --rm \
-        -v pgdata:/var/lib/postgresql/18/docker \
+        -v emhealth_pgdata_restored:/var/lib/postgresql/18/docker \
         -v "${BACKUP_DIR}:/backups" \
-        -v "$(pwd)/docker/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro" \
+        -v "$(pwd)/docker/pgbackrest.conf:/etc/pgbackrest.conf:ro" \
         --entrypoint pgbackrest \
         ghcr.io/azazellochg/timescaledb:0.1a11 \
         --stanza=main \

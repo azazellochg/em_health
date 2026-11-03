@@ -162,6 +162,11 @@ def update() -> None:
         print("EMHealth 0.1a6+ does not support PostgreSQL 17. "
               "Check documentation at https://em-health.readthedocs.io/latest/maintenance.html#updating-postgresql-from-v17-to-v18")
 
+    confirm = input("Have you run 'git pull' from the installation folder (y/n)?")
+    if not confirm.lower().startswith("y"):
+        print("Aborted.")
+        return
+
     if MANAGER == "podman":
         mgr_cmd = "podman-compose"
     else:
