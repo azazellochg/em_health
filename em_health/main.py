@@ -67,7 +67,9 @@ def test_cmd(args):
     from em_health.tests.test_app import TestEMHealth
     suite = unittest.TestLoader().loadTestsFromTestCase(TestEMHealth)
     verbosity=2 if os.getenv("EMHEALTH_DEBUG", False) else 1
-    unittest.TextTestRunner(verbosity=verbosity).run(suite)
+    result = unittest.TextTestRunner(verbosity=verbosity).run(suite)
+    if not result.wasSuccessful():
+        raise SystemExit(1)
 
 
 def db_cmd(args):
