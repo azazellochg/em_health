@@ -19,6 +19,5 @@ docs/_build
 emhealth.log
 .directory
 *.cmd
-em_health/instruments.json
 docker/.env
 docker/.env.old
