@@ -209,7 +209,10 @@ class ImportXML:
                             name = threshold_elem.get("Name")
                             value_elem = threshold_elem.find('ns:Value', namespaces=NS)
                             if value_elem is not None:
-                                self.thresholds[param_id][name] = float(value_elem.text)
+                                try:
+                                    self.thresholds[param_id][name] = float(value_elem.text)
+                                except ValueError:
+                                    continue
 
                 # Only yield after thresholds have been populated
                 yield from points
@@ -248,7 +251,7 @@ class ImportXML:
         """
         try:
             if value_type == "str":
-                return None, str(value)
+                return None, str(value).replace("\\", "").replace("\t", " ").replace("\n", " ")
             elif value_type == "float":
                 return float(value), None
             elif value_type == "int":  # works for int, IntEnum
@@ -294,19 +297,19 @@ def main(xml_fn, json_fn):
             if magic != b'\x1f\x8b':
                 raise IOError("Input file is not GZIP type!")
 
-        xmlparser = ImportXML(xml_fn, json_info)
-        xmlparser.parse_enumerations()
-        xmlparser.parse_parameters()
-        instr_dict = xmlparser.get_microscope_dict()
-        config_dict = {"params": xmlparser.params, "enums": xmlparser.enum_values}
+        with ImportXML(xml_fn, json_info) as xmlparser:
+            xmlparser.parse_enumerations()
+            xmlparser.parse_parameters()
+            instr_dict = xmlparser.get_microscope_dict()
+            config_dict = {"params": xmlparser.params, "enums": xmlparser.enum_values}
 
-        with DatabaseManager(xmlparser.db_name) as dbm:
-            instrument_id = dbm.add_instrument(instr_dict, config_dict)
-            datapoints = xmlparser.parse_values(instrument_id, xmlparser.params)
-            dbm.write_data(datapoints)
-            # thresholds are only populated once points are consumed
-            if xmlparser.thresholds:
-                dbm.add_thresholds(instrument_id, xmlparser.thresholds)
+            with DatabaseManager(xmlparser.db_name) as dbm:
+                instrument_id = dbm.add_instrument(instr_dict, config_dict)
+                datapoints = xmlparser.parse_values(instrument_id, xmlparser.params)
+                dbm.write_data(datapoints)
+                # thresholds are only populated once points are consumed
+                if xmlparser.thresholds:
+                    dbm.add_thresholds(instrument_id, xmlparser.thresholds)
     else:
         logger.error("File %s has wrong format", xml_fn)
         sys.exit(1)

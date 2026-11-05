@@ -91,53 +91,53 @@ class TestEMHealth(unittest.TestCase):
 
     def test_client(self):
         # first import
-        parser = ImportXML(XML_FN, JSON_INFO)
-        parser.parse_enumerations()
-        self.check_enumerations(parser.enum_values)
-        parser.parse_parameters()
-        self.check_parameters(parser.params)
-        instr_dict = parser.get_microscope_dict()
-        config_dict = {"params": parser.params, "enums": parser.enum_values}
+        with ImportXML(XML_FN, JSON_INFO) as parser:
+            parser.parse_enumerations()
+            self.check_enumerations(parser.enum_values)
+            parser.parse_parameters()
+            self.check_parameters(parser.params)
+            instr_dict = parser.get_microscope_dict()
+            config_dict = {"params": parser.params, "enums": parser.enum_values}
 
-        with DatabaseManager(parser.db_name) as dbm:
-            # clean-up
-            dbm.run_query("""
-              SELECT events.delete_instrument(id)
-              FROM events.instruments
-              WHERE serial = 9999;
-            """)
+            with DatabaseManager(parser.db_name) as dbm:
+                # clean-up
+                dbm.run_query("""
+                  SELECT events.delete_instrument(id)
+                  FROM events.instruments
+                  WHERE serial = 9999;
+                """)
 
-            instrument_id = dbm.add_instrument(instr_dict, config_dict)
+                instrument_id = dbm.add_instrument(instr_dict, config_dict)
 
-            # convert to list since we need to iterate twice
-            datapoints = list(parser.parse_values(instrument_id, parser.params))
-            self.check_datapoints(datapoints)
-            dbm.write_data(datapoints)
-            if parser.thresholds:
-                dbm.add_thresholds(instrument_id, parser.thresholds)
+                # convert to list since we need to iterate twice
+                datapoints = list(parser.parse_values(instrument_id, parser.params))
+                self.check_datapoints(datapoints)
+                dbm.write_data(datapoints)
+                if parser.thresholds:
+                    dbm.add_thresholds(instrument_id, parser.thresholds)
 
         run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/04_import.sql"')
 
         # second import
-        parser2 = ImportXML(XML_FN2, JSON_INFO)
-        parser2.parse_enumerations()
-        parser2.parse_parameters()
-        instr_dict = parser2.get_microscope_dict()
-        config_dict = {"params": parser2.params, "enums": parser2.enum_values}
+        with ImportXML(XML_FN2, JSON_INFO) as parser2:
+            parser2.parse_enumerations()
+            parser2.parse_parameters()
+            instr_dict = parser2.get_microscope_dict()
+            config_dict = {"params": parser2.params, "enums": parser2.enum_values}
 
-        with DatabaseManager(parser2.db_name) as dbm:
-            _ = dbm.add_instrument(instr_dict, config_dict)
-            dbm.write_data(datapoints)
+            with DatabaseManager(parser2.db_name) as dbm:
+                _ = dbm.add_instrument(instr_dict, config_dict)
+                dbm.write_data(datapoints)
 
-        run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/05_import2.sql"')
+            run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/05_import2.sql"')
 
-        with DatabaseManager(parser.db_name) as dbm:
-            # clean-up
-            dbm.run_query("""
-              SELECT events.delete_instrument(id)
-              FROM events.instruments
-              WHERE serial = 9999;
-            """)
+            with DatabaseManager(parser2.db_name) as dbm:
+                # clean-up
+                dbm.run_query("""
+                  SELECT events.delete_instrument(id)
+                  FROM events.instruments
+                  WHERE serial = 9999;
+                """)
 
     def test_pgtap_tem(self):
         run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/0[1-3]*.sql"')
