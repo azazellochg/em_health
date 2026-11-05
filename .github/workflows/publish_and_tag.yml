@@ -56,8 +56,7 @@ jobs:
 
   tag:
     runs-on: ubuntu-latest
-    needs:
-      - pypi-publish
+    needs: [build, pypi-publish]
     permissions:
       contents: write
     steps:
