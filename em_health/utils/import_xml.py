@@ -288,10 +288,8 @@ def main(xml_fn, json_fn):
         logger.error("Input xml not found: %s", xml_fn)
         sys.exit(1)
 
-    _, extension = os.path.splitext(xml_fn)
-
-    if extension in [".xml", ".gz"]:
-        if extension == ".gz":
+    if xml_fn.endswith(".xml.gz") or xml_fn.endswith(".xml"):
+        if xml_fn.endswith(".xml.gz"):
             with open(xml_fn, 'rb') as f:
                 magic = f.read(2)
             if magic != b'\x1f\x8b':
