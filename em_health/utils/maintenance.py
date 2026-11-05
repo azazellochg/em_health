@@ -252,7 +252,7 @@ def check_db_schema():
     from em_health.db_manager import DatabaseManager as DBM
     for dbname, schema in [("tem", TEM_SCHEMA_VERSION), ("sem", SEM_SCHEMA_VERSION)]:
         logger.info("Checking database %s schema version", dbname)
-        with DBM(dbname, username="postgres", password="POSTGRES_PASSWORD") as db:
+        with DBM(dbname) as db:
             current_ver = db.run_query("SELECT version FROM public.schema_info", mode="fetchone")
             current_ver = current_ver[0]
         if current_ver != schema:

@@ -381,6 +381,5 @@ def main(dbname, action, days=None):
             db.prune_data(days)
 
     elif action == "import-uec":
-        # requires superuser permissions to create FDW
-        with DatabaseManager(dbname, username="postgres", password="POSTGRES_PASSWORD") as db:
+        with DatabaseManager(dbname) as db:
             db.import_uec()

@@ -211,6 +211,9 @@ $sql$;
 
       -- 8. Update schema version
       SET ROLE postgres;
+      GRANT USAGE ON FOREIGN DATA WRAPPER postgres_fdw TO emhealth;
+      GRANT USAGE ON FOREIGN DATA WRAPPER tds_fdw TO emhealth;
+
       UPDATE public.schema_info SET version = 8, updated = NOW();
     END IF;
   END
