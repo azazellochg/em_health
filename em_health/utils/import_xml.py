@@ -43,6 +43,7 @@ VALUE_TYPES = {
     'String': 'str',
     'Boolean': 'bool',
 }
+COPY_ESCAPE = str.maketrans({"\\": "", "\t": " ", "\n": " ", "\r": " "})
 
 
 class ImportXML:
@@ -211,7 +212,7 @@ class ImportXML:
                             if value_elem is not None:
                                 try:
                                     self.thresholds[param_id][name] = float(value_elem.text)
-                                except ValueError:
+                                except (TypeError, ValueError):
                                     continue
 
                 # Only yield after thresholds have been populated
@@ -244,14 +245,16 @@ class ImportXML:
 
     def __convert_value(self,
                         param_id: int,
-                        value: str,
+                        value: str | None,
                         value_type: str):
         """ Convert the param value according to type.
         Returns value_num, value_text.
         """
         try:
-            if value_type == "str":
-                return None, str(value).replace("\\", "").replace("\t", " ").replace("\n", " ")
+            if value is None:
+                return None, None
+            elif value_type == "str":
+                return None, value.translate(COPY_ESCAPE)
             elif value_type == "float":
                 return float(value), None
             elif value_type == "int":  # works for int, IntEnum

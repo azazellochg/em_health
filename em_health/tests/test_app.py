@@ -32,11 +32,12 @@ from em_health.utils.import_xml import ImportXML
 from em_health.utils.tools import run_command
 from em_health.db_manager import DatabaseManager
 
-XML_FN = os.path.join(os.path.dirname(__file__), '9999_data.xml.gz')
-XML_FN2 = os.path.join(os.path.dirname(__file__), '9999_changed_data.xml.gz')
+TEST_SERIAL = 9999
+XML_FN = os.path.join(os.path.dirname(__file__), '%d_data.xml.gz' % TEST_SERIAL)
+XML_FN2 = os.path.join(os.path.dirname(__file__), '%d_changed_data.xml.gz' % TEST_SERIAL)
 JSON_INFO = [{
-    "instrument": "9999, Test Instrument",
-    "serial": 9999,
+    "instrument": "%d, Test Instrument" % TEST_SERIAL,
+    "serial": TEST_SERIAL,
     "model": "Test instrument",
     "name": "Test",
     "type": "tem",
@@ -47,6 +48,15 @@ MANAGER = os.getenv("MANAGER_TYPE", "podman")
 
 
 class TestEMHealth(unittest.TestCase):
+
+    @staticmethod
+    def delete_test_instrument():
+        with DatabaseManager("tem") as dbm:
+            dbm.run_query("""
+                SELECT events.delete_instrument(id)
+                FROM events.instruments
+                WHERE serial = %s;
+                """, values=(TEST_SERIAL,))
 
     def run_test_query(self,
                        dbm: DatabaseManager,
@@ -90,6 +100,9 @@ class TestEMHealth(unittest.TestCase):
         self.assertEqual(match_count, 2)
 
     def test_client(self):
+        self.delete_test_instrument()
+        self.addCleanup(self.delete_test_instrument)
+
         # first import
         with ImportXML(XML_FN, JSON_INFO) as parser:
             parser.parse_enumerations()
@@ -100,15 +113,7 @@ class TestEMHealth(unittest.TestCase):
             config_dict = {"params": parser.params, "enums": parser.enum_values}
 
             with DatabaseManager(parser.db_name) as dbm:
-                # clean-up
-                dbm.run_query("""
-                  SELECT events.delete_instrument(id)
-                  FROM events.instruments
-                  WHERE serial = 9999;
-                """)
-
                 instrument_id = dbm.add_instrument(instr_dict, config_dict)
-
                 # convert to list since we need to iterate twice
                 datapoints = list(parser.parse_values(instrument_id, parser.params))
                 self.check_datapoints(datapoints)
@@ -130,14 +135,6 @@ class TestEMHealth(unittest.TestCase):
                 dbm.write_data(datapoints)
 
             run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/05_import2.sql"')
-
-            with DatabaseManager(parser2.db_name) as dbm:
-                # clean-up
-                dbm.run_query("""
-                  SELECT events.delete_instrument(id)
-                  FROM events.instruments
-                  WHERE serial = 9999;
-                """)
 
     def test_pgtap_tem(self):
         run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/0[1-3]*.sql"')

@@ -218,33 +218,34 @@ def migrate(dbname: str):
     latest_ver = TEM_SCHEMA_VERSION if dbname == "tem" else SEM_SCHEMA_VERSION
     from em_health.db_manager import DatabaseManager as DBM
 
-    with DBM(dbname, username="postgres", password="POSTGRES_PASSWORD") as db:
-        current_ver = db.run_query("SELECT version FROM public.schema_info", mode="fetchone")
-        current_ver = current_ver[0]
-        logger.info("Current schema version: %s", current_ver)
+    try:
+        with DBM(dbname, username="postgres", password="POSTGRES_PASSWORD") as db:
+            current_ver = db.run_query("SELECT version FROM public.schema_info", mode="fetchone")
+            current_ver = current_ver[0]
+            logger.info("Current schema version: %s", current_ver)
 
-        if current_ver < latest_ver:
-            db.run_query("REVOKE CONNECT ON DATABASE {dbname} FROM PUBLIC", {"dbname": dbname})
-            db.run_query("""
-                SELECT pg_terminate_backend(pid)
-                FROM pg_stat_activity
-                WHERE datname = %s
-                  AND pid <> pg_backend_pid();
-            """, values=(dbname,))
+            if current_ver < latest_ver:
+                db.run_query("REVOKE CONNECT ON DATABASE {dbname} FROM PUBLIC", {"dbname": dbname})
+                db.run_query("""
+                    SELECT pg_terminate_backend(pid)
+                    FROM pg_stat_activity
+                    WHERE datname = %s
+                      AND pid <> pg_backend_pid();
+                """, values=(dbname,))
 
-            try:
                 for v in range(current_ver + 1, latest_ver + 1):
                     view_fn = db.get_path(target=f"migrations/{v:03d}.sql")
                     db.execute_file(view_fn)
                 logger.info("Database schema migrated to version %s", latest_ver)
 
-            finally:
-                db.run_query("GRANT CONNECT ON DATABASE {dbname} TO PUBLIC", {"dbname": dbname})
+            elif current_ver == latest_ver:
+                logger.info("Database schema is up-to-date")
+            else:
+                raise ValueError("Schema version is higher than expected")
 
-        elif current_ver == latest_ver:
-            logger.info("Database schema is up-to-date")
-        else:
-            raise ValueError("Schema version is higher than expected")
+    finally:
+        with DBM(dbname, username="postgres", password="POSTGRES_PASSWORD") as db:
+            db.run_query("GRANT CONNECT ON DATABASE {dbname} TO PUBLIC", {"dbname": dbname})
 
 
 def check_db_schema():
