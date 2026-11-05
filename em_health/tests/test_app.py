@@ -43,7 +43,7 @@ JSON_INFO = [{
     "template": "krios",
     "server": "127.0.0.1"
 }]
-MANAGER = os.getenv("MANAGER_TYPE")
+MANAGER = os.getenv("MANAGER_TYPE", "podman")
 
 
 class TestEMHealth(unittest.TestCase):

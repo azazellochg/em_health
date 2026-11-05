@@ -29,6 +29,7 @@ import os
 import time
 from functools import wraps
 import subprocess
+from pathlib import Path
 
 try:
     from memory_profiler import memory_usage
@@ -67,7 +68,8 @@ fmt = PrefixFormatter(
     datefmt='%d-%m-%Y %H:%M:%S'
 )
 
-file_handler = logging.FileHandler("emhealth.log", mode="a", encoding="utf-8")
+LOG_FILE = Path(__file__).resolve().parents[2] / "emhealth.log"
+file_handler = logging.FileHandler(LOG_FILE, mode="a", encoding="utf-8")
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(fmt)
 

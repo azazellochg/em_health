@@ -64,7 +64,7 @@ After=network.target
 [Service]
 Type=simple
 EnvironmentFile={env_file}
-ExecStart={python_path} {script} {opts}
+ExecStart="{python_path}" "{script}" {opts}
 WorkingDirectory={project_dir}
 
 Restart=on-failure

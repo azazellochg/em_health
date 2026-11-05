@@ -33,7 +33,7 @@ from em_health.utils.tools import logger, run_command
 
 TEM_SCHEMA_VERSION = 8
 SEM_SCHEMA_VERSION = 8
-MANAGER = os.getenv("MANAGER_TYPE")
+MANAGER = os.getenv("MANAGER_TYPE", "podman")
 COMPOSE_FILE = "compose.yaml"
 PG_CONTAINER = "emhealth-db"
 GRAFANA_CONTAINER = "emhealth-grafana"
