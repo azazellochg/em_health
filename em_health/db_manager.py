@@ -103,7 +103,7 @@ class DatabaseManager(PgClient):
         :param chunk_size: Number of bytes to read at a time
         """
         self.cur.execute("""
-                         CREATE TEMP TABLE data_staging (
+                         CREATE TEMP TABLE IF NOT EXISTS data_staging (
                              time timestamptz NOT NULL,
                              instrument_id BIGINT NOT NULL,
                              param_id BIGINT NOT NULL,
@@ -350,8 +350,8 @@ def main(dbname, action, days=None):
         with DatabaseManager(dbname) as db:
             for view, is_cagg in mviews[dbname].items():
                 schema, name = view.split(".")
-                db.drop_mview(view)
                 if is_cagg:
+                    db.drop_mview(view, is_cagg=True)
                     db.create_mview(view, f"{schema}/cagg/{name}.sql")
                     db.force_refresh_cagg(view)
                     if name.endswith("hourly"):
@@ -360,8 +360,9 @@ def main(dbname, action, days=None):
                         db.schedule_cagg_refresh(view, start_offset="4 days",  end_offset="1 day", interval="12 hours")
                     db.enable_rt_cagg(view)
                 else:
-                        db.create_mview(view, f"{schema}/mviews/{name}.sql")
-                        db.schedule_mview_refresh(view)
+                    db.drop_mview(view)
+                    db.create_mview(view, f"{schema}/mviews/{name}.sql")
+                    db.schedule_mview_refresh(view)
 
     elif action == "erase":
         print(f"!!! WARNING: You are about to DELETE ALL DATA from database {dbname} !!!")
