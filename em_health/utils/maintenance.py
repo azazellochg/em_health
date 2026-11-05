@@ -232,12 +232,15 @@ def migrate(dbname: str):
                   AND pid <> pg_backend_pid();
             """, values=(dbname,))
 
-            for v in range(current_ver + 1, latest_ver + 1):
-                view_fn = db.get_path(target=f"migrations/{v:03d}.sql")
-                db.execute_file(view_fn)
+            try:
+                for v in range(current_ver + 1, latest_ver + 1):
+                    view_fn = db.get_path(target=f"migrations/{v:03d}.sql")
+                    db.execute_file(view_fn)
+                logger.info("Database schema migrated to version %s", latest_ver)
 
-            db.run_query("GRANT CONNECT ON DATABASE {dbname} TO PUBLIC", {"dbname": dbname})
-            logger.info("Database schema migrated to version %s", latest_ver)
+            finally:
+                db.run_query("GRANT CONNECT ON DATABASE {dbname} TO PUBLIC", {"dbname": dbname})
+
         elif current_ver == latest_ver:
             logger.info("Database schema is up-to-date")
         else:
