@@ -98,7 +98,7 @@ $$
         ADD UNIQUE (param_id, instrument_id, time);
 
       -- 7. Update schema version
-      UPDATE public.schema_info SET version = 2;
+      UPDATE public.schema_info SET version = 2, updated = NOW();
     END IF;
   END
 $$

@@ -879,7 +879,7 @@ $sql$;
         PERFORM alter_job(job, scheduled => TRUE);
       END LOOP;
 
-      UPDATE public.schema_info SET version = 7;
+      UPDATE public.schema_info SET version = 7, updated = NOW();
     END IF;
   END
 $$

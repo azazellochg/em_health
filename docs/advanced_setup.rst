@@ -28,7 +28,7 @@ Instruments Configuration
 - **name**: custom field, used for display purposes. You can customize this.
 - **type**: database name. "tem" or "sem" only.
 - **template**: microscope platform. Allowed values are "krios", "talos", "tundra", "sdb", "pfib". See examples in `instruments.json`
-- **server**: Optional field. IP address of the microscope PC (#1 on the screenshot above). This is used to directly connect to MSSQL/PostgreSQL servers on the MPC.
+- **server**: IP address of the microscope PC (#1 on the screenshot above). This is used to create a Windows batch file and also to directly connect to MSSQL/PostgreSQL servers on the MPC.
 
 Security Configuration
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -60,6 +60,8 @@ To use the new values from `docker/.env`, run:
 .. code-block:: bash
 
     sh em_health/utils/update-passwd.sh
+
+.. note:: To run `generate-keys.sh` script you need to have OpenSSL installed
 
 
 Creating a Windows Task

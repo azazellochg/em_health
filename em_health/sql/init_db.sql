@@ -43,6 +43,9 @@ SET ROLE emhealth; -- below objects are owned by emhealth
 \i /sql/uec/create_tables.sql
 SET ROLE postgres;
 
+GRANT USAGE ON FOREIGN DATA WRAPPER postgres_fdw TO emhealth;
+GRANT USAGE ON FOREIGN DATA WRAPPER tds_fdw TO emhealth;
+
 -- pganalyze schema
 CREATE SCHEMA IF NOT EXISTS pganalyze AUTHORIZATION pganalyze;
 
@@ -79,6 +82,6 @@ ALTER ROLE pganalyze SET search_path = pganalyze,public;
 
 ALTER ROLE grafana SET search_path = events,uec,pganalyze,public;
 
--- set current schema version --
+-- set current schema version (passed by docker/init-db.sh and reset-db.sh: highest migrations/NNN.sql) --
 INSERT INTO public.schema_info (version)
-VALUES (7);
+VALUES (:var_schema_version);

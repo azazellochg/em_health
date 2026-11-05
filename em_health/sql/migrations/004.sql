@@ -45,7 +45,7 @@ $$
           wal_lsn pg_lsn NOT NULL DEFAULT '0/0';
 
       -- 8. Update schema version
-      UPDATE public.schema_info SET version = 4;
+      UPDATE public.schema_info SET version = 4, updated = NOW();
     END IF;
   END
 $$

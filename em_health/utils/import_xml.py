@@ -43,6 +43,7 @@ VALUE_TYPES = {
     'String': 'str',
     'Boolean': 'bool',
 }
+COPY_ESCAPE = str.maketrans({"\\": "", "\t": " ", "\n": " ", "\r": " "})
 
 
 class ImportXML:
@@ -209,7 +210,10 @@ class ImportXML:
                             name = threshold_elem.get("Name")
                             value_elem = threshold_elem.find('ns:Value', namespaces=NS)
                             if value_elem is not None:
-                                self.thresholds[param_id][name] = float(value_elem.text)
+                                try:
+                                    self.thresholds[param_id][name] = float(value_elem.text)
+                                except (TypeError, ValueError):
+                                    continue
 
                 # Only yield after thresholds have been populated
                 yield from points
@@ -239,16 +243,18 @@ class ImportXML:
         dt = datetime.fromisoformat(ts)
         return dt.astimezone(timezone.utc)
 
-    @staticmethod
-    def __convert_value(param_id: int,
-                        value: str,
+    def __convert_value(self,
+                        param_id: int,
+                        value: str | None,
                         value_type: str):
         """ Convert the param value according to type.
         Returns value_num, value_text.
         """
         try:
-            if value_type == "str":
-                return None, str(value)
+            if value is None:
+                return None, None
+            elif value_type == "str":
+                return None, value.translate(COPY_ESCAPE)
             elif value_type == "float":
                 return float(value), None
             elif value_type == "int":  # works for int, IntEnum
@@ -258,7 +264,8 @@ class ImportXML:
             else:
                 raise ValueError
         except (ValueError, TypeError):
-            logger.error(f"Cannot convert '{value}' to {value_type} for param {param_id}")
+            logger.error(f"Cannot convert '{value}' to {value_type} for param {param_id}",
+                         extra={"prefix": self.instrument_name})
             return None, None
 
 
@@ -284,28 +291,26 @@ def main(xml_fn, json_fn):
         logger.error("Input xml not found: %s", xml_fn)
         sys.exit(1)
 
-    _, extension = os.path.splitext(xml_fn)
-
-    if extension in [".xml", ".gz"]:
-        if extension == ".gz":
+    if xml_fn.endswith(".xml.gz") or xml_fn.endswith(".xml"):
+        if xml_fn.endswith(".xml.gz"):
             with open(xml_fn, 'rb') as f:
                 magic = f.read(2)
             if magic != b'\x1f\x8b':
                 raise IOError("Input file is not GZIP type!")
 
-        xmlparser = ImportXML(xml_fn, json_info)
-        xmlparser.parse_enumerations()
-        xmlparser.parse_parameters()
-        instr_dict = xmlparser.get_microscope_dict()
-        config_dict = {"params": xmlparser.params, "enums": xmlparser.enum_values}
+        with ImportXML(xml_fn, json_info) as xmlparser:
+            xmlparser.parse_enumerations()
+            xmlparser.parse_parameters()
+            instr_dict = xmlparser.get_microscope_dict()
+            config_dict = {"params": xmlparser.params, "enums": xmlparser.enum_values}
 
-        with DatabaseManager(xmlparser.db_name) as dbm:
-            instrument_id = dbm.add_instrument(instr_dict, config_dict)
-            datapoints = xmlparser.parse_values(instrument_id, xmlparser.params)
-            dbm.write_data(datapoints)
-            # thresholds are only populated once points are consumed
-            if xmlparser.thresholds:
-                dbm.add_thresholds(instrument_id, xmlparser.thresholds)
+            with DatabaseManager(xmlparser.db_name) as dbm:
+                instrument_id = dbm.add_instrument(instr_dict, config_dict)
+                datapoints = xmlparser.parse_values(instrument_id, xmlparser.params)
+                dbm.write_data(datapoints)
+                # thresholds are only populated once points are consumed
+                if xmlparser.thresholds:
+                    dbm.add_thresholds(instrument_id, xmlparser.thresholds)
     else:
         logger.error("File %s has wrong format", xml_fn)
         sys.exit(1)

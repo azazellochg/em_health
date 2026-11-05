@@ -36,8 +36,6 @@ from psycopg.types.json import Jsonb
 from em_health.db_client import PgClient
 from em_health.utils.tools import logger, profile
 
-TEM_SCHEMA_VERSION = 7
-SEM_SCHEMA_VERSION = 7
 
 
 class DatabaseManager(PgClient):
@@ -105,7 +103,7 @@ class DatabaseManager(PgClient):
         :param chunk_size: Number of bytes to read at a time
         """
         self.cur.execute("""
-                         CREATE TEMP TABLE data_staging (
+                         CREATE TEMP TABLE IF NOT EXISTS data_staging (
                              time timestamptz NOT NULL,
                              instrument_id BIGINT NOT NULL,
                              param_id BIGINT NOT NULL,
@@ -260,22 +258,6 @@ class DatabaseManager(PgClient):
         self.execute_file(view_fn)
         logger.info("Created MVIEW %s", view)
 
-    def migrate_db(self, latest_ver: int):
-        """ Migrate db to the latest version. """
-        current_ver = self.run_query("SELECT version FROM public.schema_info", mode="fetchone")
-        current_ver = current_ver[0]
-        logger.info("Current schema version: %s", current_ver)
-
-        if current_ver < latest_ver:
-            for v in range(current_ver + 1, latest_ver + 1):
-                view_fn = self.get_path(target=f"migrations/{v:03d}.sql")
-                self.execute_file(view_fn)
-            logger.info("Database schema migrated to version %s", latest_ver)
-        elif current_ver == latest_ver:
-            logger.info("Database schema is up-to-date")
-        else:
-            raise ValueError("Schema version is higher than expected")
-
     def import_uec(self):
         if any(os.getenv(var) in ["None", "", None] for var in ["MSSQL_USER", "MSSQL_PASSWORD"]):
             logger.warning("MSSQL_USER and MSSQL_PASSWORD are not set.")
@@ -368,8 +350,8 @@ def main(dbname, action, days=None):
         with DatabaseManager(dbname) as db:
             for view, is_cagg in mviews[dbname].items():
                 schema, name = view.split(".")
-                db.drop_mview(view)
                 if is_cagg:
+                    db.drop_mview(view, is_cagg=True)
                     db.create_mview(view, f"{schema}/cagg/{name}.sql")
                     db.force_refresh_cagg(view)
                     if name.endswith("hourly"):
@@ -378,6 +360,7 @@ def main(dbname, action, days=None):
                         db.schedule_cagg_refresh(view, start_offset="4 days",  end_offset="1 day", interval="12 hours")
                     db.enable_rt_cagg(view)
                 else:
+                    db.drop_mview(view)
                     db.create_mview(view, f"{schema}/mviews/{name}.sql")
                     db.schedule_mview_refresh(view)
 
@@ -397,16 +380,6 @@ def main(dbname, action, days=None):
             logger.info("Deleting data older than %d days from database %s", days, dbname)
             db.prune_data(days)
 
-    elif action == "migrate":
-        latest_ver = TEM_SCHEMA_VERSION if dbname == "tem" else SEM_SCHEMA_VERSION
-        if latest_ver is not None:
-            # requires superuser permissions
-            with DatabaseManager(dbname, username="postgres", password="POSTGRES_PASSWORD") as db:
-                db.migrate_db(int(latest_ver))
-        else:
-            raise ValueError("Could not get latest schema version")
-
     elif action == "import-uec":
-        # requires superuser permissions to create FDW
-        with DatabaseManager(dbname, username="postgres", password="POSTGRES_PASSWORD") as db:
+        with DatabaseManager(dbname) as db:
             db.import_uec()
