@@ -59,7 +59,7 @@ Installation
 
    .. code-block::
 
-       conda create -y -n emhealth python=3.12
+       conda create -y -n emhealth python=3.15
        conda activate emhealth
        git clone https://github.com/azazellochg/em_health
        cd em_health

@@ -8,7 +8,7 @@ dynamic = ["version"]
 authors = [{name = "Grigory Sharov", email = "gsharov@mrclmb.ac.uk"}]
 description = "EMHealth is a Python package designed for continuous monitoring of the performance and health metrics of Thermo Fisher Scientific electron microscopes."
 readme = {file = "README.rst", content-type = "text/x-rst"}
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.10,<=3.15"
 keywords = ["microscope", "health monitoring", "TEM", "SEM"]
 classifiers=[
     'Development Status :: 4 - Beta',
