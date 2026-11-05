@@ -56,7 +56,7 @@ class FileWatcher:
         self.json_fn = json_fn
         self.interval = int(os.getenv("WATCH_INTERVAL", interval))
         self.stable_time = int(os.getenv("WATCH_SIZE_COUNTER", stable_time))
-        self.max_workers = int(os.getenv("WATCH_MAX_WORKERS", max_workers))
+        self.max_workers = int(os.getenv("WATCH_WORKERS", max_workers))
         self.observer = PollingObserver(timeout=self.interval)
         self.stability_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="file-stability")
         self.import_executor = ThreadPoolExecutor(max_workers=self.max_workers, thread_name_prefix="xml-import")
