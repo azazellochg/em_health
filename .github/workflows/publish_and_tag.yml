@@ -35,7 +35,7 @@ jobs:
       - name: Get package version
         id: version
         run: |
-          VERSION=$(python -c 'from importlib.metadata import version; version("em_health")')
+          VERSION=$(python -c 'from importlib.metadata import version; print(version("em_health"))')
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
   pypi-publish:
@@ -57,7 +57,7 @@ jobs:
   tag:
     runs-on: ubuntu-latest
     needs:
-      - build
+      - pypi-publish
     permissions:
       contents: write
     steps:
