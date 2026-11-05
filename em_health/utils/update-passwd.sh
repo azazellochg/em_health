@@ -61,5 +61,5 @@ echo "Grafana admin password updated!"
 if [ "$manager" = "podman" ]; then
   podman-compose -f docker/compose.yaml up -d --force-recreate
 else
-  $manager -f docker/compose.yaml up -d --force-recreate
+  $manager compose -f docker/compose.yaml up -d --force-recreate
 fi
