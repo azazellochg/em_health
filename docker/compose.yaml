@@ -2,6 +2,8 @@ name: emhealth
 
 services:
   timescaledb:
+    # Image version (independent of the Python package version). Bump it whenever
+    # docker/Dockerfile changes; CI publishes the image under this tag.
     image: ghcr.io/azazellochg/timescaledb:0.1a11
     container_name: emhealth-db
     restart: unless-stopped

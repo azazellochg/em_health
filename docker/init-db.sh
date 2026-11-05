@@ -15,12 +15,20 @@ psql -v ON_ERROR_STOP=1 <<EOSQL
     GRANT pg_monitor, pg_read_server_files TO pganalyze;
 EOSQL
 
+# Latest schema version = highest /sql/migrations/NNN.sql (same rule as em_health/utils/maintenance.py)
+schema_version=$(ls /sql/migrations | awk -F. '/^[0-9][0-9][0-9]\.sql$/ { v = $1 + 0; if (v > max) max = v } END { if (max) print max }')
+if [ -z "$schema_version" ]; then
+  echo "Error: no migrations found in /sql/migrations" >&2
+  exit 1
+fi
+
 for db in tem sem; do
   echo "Creating initial db structure for: $db"
   psql -v ON_ERROR_STOP=1 \
   -v var_data_chunk_size="'${TBL_DATA_CHUNK_SIZE}'" \
   -v var_pgstats_chunk_size="'${TBL_STATS_CHUNK_SIZE}'" \
   -v var_pgstats_retention="'${TBL_STATS_RETENTION}'" \
+  -v var_schema_version="$schema_version" \
   --dbname="$db" -f /sql/init_db.sql
 done
 

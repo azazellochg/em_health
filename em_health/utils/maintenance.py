@@ -31,8 +31,9 @@ from packaging.version import Version
 
 from em_health.utils.tools import logger, run_command
 
-TEM_SCHEMA_VERSION = 8
-SEM_SCHEMA_VERSION = 8
+MIGRATIONS_DIR = Path(__file__).resolve().parents[1] / "sql" / "migrations"
+# Latest schema version = highest migrations/NNN.sql (same rule as docker/init-db.sh and reset-db.sh)
+SCHEMA_VERSION = max(int(p.stem) for p in MIGRATIONS_DIR.glob("[0-9][0-9][0-9].sql"))
 MANAGER = os.getenv("MANAGER_TYPE", "podman")
 COMPOSE_FILE = "compose.yaml"
 PG_CONTAINER = "emhealth-db"
@@ -215,7 +216,7 @@ def update() -> None:
 
 def migrate(dbname: str):
     """ Migrate db to the latest version. """
-    latest_ver = TEM_SCHEMA_VERSION if dbname == "tem" else SEM_SCHEMA_VERSION
+    latest_ver = SCHEMA_VERSION
     from em_health.db_manager import DatabaseManager as DBM
 
     try:
@@ -251,7 +252,7 @@ def migrate(dbname: str):
 def check_db_schema():
     """Check database schema vs app schema."""
     from em_health.db_manager import DatabaseManager as DBM
-    for dbname, schema in [("tem", TEM_SCHEMA_VERSION), ("sem", SEM_SCHEMA_VERSION)]:
+    for dbname, schema in [("tem", SCHEMA_VERSION), ("sem", SCHEMA_VERSION)]:
         logger.info("Checking database %s schema version", dbname)
         with DBM(dbname) as db:
             current_ver = db.run_query("SELECT version FROM public.schema_info", mode="fetchone")

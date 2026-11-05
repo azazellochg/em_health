@@ -1,10 +1,18 @@
-# ---------- Builder stage ----------
-FROM docker.io/library/postgres:18.6-trixie@sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722 AS builder
+# ---------- Component versions ----------
+# Single source of truth for component versions. The GHCR image description is generated
+# from these ARG lines by .github/workflows/docker-publish.yml, so keep the format
+# "ARG NAME=value" (one per line). The image tag itself lives in docker/compose.yaml.
+ARG PG_IMAGE=docker.io/library/postgres:18.6-trixie@sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722
 
-ENV TS_VERSIONS="2.27.1 2.30.2" \
-    TLK_VERSION=1.26.0 \
-    TDS_VERSION=v2.0.5 \
-    CARGO_HOME=/build/cargo \
+# ---------- Builder stage ----------
+FROM ${PG_IMAGE} AS builder
+
+# TimescaleDB: all listed versions are built (older ones allow restoring old backups); the last one is the default
+ARG TS_VERSIONS="2.27.1 2.30.2"
+ARG TLK_VERSION=1.26.0
+ARG TDS_VERSION=v2.0.5
+
+ENV CARGO_HOME=/build/cargo \
     CARGO_TARGET_DIR=/build/target \
     RUSTUP_HOME=/build/rustup \
     PGRX_HOME=/build/pgrx \
@@ -67,12 +75,11 @@ RUN git clone --branch $TDS_VERSION https://github.com/tds-fdw/tds_fdw.git /buil
 # change the date format used by freetds https://github.com/tds-fdw/tds_fdw/issues/271#issuecomment-731581415
 
 # ---------- Runtime stage ----------
-FROM docker.io/library/postgres:18.6-trixie@sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722 AS release
+FROM ${PG_IMAGE} AS release
 
 # --------- Metadata ----------
+# Static labels only. Version and description are added by the CI workflow.
 LABEL org.opencontainers.image.title="Custom PostgreSQL image with TimescaleDB, Toolkit & TDS-FDW" \
-      org.opencontainers.image.description="Postgres 18.6 + TimescaleDB 2.30.2 + Toolkit 1.26.0 + TDS-FDW 2.0.5" \
-      org.opencontainers.image.version="0.1a11" \
       org.opencontainers.image.authors="Grigory Sharov <gsharov@mrclmb.ac.uk>" \
       org.opencontainers.image.licenses="GPL-3.0-or-later" \
       org.opencontainers.image.source="https://github.com/azazellochg/em_health"
