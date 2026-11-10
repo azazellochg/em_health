@@ -27,6 +27,7 @@
 import os
 import re
 from datetime import datetime
+import time
 from pathlib import Path
 from packaging.version import Version
 
@@ -229,6 +230,7 @@ def update() -> None:
         run_command(cmd)
 
     # restore backups
+    time.sleep(5)
     restore(pg_backup_tem, "tem")
     restore(pg_backup_sem, "sem")
     # update extensions if possible

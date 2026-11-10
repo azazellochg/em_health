@@ -117,11 +117,16 @@ def profile(fn):
 
 
 def run_command(command: Sequence[str],
-                capture_output: bool = False,
-                check: bool = True) -> subprocess.CompletedProcess:
+                capture_output: bool = False) -> subprocess.CompletedProcess:
     """Run a command with logging. """
     if isinstance(command, str):
         raise TypeError("run_command() expects a list of arguments, not a string")
     argv = [str(arg) for arg in command]
     logger.debug("Running command: %s", shlex.join(argv))
-    return subprocess.run(argv, check=check, capture_output=capture_output, text=True)
+    result = subprocess.run(argv, check=True, capture_output=capture_output, text=True)
+
+    if result.returncode != 0 and capture_output:
+        logger.error("STDOUT: %s", result.stdout)
+        logger.error("STDERR: %s", result.stderr)
+
+    return result
