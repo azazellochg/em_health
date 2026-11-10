@@ -66,7 +66,8 @@ def test_cmd(args):
     import unittest
     from em_health.tests.test_app import TestEMHealth
     suite = unittest.TestLoader().loadTestsFromTestCase(TestEMHealth)
-    verbosity=2 if os.getenv("EMHEALTH_DEBUG", False) else 1
+    debug = os.getenv("EMHEALTH_DEBUG", "false").lower() in ("true", "1", "yes")
+    verbosity=2 if debug else 1
     result = unittest.TextTestRunner(verbosity=verbosity).run(suite)
     if not result.wasSuccessful():
         raise SystemExit(1)
@@ -164,8 +165,9 @@ def main():
                               help="Target directory with XML data files")
     watch_parser.add_argument("-s", dest="settings", required=True,
                               help="Path to instruments.json with metadata")
-    watch_parser.add_argument("-t", dest="interval", type=int, default=300,
-                              help="Polling time interval in seconds (default: 300)")
+    watch_parser.add_argument("-t", dest="interval", type=int, default=None,
+                              help="Polling time interval in seconds "
+                                   "(default: WATCH_INTERVAL from docker/.env, or 300)")
 
     subparsers.add_parser("update", help="Update EMHealth to the latest version")
     subparsers.add_parser("test", help="Run unit tests to check the parser and import functions")

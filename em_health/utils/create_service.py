@@ -50,6 +50,7 @@ def main(script_fn: str,
     python_path = Path(sys.executable).resolve()
     systemd_dir = Path.home() / ".config" / "systemd" / "user"
     service_file = systemd_dir / f"{service_name}.service"
+    kwargs = {k: v for k, v in kwargs.items() if v is not None}  # unset options are left out
     if kwargs:
         opts = ' '.join([f"-{k} {v}" for k, v in kwargs.items()])
     else:

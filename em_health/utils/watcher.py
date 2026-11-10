@@ -41,20 +41,24 @@ class FileWatcher:
     def __init__(self,
                  path: str,
                  json_fn: str,
-                 interval: int = 300,
+                 interval: int | None = None,
                  stable_time: int = 10,
                  max_workers: int = 4):
         """
         Watch for XML files and import them once their size is stable.
         :param path: Directory to watch.
         :param json_fn: Path to the JSON settings file.
-        :param interval: Watchdog polling interval in seconds.
+        :param interval: Watchdog polling interval in seconds. If None, WATCH_INTERVAL
+            from the environment is used, or 300.
         :param stable_time: Number of consecutive stable-size checks required.
         :param max_workers: Maximum number of concurrent XML imports.
         """
         self.path = path
         self.json_fn = json_fn
-        self.interval = int(os.getenv("WATCH_INTERVAL", interval))
+        # An explicit -t wins over WATCH_INTERVAL (the systemd unit loads docker/.env)
+        self.interval = interval if interval is not None else int(os.getenv("WATCH_INTERVAL", 300))
+        if self.interval <= 0:
+            raise ValueError(f"Polling interval must be positive, got {self.interval}")
         self.stable_time = int(os.getenv("WATCH_SIZE_COUNTER", stable_time))
         self.max_workers = int(os.getenv("WATCH_WORKERS", max_workers))
         self.observer = PollingObserver(timeout=self.interval)
@@ -220,8 +224,8 @@ def main():
         "-t",
         dest="interval",
         type=int,
-        default=300,
-        help="Polling interval in seconds (default: 300)",
+        default=None,
+        help="Polling interval in seconds (default: WATCH_INTERVAL from the environment, or 300)",
     )
 
     args = parser.parse_args()
