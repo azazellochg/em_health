@@ -47,6 +47,16 @@ JSON_INFO = [{
 MANAGER = os.getenv("MANAGER_TYPE", "podman")
 
 
+def pg_prove(dbname: str, tests: str) -> None:
+    """Run pgTAP tests inside the DB container.
+    :param dbname: database to test
+    :param tests: test file path inside the container, may contain a glob pattern.
+                  It is passed to the container shell as $2 and expanded there.
+    """
+    run_command([MANAGER, "exec", "emhealth-db", "sh", "-c",
+                 'pg_prove -d "$1" -U postgres $2', "sh", dbname, tests])
+
+
 class TestEMHealth(unittest.TestCase):
 
     @staticmethod
@@ -121,7 +131,7 @@ class TestEMHealth(unittest.TestCase):
                 if parser.thresholds:
                     dbm.add_thresholds(instrument_id, parser.thresholds)
 
-        run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/04_import.sql"')
+        pg_prove("tem", "/sql/tests/pgtap/04_import.sql")
 
         # second import
         with ImportXML(XML_FN2, JSON_INFO) as parser2:
@@ -134,13 +144,13 @@ class TestEMHealth(unittest.TestCase):
                 _ = dbm.add_instrument(instr_dict, config_dict)
                 dbm.write_data(datapoints)
 
-            run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/05_import2.sql"')
+            pg_prove("tem", "/sql/tests/pgtap/05_import2.sql")
 
     def test_pgtap_tem(self):
-        run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/0[1-3]*.sql"')
+        pg_prove("tem", "/sql/tests/pgtap/0[1-3]*.sql")
 
     def test_pgtap_sem(self):
-        run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d sem -U postgres /sql/tests/pgtap/0[1-3]*.sql"')
+        pg_prove("sem", "/sql/tests/pgtap/0[1-3]*.sql")
 
 
 if __name__ == '__main__':

@@ -6,12 +6,17 @@ pgbackrest --stanza=main stanza-upgrade || pgbackrest --stanza=main stanza-creat
 pgbackrest --stanza=main check
 
 echo "Create databases and roles..."
-psql -v ON_ERROR_STOP=1 <<EOSQL
+# Passwords are read from the environment with \getenv and quoted by psql (:'var'),
+# so any character is safe.
+psql -v ON_ERROR_STOP=1 <<'EOSQL'
+    \getenv grafana_pw POSTGRES_GRAFANA_PASSWORD
+    \getenv emhealth_pw POSTGRES_EMHEALTH_PASSWORD
+    \getenv pganalyze_pw POSTGRES_PGANALYZE_PASSWORD
     CREATE DATABASE tem;
     CREATE DATABASE sem;
-    CREATE ROLE grafana WITH LOGIN PASSWORD '${POSTGRES_GRAFANA_PASSWORD}' CONNECTION LIMIT 100;
-    CREATE ROLE emhealth WITH LOGIN PASSWORD '${POSTGRES_EMHEALTH_PASSWORD}' CONNECTION LIMIT 100;
-    CREATE ROLE pganalyze WITH LOGIN PASSWORD '${POSTGRES_PGANALYZE_PASSWORD}' CONNECTION LIMIT 5;
+    CREATE ROLE grafana WITH LOGIN PASSWORD :'grafana_pw' CONNECTION LIMIT 100;
+    CREATE ROLE emhealth WITH LOGIN PASSWORD :'emhealth_pw' CONNECTION LIMIT 100;
+    CREATE ROLE pganalyze WITH LOGIN PASSWORD :'pganalyze_pw' CONNECTION LIMIT 5;
     GRANT pg_monitor, pg_read_server_files TO pganalyze;
 EOSQL
 

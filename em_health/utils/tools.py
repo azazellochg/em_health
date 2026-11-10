@@ -28,7 +28,9 @@ import logging
 import os
 import time
 from functools import wraps
+import shlex
 import subprocess
+from collections.abc import Sequence
 from pathlib import Path
 
 try:
@@ -114,7 +116,12 @@ def profile(fn):
     return inner
 
 
-def run_command(command: str, capture_output: bool = False, check: bool = True) -> subprocess.CompletedProcess:
-    """Run a shell command with logging."""
-    logger.debug("Running command: %s", command)
-    return subprocess.run(command, shell=True, check=check, capture_output=capture_output, text=True)
+def run_command(command: Sequence[str],
+                capture_output: bool = False,
+                check: bool = True) -> subprocess.CompletedProcess:
+    """Run a command with logging. """
+    if isinstance(command, str):
+        raise TypeError("run_command() expects a list of arguments, not a string")
+    argv = [str(arg) for arg in command]
+    logger.debug("Running command: %s", shlex.join(argv))
+    return subprocess.run(argv, check=check, capture_output=capture_output, text=True)

@@ -39,7 +39,6 @@ services:
       -c log_truncate_on_rotation=on
       -c log_filename='postgresql-%Y-%m-%d.log'
       -c log_line_prefix=''
-      -c log_statement='ddl'
       -c log_autovacuum_min_duration=0
       -c auto_explain.log_format='json'
       -c auto_explain.log_min_duration=${MIN_QUERY_EXPLAIN}

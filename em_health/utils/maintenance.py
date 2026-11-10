@@ -25,6 +25,7 @@
 # **************************************************************************
 
 import os
+import re
 from datetime import datetime
 from pathlib import Path
 from packaging.version import Version
@@ -35,11 +36,19 @@ MIGRATIONS_DIR = Path(__file__).resolve().parents[1] / "sql" / "migrations"
 # Latest schema version = highest migrations/NNN.sql (same rule as docker/init-db.sh and reset-db.sh)
 SCHEMA_VERSION = max(int(p.stem) for p in MIGRATIONS_DIR.glob("[0-9][0-9][0-9].sql"))
 MANAGER = os.getenv("MANAGER_TYPE", "podman")
+
+if MANAGER not in ("docker", "podman"):
+    raise RuntimeError(f"Unsupported MANAGER_TYPE '{MANAGER}', use 'docker' or 'podman'")
+
+COMPOSE = ["podman-compose"] if MANAGER == "podman" else ["docker", "compose"]
 COMPOSE_FILE = "compose.yaml"
 PG_CONTAINER = "emhealth-db"
 GRAFANA_CONTAINER = "emhealth-grafana"
-PG_EXEC = f"{MANAGER} exec {PG_CONTAINER}"
+PG_EXEC = [MANAGER, "exec", PG_CONTAINER]
 BACKUP_HOST_PATH = Path(os.getenv("BACKUP_DIR", "/backups"))
+
+PG_BACKUP_RE = re.compile(r"pg_(?P<dbname>tem|sem)_(?P<pg_version>\d+)_(?P<ts_version>\d+(?:\.\d+)*)_\d{8}_\d{6}\.dump")
+GRAFANA_BACKUP_RE = re.compile(r"grafana_\d{8}_\d{6}\.db")
 
 
 def chdir_docker_dir() -> None:
@@ -51,8 +60,8 @@ def chdir_docker_dir() -> None:
 def get_ts_version(dbname: str) -> str:
     """Retrieve TimescaleDB extension version from a running container."""
     result = run_command(
-        f"{PG_EXEC} psql -d {dbname} -t -c "
-        "\"SELECT extversion FROM pg_extension WHERE extname='timescaledb';\"",
+        [*PG_EXEC, "psql", "-X", "-At", "-d", dbname, "-c",
+         "SELECT extversion FROM pg_extension WHERE extname = 'timescaledb';"],
         capture_output=True)
     return result.stdout.strip()
 
@@ -60,16 +69,25 @@ def get_ts_version(dbname: str) -> str:
 def get_pg_version() -> str:
     """Retrieve Postgres version from a running container."""
     result = run_command(
-        f"{PG_EXEC} psql -d tem -t -c "
-        "\"SELECT current_setting('server_version_num');\"",
+        [*PG_EXEC, "psql", "-X", "-At", "-d", "tem", "-c",
+         "SELECT current_setting('server_version_num');"],
         capture_output=True)
     return result.stdout.strip()
 
 
+def parse_pg_backup_name(fn: Path) -> re.Match:
+    """Parse a TimescaleDB backup file name created by backup()."""
+    match = PG_BACKUP_RE.fullmatch(fn.name)
+    if match is None:
+        raise ValueError(f"Not a valid TimescaleDB backup file name: {fn.name}")
+    return match
+
+
 def check_versions(dbname: str, fn: Path):
     """Compare backup file with server versions."""
-    pg_version = fn.name.split("_")[2]
-    ts_version = fn.name.split("_")[3]
+    match = parse_pg_backup_name(fn)
+    pg_version = match["pg_version"]
+    ts_version = match["ts_version"]
 
     pg_version_server = get_pg_version()
     ts_version_server = get_ts_version(dbname)
@@ -83,7 +101,10 @@ def check_versions(dbname: str, fn: Path):
 
 def erase_db(dbname: str, ts_version: str = "", do_init: bool = False) -> None:
     """Erase existing DB and optionally re-initialize it."""
-    run_command(f'{PG_EXEC} /usr/local/bin/reset-db.sh {dbname} {int(do_init)} {ts_version}')
+    cmd = [*PG_EXEC, "/usr/local/bin/reset-db.sh", dbname, str(int(do_init))]
+    if ts_version:
+        cmd.append(ts_version)
+    run_command(cmd)
 
 
 def backup(dbname: str = "tem") -> Path:
@@ -93,9 +114,9 @@ def backup(dbname: str = "tem") -> Path:
     if dbname == "grafana":
         grafana_backup = BACKUP_HOST_PATH / f"grafana_{timestamp}.db"
         logger.info("Backing up Grafana DB to %s", grafana_backup.resolve())
-        run_command(f"{MANAGER} stop {GRAFANA_CONTAINER}")
-        run_command(f"{MANAGER} cp {GRAFANA_CONTAINER}:/var/lib/grafana/grafana.db {grafana_backup}")
-        run_command(f"{MANAGER} start {GRAFANA_CONTAINER}")
+        run_command([MANAGER, "stop", GRAFANA_CONTAINER])
+        run_command([MANAGER, "cp", f"{GRAFANA_CONTAINER}:/var/lib/grafana/grafana.db", grafana_backup])
+        run_command([MANAGER, "start", GRAFANA_CONTAINER])
         logger.info("Backup completed")
         return grafana_backup
     elif dbname in ["tem", "sem"]:
@@ -104,51 +125,70 @@ def backup(dbname: str = "tem") -> Path:
         pg_backup = Path("/backups") / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
         pg_host_backup = BACKUP_HOST_PATH / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
         logger.info("Backing up TimescaleDB '%s' to %s", dbname, pg_host_backup.resolve())
-        run_command(f"{PG_EXEC} pg_dump -Fc -d {dbname} -f {pg_backup}")
+        run_command([*PG_EXEC, "pg_dump", "-Fc", "-d", dbname, "-f", pg_backup])
         logger.info("Backup completed")
         return pg_backup
 
 
-def list_backups() -> list[Path]:
-    """Return a list of backup files."""
-    return [f for f in BACKUP_HOST_PATH.iterdir() if f.suffix in (".db", ".dump")]
+def list_backups(dbname: str) -> list[Path]:
+    """Return backup files created by backup(). Anything else is ignored."""
+    backups = []
+
+    for f in sorted(BACKUP_HOST_PATH.iterdir()):
+        if f.is_symlink() or not f.is_file():
+            continue
+
+        if dbname in ("tem", "sem"):
+            match = PG_BACKUP_RE.fullmatch(f.name)
+            if match and match["dbname"] == dbname:
+                backups.append(f)
+
+        elif GRAFANA_BACKUP_RE.fullmatch(f.name):
+            backups.append(f)
+
+    return backups
 
 
 def restore(backup_file: Path, target_db: str, is_grafana: bool = False) -> None:
     """Restore TimescaleDB or Grafana from a backup file."""
-    if target_db == "grafana" and backup_file.suffix == ".db":
+    if target_db == "grafana":
         # Grafana restore
+        if not GRAFANA_BACKUP_RE.fullmatch(backup_file.name):
+            raise ValueError(f"Not a valid Grafana backup file name: {backup_file.name}")
         logger.info("Restoring Grafana DB from %s", backup_file)
         commands = [
-            f"{MANAGER} stop {GRAFANA_CONTAINER}",
-            f"{MANAGER} run --rm -v emhealth_grafana-storage:/var/lib/grafana "
-            f"-v {BACKUP_HOST_PATH}:/backups busybox sh -c '"
-            f"cp /backups/{backup_file.name} /var/lib/grafana/grafana.db && "
-            "chown 472:root /var/lib/grafana/grafana.db'",
-            f"{MANAGER} start {GRAFANA_CONTAINER}",
+            [MANAGER, "stop", GRAFANA_CONTAINER],
+            # The file name is passed to the script as $1, it is never pasted into the script text
+            [MANAGER, "run", "--rm",
+             "-v", "emhealth_grafana-storage:/var/lib/grafana",
+             "-v", f"{BACKUP_HOST_PATH}:/backups:ro",
+             "busybox", "sh", "-c",
+             'cp "/backups/$1" /var/lib/grafana/grafana.db && chown 472:root /var/lib/grafana/grafana.db',
+             "sh", backup_file.name],
+            [MANAGER, "start", GRAFANA_CONTAINER],
         ]
         if is_grafana:
-            commands.append(f"{MANAGER} exec {GRAFANA_CONTAINER} grafana cli plugins update-all")
+            commands.append([MANAGER, "exec", GRAFANA_CONTAINER, "grafana", "cli", "plugins", "update-all"])
         for cmd in commands:
             run_command(cmd)
 
     elif target_db in ["tem", "sem"]:
         # TimescaleDB restore
-        dbname = backup_file.name.split("_")[1]
+        match = parse_pg_backup_name(backup_file)
+        dbname = match["dbname"]
         if target_db != dbname:
             raise ValueError(f"Target database name ({target_db}) does not match selected backup file: {backup_file.name}")
         check_versions(dbname, backup_file)
-        ts_version = backup_file.name.split("_")[3]
+        ts_version = match["ts_version"]
         logger.info("Restoring TimescaleDB %s '%s' from %s", ts_version, dbname, backup_file)
         erase_db(dbname, ts_version, do_init=False)
 
-        restore_cmd = f"""
-{PG_EXEC} bash -c "\
-psql -d {dbname} -c \\"SELECT timescaledb_pre_restore();\\" && \
-pg_restore -Fc -d {dbname} /backups/{backup_file.name} && \
-psql -d {dbname} -c \\"SELECT timescaledb_post_restore(); ANALYZE;\\""
-"""
-        run_command(restore_cmd)
+        for cmd in [
+            [*PG_EXEC, "psql", "-d", dbname, "-c", "SELECT timescaledb_pre_restore();"],
+            [*PG_EXEC, "pg_restore", "-Fc", "-d", dbname, f"/backups/{backup_file.name}"],
+            [*PG_EXEC, "psql", "-d", dbname, "-c", "SELECT timescaledb_post_restore(); ANALYZE;"],
+        ]:
+            run_command(cmd)
 
     else:
         raise ValueError(f"Unknown target database: {target_db}")
@@ -168,11 +208,6 @@ def update() -> None:
         print("Aborted.")
         return
 
-    if MANAGER == "podman":
-        mgr_cmd = "podman-compose"
-    else:
-        mgr_cmd = f"docker compose"
-
     # backup grafana and migrate db schemas
     grafana_backup = backup("grafana")
     migrate("tem")
@@ -186,10 +221,10 @@ def update() -> None:
     chdir_docker_dir()
 
     for cmd in [
-        f"{mgr_cmd} -f {COMPOSE_FILE} down -v",
-        f"{mgr_cmd} -f {COMPOSE_FILE} pull",
-        f"{mgr_cmd} -f {COMPOSE_FILE} up -d",
-        f"{MANAGER} image prune -f",
+        [*COMPOSE, "-f", COMPOSE_FILE, "down", "-v"],
+        [*COMPOSE, "-f", COMPOSE_FILE, "pull"],
+        [*COMPOSE, "-f", COMPOSE_FILE, "up", "-d"],
+        [MANAGER, "image", "prune", "-f"],
     ]:
         run_command(cmd)
 
@@ -198,11 +233,12 @@ def update() -> None:
     restore(pg_backup_sem, "sem")
     # update extensions if possible
     for dbname in ["tem", "sem"]:
-        run_command(
-            f'{PG_EXEC} psql -X -d {dbname} -c "ALTER EXTENSION timescaledb UPDATE;'
-            'ALTER EXTENSION timescaledb_toolkit UPDATE;'
-            'ALTER EXTENSION tds_fdw UPDATE;"'
-        )
+        run_command([
+            *PG_EXEC, "psql", "-X", "-d", dbname, "-c",
+            "ALTER EXTENSION timescaledb UPDATE;"
+            "ALTER EXTENSION timescaledb_toolkit UPDATE;"
+            "ALTER EXTENSION tds_fdw UPDATE;"
+        ])
 
     restore(grafana_backup, "grafana", is_grafana=True)
 
@@ -279,7 +315,7 @@ def main(action: str, dbname: str = "tem") -> None:
             print("Restore aborted by user.")
             return
 
-        backups = list_backups()
+        backups = list_backups(dbname)
         if not backups:
             print("No backups found.")
             return
