@@ -161,41 +161,28 @@ class DatabaseManager(PgClient):
 
     def drop_mview(self, view: str, is_cagg: bool = False) -> None:
         """ Delete a materialized view. """
-        self.run_query("DROP MATERIALIZED VIEW IF EXISTS {view} CASCADE",
-                       {"view": view})
         if not is_cagg:
-            # for standard mat. views we need to manually remove the job
-            proc = f"refresh_{view.split('.')[-1]}"
+            # for standard mat. views we need to manually remove the refresh job,
+            # the view name is stored in the job config (see schedule_mview_refresh)
             self.run_query("""
                            SELECT delete_job(job_id)
                            FROM timescaledb_information.jobs
-                           WHERE proc_name = {proc}
-            """, strings={"proc": proc}, mode=None)
+                           WHERE proc_schema = 'public'
+                             AND proc_name = 'refresh_mview'
+                             AND config ->> 'view' = %s
+            """, values=(view,), mode=None)
 
-            self.run_query("DROP PROCEDURE IF EXISTS {proc}",
-                           {"proc": proc}, mode=None)
-            self.conn.commit()
+        self.run_query("DROP MATERIALIZED VIEW IF EXISTS {view} CASCADE",
+                       {"view": view}, mode=None)
+        self.conn.commit()
 
         logger.info("Dropped MVIEW %s", view)
 
     def schedule_mview_refresh(self, view: str, interval: str = "12 hours") -> None:
-        """ Schedule a materialized view refresh. """
-        proc = f"refresh_{view.split('.')[-1]}"
-
-        self.run_query("""
-                       CREATE OR REPLACE PROCEDURE {proc}(
-                           job_id int,
-                           config jsonb
-                           )
-                           LANGUAGE SQL
-                       AS $$
-              REFRESH MATERIALIZED VIEW {view};
-            $$;
-        """, {"proc": proc, "view": view}, mode=None)
-
-        self.run_query("SELECT add_job({proc}, {period})",
-                       strings={"proc": proc, "period": interval}, mode=None)
-        self.conn.commit()
+        """ Schedule a materialized view refresh with the shared
+        public.refresh_mview procedure. The view name goes into the job config. """
+        self.run_query("SELECT add_job('public.refresh_mview', %s::interval, config => %s)",
+                       values=(interval, Jsonb({"view": view})))
 
         logger.info("Scheduled MVIEW refresh for %s every %s", view, interval)
 
@@ -222,16 +209,11 @@ class DatabaseManager(PgClient):
         We refresh every 12h since we want minimal latency before yesterday's stats are available
         """
         self.run_query("""
-            SELECT add_continuous_aggregate_policy({view},
-            start_offset => INTERVAL {start_offset},
-            end_offset => INTERVAL {end_offset},
-            schedule_interval => INTERVAL {schedule_interval})
-        """, strings={
-            "view": view,
-            "start_offset": start_offset,
-            "end_offset": end_offset,
-            "schedule_interval": interval
-        })
+            SELECT add_continuous_aggregate_policy(%s::regclass,
+            start_offset => %s::interval,
+            end_offset => %s::interval,
+            schedule_interval => %s::interval)
+        """, values=(view, start_offset, end_offset, interval))
         logger.info("Scheduled CAGG refresh for %s every %s", view, interval)
 
     def force_refresh_cagg(self, view: str) -> None:
@@ -241,8 +223,8 @@ class DatabaseManager(PgClient):
         Here we aggregate all historical data that has been imported so far.
         """
         self.conn.autocommit = True  # required since CALL cannot be executed inside a transaction
-        self.run_query("CALL refresh_continuous_aggregate({view}, NULL, NULL)",
-                       strings={"view": view})
+        self.run_query("CALL refresh_continuous_aggregate(%s::regclass, NULL, NULL)",
+                       values=(view,))
         self.conn.autocommit = False
         logger.info("Forced CAGG refresh for %s", view)
 
@@ -273,18 +255,33 @@ class DatabaseManager(PgClient):
 
         for instr_id, server in servers:
             fdw = FDWManager(self, "tds_fdw", str(server), instr_id)
-            job_name = fdw.setup_import_job_ms()
-            self.run_query("SELECT add_job({jobname}, schedule_interval=>'1 hour')",
-                           strings={"jobname": job_name})
+            self.schedule_uec_import(instr_id, fdw.fdw_schema)
 
-            logger.info("Scheduled UEC import job for instrument %s", instr_id)
+    def schedule_uec_import(self, instr_id: int, fdw_schema: str, interval: str = "1 hour") -> None:
+        """ Schedule the static uec.import_errors procedure for one instrument.
+        Instrument id and FDW schema go into the job config, so no SQL is generated.
+        An existing job for the same instrument is replaced, so re-running import-uec
+        does not create duplicate jobs.
+        """
+        self.run_query("""
+            SELECT delete_job(job_id)
+            FROM timescaledb_information.jobs
+            WHERE proc_schema = 'uec'
+              AND proc_name = 'import_errors'
+              AND (config ->> 'instrument_id')::bigint = %s
+        """, values=(instr_id,), mode=None)
+
+        self.run_query("SELECT add_job('uec.import_errors', %s::interval, config => %s)",
+                       values=(interval, Jsonb({"instrument_id": instr_id, "fdw_schema": fdw_schema})))
+
+        logger.info("Scheduled UEC import job for instrument %s", instr_id)
 
     def prune_data(self, days: int) -> None:
         """ Prune old data from a database. """
         chunks_dropped = self.run_query("SELECT events.purge_old_chunks('events.data', %s)",
                                         values=(days,), mode='fetchone')
-        self.run_query("DELETE FROM uec.errors WHERE time < (current_timestamp - INTERVAL '{days} days')",
-                       strings={'days': days})
+        self.run_query("DELETE FROM uec.errors WHERE time < current_timestamp - make_interval(days => %s::int)",
+                       values=(days,))
 
         self.conn.commit()
         logger.debug("Removed %s chunks from events.data; %s rows from uec.errors", chunks_dropped[0], self.cur.rowcount)

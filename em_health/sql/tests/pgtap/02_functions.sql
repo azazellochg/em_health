@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(15);
+SELECT plan(17);
 
 SELECT function_privs_are(
   'pg_read_file'::name,
@@ -24,10 +24,11 @@ SELECT functions_are('pganalyze'::name, ARRAY[
   'parse_logs',
   'import_sysinfo',
   'import_sysstats',
-  'purge_stats',
-  'refresh_index_bloat',
-  'refresh_table_bloat'
+  'purge_stats'
   ]);
+
+SELECT has_function('public'::name, 'refresh_mview'::name);
+SELECT has_function('uec'::name, 'import_errors'::name);
 
 -- PGANALYZE functions
 SELECT pganalyze.get_db_stats();

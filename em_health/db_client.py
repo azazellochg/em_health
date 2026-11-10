@@ -25,6 +25,7 @@
 # **************************************************************************
 
 import os
+import re
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -34,6 +35,8 @@ from psycopg import sql
 
 from em_health.utils.tools import logger, PG_LOG_LEVELS
 
+# psql-style quoted variable, e.g. :'var_data_chunk_size'
+SQL_VARIABLE_RE = re.compile(r":'(var_\w+)'")
 
 class BaseDBClient(ABC):
     """Abstract base class for a database client."""
@@ -123,6 +126,8 @@ class PgClient(BaseDBClient):
                      fn,
                      variables: dict[str, str] | None = None) -> None:
         """ Execute an SQL file.
+        Variables use psql syntax :'var_name', so the same file also works with 'psql -v'.
+        Values are quoted as SQL literals, so quotes inside a value cannot end the string.
         :param fn: Path to the .sql file.
         :param variables: Dictionary of variable names and values.
         """
@@ -131,11 +136,15 @@ class PgClient(BaseDBClient):
         with open(fn) as f:
             raw_sql = f.read()
 
-        if variables:
-            for key, val in variables.items():
-                placeholder = f":{key}"
-                replacement = f"'{val}'"
-                raw_sql = raw_sql.replace(placeholder, replacement)
+        variables = variables or {}
+
+        def substitute(match: re.Match) -> str:
+            name = match.group(1)
+            if name not in variables:
+                raise ValueError(f"SQL variable '{name}' in {fn} has no value")
+            return sql.Literal(variables[name]).as_string(self.conn)
+
+        raw_sql = SQL_VARIABLE_RE.sub(substitute, raw_sql)
 
         self.cur.execute(raw_sql)
         self.conn.commit()
@@ -153,7 +162,9 @@ class PgClient(BaseDBClient):
 
         :param query: SQL query string with placeholders for identifiers and literals.
         :param identifiers: dict for table/column identifiers, safely quoted.
-        :param strings: dict for literal values to be embedded (strings, etc.).
+        :param strings: dict for literal values embedded in the query text with sql.Literal.
+            Use only where Postgres does not accept bound parameters (DDL such as
+            CREATE SERVER / USER MAPPING options). Everything else should use values.
         :param values: tuple for parameterized query values (%s placeholders).
         :param mode: fetch mode or commit.
         """

@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(16);
+SELECT plan(18);
 
 SELECT table_privs_are('public'::name, 'schema_info'::name, 'public', ARRAY['SELECT']);
 
@@ -26,5 +26,9 @@ SELECT has_role('emhealth');
 SELECT has_role('pganalyze');
 
 SELECT is_member_of('pg_monitor', 'pganalyze');
+
+-- Shared job procedures are not executable by everyone
+SELECT function_privs_are('public'::name, 'refresh_mview'::name, ARRAY['INT', 'JSONB'], 'grafana', ARRAY[]::name[]);
+SELECT function_privs_are('uec'::name, 'import_errors'::name, ARRAY['INT', 'JSONB'], 'grafana', ARRAY[]::name[]);
 
 SELECT * FROM finish();

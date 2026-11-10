@@ -126,13 +126,13 @@ CREATE TABLE IF NOT EXISTS pganalyze.stat_statements (
 )
 WITH (
   tsdb.hypertable,
-  tsdb.chunk_interval = :var_pgstats_chunk_size,
+  tsdb.chunk_interval = :'var_pgstats_chunk_size',
   tsdb.partition_column = 'time',
   tsdb.segmentby = 'queryid',
   tsdb.orderby = 'time DESC'
   );
 
-SELECT add_retention_policy('pganalyze.stat_statements', drop_after => INTERVAL :var_pgstats_retention);
+SELECT add_retention_policy('pganalyze.stat_statements', drop_after => INTERVAL :'var_pgstats_retention');
 
 CREATE TABLE IF NOT EXISTS pganalyze.stat_explains (
   time timestamptz NOT NULL,
@@ -162,10 +162,10 @@ CREATE TABLE IF NOT EXISTS pganalyze.sys_stats (
 )
 WITH (
   tsdb.hypertable,
-  tsdb.chunk_interval = :var_pgstats_chunk_size,
+  tsdb.chunk_interval = :'var_pgstats_chunk_size',
   tsdb.partition_column = 'time',
   tsdb.segmentby = 'metric',
   tsdb.orderby = 'time DESC'
 );
 
-SELECT add_retention_policy('pganalyze.sys_stats', drop_after => INTERVAL :var_pgstats_retention);
+SELECT add_retention_policy('pganalyze.sys_stats', drop_after => INTERVAL :'var_pgstats_retention');

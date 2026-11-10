@@ -41,9 +41,9 @@ if [ "$do_init" -eq 1 ]; then
     echo "Creating initial db structure for: $dbname"
     psql -v ON_ERROR_STOP=1 \
         -d "$dbname" \
-        -v var_data_chunk_size="'${TBL_DATA_CHUNK_SIZE}'" \
-        -v var_pgstats_chunk_size="'${TBL_STATS_CHUNK_SIZE}'" \
-        -v var_pgstats_retention="'${TBL_STATS_RETENTION}'" \
+        -v var_data_chunk_size="${TBL_DATA_CHUNK_SIZE}" \
+        -v var_pgstats_chunk_size="${TBL_STATS_CHUNK_SIZE}" \
+        -v var_pgstats_retention="${TBL_STATS_RETENTION}" \
         -v var_schema_version="$schema_version" \
         -f /sql/init_db.sql
 fi

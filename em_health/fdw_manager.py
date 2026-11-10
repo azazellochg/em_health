@@ -140,86 +140,6 @@ class FDWManager:
             INTO {schema};
         """, {"schema": self.fdw_schema, "name": self.name})
 
-    def setup_import_job_ms(self) -> str:
-        """ Create a function to import data from the MSSQL database. """
-        job_name = f"uec.import_from_{self.name}"
-
-        # you cannot pass identifiers as variables to plpgsql, so we use f-string
-        self.dbm.run_query(f"""
-            DROP FUNCTION IF EXISTS {job_name};
-            CREATE FUNCTION {job_name}(job_id INT DEFAULT NULL, config JSONB DEFAULT NULL)
-            RETURNS void
-            LANGUAGE plpgsql
-            AS $$
-            BEGIN
-                -- Get new error definitions
-                CREATE TEMP TABLE new_error_types ON COMMIT DROP AS (
-                    SELECT *
-                    FROM {self.fdw_schema}.error_definitions edf
-                    WHERE edf.ErrorDefinitionID > COALESCE((SELECT MAX(ErrorDefinitionID) FROM uec.error_definitions), 0)
-                );
-
-               -- Subsystems
-                INSERT INTO uec.subsystem (subsystem_id, name)
-                SELECT DISTINCT SubsystemID, Subsystem
-                FROM new_error_types
-                ON CONFLICT (subsystem_id) DO NOTHING;
-
-                -- Device Types
-                INSERT INTO uec.device_type (device_type_id, name)
-                SELECT DISTINCT DeviceTypeID, DeviceType
-                FROM new_error_types
-                ON CONFLICT (device_type_id) DO NOTHING;
-
-                -- Device Instances
-                INSERT INTO uec.device_instance (device_instance_id, device_type_id, name)
-                SELECT DISTINCT DeviceInstanceID, DeviceTypeID, DeviceInstance
-                FROM new_error_types
-                ON CONFLICT (device_instance_id, device_type_id) DO NOTHING;
-
-                -- Error Codes
-                INSERT INTO uec.error_code (device_type_id, error_code_id, name)
-                SELECT DISTINCT DeviceTypeID, ErrorCodeID, ErrorCode
-                FROM new_error_types
-                ON CONFLICT (device_type_id, error_code_id) DO NOTHING;
-
-                -- Error definitions
-                INSERT INTO uec.error_definitions (
-                    error_definition_id,
-                    subsystem_id,
-                    device_type_id,
-                    error_code_id,
-                    device_instance_id
-                )
-                SELECT
-                    n.ErrorDefinitionID,
-                    n.SubsystemID,
-                    n.DeviceTypeID,
-                    n.ErrorCodeID,
-                    n.DeviceInstanceID
-                FROM new_error_types n
-                ON CONFLICT (error_definition_id) DO NOTHING;
-
-                -- Error notifications
-                INSERT INTO uec.errors (time, instrument_id, error_id, message)
-                SELECT
-                    en.ErrorDtm,
-                    {self.instr_id},
-                    ed.error_definition_id,
-                    en.MessageText
-                FROM {self.fdw_schema}.error_notifications en
-                JOIN uec.error_definitions ed ON ed.error_definition_id = en.ErrorDefinitionID
-                WHERE en.ErrorDtm > COALESCE(
-                    (SELECT MAX(time) FROM uec.errors WHERE instrument_id = {self.instr_id}),
-                    '1900-01-01'
-                )
-                ON CONFLICT (time, instrument_id, error_id) DO NOTHING;
-            END;
-            $$;
-        """)
-
-        return job_name
-
     def query_pg_events(self):
         """ Query new events from Postgres FDW. """
         return self.dbm.run_query("""
@@ -234,12 +154,12 @@ class FDWManager:
                 value_string AS value_text
             FROM {schema}.event_property
             WHERE event_dtm > COALESCE(
-                (SELECT MAX(time) FROM events.data WHERE instrument_id = {instr_id}),
+                (SELECT MAX(time) FROM events.data WHERE instrument_id = %s),
                 '1900-01-01'
             )
         """,
                                   {"schema": self.fdw_schema},
-                                  strings={"instr_id": self.instr_id},
+                                  values=(self.instr_id,),
                                   mode="fetchall")
 
     def query_pg_enums(self):

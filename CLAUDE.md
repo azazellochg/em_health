@@ -42,14 +42,19 @@ emhealth test                                            # see Testing below
 - Roles: `emhealth` owns the `events` and `uec` schemas and does imports. `pganalyze` owns the `pganalyze` schema.
   `grafana` is read-only. Use `postgres` (superuser) only for migrations and admin tasks.
 - `PgClient.run_query(query, identifiers=..., strings=..., values=...)`: `identifiers` are quoted with
-  `sql.Identifier`, `strings` with `sql.Literal`, and `values` are bound `%s` parameters. Prefer `values`.
+  `sql.Identifier`, `strings` with `sql.Literal`, and `values` are bound `%s` parameters. Use `values` for
+  everything except DDL that can't take parameters (FDW server/user mapping options). Never build SQL with
+  f-strings: `test_no_fstring_sql` fails on `run_query(f...)`/`execute(f...)`.
   The default `mode="commit"` commits right away.
-- `execute_file()` runs a whole `.sql` file in one transaction and commits it. `:var_*` placeholders
-  are filled in by both `execute_file(variables=...)` and `psql -v` (the init scripts), so keep
-  the syntax compatible with both.
+- `execute_file()` runs a whole `.sql` file in one transaction and commits it. Variables are written
+  `:'var_name'` (psql quoting). `execute_file(variables=...)` substitutes them as `sql.Literal` and raises
+  on a missing one. `psql -v var_name=raw_value` (the init scripts) quotes them itself, so pass raw values.
 - `init_db.sql` uses `\i /sql/...` and runs only through psql inside the container.
 - Caggs live in `sql/events/cagg/` and mviews in `sql/events/mviews/`. They're registered in `db_manager.main()`.
   Their order there is the dependency order.
+- Scheduled jobs use static procedures with a `config` JSONB, never generated per-object code:
+  `public.refresh_mview` (`{"view": "schema.name"}`) for mviews and `uec.import_errors`
+  (`{"instrument_id", "fdw_schema"}`) for UEC import, one job per instrument.
 
 ## Data import
 - The XML is parsed in streaming order: enumerations, then parameters, then values. Rows go through COPY

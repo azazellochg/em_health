@@ -25,6 +25,7 @@
 # **************************************************************************
 
 import os
+import psycopg
 
 from em_health.db_manager import DatabaseManager
 from em_health.utils.tools import logger
@@ -37,11 +38,20 @@ class DatabaseAnalyzer(DatabaseManager):
     """
     def create_tables(self) -> None:
         """ Create tables to store metrics data. """
+        settings = {
+            # SQL variable: (.env name, value)
+            "var_pgstats_chunk_size": ("TBL_STATS_CHUNK_SIZE", os.getenv("TBL_STATS_CHUNK_SIZE", "1 week")),
+            "var_pgstats_retention": ("TBL_STATS_RETENTION", os.getenv("TBL_STATS_RETENTION", "3 months")),
+        }
+        # Check the intervals before running any DDL, so a bad .env value gives a clear error
+        for env_name, value in settings.values():
+            try:
+                self.run_query("SELECT %s::interval", values=(value,), mode="fetchone")
+            except psycopg.DataError as e:
+                raise ValueError(f"{env_name}={value!r} is not a valid interval") from e
+
         self.execute_file(self.get_path("pganalyze/create_tables.sql"),
-                          {
-                              "var_pgstats_chunk_size": os.getenv("TBL_STATS_CHUNK_SIZE", "1 week"),
-                              "var_pgstats_retention": os.getenv("TBL_STATS_RETENTION", "3 months")
-                          })
+                          {var: value for var, (_, value) in settings.items()})
         logger.info("Created pganalyze tables")
 
     def create_funcs(self) -> None:

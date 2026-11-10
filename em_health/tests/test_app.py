@@ -25,8 +25,10 @@
 # **************************************************************************
 
 import os
+import re
 import unittest
 from datetime import datetime as dt, timezone as tz
+from pathlib import Path
 
 from em_health.utils.import_xml import ImportXML
 from em_health.utils.tools import run_command
@@ -151,6 +153,18 @@ class TestEMHealth(unittest.TestCase):
 
     def test_pgtap_sem(self):
         pg_prove("sem", "/sql/tests/pgtap/0[1-3]*.sql")
+
+    def test_no_fstring_sql(self):
+        """ SQL must not be built with f-strings: use values=, identifiers= or sql.Literal. """
+        pattern = re.compile(r"\b(run_query|execute|executemany|copy)\(\s*f[\"']")
+        pkg_dir = Path(__file__).resolve().parents[1]
+        offenders = [
+            f"{fn.relative_to(pkg_dir)}:{text.count(chr(10), 0, m.start()) + 1}"
+            for fn in sorted(pkg_dir.rglob("*.py"))
+            for text in [fn.read_text()]
+            for m in pattern.finditer(text)
+        ]
+        self.assertEqual(offenders, [], "f-string SQL found")
 
 
 if __name__ == '__main__':
