@@ -12,13 +12,19 @@ Version 0.1a11
 * change shm size for containers
 * add infinity datasource and plugin for Grafana
 * connection limits for all PG roles
-* add pgtune.sh script replacing timescaledb-tune
+* add pgtune.sh script instead of timescaledb-tune
 * create Systemd unit files for watchdog and host metrics collector
 * disconnect all roles during migration
 * remove unused project deps
-* log DDL statements in PG
 * new mviews in pganalyze schema
-* new dashboards for indexes, health checks, IO, host and WAL metrics
+* new dashboards for health checks, IO, host and WAL metrics
+* single source version for package, image, schemas
+* secure code from shell and sql injections
+* refactor to have one shared public.refresh_mview proc
+* escape special chars in data.value_text
+* add CLAUDE.md
+* do not use shell=True in subprocess
+* stricter backup filename matching
 
 Version 0.1a10
 ^^^^^^^^^^^^^^
