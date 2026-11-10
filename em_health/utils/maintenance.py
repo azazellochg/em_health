@@ -224,13 +224,12 @@ def update() -> None:
     for cmd in [
         [*COMPOSE, "-f", COMPOSE_FILE, "down", "-v"],
         [*COMPOSE, "-f", COMPOSE_FILE, "pull"],
-        [*COMPOSE, "-f", COMPOSE_FILE, "up", "-d"],
+        [*COMPOSE, "-f", COMPOSE_FILE, "up", "-d", "--wait"],
         [MANAGER, "image", "prune", "-f"],
     ]:
         run_command(cmd)
 
     # restore backups
-    time.sleep(5)
     restore(pg_backup_tem, "tem")
     restore(pg_backup_sem, "sem")
     # update extensions if possible
