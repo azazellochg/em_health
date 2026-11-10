@@ -102,7 +102,13 @@ The list of materialized views and continuous aggregates. For each view you can 
 
 .. image:: /_static/perf/dash-wal.png
 
-11. Host metrics
+11. Indexes
+^^^^^^^^^^^
+
+- top 10 biggest indexes
+- invalid, duplicate and unused indexes
+
+12. Host metrics
 ^^^^^^^^^^^^^^^^
 
 - host OS overview

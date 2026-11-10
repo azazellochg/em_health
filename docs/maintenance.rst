@@ -5,7 +5,7 @@ We provide tools to perform both physical and logical database backups. For phys
 the Podman container with TimescaleDB. Logical backups are done with standard PostgreSQL tools and can be used to migrate
 between major PostgreSQL versions.
 
-Backups are stored in `BACKUP_DIR`. The directory is owned by the *postgres* user (uid 999).
+Backups are stored in `BACKUP_DIR`. The directory is mounted from the host and has 777 permissions.
 We suggest to keep this folder on a separate filesystem, compared to the Podman volumes.
 
 Physical backup
@@ -51,17 +51,23 @@ To test the point-in-time recovery (PITR):
         --target-action=promote \
         restore
 
+For Grafana, we simply backup its SQLite database file:
+
+.. code-block::
+
+    emhealth db -d grafana backup
+
 
 Logical backup
 --------------
 
-Both TimescaleDB and Grafana databases can be backed up. For Timescale, we perform a full logical backup with `pg_dump`
-which can be used to restore the database between different PostgreSQL versions. For Grafana, we simply backup its SQLite database file.
+Both TimescaleDB databases can be backed up. For Timescale, we perform a full logical backup with `pg_dump`
+which can be used to restore the database between different PostgreSQL versions.
 
 .. code-block::
 
     emhealth db -d tem backup
-    emhealth db -d grafana backup
+    emhealth db -d sem backup
 
 ----
 
@@ -73,6 +79,7 @@ You can restore either TimescaleDB or Grafana database from a backup file.
 .. code-block::
 
     emhealth db -d tem restore
+    emhealth db -d sem restore
 
 Updating
 --------
@@ -82,11 +89,14 @@ Due to Timescale extension, updating the database might get complicated, we reco
 1. Run `git pull origin master` from the installation folder. This will update the python package and current schema version
 2. Run `emhealth update`. For each database, this will try to:
 
-    * migrate the current db schema to the latest version
-    * do the full backup
+    * backup Grafana db
+    * migrate the current tem/sem schemas to the latest version
+    * backup tem/sem db
+    * delete container volumes
     * pull the latest container images which may contain newer PostgreSQL / Timescale / Grafana versions
     * restore PostgreSQL and Grafana db from the backup
     * upgrade Timescale and other extensions
+    * re-run `emhealth dev create-stats` for pganalyze
 
 3. Update historical stats:
 

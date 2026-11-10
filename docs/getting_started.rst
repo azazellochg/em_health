@@ -48,7 +48,6 @@ Requirements for ``EMHealth`` package include:
 - git
 - conda/miniconda
 - `docker <https://docs.docker.com/compose/install/>`_ or `podman <https://podman.io/docs/installation>`_
-- `psql <https://www.tigerdata.com/blog/how-to-install-psql-on-mac-ubuntu-debian-windows>`_
 
 It's recommended to manage Docker as a non-root user, see `details <https://docs.docker.com/engine/install/linux-postinstall/>`_.
 

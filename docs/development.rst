@@ -28,8 +28,7 @@ Reset Grafana password
 If you forgot admin password for Grafana, you can reset it with:
 
   .. code-block::
-
-    podman exec -it emhealth-grafana grafana cli admin reset-admin-password new_password
+    podman exec -it emhealth-grafana grafana cli admin reset-admin-password <new_password>
 
 
 DB performance metrics
@@ -47,7 +46,7 @@ Performance statistics is inspired by `Pganalyze <https://pganalyze.com/>`_ and 
 * auto-VACUUM statistics (updated every 1 min)
 * query statistics (updated every 1 min)
 * host OS statistics (updated every 15 s and 15 min)
-* auto-EXPLAIN plans (for queries longer than 500 ms)
+* auto-EXPLAIN plans (for queries longer than 500 ms - see MIN_QUERY_EXPLAIN env var)
 
 Statistics retention time is 3 months.
 
@@ -74,7 +73,7 @@ All ``EMHealth`` application actions are saved into `emhealth.log`. PostgreSQL l
 .. code-block::
 
     podman exec -it emhealth-db bash
-    cd /var/lib/postgresql/data/log
+    cd /var/lib/postgresql/18/docker/log
     cat *.csv
 
 Grafana logs are accessible via:
@@ -101,8 +100,6 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
     * parameters - parameters metadata
     * parameters_history - old/replaced parameters
     * data - main events data table for all instruments
-
-* data_staging - temporary staging table for bulk data inserts with COPY
 
 * uec - schema for storing UECs / Alarms. UEC codes are unified across different instruments
 
