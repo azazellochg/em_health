@@ -273,7 +273,7 @@ def migrate(dbname: str):
                 for v in range(current_ver + 1, latest_ver + 1):
                     view_fn = db.get_path(target=f"migrations/{v:03d}.sql")
                     db.execute_file(view_fn)
-                logger.info("Database schema migrated to version %s", latest_ver)
+                    logger.info("Database schema migrated to version %s", v)
 
             elif current_ver == latest_ver:
                 logger.info("Database schema is up-to-date")

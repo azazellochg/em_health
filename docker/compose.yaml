@@ -113,7 +113,7 @@ services:
       - ./grafana/provisioning:/etc/grafana/provisioning
       - ${BACKUP_DIR}:/backups
     tmpfs:
-      - /var/lib/grafana/plugins   # keeps plugins in container only
+      - /var/lib/grafana/plugins:rw,exec,nosuid,nodev   # keeps plugins in container only
     cap_drop:
       - ALL
     security_opt:
