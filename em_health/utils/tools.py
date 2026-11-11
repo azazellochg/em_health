@@ -123,10 +123,12 @@ def run_command(command: Sequence[str],
         raise TypeError("run_command() expects a list of arguments, not a string")
     argv = [str(arg) for arg in command]
     logger.debug("Running command: %s", shlex.join(argv))
-    result = subprocess.run(argv, check=True, capture_output=capture_output, text=True)
 
-    if result.returncode != 0 and capture_output:
-        logger.error("STDOUT: %s", result.stdout)
-        logger.error("STDERR: %s", result.stderr)
-
-    return result
+    try:
+        return subprocess.run(argv, check=True, capture_output=capture_output, text=True)
+    except subprocess.CalledProcessError as e:
+        if e.stdout:
+            logger.error("STDOUT: %s", e.stdout)
+        if e.stderr:
+            logger.error("STDERR: %s", e.stderr)
+        raise
