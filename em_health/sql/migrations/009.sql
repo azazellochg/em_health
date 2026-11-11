@@ -131,10 +131,7 @@ BEGIN
       en.MessageText
     FROM %I.error_notifications en
     JOIN uec.error_definitions ed ON ed.error_definition_id = en.ErrorDefinitionID
-    WHERE en.ErrorDtm > COALESCE(
-      (SELECT MAX(time) FROM uec.errors WHERE instrument_id = $1),
-      '1900-01-01'
-    )
+    WHERE en.ErrorDtm > (SELECT MAX(time) FROM uec.errors WHERE instrument_id = $1)
     ON CONFLICT (time, instrument_id, error_id) DO NOTHING
   $q$, v_schema) USING v_instrument_id;
 END;
