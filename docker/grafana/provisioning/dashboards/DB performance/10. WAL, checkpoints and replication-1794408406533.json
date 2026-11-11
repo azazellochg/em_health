@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "ee46beab-c046-42b1-b547-23550e2ec0f3",
-    "generation": 4,
-    "creationTimestamp": "2026-10-23T13:57:10Z",
+    "generation": 2,
+    "creationTimestamp": "2026-11-10T13:54:52Z",
     "labels": {},
     "annotations": {}
   },
@@ -512,7 +512,7 @@
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "tem"
+                        "grafana.app/export-datasource-name": "${datasource}"
                       }
                     },
                     "refId": "A",
@@ -650,7 +650,7 @@
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "tem"
+                        "grafana.app/export-datasource-name": "${datasource}"
                       }
                     },
                     "refId": "A",
@@ -767,7 +767,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH wal_config AS (\n    SELECT pg_size_bytes(current_setting('wal_segment_size')) AS segment_size\n)\nSELECT\n    pg_wal_lsn_diff(\n        pg_current_wal_lsn(),\n        (\n            (\n                substring(a.last_archived_wal FROM 1 FOR 8) || '/' ||\n                substring(a.last_archived_wal FROM 9 FOR 8)\n            )::pg_lsn + c.segment_size\n        )\n    ) AS archive_lag_bytes\nFROM pg_stat_archiver a\nCROSS JOIN wal_config c\nWHERE a.last_archived_wal IS NOT NULL",
+                        "rawSql": "WITH wal_config AS (\n    SELECT\n        pg_size_bytes(\n            current_setting('wal_segment_size')\n        ) AS segment_size\n),\narchived AS (\n    SELECT\n        a.last_archived_wal,\n        c.segment_size,\n        ('x' || substring(a.last_archived_wal FROM 9 FOR 8))::bit(32)::bigint AS log_id,\n        ('x' || substring(a.last_archived_wal FROM 17 FOR 8))::bit(32)::bigint AS segment_no\n    FROM pg_stat_archiver a\n    CROSS JOIN wal_config c\n    WHERE a.last_archived_wal IS NOT NULL\n),\narchived_lsn AS (\n    SELECT\n        (\n            to_hex(\n                log_id +\n                ((segment_no * segment_size + segment_size)\n                 / 4294967296)::bigint\n            )\n            || '/'\n            || lpad(\n                to_hex(\n                    ((segment_no * segment_size + segment_size)\n                     % 4294967296)::bigint\n                ),\n                8,\n                '0'\n            )\n        )::pg_lsn AS archived_end_lsn\n    FROM archived\n)\nSELECT\n    pg_current_wal_lsn() AS current_lsn,\n    archived_end_lsn,\n    GREATEST(\n        0,\n        pg_wal_lsn_diff(\n            pg_current_wal_lsn(),\n            archived_end_lsn\n        )\n    ) AS archive_lag_bytes,\n    pg_size_pretty(\n        GREATEST(\n            0,\n            pg_wal_lsn_diff(\n                pg_current_wal_lsn(),\n                archived_end_lsn\n            )\n        )::bigint\n    ) AS archive_lag\nFROM archived_lsn;",
                         "sql": {
                           "columns": [
                             {
@@ -788,7 +788,7 @@
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "tem"
+                        "grafana.app/export-datasource-name": "${datasource}"
                       }
                     },
                     "refId": "A",
@@ -888,7 +888,7 @@
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "tem"
+                        "grafana.app/export-datasource-name": "${datasource}"
                       }
                     },
                     "refId": "A",
@@ -1029,7 +1029,7 @@
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "tem"
+                        "grafana.app/export-datasource-name": "${datasource}"
                       }
                     },
                     "refId": "A",
@@ -1128,7 +1128,7 @@
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "tem"
+                        "grafana.app/export-datasource-name": "${datasource}"
                       }
                     },
                     "refId": "A",
@@ -1228,7 +1228,7 @@
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "tem"
+                        "grafana.app/export-datasource-name": "${datasource}"
                       }
                     },
                     "refId": "A",
@@ -1328,7 +1328,7 @@
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "tem"
+                        "grafana.app/export-datasource-name": "${datasource}"
                       }
                     },
                     "refId": "A",
@@ -1429,7 +1429,7 @@
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "tem"
+                        "grafana.app/export-datasource-name": "${datasource}"
                       }
                     },
                     "refId": "A",
@@ -1528,7 +1528,7 @@
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "tem"
+                        "grafana.app/export-datasource-name": "${datasource}"
                       }
                     },
                     "refId": "A",
@@ -1688,7 +1688,7 @@
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "tem"
+                        "grafana.app/export-datasource-name": "${datasource}"
                       }
                     },
                     "refId": "A",
