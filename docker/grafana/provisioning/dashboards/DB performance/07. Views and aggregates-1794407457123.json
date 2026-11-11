@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "2ddfc99a-7e8a-556c-9f3f-b06c67af2509",
-    "generation": 5,
-    "creationTimestamp": "2026-10-14T08:43:23Z",
+    "generation": 2,
+    "creationTimestamp": "2026-11-10T13:54:53Z",
     "labels": {},
     "annotations": {}
   },
@@ -48,10 +48,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "${source}",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "datasource": {
                         "name": "${source}"
                       },
@@ -77,6 +73,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -185,10 +185,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "${source}",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "datasource": {
                         "name": "${source}"
                       },
@@ -214,6 +210,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -321,10 +321,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "${source}",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "datasource": {
                         "name": "${source}"
                       },
@@ -332,7 +328,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  job_id,\n  schedule_interval\nFROM\n  timescaledb_information.jobs\nWHERE\n  proc_name = format('refresh_%I', split_part('$viewname', '.', 2))",
+                        "rawSql": "SELECT\n  job_id,\n  schedule_interval\nFROM\n  timescaledb_information.jobs\nWHERE\n  proc_name = 'refresh_mview'\n  AND config ->> 'view' = '$viewname'",
                         "sql": {
                           "columns": [
                             {
@@ -350,6 +346,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -363,10 +363,6 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
-                      "labels": {
-                        "grafana.app/export-datasource-name": "${source}",
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1"
-                      },
                       "datasource": {
                         "name": "${source}"
                       },
@@ -392,6 +388,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "B",
@@ -679,15 +679,15 @@
             "kind": "DataQuery",
             "group": "grafana-postgresql-datasource",
             "version": "v0",
-            "labels": {
-              "grafana.app/export-datasource-name": "${source}",
-              "grafana.app/export-label": "grafana-postgresql-datasource-1"
-            },
             "datasource": {
               "name": "${source}"
             },
             "spec": {
               "__legacyStringValue": "SELECT view_definition\nFROM timescaledb_information.continuous_aggregates\nWHERE format('%I.%I', view_schema, view_name) = '$viewname'\nUNION ALL\nSELECT definition\nFROM pg_matviews\nWHERE format('%I.%I', schemaname, matviewname) = '$viewname'"
+            },
+            "labels": {
+              "grafana.app/export-label": "grafana-postgresql-datasource-1",
+              "grafana.app/export-datasource-name": "${source}"
             }
           },
           "regex": "",
