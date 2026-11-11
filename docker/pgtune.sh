@@ -36,7 +36,7 @@ while [[ $# -gt 0 ]]; do
             Help
             exit 0
             ;;
-        -*|--*)
+        --*|-*)
             echo "Unknown option: $1"
             exit 1
             ;;
@@ -347,7 +347,7 @@ apply() {
     BACKUP="${PGTUNE_BACKUP_DIR}/postgresql.auto.conf.${TS}"
 
     cp -- "$AUTO_CONF" "$BACKUP"
-    printf "\nBackup: $BACKUP\nApplying configuration with ALTER SYSTEM..."
+    printf '\nBackup: %s\nApplying configuration with ALTER SYSTEM...' "$BACKUP"
 
     # Memory
     set_cfg_value "shared_buffers" "'$(cmp_shared_buffers)MB'"

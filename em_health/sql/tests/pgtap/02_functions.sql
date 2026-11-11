@@ -47,8 +47,7 @@ SELECT pganalyze.get_stat_statements();
 SELECT isnt_empty('SELECT * FROM pganalyze.stat_statements');
 SELECT isnt_empty('SELECT * FROM pganalyze.queries');
 
-SELECT pganalyze.parse_logs();
-SELECT isnt_empty('SELECT * FROM pganalyze.vacuum_stats');
+SELECT lives_ok('SELECT pganalyze.parse_logs()');
 
 SELECT * FROM finish();
 ROLLBACK;

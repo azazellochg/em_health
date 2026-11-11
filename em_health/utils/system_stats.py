@@ -479,7 +479,8 @@ class SystemCollector:
 
         return metrics
 
-    def collect_slow(self):
+    @staticmethod
+    def collect_slow():
         metrics = []
 
         readers = (

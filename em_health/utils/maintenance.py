@@ -27,7 +27,6 @@
 import os
 import re
 from datetime import datetime
-import time
 from pathlib import Path
 from packaging.version import Version
 
@@ -116,17 +115,17 @@ def backup(dbname: str = "tem") -> Path:
         grafana_backup = BACKUP_HOST_PATH / f"grafana_{timestamp}.db"
         logger.info("Backing up Grafana DB to %s", grafana_backup.resolve())
         run_command([MANAGER, "stop", GRAFANA_CONTAINER])
-        run_command([MANAGER, "cp", f"{GRAFANA_CONTAINER}:/var/lib/grafana/grafana.db", grafana_backup])
+        run_command([MANAGER, "cp", f"{GRAFANA_CONTAINER}:/var/lib/grafana/grafana.db", str(grafana_backup)])
         run_command([MANAGER, "start", GRAFANA_CONTAINER])
         logger.info("Backup completed")
         return grafana_backup
-    elif dbname in ["tem", "sem"]:
+    else:
         pg_version = get_pg_version()
         ts_version = get_ts_version(dbname)
         pg_backup = Path("/backups") / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
         pg_host_backup = BACKUP_HOST_PATH / f"pg_{dbname}_{pg_version}_{ts_version}_{timestamp}.dump"
         logger.info("Backing up TimescaleDB '%s' to %s", dbname, pg_host_backup.resolve())
-        run_command([*PG_EXEC, "pg_dump", "-Fc", "-d", dbname, "-f", pg_backup])
+        run_command([*PG_EXEC, "pg_dump", "-Fc", "-d", dbname, "-f", str(pg_backup)])
         logger.info("Backup completed")
         return pg_backup
 
