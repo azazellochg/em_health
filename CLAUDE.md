@@ -43,8 +43,7 @@ emhealth test                                            # see Testing below
   `grafana` is read-only. Use `postgres` (superuser) only for migrations and admin tasks.
 - `PgClient.run_query(query, identifiers=..., strings=..., values=...)`: `identifiers` are quoted with
   `sql.Identifier`, `strings` with `sql.Literal`, and `values` are bound `%s` parameters. Use `values` for
-  everything except DDL that can't take parameters (FDW server/user mapping options). Never build SQL with
-  f-strings: `test_no_fstring_sql` fails on `run_query(f...)`/`execute(f...)`.
+  everything except DDL that can't take parameters (FDW server/user mapping options).
   The default `mode="commit"` commits right away.
 - `execute_file()` runs a whole `.sql` file in one transaction and commits it. Variables are written
   `:'var_name'` (psql quoting). `execute_file(variables=...)` substitutes them as `sql.Literal` and raises

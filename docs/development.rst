@@ -28,6 +28,7 @@ Reset Grafana password
 If you forgot admin password for Grafana, you can reset it with:
 
   .. code-block::
+
     podman exec -it emhealth-grafana grafana cli admin reset-admin-password <new_password>
 
 
