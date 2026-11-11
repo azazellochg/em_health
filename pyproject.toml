@@ -21,7 +21,7 @@ dependencies = [
     'watchdog',
     'python-dotenv',
     'packaging',
-    'podman-compose'
+    'podman-compose>=1.6.0',
 ]
 
 [project.optional-dependencies]
