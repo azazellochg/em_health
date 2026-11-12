@@ -49,7 +49,7 @@ services:
       -c archive_command='pgbackrest --stanza=main archive-push %p'
       -c archive_mode=on
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -111,7 +111,6 @@ services:
     volumes:
       - grafana-storage:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
-      - ${BACKUP_DIR}:/backups
     tmpfs:
       - /var/lib/grafana/plugins:rw,exec,nosuid,nodev   # keeps plugins in container only
     cap_drop:
