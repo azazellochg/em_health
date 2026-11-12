@@ -346,6 +346,8 @@ def main(dbname, action, days=None):
         }
 
         with DatabaseManager(dbname) as db:
+            # Full rebuild reads all raw data: give sorts/hashes in this session more memory
+            db.run_query("SET work_mem = '256MB'")
             for view, is_cagg in mviews[dbname].items():
                 schema, name = view.split(".")
                 if is_cagg:

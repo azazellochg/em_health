@@ -110,11 +110,11 @@ get_pg_config() {
             current_setting('max_wal_size'),
             current_setting('wal_compression'),
             current_setting('default_statistics_target'),
-            current_setting('statement_timeout'),
             current_setting('max_locks_per_transaction'),
             current_setting('effective_io_concurrency'),
             current_setting('random_page_cost'),
             current_setting('jit'),
+            current_setting('idle_in_transaction_session_timeout'),
             current_setting('default_toast_compression')
     ")
 
@@ -147,11 +147,11 @@ get_pg_config() {
         PG_MAX_WAL \
         PG_WAL_CMP \
         PG_STAT_TGT \
-        PG_STAT_TIMEOUT \
         PG_MAX_LOCKS \
         PG_EFF_IO \
         PG_RND_PAGE_COST \
         PG_JIT \
+        PG_IDLE_TX_TIMEOUT \
         PG_TOAST_CMP <<< "$values"
 }
 
@@ -187,23 +187,37 @@ cmp_cache_size() {
 }
 
 cmp_work_mem() {
-    # 16Mb at least. 64-256Mb for analytical queries. If we run out, temp files will be created. We can increase this on the fly for heavy queries - check temp files in plans.
-    # (RAM - shared_buffers) / ((max_connections + max_worker_processes) * 3)
-    # Return kB.
+    # 64-256Mb for analytical queries. If we run out, temp files will be created. We can increase this on the fly for heavy queries - check temp files in plans.
+    # Memory for queries: RAM - shared_buffers - maintenance_work_mem - autovacuum workers' memory, with half of what's left kept for the OS page cache.
+    # Divided among everything that can run a query at once (connections + parallel workers),
+    # assuming 2 sort/hash steps per query, each up to hash_mem_multiplier (2) x work_mem.
+    local ram_kb=$(( MEMORY_BYTES / 1024 ))
+    local sb_kb=$(( ram_kb / 4 ))
+    local maint_kb=$(( 1024 * 1024 ))                    # maintenance_work_mem 1GB
+    local av_kb=$(( $(cmp_vac_workers) * 512 * 1024 ))   # autovacuum_work_mem 512MB each
+    local avail_kb=$(( (ram_kb - sb_kb - maint_kb - av_kb) / 2 ))
+    local backends=$(( $(cmp_max_conns) + CPUS ))
+    local wm=$(( avail_kb / (backends * 2 * 2) ))
 
-    local shared_buffers
-    local conns
-    local mwp
-
-    shared_buffers=$(( MEMORY_BYTES / 4 / 1024 ))
-    conns=$(cmp_max_conns)
-    mwp=$(cmp_worker_processes)
-
-    echo $(( (MEMORY_BYTES / 1024 - shared_buffers) / ((conns + mwp) * 3) / 2 * 9 / 10 ))
+    (( wm < 65536 )) && wm=65536
+    (( wm > 262144 )) && wm=262144
+    echo "$wm"
 }
 
 cmp_max_parallel_maint_workers() {
     local value=$(( CPUS / 2 ))
+
+    if (( value > 4 )); then
+        echo 4
+    elif (( value < 1 )); then
+        echo 1
+    else
+        echo "$value"
+    fi
+}
+
+cmp_max_parallel_workers_per_gather() {
+    local value=$(( CPUS / 4 ))
 
     if (( value > 4 )); then
         echo 4
@@ -287,7 +301,7 @@ log "timescaledb.max_background_workers" "$TS_MAX_BGWORKERS" 16
 log "max_parallel_workers" "$PG_MAX_PAR_WRK" "$CPUS"
 log "max_worker_processes" "$PG_MAX_WRK_PROC" "$(cmp_worker_processes)"
 log "max_parallel_maintenance_workers" "$PG_MAX_PAR_MAINT_WRK" "$(cmp_max_parallel_maint_workers)"
-log "max_parallel_workers_per_gather" "$PG_MAX_PAR_WRK_PER_GATHER" "$((CPUS / 2))"
+log "max_parallel_workers_per_gather" "$PG_MAX_PAR_WRK_PER_GATHER" "$(cmp_max_parallel_workers_per_gather)"
 log "temp_buffers" "$PG_TMP_BUFFERS" "32MB"
 
 printf "\n---Autovacuum settings recommendations---\n"
@@ -307,18 +321,18 @@ printf "\n---WAL settings recommendations---\n"
 log "checkpoint_timeout" "$PG_CHK_TIMEOUT" "30min"
 log "checkpoint_completion_target" "$PG_CHK_TGT" "0.9"
 log "wal_buffers" "$PG_WAL_BUFFERS" "16MB"
-log "min_wal_size" "$PG_MIN_WAL" "2GB"
+log "min_wal_size" "$PG_MIN_WAL" "512MB"
 log "max_wal_size" "$PG_MAX_WAL" "4GB"
 log "wal_compression" "$PG_WAL_CMP" "lz4"
 
 printf "\n---Misc settings recommendations---\n"
 log "default_statistics_target" "$PG_STAT_TGT" 500
-log "statement_timeout" "$PG_STAT_TIMEOUT" "15min"
 log "max_locks_per_transaction" "$PG_MAX_LOCKS" "$(cmp_max_locks_per_transaction)"
 log "effective_io_concurrency" "$PG_EFF_IO" 256
 log "random_page_cost" "$PG_RND_PAGE_COST" "1.1" # 1.1 for SSD
 log "jit" "$PG_JIT" "off"
 log "default_toast_compression" "$PG_TOAST_CMP" "lz4"
+log "idle_in_transaction_session_timeout" "$PG_IDLE_TX_TIMEOUT" "10min"
 
 # --------------------------------------------------------------------
 # Dry run
@@ -359,7 +373,7 @@ apply() {
     set_cfg_value "max_parallel_workers" "$CPUS"
     set_cfg_value "max_worker_processes" "$(cmp_worker_processes)"
     set_cfg_value "max_parallel_maintenance_workers" "$(cmp_max_parallel_maint_workers)"
-    set_cfg_value "max_parallel_workers_per_gather" "$((CPUS / 2))"
+    set_cfg_value "max_parallel_workers_per_gather" "$(cmp_max_parallel_workers_per_gather)"
     set_cfg_value "temp_buffers" "'32MB'"
 
     # Autovacuum
@@ -378,18 +392,18 @@ apply() {
     set_cfg_value "checkpoint_timeout" "'30min'"
     set_cfg_value "checkpoint_completion_target" "0.9"
     set_cfg_value "wal_buffers" "'16MB'"
-    set_cfg_value "min_wal_size" "'2GB'"
+    set_cfg_value "min_wal_size" "'512MB'"
     set_cfg_value "max_wal_size" "'4GB'"
     set_cfg_value "wal_compression" "'lz4'"
 
     # Misc
     set_cfg_value "default_statistics_target" "500"
-    set_cfg_value "statement_timeout" "'15min'"
     set_cfg_value "max_locks_per_transaction" "$(cmp_max_locks_per_transaction)"
     set_cfg_value "effective_io_concurrency" "256"
     set_cfg_value "random_page_cost" "1.1"
     set_cfg_value "jit" "off"
     set_cfg_value "default_toast_compression" "lz4"
+    set_cfg_value "idle_in_transaction_session_timeout" "'10min'"
 }
 
 # --------------------------------------------------------------------

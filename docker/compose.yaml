@@ -7,7 +7,7 @@ services:
     image: ghcr.io/azazellochg/timescaledb:0.1a11
     container_name: emhealth-db
     restart: unless-stopped
-    shm_size: 128mb
+    shm_size: 1gb
     environment:
       POSTGRES_INITDB_ARGS: --locale=C --encoding=UTF8
       POSTGRES_USER: ${POSTGRES_USER}
@@ -36,7 +36,7 @@ services:
       -c pg_stat_statements.max=10000
       -c pg_stat_statements.track=top
       -c pg_stat_statements.track_planning=on
-      -c pg_stat_statements.track_utility=off
+      -c pg_stat_statements.track_utility=on
       -c track_io_timing=on
       -c logging_collector=on
       -c log_destination='csvlog'
