@@ -8,10 +8,16 @@ services:
     container_name: emhealth-db
     restart: unless-stopped
     shm_size: 128mb
-    env_file:
-      - .env
     environment:
       POSTGRES_INITDB_ARGS: --locale=C --encoding=UTF8
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_GRAFANA_PASSWORD: ${POSTGRES_GRAFANA_PASSWORD}
+      POSTGRES_EMHEALTH_PASSWORD: ${POSTGRES_EMHEALTH_PASSWORD}
+      POSTGRES_PGANALYZE_PASSWORD: ${POSTGRES_PGANALYZE_PASSWORD}
+      TBL_DATA_CHUNK_SIZE: ${TBL_DATA_CHUNK_SIZE}
+      TBL_STATS_CHUNK_SIZE: ${TBL_STATS_CHUNK_SIZE}
+      TBL_STATS_RETENTION: ${TBL_STATS_RETENTION}
     ports:
       - "127.0.0.1:5432:5432"
     volumes:

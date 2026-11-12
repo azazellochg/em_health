@@ -113,7 +113,7 @@ class PgClient(BaseDBClient):
     """ PostgreSQL DB client. """
     def __init__(self, db_name: str, **kwargs):
         super().__init__(db_name, 5432, **kwargs)
-        self.host = os.getenv('POSTGRES_HOST', 'localhost')
+        self.host = 'localhost'
 
     @staticmethod
     def postgres_notice_handler(notice):
