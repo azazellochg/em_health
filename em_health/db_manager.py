@@ -25,6 +25,7 @@
 # **************************************************************************
 
 import os
+import sys
 import time
 from datetime import datetime
 import json
@@ -243,13 +244,13 @@ class DatabaseManager(PgClient):
     def import_uec(self):
         if any(os.getenv(var) in ["None", "", None] for var in ["MSSQL_USER", "MSSQL_PASSWORD"]):
             logger.warning("MSSQL_USER and MSSQL_PASSWORD are not set.")
-            exit(0)
+            sys.exit()
 
         servers = self.run_query("SELECT id, server FROM events.instruments WHERE server IS NOT NULL",
                                  mode="fetchall")
         if not servers:
             logger.warning("No servers found in the events.instruments table")
-            exit(0)
+            sys.exit()
 
         from em_health.fdw_manager import FDWManager
 
