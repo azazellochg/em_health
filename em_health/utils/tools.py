@@ -28,7 +28,10 @@ import logging
 import os
 import time
 from functools import wraps
+import shlex
 import subprocess
+from collections.abc import Sequence
+from pathlib import Path
 
 try:
     from memory_profiler import memory_usage
@@ -67,7 +70,8 @@ fmt = PrefixFormatter(
     datefmt='%d-%m-%Y %H:%M:%S'
 )
 
-file_handler = logging.FileHandler("emhealth.log", mode="a", encoding="utf-8")
+LOG_FILE = Path(__file__).resolve().parents[2] / "emhealth.log"
+file_handler = logging.FileHandler(LOG_FILE, mode="a", encoding="utf-8")
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(fmt)
 
@@ -112,7 +116,19 @@ def profile(fn):
     return inner
 
 
-def run_command(command: str, capture_output: bool = False, check: bool = True) -> subprocess.CompletedProcess:
-    """Run a shell command with logging."""
-    logger.info("Running command: %s", command)
-    return subprocess.run(command, shell=True, check=check, capture_output=capture_output, text=True)
+def run_command(command: Sequence[str],
+                capture_output: bool = False) -> subprocess.CompletedProcess:
+    """Run a command with logging. """
+    if isinstance(command, str):
+        raise TypeError("run_command() expects a list of arguments, not a string")
+    argv = [str(arg) for arg in command]
+    logger.debug("Running command: %s", shlex.join(argv))
+
+    try:
+        return subprocess.run(argv, check=True, capture_output=capture_output, text=True)
+    except subprocess.CalledProcessError as e:
+        if e.stdout:
+            logger.error("STDOUT: %s", e.stdout)
+        if e.stderr:
+            logger.error("STDERR: %s", e.stderr)
+        raise

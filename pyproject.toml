@@ -8,7 +8,7 @@ dynamic = ["version"]
 authors = [{name = "Grigory Sharov", email = "gsharov@mrclmb.ac.uk"}]
 description = "EMHealth is a Python package designed for continuous monitoring of the performance and health metrics of Thermo Fisher Scientific electron microscopes."
 readme = {file = "README.rst", content-type = "text/x-rst"}
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.10,<3.16"
 keywords = ["microscope", "health monitoring", "TEM", "SEM"]
 classifiers=[
     'Development Status :: 4 - Beta',
@@ -20,13 +20,12 @@ dependencies = [
     'psycopg[binary]',
     'watchdog',
     'python-dotenv',
-    'requests',
     'packaging',
-    'podman-compose'
+    'podman-compose>=1.6.0',
 ]
 
 [project.optional-dependencies]
-dev = ["mypy", "memory-profiler", "pandas", "numpy"]
+dev = ["mypy", "memory-profiler"]
 
 [project.urls]
 Homepage = "https://github.com/azazellochg/em_health"

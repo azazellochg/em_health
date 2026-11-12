@@ -51,6 +51,9 @@ class CreateTaskCmd:
         for m in self.microscopes:
             instrument = m["instrument"]
             server = m["server"]
+            if server is None:
+                logger.warning("Server IP not found for: %s, skipping..", instrument)
+                continue
             xml_file = str(m["serial"]) + "_data.xml"
             export_cmds.append(f'call :RunExport {xml_file} {server} "{instrument}"')
         export_cmd = "\n".join(export_cmds)

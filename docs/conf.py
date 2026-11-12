@@ -4,14 +4,20 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from em_health import __version__
+
 # -- Project information -----------------------------------------------------
 
 project = 'EMHealth'
 copyright = '2023-2026, Grigory Sharov'
 author = 'Grigory Sharov'
 
-# The full version, including alpha/beta/rc tags
-release = '0.1a10'
+# The full version, including alpha/beta/rc tags (single source: em_health/__init__.py)
+release = __version__
 
 # -- General configuration ---------------------------------------------------
 # If your documentation needs a minimal Sphinx version, state it here.

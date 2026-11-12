@@ -24,40 +24,8 @@
 # *
 # **************************************************************************
 
-"""
-Contains code from https://github.com/pganalyze/collector project
-
-Copyright (c) 2016, pganalyze Team <team@pganalyze.com>
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions and the following disclaimer.
-
-* Redistributions in binary form must reproduce the above copyright notice,
-this list of conditions and the following disclaimer in the documentation
-and/or other materials provided with the distribution.
-
-* Neither the name of pganalyze nor the names of its contributors may be used
-to endorse or promote products derived from this software without specific
-prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-POSSIBILITY OF SUCH DAMAGE.
-"""
-
 import os
+import psycopg
 
 from em_health.db_manager import DatabaseManager
 from em_health.utils.tools import logger
@@ -65,16 +33,25 @@ from em_health.utils.tools import logger
 
 class DatabaseAnalyzer(DatabaseManager):
     """ This class contains methods to collect and
-    analyze database performance. Metrics are based on
+    analyze database performance. Metrics were originally designed based on
     https://github.com/pganalyze/collector
     """
     def create_tables(self) -> None:
         """ Create tables to store metrics data. """
+        settings = {
+            # SQL variable: (.env name, value)
+            "var_pgstats_chunk_size": ("TBL_STATS_CHUNK_SIZE", os.getenv("TBL_STATS_CHUNK_SIZE", "1 week")),
+            "var_pgstats_retention": ("TBL_STATS_RETENTION", os.getenv("TBL_STATS_RETENTION", "3 months")),
+        }
+        # Check the intervals before running any DDL, so a bad .env value gives a clear error
+        for env_name, value in settings.values():
+            try:
+                self.run_query("SELECT %s::interval", values=(value,), mode="fetchone")
+            except psycopg.DataError as e:
+                raise ValueError(f"{env_name}={value!r} is not a valid interval") from e
+
         self.execute_file(self.get_path("pganalyze/create_tables.sql"),
-                          {
-                              "var_pgstats_chunk_size": os.getenv("TBL_STATS_CHUNK_SIZE", "1 week"),
-                              "var_pgstats_retention": os.getenv("TBL_STATS_RETENTION", "3 months")
-                          })
+                          {var: value for var, (_, value) in settings.items()})
         logger.info("Created pganalyze tables")
 
     def create_funcs(self) -> None:
@@ -93,6 +70,17 @@ class DatabaseAnalyzer(DatabaseManager):
             self.cur.executemany("SELECT delete_job(%s)", jobs)
             self.conn.commit()
 
+    def create_views(self) -> None:
+        """ Create materialized views. """
+        for view in [
+            "pganalyze.index_bloat",
+            "pganalyze.table_bloat"
+        ]:
+            schema, name = view.split(".")
+            self.drop_mview(view)
+            self.create_mview(view, f"{schema}/mviews/{name}.sql")
+            self.schedule_mview_refresh(view)
+
     def schedule_jobs(self) -> None:
         """ Schedule functions as TimescaleDB jobs. """
         self.execute_file(self.get_path("pganalyze/create_jobs.sql"))
@@ -100,7 +88,7 @@ class DatabaseAnalyzer(DatabaseManager):
 
 
 def main(dbname, action, force=False):
-    if action == "pganalyze":
+    if action == "create-stats":
         with DatabaseAnalyzer(dbname, username="pganalyze", password="POSTGRES_PGANALYZE_PASSWORD") as db:
             db.delete_jobs()
 
@@ -113,9 +101,11 @@ def main(dbname, action, force=False):
                     DROP TABLE IF EXISTS pganalyze.queries CASCADE;
                     DROP TABLE IF EXISTS pganalyze.stat_statements CASCADE;
                     DROP TABLE IF EXISTS pganalyze.stat_explains CASCADE;
+                    DROP TABLE IF EXISTS pganalyze.sys_info CASCADE;
                     DROP TABLE IF EXISTS pganalyze.sys_stats CASCADE;
                 """)
                 db.create_tables()
 
             db.create_funcs()
+            db.create_views()
             db.schedule_jobs()

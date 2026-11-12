@@ -36,8 +36,6 @@ from psycopg.types.json import Jsonb
 from em_health.db_client import PgClient
 from em_health.utils.tools import logger, profile
 
-TEM_SCHEMA_VERSION = 7
-SEM_SCHEMA_VERSION = 7
 
 
 class DatabaseManager(PgClient):
@@ -105,7 +103,7 @@ class DatabaseManager(PgClient):
         :param chunk_size: Number of bytes to read at a time
         """
         self.cur.execute("""
-                         CREATE TEMP TABLE data_staging (
+                         CREATE TEMP TABLE IF NOT EXISTS data_staging (
                              time timestamptz NOT NULL,
                              instrument_id BIGINT NOT NULL,
                              param_id BIGINT NOT NULL,
@@ -163,41 +161,28 @@ class DatabaseManager(PgClient):
 
     def drop_mview(self, view: str, is_cagg: bool = False) -> None:
         """ Delete a materialized view. """
-        self.run_query("DROP MATERIALIZED VIEW IF EXISTS {view} CASCADE",
-                       {"view": view})
         if not is_cagg:
-            # for standard mat. views we need to manually remove the job
-            proc = f"refresh_{view.split('.')[-1]}"
+            # for standard mat. views we need to manually remove the refresh job,
+            # the view name is stored in the job config (see schedule_mview_refresh)
             self.run_query("""
                            SELECT delete_job(job_id)
                            FROM timescaledb_information.jobs
-                           WHERE proc_name = {proc}
-            """, strings={"proc": proc}, mode=None)
+                           WHERE proc_schema = 'public'
+                             AND proc_name = 'refresh_mview'
+                             AND config ->> 'view' = %s
+            """, values=(view,), mode=None)
 
-            self.run_query("DROP PROCEDURE IF EXISTS {proc}",
-                           {"proc": proc}, mode=None)
-            self.conn.commit()
+        self.run_query("DROP MATERIALIZED VIEW IF EXISTS {view} CASCADE",
+                       {"view": view}, mode=None)
+        self.conn.commit()
 
         logger.info("Dropped MVIEW %s", view)
 
     def schedule_mview_refresh(self, view: str, interval: str = "12 hours") -> None:
-        """ Schedule a materialized view refresh. """
-        proc = f"refresh_{view.split('.')[-1]}"
-
-        self.run_query("""
-                       CREATE OR REPLACE PROCEDURE {proc}(
-                           job_id int,
-                           config jsonb
-                           )
-                           LANGUAGE SQL
-                       AS $$
-              REFRESH MATERIALIZED VIEW {view};
-            $$;
-        """, {"proc": proc, "view": view}, mode=None)
-
-        self.run_query("SELECT add_job({proc}, {period})",
-                       strings={"proc": proc, "period": interval}, mode=None)
-        self.conn.commit()
+        """ Schedule a materialized view refresh with the shared
+        public.refresh_mview procedure. The view name goes into the job config. """
+        self.run_query("SELECT add_job('public.refresh_mview', %s::interval, config => %s)",
+                       values=(interval, Jsonb({"view": view})))
 
         logger.info("Scheduled MVIEW refresh for %s every %s", view, interval)
 
@@ -224,16 +209,11 @@ class DatabaseManager(PgClient):
         We refresh every 12h since we want minimal latency before yesterday's stats are available
         """
         self.run_query("""
-            SELECT add_continuous_aggregate_policy({view},
-            start_offset => INTERVAL {start_offset},
-            end_offset => INTERVAL {end_offset},
-            schedule_interval => INTERVAL {schedule_interval})
-        """, strings={
-            "view": view,
-            "start_offset": start_offset,
-            "end_offset": end_offset,
-            "schedule_interval": interval
-        })
+            SELECT add_continuous_aggregate_policy(%s::regclass,
+            start_offset => %s::interval,
+            end_offset => %s::interval,
+            schedule_interval => %s::interval)
+        """, values=(view, start_offset, end_offset, interval))
         logger.info("Scheduled CAGG refresh for %s every %s", view, interval)
 
     def force_refresh_cagg(self, view: str) -> None:
@@ -243,8 +223,8 @@ class DatabaseManager(PgClient):
         Here we aggregate all historical data that has been imported so far.
         """
         self.conn.autocommit = True  # required since CALL cannot be executed inside a transaction
-        self.run_query("CALL refresh_continuous_aggregate({view}, NULL, NULL)",
-                       strings={"view": view})
+        self.run_query("CALL refresh_continuous_aggregate(%s::regclass, NULL, NULL)",
+                       values=(view,))
         self.conn.autocommit = False
         logger.info("Forced CAGG refresh for %s", view)
 
@@ -259,22 +239,6 @@ class DatabaseManager(PgClient):
         view_fn = self.get_path(target)
         self.execute_file(view_fn)
         logger.info("Created MVIEW %s", view)
-
-    def migrate_db(self, latest_ver: int):
-        """ Migrate db to the latest version. """
-        current_ver = self.run_query("SELECT version FROM public.schema_info", mode="fetchone")
-        current_ver = current_ver[0]
-        logger.info("Current schema version: %s", current_ver)
-
-        if current_ver < latest_ver:
-            for v in range(current_ver + 1, latest_ver + 1):
-                view_fn = self.get_path(target=f"migrations/{v:03d}.sql")
-                self.execute_file(view_fn)
-            logger.info("Database schema migrated to version %s", latest_ver)
-        elif current_ver == latest_ver:
-            logger.info("Database schema is up-to-date")
-        else:
-            raise ValueError("Schema version is higher than expected")
 
     def import_uec(self):
         if any(os.getenv(var) in ["None", "", None] for var in ["MSSQL_USER", "MSSQL_PASSWORD"]):
@@ -291,18 +255,33 @@ class DatabaseManager(PgClient):
 
         for instr_id, server in servers:
             fdw = FDWManager(self, "tds_fdw", str(server), instr_id)
-            job_name = fdw.setup_import_job_ms()
-            self.run_query("SELECT add_job({jobname}, schedule_interval=>'1 hour')",
-                           strings={"jobname": job_name})
+            self.schedule_uec_import(instr_id, fdw.fdw_schema)
 
-            logger.info("Scheduled UEC import job for instrument %s", instr_id)
+    def schedule_uec_import(self, instr_id: int, fdw_schema: str, interval: str = "1 hour") -> None:
+        """ Schedule the static uec.import_errors procedure for one instrument.
+        Instrument id and FDW schema go into the job config, so no SQL is generated.
+        An existing job for the same instrument is replaced, so re-running import-uec
+        does not create duplicate jobs.
+        """
+        self.run_query("""
+            SELECT delete_job(job_id)
+            FROM timescaledb_information.jobs
+            WHERE proc_schema = 'uec'
+              AND proc_name = 'import_errors'
+              AND (config ->> 'instrument_id')::bigint = %s
+        """, values=(instr_id,), mode=None)
+
+        self.run_query("SELECT add_job('uec.import_errors', %s::interval, config => %s)",
+                       values=(interval, Jsonb({"instrument_id": instr_id, "fdw_schema": fdw_schema})))
+
+        logger.info("Scheduled UEC import job for instrument %s", instr_id)
 
     def prune_data(self, days: int) -> None:
         """ Prune old data from a database. """
         chunks_dropped = self.run_query("SELECT events.purge_old_chunks('events.data', %s)",
                                         values=(days,), mode='fetchone')
-        self.run_query("DELETE FROM uec.errors WHERE time < (current_timestamp - INTERVAL '{days} days')",
-                       strings={'days': days})
+        self.run_query("DELETE FROM uec.errors WHERE time < current_timestamp - make_interval(days => %s::int)",
+                       values=(days,))
 
         self.conn.commit()
         logger.debug("Removed %s chunks from events.data; %s rows from uec.errors", chunks_dropped[0], self.cur.rowcount)
@@ -368,8 +347,8 @@ def main(dbname, action, days=None):
         with DatabaseManager(dbname) as db:
             for view, is_cagg in mviews[dbname].items():
                 schema, name = view.split(".")
-                db.drop_mview(view)
                 if is_cagg:
+                    db.drop_mview(view, is_cagg=True)
                     db.create_mview(view, f"{schema}/cagg/{name}.sql")
                     db.force_refresh_cagg(view)
                     if name.endswith("hourly"):
@@ -378,6 +357,7 @@ def main(dbname, action, days=None):
                         db.schedule_cagg_refresh(view, start_offset="4 days",  end_offset="1 day", interval="12 hours")
                     db.enable_rt_cagg(view)
                 else:
+                    db.drop_mview(view)
                     db.create_mview(view, f"{schema}/mviews/{name}.sql")
                     db.schedule_mview_refresh(view)
 
@@ -397,16 +377,6 @@ def main(dbname, action, days=None):
             logger.info("Deleting data older than %d days from database %s", days, dbname)
             db.prune_data(days)
 
-    elif action == "migrate":
-        latest_ver = TEM_SCHEMA_VERSION if dbname == "tem" else SEM_SCHEMA_VERSION
-        if latest_ver is not None:
-            # requires superuser permissions
-            with DatabaseManager(dbname, username="postgres", password="POSTGRES_PASSWORD") as db:
-                db.migrate_db(int(latest_ver))
-        else:
-            raise ValueError("Could not get latest schema version")
-
     elif action == "import-uec":
-        # requires superuser permissions to create FDW
-        with DatabaseManager(dbname, username="postgres", password="POSTGRES_PASSWORD") as db:
+        with DatabaseManager(dbname) as db:
             db.import_uec()

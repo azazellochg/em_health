@@ -171,7 +171,7 @@ $sql$;
       CREATE EXTENSION IF NOT EXISTS amcheck;
 
       -- 11. Update schema version
-      UPDATE public.schema_info SET version = 6;
+      UPDATE public.schema_info SET version = 6, updated = NOW();
     END IF;
   END
 $$

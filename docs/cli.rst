@@ -51,7 +51,7 @@ Watchdog
 Description
 ^^^^^^^^^^^
 
-Watch directory for XML file changes and trigger import. The watchdog can import several files in parallel.
+Create Systemd unit file to watch a directory for XML file changes and trigger import. The watchdog can import several files in parallel.
 Optional `t` argument specifies the polling interval in seconds, the default is 5 minutes.
 
 Syntax
@@ -59,7 +59,7 @@ Syntax
 
 .. code-block::
 
-    emhealth watch -i /path/to/xml/dir -s em_health/instruments.json [-t 300]
+    emhealth create-watcher -i /path/to/xml/dir -s em_health/instruments.json [-t 300]
 
 ----
 
@@ -88,6 +88,7 @@ Description
 ^^^^^^^^^^^
 
 Run unit tests to check the XML import parser and import functions. Also executes `pgTAP <https://pgtap.org/>`_ tests on the database.
+Tests are run on a live tem/sem databases and create a temporary test instrument which is later deleted.
 
 Syntax
 ^^^^^^
@@ -115,6 +116,7 @@ Syntax
 .. code-block::
 
     emhealth db -d tem create-stats
+    emhealth db -d sem create-stats
 
 ----
 
@@ -124,7 +126,7 @@ Migrate database
 Description
 ^^^^^^^^^^^
 
-Migrate TimescaleDB schema to the latest version (if required).
+Migrate TimescaleDB schema to the latest version (if required). This command should be only used by developers.
 
 Syntax
 ^^^^^^
@@ -132,6 +134,7 @@ Syntax
 .. code-block::
 
     emhealth db -d tem migrate
+    emhealth db -d sem migrate
 
 ----
 
@@ -141,7 +144,7 @@ Backup
 Description
 ^^^^^^^^^^^
 
-Perform a logical backup of TimescaleDB (both TEM and SEM) or a physical backup of Grafana databases. The backups are saved into `BACKUP_DIR` folder.
+Perform a logical backup of TimescaleDB (either TEM or SEM) or a physical backup of Grafana databases. The backups are saved into `BACKUP_DIR` folder.
 
 Syntax
 ^^^^^^
@@ -149,6 +152,7 @@ Syntax
 .. code-block::
 
     emhealth db -d tem backup
+    emhealth db -d sem backup
     emhealth db -d grafana backup
 
 ----
@@ -167,6 +171,7 @@ Syntax
 .. code-block::
 
     emhealth db -d tem restore
+    emhealth db -d sem restore
 
 ----
 
@@ -184,6 +189,7 @@ Syntax
 .. code-block::
 
     emhealth db -d tem erase
+    emhealth db -d sem erase
 
 ----
 
@@ -195,7 +201,7 @@ Description
 
 Data older than X days will be removed from a database.
 Due to the database `design <https://docs2.tigerdata.com/docs/reference/timescaledb/hypertables/drop_chunks>`_, only the data
-chunks that are fully within the specified time range will be removed.
+chunks that are fully within the specified time range will be removed. For the UEC codes, prune will delete individual rows by exact time.
 
 Syntax
 ^^^^^^
@@ -203,6 +209,7 @@ Syntax
 .. code-block::
 
     emhealth db -d tem prune --days 360
+    emhealth db -d sem prune --days 360
 
 
 Developer Tools
@@ -215,7 +222,7 @@ Description
 ^^^^^^^^^^^
 
 The periodic database statistics collection is enabled by default. Below command can be used if you
-modify the pganalyze tables or functions and want to update the jobs. The output is used in dashboards under *DB performance* folder.
+modify the pganalyze tables or functions and want to update the jobs and views. The output is used in dashboards under *DB performance* folder.
 Optional `f` flag will erase existing database statistics.
 
 Syntax
@@ -223,7 +230,8 @@ Syntax
 
 .. code-block::
 
-    emhealth dev -d tem pganalyze [-f]
+    emhealth dev -d tem create-stats [-f]
+    emhealth dev -d sem create-stats [-f]
 
 ----
 
@@ -240,3 +248,16 @@ as well as the *server* field with IP address for each instrument in the `instru
 .. code-block::
 
     emhealth dev -d tem import-uec
+    emhealth dev -d sem import-uec
+
+----
+
+Create Service
+~~~~~~~~~~~~~~
+
+Create Systemd unit file for host OS statistics collector which populates `pganalyze.sys_info` and `pganalyze.sys_stats` tables.
+Optionally, you can change the default time intervals (in seconds) for metrics collection.
+
+.. code-block::
+
+    emhealth dev create-service [-f FAST] [-s SLOW]

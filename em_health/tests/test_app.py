@@ -25,41 +25,50 @@
 # **************************************************************************
 
 import os
+import re
 import unittest
 from datetime import datetime as dt, timezone as tz
+from pathlib import Path
 
 from em_health.utils.import_xml import ImportXML
 from em_health.utils.tools import run_command
 from em_health.db_manager import DatabaseManager
 
-XML_FN = os.path.join(os.path.dirname(__file__), '9999_data.xml.gz')
-XML_FN2 = os.path.join(os.path.dirname(__file__), '9999_changed_data.xml.gz')
+TEST_SERIAL = 9999
+XML_FN = os.path.join(os.path.dirname(__file__), '%d_data.xml.gz' % TEST_SERIAL)
+XML_FN2 = os.path.join(os.path.dirname(__file__), '%d_changed_data.xml.gz' % TEST_SERIAL)
 JSON_INFO = [{
-    "instrument": "9999, Test Instrument",
-    "serial": 9999,
+    "instrument": "%d, Test Instrument" % TEST_SERIAL,
+    "serial": TEST_SERIAL,
     "model": "Test instrument",
     "name": "Test",
     "type": "tem",
     "template": "krios",
     "server": "127.0.0.1"
 }]
-MANAGER = os.getenv("MANAGER_TYPE")
+MANAGER = os.getenv("MANAGER_TYPE", "podman")
+
+
+def pg_prove(dbname: str, tests: str) -> None:
+    """Run pgTAP tests inside the DB container.
+    :param dbname: database to test
+    :param tests: test file path inside the container, may contain a glob pattern.
+                  It is passed to the container shell as $2 and expanded there.
+    """
+    run_command([MANAGER, "exec", "emhealth-db", "sh", "-c",
+                 'pg_prove -d "$1" -U postgres $2', "sh", dbname, tests])
 
 
 class TestEMHealth(unittest.TestCase):
 
-    def run_test_query(self,
-                       dbm: DatabaseManager,
-                       query: str,
-                       values: tuple,
-                       expected_result: int | str | float,
-                       do_return: bool = False):
-        result = dbm.run_query(query, values=values, mode="fetchone")
-        if do_return:
-            # ignore expected_result
-            return result[0]
-        else:
-            self.assertEqual(result[0], expected_result)
+    @staticmethod
+    def delete_test_instrument():
+        with DatabaseManager("tem") as dbm:
+            dbm.run_query("""
+                SELECT events.delete_instrument(id)
+                FROM events.instruments
+                WHERE serial = %s;
+                """, values=(TEST_SERIAL,))
 
     def check_enumerations(self, enums: dict[str, dict]):
         self.assertEqual(len(enums), 41)
@@ -90,60 +99,47 @@ class TestEMHealth(unittest.TestCase):
         self.assertEqual(match_count, 2)
 
     def test_client(self):
+        self.delete_test_instrument()
+        self.addCleanup(self.delete_test_instrument)
+
         # first import
-        parser = ImportXML(XML_FN, JSON_INFO)
-        parser.parse_enumerations()
-        self.check_enumerations(parser.enum_values)
-        parser.parse_parameters()
-        self.check_parameters(parser.params)
-        instr_dict = parser.get_microscope_dict()
-        config_dict = {"params": parser.params, "enums": parser.enum_values}
+        with ImportXML(XML_FN, JSON_INFO) as parser:
+            parser.parse_enumerations()
+            self.check_enumerations(parser.enum_values)
+            parser.parse_parameters()
+            self.check_parameters(parser.params)
+            instr_dict = parser.get_microscope_dict()
+            config_dict = {"params": parser.params, "enums": parser.enum_values}
 
-        with DatabaseManager(parser.db_name) as dbm:
-            # clean-up
-            dbm.run_query("""
-              SELECT events.delete_instrument(id)
-              FROM events.instruments
-              WHERE serial = 9999;
-            """)
+            with DatabaseManager(parser.db_name) as dbm:
+                instrument_id = dbm.add_instrument(instr_dict, config_dict)
+                # convert to list since we need to iterate twice
+                datapoints = list(parser.parse_values(instrument_id, parser.params))
+                self.check_datapoints(datapoints)
+                dbm.write_data(datapoints)
+                if parser.thresholds:
+                    dbm.add_thresholds(instrument_id, parser.thresholds)
 
-            instrument_id = dbm.add_instrument(instr_dict, config_dict)
-
-            # convert to list since we need to iterate twice
-            datapoints = list(parser.parse_values(instrument_id, parser.params))
-            self.check_datapoints(datapoints)
-            dbm.write_data(datapoints)
-            if parser.thresholds:
-                dbm.add_thresholds(instrument_id, parser.thresholds)
-
-        run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/04_import.sql"')
+        pg_prove("tem", "/sql/tests/pgtap/04_import.sql")
 
         # second import
-        parser2 = ImportXML(XML_FN2, JSON_INFO)
-        parser2.parse_enumerations()
-        parser2.parse_parameters()
-        instr_dict = parser2.get_microscope_dict()
-        config_dict = {"params": parser2.params, "enums": parser2.enum_values}
+        with ImportXML(XML_FN2, JSON_INFO) as parser2:
+            parser2.parse_enumerations()
+            parser2.parse_parameters()
+            instr_dict = parser2.get_microscope_dict()
+            config_dict = {"params": parser2.params, "enums": parser2.enum_values}
 
-        with DatabaseManager(parser2.db_name) as dbm:
-            _ = dbm.add_instrument(instr_dict, config_dict)
-            dbm.write_data(datapoints)
+            with DatabaseManager(parser2.db_name) as dbm:
+                _ = dbm.add_instrument(instr_dict, config_dict)
+                dbm.write_data(datapoints)
 
-        run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/05_import2.sql"')
-
-        with DatabaseManager(parser.db_name) as dbm:
-            # clean-up
-            dbm.run_query("""
-              SELECT events.delete_instrument(id)
-              FROM events.instruments
-              WHERE serial = 9999;
-            """)
+            pg_prove("tem", "/sql/tests/pgtap/05_import2.sql")
 
     def test_pgtap_tem(self):
-        run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d tem -U postgres /sql/tests/pgtap/0[1-3]*.sql"')
+        pg_prove("tem", "/sql/tests/pgtap/0[1-3]*.sql")
 
     def test_pgtap_sem(self):
-        run_command(f'{MANAGER} exec emhealth-db bash -c "pg_prove -d sem -U postgres /sql/tests/pgtap/0[1-3]*.sql"')
+        pg_prove("sem", "/sql/tests/pgtap/0[1-3]*.sql")
 
 
 if __name__ == '__main__':

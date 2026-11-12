@@ -1,6 +1,31 @@
 Changelog
 =========
 
+Version 0.1a11
+^^^^^^^^^^^^^^
+
+* update podman images. PG 18.6
+* update pgbackrest config and setup
+* update uec schema column names
+* implement host metrics collector, update pganalyze schema/funcs
+* postgres connection limited to container host only
+* change shm size for containers
+* add infinity datasource and plugin for Grafana
+* connection limits for all PG roles
+* add pgtune.sh script instead of timescaledb-tune
+* create Systemd unit files for watchdog and host metrics collector
+* disconnect all roles during migration
+* remove unused project deps
+* new mviews in pganalyze schema
+* new dashboards for health checks, IO, host and WAL metrics
+* single source version for package, image, schemas
+* secure code from shell and sql injections
+* refactor to have one shared public.refresh_mview proc
+* escape special chars in data.value_text
+* add CLAUDE.md
+* do not use shell=True in subprocess
+* stricter backup filename matching
+
 Version 0.1a10
 ^^^^^^^^^^^^^^
 

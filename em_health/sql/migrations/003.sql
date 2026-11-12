@@ -13,7 +13,7 @@ $$
       DROP PROCEDURE IF EXISTS public.refresh_tem_off;
 
       -- 2. Update schema version
-      UPDATE public.schema_info SET version = 3;
+      UPDATE public.schema_info SET version = 3, updated = NOW();
     END IF;
   END
 $$

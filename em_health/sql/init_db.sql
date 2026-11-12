@@ -23,6 +23,25 @@ COMMENT ON TABLE public.schema_info IS 'Global schema version';
 
 GRANT SELECT ON TABLE public.schema_info TO PUBLIC;
 
+-- Shared refresh job for materialized views, config = {"view": "<schema>.<name>"}.
+-- SECURITY INVOKER: the job runs as its owner, who can only refresh views they own.
+CREATE OR REPLACE PROCEDURE public.refresh_mview(job_id INT, config JSONB)
+  LANGUAGE plpgsql AS
+$func$
+DECLARE
+  v_view REGCLASS := (config ->> 'view')::REGCLASS;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_class WHERE oid = v_view AND relkind = 'm') THEN
+    RAISE EXCEPTION 'public.refresh_mview: % is not a materialized view', config ->> 'view';
+  END IF;
+  EXECUTE format('REFRESH MATERIALIZED VIEW %s', v_view);
+END;
+$func$;
+
+REVOKE ALL ON PROCEDURE public.refresh_mview(INT, JSONB) FROM PUBLIC;
+
+GRANT EXECUTE ON PROCEDURE public.refresh_mview(INT, JSONB) TO emhealth, pganalyze;
+
 -- events schema
 CREATE SCHEMA IF NOT EXISTS events AUTHORIZATION emhealth;
 
@@ -41,7 +60,11 @@ COMMENT ON SCHEMA uec IS 'Error codes';
 
 SET ROLE emhealth; -- below objects are owned by emhealth
 \i /sql/uec/create_tables.sql
+\i /sql/uec/create_functions.sql
 SET ROLE postgres;
+
+GRANT USAGE ON FOREIGN DATA WRAPPER postgres_fdw TO emhealth;
+GRANT USAGE ON FOREIGN DATA WRAPPER tds_fdw TO emhealth;
 
 -- pganalyze schema
 CREATE SCHEMA IF NOT EXISTS pganalyze AUTHORIZATION pganalyze;
@@ -79,6 +102,6 @@ ALTER ROLE pganalyze SET search_path = pganalyze,public;
 
 ALTER ROLE grafana SET search_path = events,uec,pganalyze,public;
 
--- set current schema version --
+-- set current schema version (passed by docker/init-db.sh and reset-db.sh: highest migrations/NNN.sql) --
 INSERT INTO public.schema_info (version)
-VALUES (7);
+VALUES (:'var_schema_version');
