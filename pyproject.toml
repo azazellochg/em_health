@@ -11,8 +11,15 @@ readme = {file = "README.rst", content-type = "text/x-rst"}
 requires-python = ">=3.10,<3.16"
 keywords = ["microscope", "health monitoring", "TEM", "SEM"]
 classifiers=[
-    'Development Status :: 4 - Beta',
+    'Development Status :: 3 - Alpha',
     'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3 :: Only',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
+    'Programming Language :: Python :: 3.14',
+    'Programming Language :: Python :: 3.15',
     'Operating System :: POSIX :: Linux',
 ]
 license = "GPL-3.0-or-later"
@@ -26,6 +33,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["mypy", "ruff", "memory-profiler"]
+docs = ["sphinx>=8.0.0", "sphinx_rtd_theme>=3.0.0"]
 
 [project.urls]
 Homepage = "https://github.com/azazellochg/em_health"
@@ -46,9 +54,6 @@ em_health = [
     "tests/*.xml.gz",
     "utils/*.sh"
 ]
-
-[tool.setuptools]
-include-package-data = true
 
 [tool.setuptools.dynamic]
 version = {attr = "em_health.__version__"}
