@@ -71,7 +71,7 @@ class FileWatcher:
     def start(self):
         """Run the observer until shutdown is requested or it fails."""
         event_handler = PatternMatchingEventHandler(
-            patterns=["*_data.xml", "*_data.xml.gz"],
+            patterns=["**/*_data.xml", "**/*_data.xml.gz"],
             ignore_directories=True
         )
         event_handler.on_created = self.on_file_detected
