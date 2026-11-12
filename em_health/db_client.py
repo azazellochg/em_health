@@ -52,11 +52,23 @@ class BaseDBClient(ABC):
             self.username = "emhealth"
             self.password = os.getenv("POSTGRES_EMHEALTH_PASSWORD")
         self.port = default_port
-        self.conn = None
-        self.cur = None
+        self._conn: psycopg.Connection | None = None
+        self._cur: psycopg.Cursor | None = None
 
         if not self.password:
-            raise ValueError(f"Password is not set")
+            raise ValueError("Password is not set")
+
+    @property
+    def conn(self) -> psycopg.Connection:
+        if self._conn is None:
+            raise RuntimeError("Database is not connected")
+        return self._conn
+
+    @property
+    def cur(self) -> psycopg.Cursor:
+        if self._cur is None:
+            raise RuntimeError("Database is not connected")
+        return self._cur
 
     def __enter__(self):
         try:
@@ -75,10 +87,10 @@ class BaseDBClient(ABC):
             else:
                 self.conn.commit()
         finally:
-            if self.cur:
-                self.cur.close()
-            if self.conn:
-                self.conn.close()
+            if self._cur:
+                self._cur.close()
+            if self._conn:
+                self._conn.close()
                 logger.info("Connection closed.")
 
     @abstractmethod
@@ -109,7 +121,7 @@ class PgClient(BaseDBClient):
         logger.log(level, notice.message_primary)
 
     def connect(self):
-        self.conn = psycopg.connect(
+        self._conn = psycopg.connect(
             host=self.host,
             port=self.port,
             dbname=self.db_name,
@@ -117,8 +129,8 @@ class PgClient(BaseDBClient):
             password=self.password,
             application_name="EMHealth"
         )
-        self.conn.add_notice_handler(self.postgres_notice_handler)
-        self.cur = self.conn.cursor()
+        self._conn.add_notice_handler(self.postgres_notice_handler)
+        self._cur = self._conn.cursor()
         logger.info("Connected to PostgreSQL %s@%s: database %s",
                     self.username, self.host, self.db_name)
 
@@ -169,15 +181,14 @@ class PgClient(BaseDBClient):
         :param mode: fetch mode or commit.
         """
         # Compose SQL query with identifiers and literals
-        sql_query = sql.SQL(query)
-        format_args = {}
+        format_args: dict[str, sql.Composable] = {}
 
         if identifiers:
             format_args.update({k: sql.Identifier(*v.split(".")) for k, v in identifiers.items()})
         if strings:
             format_args.update({k: sql.Literal(v) for k, v in strings.items()})
 
-        sql_query = sql_query.format(**format_args)
+        sql_query = sql.SQL(query).format(**format_args)
         logger.debug("Executing query:\n%s", sql_query.as_string(self.conn))
 
         self.cur.execute(sql_query, values)

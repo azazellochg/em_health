@@ -417,9 +417,9 @@ def get_os_name():
     """ Parse Linux OS name. """
     with open("/etc/os-release") as f:
         for line in f:
-            line = line.strip()
-            if line.startswith("PRETTY_NAME"):
-                return line.split("=")[-1].strip('"')
+            stripped = line.strip()
+            if stripped.startswith("PRETTY_NAME"):
+                return stripped.split("=")[-1].strip('"')
     return None
 
 
@@ -431,7 +431,7 @@ def acquire_lock():
         fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB,)
     except BlockingIOError:
         lock_file.close()
-        raise RuntimeError("Another system collector is already running")
+        raise RuntimeError("Another system collector is already running") from None
 
     return lock_file
 

@@ -25,7 +25,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["mypy", "memory-profiler"]
+dev = ["mypy", "ruff", "memory-profiler"]
 
 [project.urls]
 Homepage = "https://github.com/azazellochg/em_health"
@@ -52,3 +52,20 @@ include-package-data = true
 
 [tool.setuptools.dynamic]
 version = {attr = "em_health.__version__"}
+
+[tool.mypy]
+python_version = "3.10"
+files = ["em_health"]
+
+[tool.ruff]
+target-version = "py310"
+include = ["em_health/**/*.py"]
+
+[tool.ruff.lint]
+select = [
+    "F",    # pyflakes
+    "E9",   # syntax and IO errors
+    "B",    # flake8-bugbear
+    "PLE",  # pylint errors
+    "PLW",  # pylint warnings
+]

@@ -34,7 +34,7 @@ from typing import Any
 from psycopg.types.json import Jsonb
 
 from em_health.db_client import PgClient
-from em_health.utils.tools import logger, profile
+from em_health.utils.tools import logger
 
 
 
