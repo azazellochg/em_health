@@ -4,6 +4,7 @@ Changelog
 Version 0.1a12
 ^^^^^^^^^^^^^^
 
+* epu_sessions and tomo_sessions mviews read events.data per parameter (LATERAL), refresh no longer decompresses all data
 * enum members are identified by value (new PK), renamed members are updated on import instead of failing
 * warn when parameter storage/display units change on import
 * drop unused chunk skipping on events.data.param_id
