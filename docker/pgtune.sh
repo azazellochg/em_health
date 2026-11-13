@@ -5,8 +5,6 @@ YES=0
 DRYRUN=0
 RESTORE=0
 
-PGTUNE_BACKUP_DIR="/tmp"
-
 Help()
 {
     echo "Usage of pgtune.sh:"
@@ -47,12 +45,31 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ ! -d "$PGDATA" ]]; then
-    echo "PGDATA does not exist: $PGDATA"
+if [[ ! -d "${PGDATA:-}" ]]; then
+    echo "PGDATA does not exist: ${PGDATA:-<unset>}"
     exit 1
 fi
 
 AUTO_CONF="${PGDATA}/postgresql.auto.conf"
+PGTUNE_BACKUP_DIR="${PGDATA}/pgtune_backups"
+
+reload_and_report() {
+    local pending
+
+    psql -v ON_ERROR_STOP=1 -Atqc "SELECT pg_reload_conf();" > /dev/null
+    sleep 1
+
+    pending=$(psql -v ON_ERROR_STOP=1 -Atqc \
+        "SELECT string_agg(name, ', ' ORDER BY name) FROM pg_settings WHERE pending_restart;")
+
+    if [[ -n "$pending" ]]; then
+        printf '\nConfiguration reloaded. These settings need a restart to take effect:\n  %s\n' "$pending"
+        printf 'Run e.g. "podman restart emhealth-db" (or docker).\n'
+        printf 'During the first database initialization this happens automatically.\n'
+    else
+        printf '\nConfiguration reloaded, all settings are in effect. No restart needed.\n'
+    fi
+}
 
 log() {
     printf '%s: %s -> %s\n' "$1" "$2" "$3"
@@ -186,6 +203,19 @@ cmp_cache_size() {
     echo $(( MEMORY_BYTES * 3 / 4 / 1024 / 1024 ))
 }
 
+cmp_maint_work_mem() {
+    # 128MB per GB of RAM (as timescaledb-tune). Return MB
+    local value=$(( MEMORY_BYTES / 1024 / 1024 / 8 ))
+
+    if (( value > 2047 )); then
+        echo 2047
+    elif (( value < 64 )); then
+        echo 64
+    else
+        echo "$value"
+    fi
+}
+
 cmp_work_mem() {
     # 64-256Mb for analytical queries. If we run out, temp files will be created. We can increase this on the fly for heavy queries - check temp files in plans.
     # Memory for queries: RAM - shared_buffers - maintenance_work_mem - autovacuum workers' memory, with half of what's left kept for the OS page cache.
@@ -193,7 +223,7 @@ cmp_work_mem() {
     # assuming 2 sort/hash steps per query, each up to hash_mem_multiplier (2) x work_mem.
     local ram_kb=$(( MEMORY_BYTES / 1024 ))
     local sb_kb=$(( ram_kb / 4 ))
-    local maint_kb=$(( 1024 * 1024 ))                    # maintenance_work_mem 1GB
+    local maint_kb=$(( $(cmp_maint_work_mem) * 1024 ))   # maintenance_work_mem
     local av_kb=$(( $(cmp_vac_workers) * 512 * 1024 ))   # autovacuum_work_mem 512MB each
     local avail_kb=$(( (ram_kb - sb_kb - maint_kb - av_kb) / 2 ))
     local backends=$(( $(cmp_max_conns) + CPUS ))
@@ -239,19 +269,33 @@ cmp_vac_workers() {
     fi
 }
 
+cmp_ts_bg_workers() {
+    # At least 16, but never lower a value that was raised on purpose
+    if (( TS_MAX_BGWORKERS > 16 )); then
+        echo "$TS_MAX_BGWORKERS"
+    else
+        echo 16
+    fi
+}
+
 cmp_worker_processes() {
     # Base PostgreSQL workers + TimescaleDB background workers + PostgreSQL parallel workers.
-    echo $(( 3 + TS_MAX_BGWORKERS + CPUS ))
+    echo $(( 3 + $(cmp_ts_bg_workers) + CPUS ))
+}
+
+mem_at_least_gb() {
+    # True if memory is at least $1 GB, allowing 5% slack: the kernel reserves part of the RAM,
+    # so a "32 GB" host reports ~31 GB in /proc/meminfo
+    local GB=$((1024 * 1024 * 1024))
+    (( MEMORY_BYTES * 100 >= $1 * GB * 95 ))
 }
 
 cmp_max_locks_per_transaction() {
-    local GB=$((1024 * 1024 * 1024))
-
-    if (( MEMORY_BYTES >= 32 * GB )); then
+    if mem_at_least_gb 32; then
         echo 1024
-    elif (( MEMORY_BYTES >= 16 * GB )); then
+    elif mem_at_least_gb 16; then
         echo 512
-    elif (( MEMORY_BYTES >= 8 * GB )); then
+    elif mem_at_least_gb 8; then
         echo 256
     else
         echo 128
@@ -272,7 +316,7 @@ if (( RESTORE )); then
 
     cp -- "$backup" "$AUTO_CONF"
     echo "Restored $AUTO_CONF from $backup"
-    pg_ctl -D "$PGDATA" restart
+    reload_and_report
     exit 0
 fi
 
@@ -295,9 +339,9 @@ printf "\n---Memory settings recommendations---\n"
 log "shared_buffers" "$PG_SHARED_BUFFERS" "$(cmp_shared_buffers)MB"
 log "effective_cache_size" "$PG_CACHE_SIZE" "$(cmp_cache_size)MB"
 log "work_mem" "$PG_WORK_MEM" "$(cmp_work_mem)kB"
-log "maintenance_work_mem" "$PG_MAINT_WORK_MEM" "1024MB" # 0.5-1Gb
+log "maintenance_work_mem" "$PG_MAINT_WORK_MEM" "$(cmp_maint_work_mem)MB"
 log "max_connections" "$PG_MAX_CONN" "$(cmp_max_conns)"
-log "timescaledb.max_background_workers" "$TS_MAX_BGWORKERS" 16
+log "timescaledb.max_background_workers" "$TS_MAX_BGWORKERS" "$(cmp_ts_bg_workers)"
 log "max_parallel_workers" "$PG_MAX_PAR_WRK" "$CPUS"
 log "max_worker_processes" "$PG_MAX_WRK_PROC" "$(cmp_worker_processes)"
 log "max_parallel_maintenance_workers" "$PG_MAX_PAR_MAINT_WRK" "$(cmp_max_parallel_maint_workers)"
@@ -360,6 +404,7 @@ apply() {
     TS=$(date +%Y%m%d%H%M%S)
     BACKUP="${PGTUNE_BACKUP_DIR}/postgresql.auto.conf.${TS}"
 
+    mkdir -p -m 700 -- "$PGTUNE_BACKUP_DIR"
     cp -- "$AUTO_CONF" "$BACKUP"
     printf '\nBackup: %s\nApplying configuration with ALTER SYSTEM...' "$BACKUP"
 
@@ -367,9 +412,9 @@ apply() {
     set_cfg_value "shared_buffers" "'$(cmp_shared_buffers)MB'"
     set_cfg_value "effective_cache_size" "'$(cmp_cache_size)MB'"
     set_cfg_value "work_mem" "'$(cmp_work_mem)kB'"
-    set_cfg_value "maintenance_work_mem" "'1024MB'"
+    set_cfg_value "maintenance_work_mem" "'$(cmp_maint_work_mem)MB'"
     set_cfg_value "max_connections" "$(cmp_max_conns)"
-    set_cfg_value "timescaledb.max_background_workers" "16"
+    set_cfg_value "timescaledb.max_background_workers" "$(cmp_ts_bg_workers)"
     set_cfg_value "max_parallel_workers" "$CPUS"
     set_cfg_value "max_worker_processes" "$(cmp_worker_processes)"
     set_cfg_value "max_parallel_maintenance_workers" "$(cmp_max_parallel_maint_workers)"
@@ -404,6 +449,9 @@ apply() {
     set_cfg_value "jit" "off"
     set_cfg_value "default_toast_compression" "lz4"
     set_cfg_value "idle_in_transaction_session_timeout" "'10min'"
+
+    printf ' done.\n'
+    reload_and_report
 }
 
 # --------------------------------------------------------------------
