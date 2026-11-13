@@ -224,16 +224,9 @@ class DatabaseManager(PgClient):
         Here we aggregate all historical data that has been imported so far.
         """
         self.conn.autocommit = True  # required since CALL cannot be executed inside a transaction
-        # Full history is mostly compressed. A nested loop over the joined params decompresses
-        # all instrument data once per param, a hash join decompresses it once in total.
-        # Policy refreshes (recent, uncompressed chunks) keep the default planner settings.
-        self.run_query("SET enable_nestloop = off")
-        try:
-            self.run_query("CALL refresh_continuous_aggregate(%s::regclass, NULL, NULL)",
-                           values=(view,))
-        finally:
-            self.run_query("RESET enable_nestloop")
-            self.conn.autocommit = False
+        self.run_query("CALL refresh_continuous_aggregate(%s::regclass, NULL, NULL)",
+                       values=(view,))
+        self.conn.autocommit = False
         logger.info("Forced CAGG refresh for %s", view)
 
     def enable_rt_cagg(self, view: str) -> None:

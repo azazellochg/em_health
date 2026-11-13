@@ -6,7 +6,6 @@ Version 0.1a12
 
 * epu_sessions and tomo_sessions mviews read events.data per parameter (LATERAL), refresh no longer decompresses all data
 * vacuum_state_daily mview reads events.data per parameter (LATERAL)
-* create-stats: full cagg refresh uses hash joins (one pass over compressed data instead of one per parameter)
 * new tem_pressure_monthly cagg (rollup of tem_pressure_daily), hourly/daily/monthly pressure tiers are kept forever
 * enum members are identified by value (new PK), renamed members are updated on import instead of failing
 * warn when parameter storage/display units change on import
