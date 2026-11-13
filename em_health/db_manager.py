@@ -224,9 +224,16 @@ class DatabaseManager(PgClient):
         Here we aggregate all historical data that has been imported so far.
         """
         self.conn.autocommit = True  # required since CALL cannot be executed inside a transaction
-        self.run_query("CALL refresh_continuous_aggregate(%s::regclass, NULL, NULL)",
-                       values=(view,))
-        self.conn.autocommit = False
+        # Full history is mostly compressed. A nested loop over the joined params decompresses
+        # all instrument data once per param, a hash join decompresses it once in total.
+        # Policy refreshes (recent, uncompressed chunks) keep the default planner settings.
+        self.run_query("SET enable_nestloop = off")
+        try:
+            self.run_query("CALL refresh_continuous_aggregate(%s::regclass, NULL, NULL)",
+                           values=(view,))
+        finally:
+            self.run_query("RESET enable_nestloop")
+            self.conn.autocommit = False
         logger.info("Forced CAGG refresh for %s", view)
 
     def enable_rt_cagg(self, view: str) -> None:
@@ -306,6 +313,7 @@ def main(dbname, action, days=None):
                 "events.tem_cryocycle_daily": True,
                 "events.tem_pressure_hourly": True,
                 "events.tem_pressure_daily": True, # depends on tem_pressure_hourly
+                "events.tem_pressure_monthly": True, # depends on tem_pressure_daily
                 #"events.tem_feg_counter_daily": True,
 
                 # Depends on em_off
@@ -358,6 +366,9 @@ def main(dbname, action, days=None):
                         db.schedule_cagg_refresh(view, start_offset="6 hours", end_offset="1 hour", interval="1 hour")
                     elif name.endswith("daily"):
                         db.schedule_cagg_refresh(view, start_offset="4 days",  end_offset="1 day", interval="12 hours")
+                    elif name.endswith("monthly"):
+                        # a month bucket is refreshed only once it is complete: cover the last 2 full months
+                        db.schedule_cagg_refresh(view, start_offset="3 months", end_offset="1 day", interval="1 day")
                     db.enable_rt_cagg(view)
                 else:
                     db.drop_mview(view)
