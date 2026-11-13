@@ -89,6 +89,20 @@ get_memory() {
     awk '/MemTotal/ { print $2 * 1024 }' /proc/meminfo
 }
 
+get_cpus() {
+    if [[ -f /sys/fs/cgroup/cpu.max ]]; then
+        local quota period
+        read -r quota period < /sys/fs/cgroup/cpu.max
+
+        if [[ "$quota" != "max" ]]; then
+            echo $(( (quota + period - 1) / period ))  # round up: 1.5 CPUs -> 2
+            return
+        fi
+    fi
+
+    nproc
+}
+
 get_pg_version() {
     psql -v ON_ERROR_STOP=1 -Atqc \
         "SELECT current_setting('server_version_num')::int / 10000"
@@ -325,7 +339,7 @@ fi
 # --------------------------------------------------------------------
 
 MEMORY_BYTES=$(get_memory)
-CPUS=$(nproc)
+CPUS=$(get_cpus)
 PG_VERSION=$(get_pg_version)
 
 get_pg_config
