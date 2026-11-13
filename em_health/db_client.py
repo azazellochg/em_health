@@ -117,7 +117,8 @@ class PgClient(BaseDBClient):
 
     @staticmethod
     def postgres_notice_handler(notice):
-        level = PG_LOG_LEVELS.get(notice.severity, logging.INFO)
+        # severity_nonlocalized is always English, severity depends on the server lc_messages
+        level = PG_LOG_LEVELS.get(notice.severity_nonlocalized, logging.INFO)
         logger.log(level, notice.message_primary)
 
     def connect(self):

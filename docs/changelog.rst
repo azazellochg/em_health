@@ -4,7 +4,10 @@ Changelog
 Version 0.1a12
 ^^^^^^^^^^^^^^
 
-* tbd
+* enum members are identified by value (new PK), renamed members are updated on import instead of failing
+* warn when parameter storage/display units change on import
+* drop unused chunk skipping on events.data.param_id
+* remove "_new" suffix from events constraint and sequence names, name events.data constraints in base DDL
 
 Version 0.1a11
 ^^^^^^^^^^^^^^

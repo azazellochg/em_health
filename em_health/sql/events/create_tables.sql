@@ -51,17 +51,14 @@ CREATE TABLE IF NOT EXISTS events.enum_values (
   member_name TEXT NOT NULL,
   CONSTRAINT enum_values_instr_enum_fkey FOREIGN KEY (instrument_id, enum_id)
     REFERENCES events.enum_types (instrument_id, enum_id) ON DELETE CASCADE,
-  CONSTRAINT enum_values_names_key UNIQUE (instrument_id, enum_id, member_name),
-  CONSTRAINT enum_values_values_key UNIQUE (instrument_id, enum_id, value)
+  CONSTRAINT enum_values_instr_enum_value_pkey PRIMARY KEY (instrument_id, enum_id, value)
 );
 
 COMMENT ON TABLE events.enum_values IS 'Current HM IntEnum members for each instrument';
 COMMENT ON CONSTRAINT enum_values_instr_enum_fkey
   ON events.enum_values IS 'enum_id are scoped per instrument';
-COMMENT ON CONSTRAINT enum_values_names_key
-  ON events.enum_values IS 'Each enum is required to have unique member names';
-COMMENT ON CONSTRAINT enum_values_values_key
-  ON events.enum_values IS 'Each enum is required to have unique member values';
+COMMENT ON CONSTRAINT enum_values_instr_enum_value_pkey
+  ON events.enum_values IS 'The value identifies a member (events.data stores it); HM can rename members in place';
 
 -- Creating events.parameters
 CREATE TABLE IF NOT EXISTS events.parameters (
@@ -131,8 +128,9 @@ CREATE TABLE IF NOT EXISTS events.data (
   param_id BIGINT NOT NULL,
   value_num DOUBLE PRECISION,
   value_text TEXT,
-  UNIQUE (instrument_id, param_id, time),
-  FOREIGN KEY (instrument_id, param_id) REFERENCES events.parameters (instrument_id, param_id)
+  CONSTRAINT data_instrument_param_time_key UNIQUE (instrument_id, param_id, time),
+  CONSTRAINT data_instrument_param_fkey FOREIGN KEY (instrument_id, param_id)
+    REFERENCES events.parameters (instrument_id, param_id)
 )
 WITH (
   tsdb.hypertable,
@@ -145,4 +143,3 @@ WITH (
 
 COMMENT ON TABLE events.data IS 'Main time series table with HM events';
 
-SELECT enable_chunk_skipping('events.data', 'param_id');
