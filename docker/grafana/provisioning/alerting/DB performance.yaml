@@ -491,36 +491,36 @@ groups:
                 rawSql: |-
                     WITH stats AS (
                       SELECT
-                        collected_at,
+                        time,
                         relid,
                         table_bytes,
                         num_dead_rows,
                         num_live_rows,
                         tup_ins,
-                        LAG(collected_at) OVER (
+                        LAG(time) OVER (
                           PARTITION BY relid
                           ORDER BY
-                            collected_at
+                            time
                         ) AS prev_at,
                         LAG(table_bytes) OVER (
                           PARTITION BY relid
                           ORDER BY
-                            collected_at
+                            time
                         ) AS prev_table_bytes,
                         LAG(num_dead_rows) OVER (
                           PARTITION BY relid
                           ORDER BY
-                            collected_at
+                            time
                         ) AS prev_dead_rows,
                         LAG(tup_ins) OVER (
                           PARTITION BY relid
                           ORDER BY
-                            collected_at
+                            time
                         ) AS prev_tup_ins
                       FROM
                         pganalyze.table_stats
                       WHERE
-                        collected_at >= now() - interval '7 days'
+                        time >= now() - interval '7 days'
                     ),
                     intervals AS (
                       SELECT
@@ -554,7 +554,7 @@ groups:
                           WHERE
                             v.relid = i.relid
                             AND v.finished_at > i.prev_at
-                            AND v.finished_at <= i.collected_at
+                            AND v.finished_at <= i.time
                         ) AS vacuum_ran
                       FROM
                         intervals i
@@ -719,7 +719,7 @@ groups:
                       JOIN pg_class t ON t.oid = i.relid
                       JOIN pg_namespace n ON n.oid = t.relnamespace
                     WHERE
-                      i.collected_at >= now() - interval '35 days'
+                      i.time >= now() - interval '35 days'
                       AND NOT ix.indisprimary
                       AND NOT ix.indisunique
                       AND n.nspname NOT IN ('pg_catalog', 'information_schema')
@@ -1266,12 +1266,12 @@ groups:
                       WHERE
                         xmin_horizon <> 0
                       ORDER BY
-                        collected_at DESC
+                        time DESC
                       LIMIT
                         1
                     ), horizon_age AS (
                       SELECT
-                        MIN(ds.collected_at) AS assigned_at
+                        MIN(ds.time) AS assigned_at
                       FROM
                         pganalyze.database_stats ds
                         CROSS JOIN current_horizon ch

@@ -401,7 +401,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH current_horizon AS (\n  SELECT\n    xmin_horizon\n  FROM\n    pganalyze.database_stats\n  WHERE\n    xmin_horizon <> 0\n  ORDER BY\n    collected_at DESC\n  LIMIT 1\n)\nSELECT\n  EXTRACT(EPOCH FROM (NOW() - MIN(ds.collected_at))) AS assigned_seconds_ago\nFROM\n  pganalyze.database_stats ds\n  CROSS JOIN current_horizon ch\nWHERE\n  ds.xmin_horizon = ch.xmin_horizon;",
+                        "rawSql": "WITH current_horizon AS (\n  SELECT\n    xmin_horizon\n  FROM\n    pganalyze.database_stats\n  WHERE\n    xmin_horizon <> 0\n  ORDER BY\n    time DESC\n  LIMIT 1\n)\nSELECT\n  EXTRACT(EPOCH FROM (NOW() - MIN(ds.time))) AS assigned_seconds_ago\nFROM\n  pganalyze.database_stats ds\n  CROSS JOIN current_horizon ch\nWHERE\n  ds.xmin_horizon = ch.xmin_horizon;",
                         "sql": {
                           "columns": [
                             {
@@ -501,7 +501,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "WITH threshold AS (\n  SELECT setting::bigint AS \"autovacuum_freeze_max_age\"\n  FROM pg_settings\n  WHERE name ='autovacuum_freeze_max_age'\n)\n\nSELECT\n  collected_at AS time,\n  frozen_xid_age,\n  (SELECT autovacuum_freeze_max_age FROM threshold) AS autovacuum_freeze_max_age\nFROM pganalyze.database_stats\nORDER BY collected_at",
+                        "rawSql": "WITH threshold AS (\n  SELECT setting::bigint AS \"autovacuum_freeze_max_age\"\n  FROM pg_settings\n  WHERE name ='autovacuum_freeze_max_age'\n)\n\nSELECT\n  time AS time,\n  frozen_xid_age,\n  (SELECT autovacuum_freeze_max_age FROM threshold) AS autovacuum_freeze_max_age\nFROM pganalyze.database_stats\nORDER BY time",
                         "sql": {
                           "columns": [
                             {
@@ -661,7 +661,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "WITH threshold AS (\n  SELECT setting::bigint AS \"autovacuum_multixact_freeze_max_age\"\n  FROM pg_settings\n  WHERE name ='autovacuum_multixact_freeze_max_age'\n)\n\nSELECT\n  collected_at AS time,\n  frozen_mxid_age,\n  (SELECT autovacuum_multixact_freeze_max_age FROM threshold) AS autovacuum_multixact_freeze_max_age\nFROM pganalyze.database_stats\nORDER BY collected_at",
+                        "rawSql": "WITH threshold AS (\n  SELECT setting::bigint AS \"autovacuum_multixact_freeze_max_age\"\n  FROM pg_settings\n  WHERE name ='autovacuum_multixact_freeze_max_age'\n)\n\nSELECT\n  time AS time,\n  frozen_mxid_age,\n  (SELECT autovacuum_multixact_freeze_max_age FROM threshold) AS autovacuum_multixact_freeze_max_age\nFROM pganalyze.database_stats\nORDER BY time",
                         "sql": {
                           "columns": [
                             {
@@ -1500,7 +1500,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH current_stats AS (\n  SELECT\n    collected_at,\n    xact_commit + xact_rollback AS total_transactions,\n    LAG(xact_commit + xact_rollback, 144) OVER (\n      ORDER BY\n        collected_at\n    ) AS transactions_24h_ago,\n    LAG(collected_at, 144) OVER (\n      ORDER BY\n        collected_at\n    ) AS collected_at_24h_ago\n  FROM\n    pganalyze.database_stats\n),\nparams AS (\n  SELECT\n    (\n      total_transactions - transactions_24h_ago\n    ) :: numeric / NULLIF(\n      EXTRACT(\n        EPOCH\n        FROM\n          (\n            collected_at - collected_at_24h_ago\n          )\n      ),\n      0\n    ) AS tx_per_sec,\n    current_setting('autovacuum_freeze_max_age') :: bigint AS freeze_max_age,\n    current_setting('autovacuum_multixact_freeze_max_age') :: bigint AS multixact_freeze_max_age\n  FROM\n    current_stats\n  WHERE\n    collected_at = (\n      SELECT\n        MAX(collected_at)\n      FROM\n        pganalyze.database_stats\n    )\n    AND transactions_24h_ago IS NOT NULL\n),\ntables AS (\n  SELECT\n    c.oid :: regclass :: text AS table_name,\n    LEAST(\n      p.freeze_max_age - age(c.relfrozenxid),\n      p.multixact_freeze_max_age - mxid_age(c.relminmxid)\n    ) AS tx_before_wraparound_vacuum\n  FROM\n    pg_class c\n    CROSS JOIN params p\n  WHERE\n    c.relfrozenxid != 0\n    AND c.oid > 16384\n),\nminimum AS (\n  SELECT\n    MIN(tx_before_wraparound_vacuum) AS min_tx_before_wraparound\n  FROM\n    tables\n)\nSELECT\n  min_tx_before_wraparound / NULLIF(p.tx_per_sec, 0) / 3600.0 AS min_hours_until_anti_wraparound_vacuum\nFROM\n  minimum\n  CROSS JOIN params p;",
+                        "rawSql": "WITH current_stats AS (\n  SELECT\n    time,\n    xact_commit + xact_rollback AS total_transactions,\n    LAG(xact_commit + xact_rollback, 144) OVER (\n      ORDER BY\n        time\n    ) AS transactions_24h_ago,\n    LAG(time, 144) OVER (\n      ORDER BY\n        time\n    ) AS time_24h_ago\n  FROM\n    pganalyze.database_stats\n),\nparams AS (\n  SELECT\n    (\n      total_transactions - transactions_24h_ago\n    ) :: numeric / NULLIF(\n      EXTRACT(\n        EPOCH\n        FROM\n          (\n            time - time_24h_ago\n          )\n      ),\n      0\n    ) AS tx_per_sec,\n    current_setting('autovacuum_freeze_max_age') :: bigint AS freeze_max_age,\n    current_setting('autovacuum_multixact_freeze_max_age') :: bigint AS multixact_freeze_max_age\n  FROM\n    current_stats\n  WHERE\n    time = (\n      SELECT\n        MAX(time)\n      FROM\n        pganalyze.database_stats\n    )\n    AND transactions_24h_ago IS NOT NULL\n),\ntables AS (\n  SELECT\n    c.oid :: regclass :: text AS table_name,\n    LEAST(\n      p.freeze_max_age - age(c.relfrozenxid),\n      p.multixact_freeze_max_age - mxid_age(c.relminmxid)\n    ) AS tx_before_wraparound_vacuum\n  FROM\n    pg_class c\n    CROSS JOIN params p\n  WHERE\n    c.relfrozenxid != 0\n    AND c.oid > 16384\n),\nminimum AS (\n  SELECT\n    MIN(tx_before_wraparound_vacuum) AS min_tx_before_wraparound\n  FROM\n    tables\n)\nSELECT\n  min_tx_before_wraparound / NULLIF(p.tx_per_sec, 0) / 3600.0 AS min_hours_until_anti_wraparound_vacuum\nFROM\n  minimum\n  CROSS JOIN params p;",
                         "sql": {
                           "columns": [
                             {
@@ -1601,7 +1601,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH samples AS (\n    SELECT\n        collected_at,\n        xact_commit + xact_rollback AS total_transactions,\n        LAG(xact_commit + xact_rollback, 144) OVER (\n            ORDER BY collected_at\n        ) AS transactions_24h_ago,\n        LAG(collected_at, 144) OVER (\n            ORDER BY collected_at\n        ) AS collected_at_24h_ago\n    FROM pganalyze.database_stats\n)\nSELECT\n    collected_at AS time,\n    ROUND(\n        (\n            total_transactions - transactions_24h_ago\n        )::numeric\n        /\n        NULLIF(\n            EXTRACT(\n                EPOCH FROM (collected_at - collected_at_24h_ago)\n            ) / 60.0,\n            0\n        ),\n        2\n    ) AS txn_per_minute_24h_avg\nFROM samples\nWHERE transactions_24h_ago IS NOT NULL\nORDER BY collected_at",
+                        "rawSql": "WITH samples AS (\n    SELECT\n        time,\n        xact_commit + xact_rollback AS total_transactions,\n        LAG(xact_commit + xact_rollback, 144) OVER (\n            ORDER BY time\n        ) AS transactions_24h_ago,\n        LAG(time, 144) OVER (\n            ORDER BY time\n        ) AS time_24h_ago\n    FROM pganalyze.database_stats\n)\nSELECT\n    time AS time,\n    ROUND(\n        (\n            total_transactions - transactions_24h_ago\n        )::numeric\n        /\n        NULLIF(\n            EXTRACT(\n                EPOCH FROM (time - time_24h_ago)\n            ) / 60.0,\n            0\n        ),\n        2\n    ) AS txn_per_minute_24h_avg\nFROM samples\nWHERE transactions_24h_ago IS NOT NULL\nORDER BY time",
                         "sql": {
                           "columns": [
                             {

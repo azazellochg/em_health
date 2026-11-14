@@ -55,7 +55,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH last_timestamp AS (\n  SELECT MAX(collected_at) AS time\n  FROM pganalyze.index_stats\n)\n\nSELECT\n  i.indexrelname AS \"Index\",\n  i.schemaname || '.' || i.relname AS \"Table\",\n  s.size_bytes AS \"Size\",\n  b.bloat_ratio_percent AS \"Est. bloat\",\n  s.scan AS \"Scans\",\n  i.last_idx_scan AS \"Last scan\"\nFROM\n  pganalyze.index_stats s\n  JOIN pg_stat_user_indexes i USING (indexrelid)\n  LEFT JOIN pganalyze.index_bloat b ON b.indexrelname = i.indexrelname\nWHERE \n  collected_at = (SELECT time from last_timestamp)\nORDER BY s.size_bytes DESC\nLIMIT 10",
+                        "rawSql": "WITH last_timestamp AS (\n  SELECT MAX(time) AS time\n  FROM pganalyze.index_stats\n)\n\nSELECT\n  i.indexrelname AS \"Index\",\n  i.schemaname || '.' || i.relname AS \"Table\",\n  s.size_bytes AS \"Size\",\n  b.bloat_ratio_percent AS \"Est. bloat\",\n  s.scan AS \"Scans\",\n  i.last_idx_scan AS \"Last scan\"\nFROM\n  pganalyze.index_stats s\n  JOIN pg_stat_user_indexes i USING (indexrelid)\n  LEFT JOIN pganalyze.index_bloat b ON b.indexrelname = i.indexrelname\nWHERE \n  time = (SELECT time from last_timestamp)\nORDER BY s.size_bytes DESC\nLIMIT 10",
                         "sql": {
                           "columns": [
                             {
@@ -283,7 +283,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH latest AS (\n  SELECT\n    DISTINCT ON (i.indexrelid) i.indexrelid,\n    format('%I.%I', s.schemaname, s.relname) AS \"Table\",\n    s.indexrelname AS \"Index\",\n    i.scan AS \"Scans\"\n  FROM\n    pganalyze.index_stats i\n    JOIN pg_stat_user_indexes s USING (indexrelid)\n  WHERE\n    s.indexrelname NOT LIKE '%_pkey'\n  ORDER BY\n    i.indexrelid,\n    i.collected_at DESC\n)\nSELECT\n  \"Table\",\n  \"Index\",\n  \"Scans\"\nFROM\n  latest\nWHERE\n  \"Scans\" < 10\nORDER BY\n  \"Table\"",
+                        "rawSql": "WITH latest AS (\n  SELECT\n    DISTINCT ON (i.indexrelid) i.indexrelid,\n    format('%I.%I', s.schemaname, s.relname) AS \"Table\",\n    s.indexrelname AS \"Index\",\n    i.scan AS \"Scans\"\n  FROM\n    pganalyze.index_stats i\n    JOIN pg_stat_user_indexes s USING (indexrelid)\n  WHERE\n    s.indexrelname NOT LIKE '%_pkey'\n  ORDER BY\n    i.indexrelid,\n    i.time DESC\n)\nSELECT\n  \"Table\",\n  \"Index\",\n  \"Scans\"\nFROM\n  latest\nWHERE\n  \"Scans\" < 10\nORDER BY\n  \"Table\"",
                         "sql": {
                           "columns": [
                             {

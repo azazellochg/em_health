@@ -6,7 +6,7 @@ CREATE FUNCTION pganalyze.get_db_stats(job_id INT = NULL, config jsonb = NULL) R
 $$
 BEGIN
   INSERT INTO pganalyze.database_stats (
-    collected_at,
+    time,
     xact_commit,
     xact_rollback,
     blks_read,
@@ -62,7 +62,7 @@ BEGIN
       FROM xmin_candidates
     )
   SELECT
-    NOW() AS collected_at,
+    NOW() AS time,
     s.xact_commit,
     s.xact_rollback,
     s.blks_read,
@@ -138,7 +138,7 @@ BEGIN
   )
   INSERT
   INTO pganalyze.table_stats (
-    collected_at,
+    time,
     relid,
     table_bytes,
     index_bytes,
@@ -152,7 +152,7 @@ BEGIN
     seq_scans
   )
   SELECT
-    NOW() AS collected_at,
+    NOW() AS time,
     s.relid,
     CASE WHEN ht.hypertable_name IS NOT NULL THEN (hds).table_bytes ELSE PG_TABLE_SIZE(s.relid) END AS table_bytes,
     CASE WHEN ht.hypertable_name IS NOT NULL THEN (hds).index_bytes ELSE PG_INDEXES_SIZE(s.relid) END AS index_bytes,
@@ -258,7 +258,7 @@ BEGIN
 
   INSERT
   INTO pganalyze.index_stats (
-    collected_at,
+    time,
     indexrelid,
     relid,
     size_bytes,
@@ -269,7 +269,7 @@ BEGIN
     blks_hit
   )
   SELECT
-    NOW() AS collected_at,
+    NOW() AS time,
     r.indexrelid,
     r.relid,
     r.size_bytes + COALESCE(ch.size_bytes, 0) AS size_bytes,
@@ -296,7 +296,7 @@ DECLARE
 
 BEGIN
   INSERT INTO pganalyze.io_stats (
-    collected_at,
+    time,
     backend_type,
     reads,
     writes,
@@ -659,17 +659,16 @@ BEGIN
     RAISE EXCEPTION 'Config must have drop_after';
   END IF;
 
-  DELETE FROM pganalyze.database_stats WHERE collected_at < NOW() - drop_after;
+  DELETE FROM pganalyze.database_stats WHERE time < NOW() - drop_after;
 
-  DELETE FROM pganalyze.table_stats WHERE collected_at < NOW() - drop_after;
+  DELETE FROM pganalyze.table_stats WHERE time < NOW() - drop_after;
 
-  DELETE FROM pganalyze.index_stats WHERE collected_at < NOW() - drop_after;
+  DELETE FROM pganalyze.index_stats WHERE time < NOW() - drop_after;
 
   DELETE FROM pganalyze.vacuum_stats WHERE started_at < NOW() - drop_after;
 
   DELETE FROM pganalyze.stat_explains WHERE time < NOW() - drop_after;
 
-  DELETE FROM pganalyze.sys_stats WHERE time < NOW() - drop_after;
-
+  -- Hypertables (stat_statements, sys_stats, io_stats) are purged by their retention policies
 END;
 $$;

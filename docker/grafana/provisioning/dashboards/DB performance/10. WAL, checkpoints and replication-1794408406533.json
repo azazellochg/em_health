@@ -355,7 +355,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  irate_right(summary) AS \"WAL generated\"\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, collected_at) AS bucket,\n      counter_agg(collected_at, pg_wal_lsn_diff(wal_lsn, '0/0'::pg_lsn)) AS summary\n    FROM\n      pganalyze.database_stats\n    WHERE\n     $__timeFilter(collected_at)\n    GROUP BY bucket\n  ) t\nORDER BY\n  time\n",
+                        "rawSql": "SELECT\n  bucket AS time,\n  irate_right(summary) AS \"WAL generated\"\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n      counter_agg(time, pg_wal_lsn_diff(wal_lsn, '0/0'::pg_lsn)) AS summary\n    FROM\n      pganalyze.database_stats\n    WHERE\n     $__timeFilter(time)\n    GROUP BY bucket\n  ) t\nORDER BY\n  time\n",
                         "sql": {
                           "columns": [
                             {
@@ -491,7 +491,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  collected_at AS time,\n  wal_archived_count AS archived_count,\n  wal_failed_count AS failed_count\nFROM\n  pganalyze.database_stats\nWHERE\n  $__timeFilter(collected_at)\nORDER BY\n  time",
+                        "rawSql": "SELECT\n  time AS time,\n  wal_archived_count AS archived_count,\n  wal_failed_count AS failed_count\nFROM\n  pganalyze.database_stats\nWHERE\n  $__timeFilter(time)\nORDER BY\n  time",
                         "sql": {
                           "columns": [
                             {
@@ -629,7 +629,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  delta(summary) AS wal_generated_bytes\nFROM (\n  SELECT\n    time_bucket('$agg_interval'::INTERVAL, collected_at) AS bucket,\n    counter_agg(\n      collected_at,\n      pg_wal_lsn_diff(wal_lsn, '0/0'::pg_lsn)\n    ) AS summary\n  FROM pganalyze.database_stats\n  WHERE $__timeFilter(collected_at)\n  GROUP BY bucket\n) t\nORDER BY time;",
+                        "rawSql": "SELECT\n  bucket AS time,\n  delta(summary) AS wal_generated_bytes\nFROM (\n  SELECT\n    time_bucket('$agg_interval'::INTERVAL, time) AS bucket,\n    counter_agg(\n      time,\n      pg_wal_lsn_diff(wal_lsn, '0/0'::pg_lsn)\n    ) AS summary\n  FROM pganalyze.database_stats\n  WHERE $__timeFilter(time)\n  GROUP BY bucket\n) t\nORDER BY time;",
                         "sql": {
                           "columns": [
                             {
@@ -1507,7 +1507,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    bucket AS time,\n    delta(write_summary) AS \"Write time\",\n    delta(sync_summary) AS \"Sync time\",\n    delta(buffers_summary) * 8 * 1024 AS \"Buffers written\"\nFROM (\n    SELECT\n        time_bucket('$agg_interval'::interval, collected_at) AS bucket,\n        counter_agg(collected_at, chk_write_time) AS write_summary,\n        counter_agg(collected_at, chk_sync_time) AS sync_summary,\n        counter_agg(collected_at, chk_buffers_written) AS buffers_summary\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(collected_at)\n    GROUP BY 1\n) t\nORDER BY 1",
+                        "rawSql": "SELECT\n    bucket AS time,\n    delta(write_summary) AS \"Write time\",\n    delta(sync_summary) AS \"Sync time\",\n    delta(buffers_summary) * 8 * 1024 AS \"Buffers written\"\nFROM (\n    SELECT\n        time_bucket('$agg_interval'::interval, time) AS bucket,\n        counter_agg(time, chk_write_time) AS write_summary,\n        counter_agg(time, chk_sync_time) AS sync_summary,\n        counter_agg(time, chk_buffers_written) AS buffers_summary\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(time)\n    GROUP BY 1\n) t\nORDER BY 1",
                         "sql": {
                           "columns": [
                             {
@@ -1667,7 +1667,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  delta(summary_req) AS \"Requested\",\n  delta(summary_timed) AS \"Timed\"\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, collected_at) AS bucket,\n      counter_agg(collected_at, chk_requested) AS summary_req,\n      counter_agg(collected_at, chk_timed) AS summary_timed\n    FROM\n      pganalyze.database_stats\n    WHERE\n      $__timeFilter(collected_at)\n    GROUP BY\n      bucket\n  ) t\nORDER BY\n  time",
+                        "rawSql": "SELECT\n  bucket AS time,\n  delta(summary_req) AS \"Requested\",\n  delta(summary_timed) AS \"Timed\"\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n      counter_agg(time, chk_requested) AS summary_req,\n      counter_agg(time, chk_timed) AS summary_timed\n    FROM\n      pganalyze.database_stats\n    WHERE\n      $__timeFilter(time)\n    GROUP BY\n      bucket\n  ) t\nORDER BY\n  time",
                         "sql": {
                           "columns": [
                             {

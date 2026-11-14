@@ -1166,7 +1166,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  pg_wal_lsn_diff(\n    last(wal_lsn, collected_at),\n    first(wal_lsn, collected_at)\n  ) AS wal_generated_bytes\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
+                        "rawSql": "SELECT\n  pg_wal_lsn_diff(\n    last(wal_lsn, time),\n    first(wal_lsn, time)\n  ) AS wal_generated_bytes\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(time)",
                         "sql": {
                           "columns": [
                             {
@@ -1613,7 +1613,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  last(chk_requested, collected_at) - first(chk_requested, collected_at) AS requested_checkpoints_24h\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
+                        "rawSql": "SELECT\n  last(chk_requested, time) - first(chk_requested, time) AS requested_checkpoints_24h\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(time)",
                         "sql": {
                           "columns": [
                             {
@@ -1752,7 +1752,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  irate_right(counter_agg(collected_at, tup_inserted)) * 60 AS inserted_per_min\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
+                        "rawSql": "SELECT\n  irate_right(counter_agg(time, tup_inserted)) * 60 AS inserted_per_min\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(time)",
                         "sql": {
                           "columns": [
                             {
@@ -2173,7 +2173,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  irate_right(counter_agg(collected_at, tup_updated)) * 60 AS updated_per_min\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
+                        "rawSql": "SELECT\n  irate_right(counter_agg(time, tup_updated)) * 60 AS updated_per_min\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(time)",
                         "sql": {
                           "columns": [
                             {
@@ -2275,7 +2275,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  irate_right(counter_agg(collected_at, tup_deleted)) * 60 AS deleted_per_min\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
+                        "rawSql": "SELECT\n  irate_right(counter_agg(time, tup_deleted)) * 60 AS deleted_per_min\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(time)",
                         "sql": {
                           "columns": [
                             {
@@ -2377,7 +2377,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  (\n    pg_wal_lsn_diff(\n      last(wal_lsn, collected_at),\n      first(wal_lsn, collected_at)\n    )\n    /\n    EXTRACT(\n      EPOCH FROM (\n        last(collected_at, collected_at)\n        - first(collected_at, collected_at)\n      )\n    )\n  ) AS wal_bytes_per_second\nFROM pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
+                        "rawSql": "SELECT\n  (\n    pg_wal_lsn_diff(\n      last(wal_lsn, time),\n      first(wal_lsn, time)\n    )\n    /\n    EXTRACT(\n      EPOCH FROM (\n        last(time, time)\n        - first(time, time)\n      )\n    )\n  ) AS wal_bytes_per_second\nFROM pganalyze.database_stats\nWHERE $__timeFilter(time)",
                         "sql": {
                           "columns": [
                             {
@@ -2479,7 +2479,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  (\n    last(temp_bytes, collected_at)\n    - first(temp_bytes, collected_at)\n  )::double precision\n  /\n  EXTRACT(\n    EPOCH FROM (\n      last(collected_at, collected_at)\n      - first(collected_at, collected_at)\n    )\n  ) AS temp_bytes_per_second\nFROM pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
+                        "rawSql": "SELECT\n  (\n    last(temp_bytes, time)\n    - first(temp_bytes, time)\n  )::double precision\n  /\n  EXTRACT(\n    EPOCH FROM (\n      last(time, time)\n      - first(time, time)\n    )\n  ) AS temp_bytes_per_second\nFROM pganalyze.database_stats\nWHERE $__timeFilter(time)",
                         "sql": {
                           "columns": [
                             {
@@ -2619,7 +2619,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  irate_right(counter_agg(collected_at, xact_commit + xact_rollback)) * 60 AS tx_per_min\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
+                        "rawSql": "SELECT\n  irate_right(counter_agg(time, xact_commit + xact_rollback)) * 60 AS tx_per_min\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(time)",
                         "sql": {
                           "columns": [
                             {
@@ -2720,7 +2720,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  100.0 *\n  irate_right(counter_agg(collected_at, xact_rollback))\n  /\n  NULLIF(\n    irate_right(\n      counter_agg(collected_at, xact_commit + xact_rollback)\n    ),\n    0\n  ) AS rollback_pct\nFROM pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
+                        "rawSql": "SELECT\n  100.0 *\n  irate_right(counter_agg(time, xact_rollback))\n  /\n  NULLIF(\n    irate_right(\n      counter_agg(time, xact_commit + xact_rollback)\n    ),\n    0\n  ) AS rollback_pct\nFROM pganalyze.database_stats\nWHERE $__timeFilter(time)",
                         "sql": {
                           "columns": [
                             {
@@ -3295,7 +3295,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH stats AS (\n    SELECT\n        delta(counter_agg(collected_at, blks_hit::double precision))\n            AS hits_delta,\n        delta(counter_agg(collected_at, blks_read::double precision))\n            AS reads_delta\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(collected_at)\n)\nSELECT\n    ROUND(\n        (100.0 * hits_delta /\n         NULLIF(hits_delta + reads_delta, 0))::numeric,\n        2\n    ) AS avg_buffer_cache_hit_rate_pct\nFROM stats",
+                        "rawSql": "WITH stats AS (\n    SELECT\n        delta(counter_agg(time, blks_hit::double precision))\n            AS hits_delta,\n        delta(counter_agg(time, blks_read::double precision))\n            AS reads_delta\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(time)\n)\nSELECT\n    ROUND(\n        (100.0 * hits_delta /\n         NULLIF(hits_delta + reads_delta, 0))::numeric,\n        2\n    ) AS avg_buffer_cache_hit_rate_pct\nFROM stats",
                         "sql": {
                           "columns": [
                             {
@@ -3435,7 +3435,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH per_table AS (\n  SELECT\n    relid,\n    irate_right(\n      counter_agg(collected_at, seq_scans :: double precision)\n    ) AS scans_per_second\n  FROM\n    pganalyze.table_stats\n  WHERE\n    $__timeFilter(collected_at)\n    AND table_bytes > 100000000\n  GROUP BY\n    relid\n)\nSELECT\n  COALESCE(SUM(scans_per_second * 60), 0) AS full_scans_per_min\nFROM\n  per_table",
+                        "rawSql": "WITH per_table AS (\n  SELECT\n    relid,\n    irate_right(\n      counter_agg(time, seq_scans :: double precision)\n    ) AS scans_per_second\n  FROM\n    pganalyze.table_stats\n  WHERE\n    $__timeFilter(time)\n    AND table_bytes > 100000000\n  GROUP BY\n    relid\n)\nSELECT\n  COALESCE(SUM(scans_per_second * 60), 0) AS full_scans_per_min\nFROM\n  per_table",
                         "sql": {
                           "columns": [
                             {
@@ -3580,7 +3580,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH invalid_indexes AS (\n  SELECT\n    COUNT(*) AS total\n  FROM\n    pg_index i\n    JOIN pg_class c ON c.oid = i.indexrelid\n    JOIN pg_namespace n ON n.oid = c.relnamespace\n  WHERE\n    NOT i.indisvalid\n    AND n.nspname NOT IN ('pg_catalog', 'information_schema')\n),\nunused_indexes AS (\nWITH latest AS (\n    SELECT DISTINCT ON (i.indexrelid)\n        i.indexrelid,\n        i.scan\n    FROM\n        pganalyze.index_stats i\n    JOIN\n        pg_stat_user_indexes s USING (indexrelid)\n    WHERE\n        s.indexrelname NOT LIKE '%_pkey'\n    ORDER BY\n        i.indexrelid,\n        i.collected_at DESC\n)\nSELECT\n    COUNT(DISTINCT indexrelid) AS total\nFROM\n    latest\nWHERE\n    scan < 10\n),\nduplicate_indexes AS (\n  SELECT\n    COUNT(*) AS total\n  FROM\n    (\n      SELECT\n        indrelid,\n        indkey,\n        indclass,\n        indcollation,\n        indoption,\n        indexprs,\n        indpred,\n        indisunique,\n        am.amname\n      FROM\n        pg_index i\n        JOIN pg_class c ON c.oid = i.indexrelid\n        JOIN pg_am am ON am.oid = c.relam\n      WHERE\n        i.indisvalid\n      GROUP BY\n        indrelid,\n        indkey,\n        indclass,\n        indcollation,\n        indoption,\n        indexprs,\n        indpred,\n        indisunique,\n        am.amname\n      HAVING\n        COUNT(*) > 1\n    ) d\n)\nSELECT\n  (\n    SELECT\n      total\n    FROM\n      invalid_indexes\n  ) AS invalid,\n  (\n    SELECT\n      total\n    FROM\n      unused_indexes\n  ) AS unused,\n  (\n    SELECT\n      total\n    FROM\n      duplicate_indexes\n  ) AS duplicate",
+                        "rawSql": "WITH invalid_indexes AS (\n  SELECT\n    COUNT(*) AS total\n  FROM\n    pg_index i\n    JOIN pg_class c ON c.oid = i.indexrelid\n    JOIN pg_namespace n ON n.oid = c.relnamespace\n  WHERE\n    NOT i.indisvalid\n    AND n.nspname NOT IN ('pg_catalog', 'information_schema')\n),\nunused_indexes AS (\nWITH latest AS (\n    SELECT DISTINCT ON (i.indexrelid)\n        i.indexrelid,\n        i.scan\n    FROM\n        pganalyze.index_stats i\n    JOIN\n        pg_stat_user_indexes s USING (indexrelid)\n    WHERE\n        s.indexrelname NOT LIKE '%_pkey'\n    ORDER BY\n        i.indexrelid,\n        i.time DESC\n)\nSELECT\n    COUNT(DISTINCT indexrelid) AS total\nFROM\n    latest\nWHERE\n    scan < 10\n),\nduplicate_indexes AS (\n  SELECT\n    COUNT(*) AS total\n  FROM\n    (\n      SELECT\n        indrelid,\n        indkey,\n        indclass,\n        indcollation,\n        indoption,\n        indexprs,\n        indpred,\n        indisunique,\n        am.amname\n      FROM\n        pg_index i\n        JOIN pg_class c ON c.oid = i.indexrelid\n        JOIN pg_am am ON am.oid = c.relam\n      WHERE\n        i.indisvalid\n      GROUP BY\n        indrelid,\n        indkey,\n        indclass,\n        indcollation,\n        indoption,\n        indexprs,\n        indpred,\n        indisunique,\n        am.amname\n      HAVING\n        COUNT(*) > 1\n    ) d\n)\nSELECT\n  (\n    SELECT\n      total\n    FROM\n      invalid_indexes\n  ) AS invalid,\n  (\n    SELECT\n      total\n    FROM\n      unused_indexes\n  ) AS unused,\n  (\n    SELECT\n      total\n    FROM\n      duplicate_indexes\n  ) AS duplicate",
                         "sql": {
                           "columns": [
                             {
