@@ -13,6 +13,20 @@ Most of the logic is in SQL (`em_health/sql/`). Python is the CLI, the importer 
   `emhealth-db`, `emhealth-grafana` and `emhealth-renderer`. Compose mounts `em_health/sql` at `/sql`.
 - Python `>=3.10,<3.16`.
 
+## Containers
+- `docker/.env` fills `${VAR}` in `compose.yaml`. No container gets the whole file: each service lists
+  only the variables it uses under `environment:`. If `init-db.sh` or `reset-db.sh` needs a new
+  variable, add it to the `timescaledb` service too. `reset-db.sh` runs later through `exec`, so it
+  only sees what the container was started with.
+- The DB healthcheck uses `pg_isready -h 127.0.0.1` on purpose. During the first start, `init-db.sh`
+  runs on a temporary server that only listens on the Unix socket, so a socket check reports
+  ready too early (`up --wait` and `update()` depend on this).
+- `BACKUP_DIR` (host) is mounted at `/backups` in the DB container only. It holds both `pg_dump`
+  files and the pgBackRest repository. Grafana backup/restore goes through `podman cp` and a
+  temporary busybox container.
+- Postgres logs are `postgresql-%a.log` (one file per weekday, truncated on rotation), so at most 7 files.
+- The image build context is `docker/`, so `docker/.dockerignore` is the one that applies.
+
 ## Common commands
 ```bash
 podman-compose -f docker/compose.yaml up -d             # or: docker compose -f docker/compose.yaml up -d
@@ -20,6 +34,7 @@ emhealth import -i file.xml.gz -s em_health/instruments.json
 emhealth db -d tem migrate                               # apply pending migrations/NNN.sql
 emhealth db -d tem create-stats                          # (re)create caggs/mviews and their jobs
 emhealth test                                            # see Testing below
+ruff check && mypy                                       # lint and type check (pip install -e '.[dev]'), config in pyproject.toml
 ```
 
 ## Versioning: each version is written in one place only
@@ -27,7 +42,7 @@ emhealth test                                            # see Testing below
 |---|---|---|
 | App | `em_health/__init__.py` (`__version__`) | `pyproject.toml` and `docs/conf.py` read it. Add a `docs/changelog.rst` entry. |
 | Docker image tag | `docker/compose.yaml` (`timescaledb` image) | Independent of the app version. Bump it whenever `docker/Dockerfile` changes. The publish workflow refuses to overwrite an existing tag. |
-| Image components | `ARG` lines at the top of `docker/Dockerfile` | `PG_VERSION` (must match the `PG_IMAGE` digest), `TS_VERSION`, `TS_OLD_VERSIONS`, `TLK_VERSION`, `TDS_VERSION`. Keep them as plain `ARG NAME=value` lines, because CI parses them for the GHCR description. |
+| Image components | `ARG` lines in `docker/Dockerfile` | `PG_IMAGE` (`postgres:<version>-<distro>@sha256:<digest>`, update tag and digest together), `TS_VERSIONS` (space-separated and quoted; all are built so old backups can be restored, the last one is the default), `TLK_VERSION`, `TDS_VERSION`. CI reads these lines with `sed` for the GHCR description, so keep the `ARG NAME=value` format. |
 | DB schema | the highest `em_health/sql/migrations/NNN.sql` | `maintenance.SCHEMA_VERSION`, `init-db.sh` and `reset-db.sh` all work it out from the file names. |
 
 ## Schema changes

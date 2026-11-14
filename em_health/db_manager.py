@@ -25,6 +25,7 @@
 # **************************************************************************
 
 import os
+import sys
 import time
 from datetime import datetime
 import json
@@ -34,7 +35,7 @@ from typing import Any
 from psycopg.types.json import Jsonb
 
 from em_health.db_client import PgClient
-from em_health.utils.tools import logger, profile
+from em_health.utils.tools import logger
 
 
 
@@ -243,13 +244,13 @@ class DatabaseManager(PgClient):
     def import_uec(self):
         if any(os.getenv(var) in ["None", "", None] for var in ["MSSQL_USER", "MSSQL_PASSWORD"]):
             logger.warning("MSSQL_USER and MSSQL_PASSWORD are not set.")
-            exit(0)
+            sys.exit()
 
         servers = self.run_query("SELECT id, server FROM events.instruments WHERE server IS NOT NULL",
                                  mode="fetchall")
         if not servers:
             logger.warning("No servers found in the events.instruments table")
-            exit(0)
+            sys.exit()
 
         from em_health.fdw_manager import FDWManager
 
@@ -305,6 +306,7 @@ def main(dbname, action, days=None):
                 "events.tem_cryocycle_daily": True,
                 "events.tem_pressure_hourly": True,
                 "events.tem_pressure_daily": True, # depends on tem_pressure_hourly
+                "events.tem_pressure_monthly": True, # depends on tem_pressure_daily
                 #"events.tem_feg_counter_daily": True,
 
                 # Depends on em_off
@@ -345,6 +347,8 @@ def main(dbname, action, days=None):
         }
 
         with DatabaseManager(dbname) as db:
+            # Full rebuild reads all raw data: give sorts/hashes in this session more memory
+            db.run_query("SET work_mem = '256MB'")
             for view, is_cagg in mviews[dbname].items():
                 schema, name = view.split(".")
                 if is_cagg:
@@ -355,6 +359,9 @@ def main(dbname, action, days=None):
                         db.schedule_cagg_refresh(view, start_offset="6 hours", end_offset="1 hour", interval="1 hour")
                     elif name.endswith("daily"):
                         db.schedule_cagg_refresh(view, start_offset="4 days",  end_offset="1 day", interval="12 hours")
+                    elif name.endswith("monthly"):
+                        # a month bucket is refreshed only once it is complete: cover the last 2 full months
+                        db.schedule_cagg_refresh(view, start_offset="3 months", end_offset="1 day", interval="1 day")
                     db.enable_rt_cagg(view)
                 else:
                     db.drop_mview(view)

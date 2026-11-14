@@ -18,6 +18,7 @@ author = 'Grigory Sharov'
 
 # The full version, including alpha/beta/rc tags (single source: em_health/__init__.py)
 release = __version__
+version = release
 
 # -- General configuration ---------------------------------------------------
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -30,7 +31,7 @@ extensions = []
 
 # Add any paths that contain templates here, relative to this directory.
 source_suffix = {'.rst': 'restructuredtext'}
-master_doc = 'index'
+root_doc = 'index'
 language = 'en'
 
 # List of patterns, relative to source directory, that match files and

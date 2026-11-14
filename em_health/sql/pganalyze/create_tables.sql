@@ -1,6 +1,6 @@
 -- Create tables
 CREATE TABLE IF NOT EXISTS pganalyze.database_stats (
-  collected_at timestamptz DEFAULT NOW() PRIMARY KEY,
+  time timestamptz DEFAULT NOW() PRIMARY KEY,
   xact_commit BIGINT NOT NULL,
   xact_rollback BIGINT NOT NULL,
   blks_read BIGINT NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS pganalyze.database_stats (
 );
 
 CREATE TABLE IF NOT EXISTS pganalyze.table_stats (
-  collected_at timestamptz NOT NULL DEFAULT NOW(),
+  time timestamptz NOT NULL DEFAULT NOW(),
   relid oid NOT NULL,
   table_bytes BIGINT NOT NULL,
   index_bytes BIGINT NOT NULL,
@@ -42,11 +42,11 @@ CREATE TABLE IF NOT EXISTS pganalyze.table_stats (
   num_dead_rows BIGINT NOT NULL,
   num_live_rows BIGINT NOT NULL,
   seq_scans BIGINT NOT NULL,
-  PRIMARY KEY (relid, collected_at)
+  PRIMARY KEY (relid, time)
 );
 
 CREATE TABLE IF NOT EXISTS pganalyze.index_stats (
-  collected_at timestamptz NOT NULL DEFAULT NOW(),
+  time timestamptz NOT NULL DEFAULT NOW(),
   indexrelid oid NOT NULL,
   relid oid NOT NULL,
   size_bytes BIGINT NOT NULL,
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS pganalyze.index_stats (
   tup_fetch BIGINT NOT NULL,
   blks_read BIGINT NOT NULL,
   blks_hit BIGINT NOT NULL,
-  PRIMARY KEY (indexrelid, collected_at)
+  PRIMARY KEY (indexrelid, time)
 );
 
 CREATE TABLE IF NOT EXISTS pganalyze.vacuum_stats (
@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS pganalyze.vacuum_stats (
 );
 
 CREATE TABLE IF NOT EXISTS pganalyze.io_stats (
-  collected_at timestamptz NOT NULL,
+  time timestamptz NOT NULL,
   backend_type text NOT NULL,
   reads BIGINT,
   writes BIGINT,
@@ -88,8 +88,18 @@ CREATE TABLE IF NOT EXISTS pganalyze.io_stats (
   writebacks BIGINT,
   read_bytes BIGINT,
   write_bytes BIGINT,
-  PRIMARY KEY (collected_at, backend_type)
-);
+  PRIMARY KEY (time, backend_type)
+)
+WITH (
+  tsdb.hypertable,
+  tsdb.chunk_interval = :'var_pgstats_chunk_size',
+  tsdb.partition_column = 'time',
+  tsdb.create_default_indexes = FALSE,
+  tsdb.segmentby = 'backend_type',
+  tsdb.orderby = 'time DESC'
+  );
+
+SELECT add_retention_policy('pganalyze.io_stats', drop_after => INTERVAL :'var_pgstats_retention');
 
 CREATE TABLE IF NOT EXISTS pganalyze.queries (
   queryid BIGINT NOT NULL PRIMARY KEY,
@@ -157,15 +167,18 @@ CREATE TABLE IF NOT EXISTS pganalyze.sys_stats (
   time timestamptz NOT NULL DEFAULT NOW(),
   metric TEXT NOT NULL,
   value DOUBLE PRECISION NOT NULL,
-  labels JSONB,
-  UNIQUE (metric, labels, time)
+  labels JSONB
 )
 WITH (
   tsdb.hypertable,
   tsdb.chunk_interval = :'var_pgstats_chunk_size',
   tsdb.partition_column = 'time',
+  tsdb.create_default_indexes = FALSE,
   tsdb.segmentby = 'metric',
   tsdb.orderby = 'time DESC'
 );
+
+-- All queries filter on metric and a time range
+CREATE INDEX IF NOT EXISTS sys_stats_metric_time_idx ON pganalyze.sys_stats (metric, time DESC);
 
 SELECT add_retention_policy('pganalyze.sys_stats', drop_after => INTERVAL :'var_pgstats_retention');

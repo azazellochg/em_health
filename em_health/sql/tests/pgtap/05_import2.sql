@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(8);
+SELECT plan(10);
 
 CREATE TEMP TABLE test_ids (
   instrument_id BIGINT,
@@ -38,6 +38,26 @@ SELECT is(
      AND enum_id = (SELECT enum_id FROM test_ids LIMIT 1)),
   12::BIGINT,
   'Number of enum values increased'
+       );
+
+SELECT is(
+  (SELECT member_name
+   FROM events.enum_values
+   WHERE instrument_id = (SELECT instrument_id FROM test_ids LIMIT 1)
+     AND enum_id = (SELECT enum_id FROM test_ids LIMIT 1)
+     AND value = 8),
+  'SafeRetracting',
+  'Enum member renamed in place'
+       );
+
+SELECT is(
+  (SELECT COUNT(*)
+   FROM events.enum_values
+   WHERE instrument_id = (SELECT instrument_id FROM test_ids LIMIT 1)
+     AND enum_id = (SELECT enum_id FROM test_ids LIMIT 1)
+     AND member_name = 'Saferetracting'),
+  0::BIGINT,
+  'Old enum member name is gone'
        );
 
 SELECT is(

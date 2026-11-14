@@ -6,19 +6,40 @@
 */
 CREATE MATERIALIZED VIEW IF NOT EXISTS events.epu_sessions AS
   WITH
+    params AS (
+      SELECT
+        instrument_id,
+        param_id
+      FROM
+        events.parameters
+      WHERE
+        param_name = 'EpuSessionID'
+        AND subsystem = 'EPU'
+    ),
+
+    -- LATERAL with a constant param_id per loop lets compressed batches be skipped by
+    -- their param_id min/max, a plain JOIN decompresses all instrument data.
+    -- OFFSET 0 keeps the planner from flattening the subquery back into a join.
+    -- The LATERAL only fetches rows, aggregation stays outside: works for any aggregate.
     cagg AS (
       SELECT
-        d.instrument_id,
+        p.instrument_id,
         state_agg(d.time, d.value_num::BIGINT) AS agg
       FROM
-        events.data d
-        JOIN events.parameters p
-          USING (instrument_id, param_id)
-      WHERE
-        p.param_name = 'EpuSessionID'
-        AND p.subsystem = 'EPU'
+        params p
+        CROSS JOIN LATERAL (
+          SELECT
+            d.time,
+            d.value_num
+          FROM
+            events.data d
+          WHERE
+            d.instrument_id = p.instrument_id
+            AND d.param_id = p.param_id
+          OFFSET 0
+        ) d
       GROUP BY
-        d.instrument_id
+        p.instrument_id
     ),
 
     sessions AS (

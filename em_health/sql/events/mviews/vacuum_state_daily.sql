@@ -32,15 +32,25 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS events.vacuum_state_daily AS
         LEAD(d.time) OVER ( PARTITION BY d.instrument_id ORDER BY d.time ) AS end_time,
         es.state
       FROM
-        events.data d
+        vacuum_param vp
+        -- LATERAL with a constant param_id per loop skips compressed batches of other params,
+        -- OFFSET 0 keeps the planner from flattening it back into a join
+        CROSS JOIN LATERAL (
+          SELECT
+            d.instrument_id,
+            d.time,
+            d.value_num
+          FROM
+            events.data d
+          WHERE
+            d.instrument_id = vp.instrument_id
+            AND d.param_id = vp.param_id
+          OFFSET 0
+        ) d
         JOIN enum_states es
           ON d.value_num = es.enum_value AND d.instrument_id = es.instrument_id
       WHERE
-        (d.instrument_id, d.param_id) IN (
-          SELECT instrument_id, param_id
-          FROM vacuum_param
-        )
-        AND es.state IN ('cryocycle', 'closed', 'open')
+        es.state IN ('cryocycle', 'closed', 'open')
     ),
 
     -- truncate rows to remove tem off periods

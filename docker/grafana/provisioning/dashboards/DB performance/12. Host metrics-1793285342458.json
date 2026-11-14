@@ -159,7 +159,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    time,\n    (\n        (\n            MAX(value) FILTER (WHERE metric = 'node_memory_MemTotal_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_MemFree_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_Buffers_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_Cached_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_SReclaimable_bytes')\n        )\n        / NULLIF(\n            MAX(value) FILTER (WHERE metric = 'node_memory_MemTotal_bytes'),\n            0\n        )\n    ) * 100 AS memory_usage_percent\nFROM pganalyze.sys_stats\nWHERE\n    metric LIKE 'node_memory%'\n    AND $__timeFilter(time)\nGROUP BY time\nORDER BY time",
+                        "rawSql": "SELECT\n    time,\n    (\n        (\n            MAX(value) FILTER (WHERE metric = 'node_memory_MemTotal_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_MemFree_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_Buffers_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_Cached_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_SReclaimable_bytes')\n        )\n        / NULLIF(\n            MAX(value) FILTER (WHERE metric = 'node_memory_MemTotal_bytes'),\n            0\n        )\n    ) * 100 AS memory_usage_percent\nFROM pganalyze.sys_stats\nWHERE\n    metric IN ('node_memory_MemTotal_bytes', 'node_memory_MemFree_bytes', 'node_memory_Buffers_bytes', 'node_memory_Cached_bytes', 'node_memory_SReclaimable_bytes')\n    AND $__timeFilter(time)\nGROUP BY time\nORDER BY time",
                         "sql": {
                           "columns": [
                             {
@@ -637,7 +637,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    time_bucket('$agg_interval', time) as time,\n        (\n            MAX(value) FILTER (WHERE metric = 'node_memory_MemTotal_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_MemFree_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_Buffers_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_Cached_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_SReclaimable_bytes')\n        ) AS Application,\n    (MAX(value) FILTER (WHERE metric = 'node_memory_Cached_bytes') + MAX(value) FILTER (WHERE metric = 'node_memory_SReclaimable_bytes')) AS Cached,\n    MAX(value) FILTER (WHERE metric = 'node_memory_Buffers_bytes') AS Buffers,\n    MAX(value) FILTER (WHERE metric = 'node_memory_MemFree_bytes') AS Free,\n    MAX(value) FILTER (WHERE metric = 'node_memory_MemTotal_bytes') AS Total\nFROM pganalyze.sys_stats\nWHERE\n    metric LIKE 'node_memory%'\n    AND $__timeFilter(time)\nGROUP BY time_bucket('$agg_interval', time)\n",
+                        "rawSql": "SELECT\n    time_bucket('$agg_interval', time) as time,\n        (\n            MAX(value) FILTER (WHERE metric = 'node_memory_MemTotal_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_MemFree_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_Buffers_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_Cached_bytes')\n            - MAX(value) FILTER (WHERE metric = 'node_memory_SReclaimable_bytes')\n        ) AS Application,\n    (MAX(value) FILTER (WHERE metric = 'node_memory_Cached_bytes') + MAX(value) FILTER (WHERE metric = 'node_memory_SReclaimable_bytes')) AS Cached,\n    MAX(value) FILTER (WHERE metric = 'node_memory_Buffers_bytes') AS Buffers,\n    MAX(value) FILTER (WHERE metric = 'node_memory_MemFree_bytes') AS Free,\n    MAX(value) FILTER (WHERE metric = 'node_memory_MemTotal_bytes') AS Total\nFROM pganalyze.sys_stats\nWHERE\n    metric IN ('node_memory_MemTotal_bytes', 'node_memory_MemFree_bytes', 'node_memory_Buffers_bytes', 'node_memory_Cached_bytes', 'node_memory_SReclaimable_bytes')\n    AND $__timeFilter(time)\nGROUP BY time_bucket('$agg_interval', time)\n",
                         "sql": {
                           "columns": [
                             {
@@ -802,7 +802,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  time_bucket('$agg_interval' :: INTERVAL, time) AS time,\n  (MAX(value) FILTER (WHERE metric = 'node_filesystem_size_bytes') - MAX(value) FILTER (WHERE metric = 'node_filesystem_avail_bytes')) / MAX(value) FILTER (WHERE metric = 'node_filesystem_size_bytes') * 100 AS mountpoint,\n  labels ->> 'mountpoint' AS label\nFROM\n  pganalyze.sys_stats\nWHERE\n  metric LIKE 'node_filesystem%'\n  AND $__timeFilter(time)\nGROUP BY\n  time,\n  label\nORDER BY\n  time",
+                        "rawSql": "SELECT\n  time_bucket('$agg_interval' :: INTERVAL, time) AS time,\n  (MAX(value) FILTER (WHERE metric = 'node_filesystem_size_bytes') - MAX(value) FILTER (WHERE metric = 'node_filesystem_avail_bytes')) / MAX(value) FILTER (WHERE metric = 'node_filesystem_size_bytes') * 100 AS mountpoint,\n  labels ->> 'mountpoint' AS label\nFROM\n  pganalyze.sys_stats\nWHERE\n  metric IN ('node_filesystem_size_bytes', 'node_filesystem_avail_bytes')\n  AND $__timeFilter(time)\nGROUP BY\n  time,\n  label\nORDER BY\n  time",
                         "sql": {
                           "columns": [
                             {
@@ -941,7 +941,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  time_bucket('$agg_interval' :: INTERVAL, time) AS time,\n  AVG(value) / $cpu_count,\n  metric\nFROM\n  pganalyze.sys_stats\nWHERE\n  metric LIKE 'node_load%'\n  AND $__timeFilter(time)\nGROUP BY\n  time,\n  metric\nORDER BY\n  time",
+                        "rawSql": "SELECT\n  time_bucket('$agg_interval' :: INTERVAL, time) AS time,\n  AVG(value) / $cpu_count,\n  metric\nFROM\n  pganalyze.sys_stats\nWHERE\n  metric IN ('node_load1', 'node_load5', 'node_load15')\n  AND $__timeFilter(time)\nGROUP BY\n  time,\n  metric\nORDER BY\n  time",
                         "sql": {
                           "columns": [
                             {
@@ -1086,7 +1086,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  device || ' ' || CASE\n        WHEN metric = 'node_disk_reads_completed_total' THEN 'reads'\n        WHEN metric = 'node_disk_writes_completed_total' THEN 'writes'\n      END AS metric,\n  irate_right(summary) AS value\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n      labels ->> 'device' AS device,\n      metric,\n      counter_agg(time, value) AS summary\n    FROM\n      pganalyze.sys_stats\n    WHERE\n      metric LIKE 'node_disk_%_completed_total'\n      AND $__timeFilter(time)\n    GROUP BY\n      bucket,\n      metric,\n      device\n  ) t\nORDER BY\n  time",
+                        "rawSql": "SELECT\n  bucket AS time,\n  device || ' ' || CASE\n        WHEN metric = 'node_disk_reads_completed_total' THEN 'reads'\n        WHEN metric = 'node_disk_writes_completed_total' THEN 'writes'\n      END AS metric,\n  irate_right(summary) AS value\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n      labels ->> 'device' AS device,\n      metric,\n      counter_agg(time, value) AS summary\n    FROM\n      pganalyze.sys_stats\n    WHERE\n      metric IN ('node_disk_reads_completed_total', 'node_disk_writes_completed_total')\n      AND $__timeFilter(time)\n    GROUP BY\n      bucket,\n      metric,\n      device\n  ) t\nORDER BY\n  time",
                         "sql": {
                           "columns": [
                             {
@@ -1230,7 +1230,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  device || ' ' || CASE\n        WHEN metric = 'node_disk_read_bytes_total' THEN 'read'\n        WHEN metric = 'node_disk_written_bytes_total' THEN 'write'\n      END AS metric,\n  irate_right(summary) AS value\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n      labels ->> 'device' AS device,\n      metric,\n      counter_agg(time, value) AS summary\n    FROM\n      pganalyze.sys_stats\n    WHERE\n      metric LIKE 'node_disk_%_bytes_total'\n      AND $__timeFilter(time)\n    GROUP BY\n      bucket,\n      metric,\n      device\n  ) t\nORDER BY\n  time",
+                        "rawSql": "SELECT\n  bucket AS time,\n  device || ' ' || CASE\n        WHEN metric = 'node_disk_read_bytes_total' THEN 'read'\n        WHEN metric = 'node_disk_written_bytes_total' THEN 'write'\n      END AS metric,\n  irate_right(summary) AS value\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n      labels ->> 'device' AS device,\n      metric,\n      counter_agg(time, value) AS summary\n    FROM\n      pganalyze.sys_stats\n    WHERE\n      metric IN ('node_disk_read_bytes_total', 'node_disk_written_bytes_total')\n      AND $__timeFilter(time)\n    GROUP BY\n      bucket,\n      metric,\n      device\n  ) t\nORDER BY\n  time",
                         "sql": {
                           "columns": [
                             {

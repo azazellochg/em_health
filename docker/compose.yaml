@@ -7,11 +7,17 @@ services:
     image: ghcr.io/azazellochg/timescaledb:0.1a11
     container_name: emhealth-db
     restart: unless-stopped
-    shm_size: 128mb
-    env_file:
-      - .env
+    shm_size: 1gb
     environment:
       POSTGRES_INITDB_ARGS: --locale=C --encoding=UTF8
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_GRAFANA_PASSWORD: ${POSTGRES_GRAFANA_PASSWORD}
+      POSTGRES_EMHEALTH_PASSWORD: ${POSTGRES_EMHEALTH_PASSWORD}
+      POSTGRES_PGANALYZE_PASSWORD: ${POSTGRES_PGANALYZE_PASSWORD}
+      TBL_DATA_CHUNK_SIZE: ${TBL_DATA_CHUNK_SIZE}
+      TBL_STATS_CHUNK_SIZE: ${TBL_STATS_CHUNK_SIZE}
+      TBL_STATS_RETENTION: ${TBL_STATS_RETENTION}
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
@@ -30,14 +36,14 @@ services:
       -c pg_stat_statements.max=10000
       -c pg_stat_statements.track=top
       -c pg_stat_statements.track_planning=on
-      -c pg_stat_statements.track_utility=off
+      -c pg_stat_statements.track_utility=on
       -c track_io_timing=on
       -c logging_collector=on
       -c log_destination='csvlog'
       -c log_rotation_size=0
       -c log_rotation_age=24h
       -c log_truncate_on_rotation=on
-      -c log_filename='postgresql-%Y-%m-%d.log'
+      -c log_filename='postgresql-%a.log'
       -c log_line_prefix=''
       -c log_autovacuum_min_duration=0
       -c auto_explain.log_format='json'
@@ -49,7 +55,7 @@ services:
       -c archive_command='pgbackrest --stanza=main archive-push %p'
       -c archive_mode=on
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -111,7 +117,6 @@ services:
     volumes:
       - grafana-storage:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
-      - ${BACKUP_DIR}:/backups
     tmpfs:
       - /var/lib/grafana/plugins:rw,exec,nosuid,nodev   # keeps plugins in container only
     cap_drop:

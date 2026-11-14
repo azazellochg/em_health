@@ -133,8 +133,8 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
     * io_stats
     * stat_statements
     * queries
-    * sys_info
-    * sys_stats
+    * sys_info (populated only for tem db)
+    * sys_stats (populated only for tem db)
     * stat_explains
 
 Import HM data from PostgreSQL

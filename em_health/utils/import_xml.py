@@ -31,6 +31,7 @@ from datetime import datetime, timezone
 import json
 import xml.etree.ElementTree as ET  # https://github.com/lxml/lxml/blob/master/doc/performance.txt#L293
 from collections.abc import Iterable
+from io import BufferedIOBase
 
 from em_health.db_manager import DatabaseManager
 from em_health.utils.tools import logger
@@ -56,18 +57,20 @@ class ImportXML:
         """
         self.path = path
         self.json_info = json_info
-        self.microscope = None
+        self.microscope: dict | None = None
         self.instrument_name = None
         self.db_name = None
         self.enum_values: dict[str, dict] = {}
         self.params: dict[int, dict] = {}
         self.thresholds: dict[int, dict] = {}
 
+        file: BufferedIOBase
         if self.path.endswith('.xml.gz'):
-            self.file = gzip.open(self.path, 'rb')
+            file = gzip.open(self.path, 'rb')
         else:
-            self.file = open(self.path, 'rb')
-        self.context = ET.iterparse(self.file, events=("end",))
+            file = open(self.path, 'rb')
+        self.file: BufferedIOBase | None = file
+        self.context = ET.iterparse(file, events=("end",))
         # Be aware, you have to parse XML sections in their order, i.e. enumerations first!
 
     def get_microscope_dict(self) -> dict:
@@ -92,7 +95,7 @@ class ImportXML:
     def parse_enumerations(self) -> None:
         """ Parse enumerations from XML. """
         get_instrument = True
-        for event, elem in self.context:
+        for _event, elem in self.context:
             if self.__match(elem, "Enumerations"):
                 for enum_elem in elem.findall('ns:Enumeration', namespaces=NS):
                     enum_name = enum_elem.get("Name")
@@ -137,7 +140,7 @@ class ImportXML:
 
     def parse_parameters(self) -> None:
         """ Parse parameters from XML. """
-        for event, elem in self.context:
+        for _event, elem in self.context:
             if self.__match(elem, "Instruments"):
 
                 for instrument in elem.findall('ns:Instrument', namespaces=NS):
@@ -171,7 +174,7 @@ class ImportXML:
         :param params_dict: input parameters dict, here only used to fetch param type
         :return an Iterator of tuples
         """
-        for event, elem in self.context:
+        for _event, elem in self.context:
             if self.__match(elem, "Values"):
                 start, end = elem.get("Start"), elem.get("End")
                 logger.info("Parsed values from %s to %s", start, end,

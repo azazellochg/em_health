@@ -25,10 +25,8 @@
 # **************************************************************************
 
 import os
-import re
 import unittest
 from datetime import datetime as dt, timezone as tz
-from pathlib import Path
 
 from em_health.utils.import_xml import ImportXML
 from em_health.utils.tools import run_command

@@ -165,7 +165,7 @@ groups:
                       a.state = 'idle in transaction'
                       AND a.state_change IS NOT NULL
                       AND a.pid <> pg_backend_pid()
-                      AND NOW() - a.state_change > interval '1800 seconds'
+                      AND NOW() - a.state_change > interval '300 seconds'
                 refId: A
                 sql:
                     columns:
@@ -233,7 +233,7 @@ groups:
           noDataState: OK
           execErrState: Error
           annotations:
-            description: Detects transactions that have been open with no activity (the idle in transaction state) for longer than the specified threshold of 1800 seconds and creates an issue with severity "warning". Resolves automatically once the transactions are committed, rolled back, or show activity again.
+            description: Detects transactions that have been open with no activity (the idle in transaction state) for longer than the specified threshold of 300 seconds and creates an issue with severity "warning". Resolves automatically once the transactions are committed, rolled back, or show activity again.
             summary: 'Idle transaction (PID {{ index $labels "PID" }}, {{ index $labels "User" }}@{{ index $labels "Database" }}, application {{ index $labels "Application" }}): {{ index $labels "Query" }}, duration {{ $values.A.Value }}s'
           labels:
             module: queries
@@ -491,36 +491,36 @@ groups:
                 rawSql: |-
                     WITH stats AS (
                       SELECT
-                        collected_at,
+                        time,
                         relid,
                         table_bytes,
                         num_dead_rows,
                         num_live_rows,
                         tup_ins,
-                        LAG(collected_at) OVER (
+                        LAG(time) OVER (
                           PARTITION BY relid
                           ORDER BY
-                            collected_at
+                            time
                         ) AS prev_at,
                         LAG(table_bytes) OVER (
                           PARTITION BY relid
                           ORDER BY
-                            collected_at
+                            time
                         ) AS prev_table_bytes,
                         LAG(num_dead_rows) OVER (
                           PARTITION BY relid
                           ORDER BY
-                            collected_at
+                            time
                         ) AS prev_dead_rows,
                         LAG(tup_ins) OVER (
                           PARTITION BY relid
                           ORDER BY
-                            collected_at
+                            time
                         ) AS prev_tup_ins
                       FROM
                         pganalyze.table_stats
                       WHERE
-                        collected_at >= now() - interval '7 days'
+                        time >= now() - interval '7 days'
                     ),
                     intervals AS (
                       SELECT
@@ -554,7 +554,7 @@ groups:
                           WHERE
                             v.relid = i.relid
                             AND v.finished_at > i.prev_at
-                            AND v.finished_at <= i.collected_at
+                            AND v.finished_at <= i.time
                         ) AS vacuum_ran
                       FROM
                         intervals i
@@ -719,7 +719,7 @@ groups:
                       JOIN pg_class t ON t.oid = i.relid
                       JOIN pg_namespace n ON n.oid = t.relnamespace
                     WHERE
-                      i.collected_at >= now() - interval '35 days'
+                      i.time >= now() - interval '35 days'
                       AND NOT ix.indisprimary
                       AND NOT ix.indisunique
                       AND n.nspname NOT IN ('pg_catalog', 'information_schema')
@@ -1026,25 +1026,18 @@ groups:
                 maxDataPoints: 43200
                 rawQuery: true
                 rawSql: |-
+                    -- Same as cmp_shared_buffers() in pgtune.sh: 25% of RAM, rounded down to whole MB
                     WITH memory AS (
-                      SELECT value AS mem_total
+                      SELECT value :: bigint AS mem_total
                       FROM pganalyze.sys_stats
                       WHERE metric = 'node_memory_MemTotal_bytes'
                       ORDER BY time DESC
                       LIMIT 1
                     )
                     SELECT
-                      CASE
-                        WHEN mem_total < 2147483648 :: bigint THEN (
-                          pg_size_bytes(current_setting('shared_buffers')) < mem_total :: numeric * 0.20
-                        ) :: int
-                        WHEN mem_total < 34359738368 :: bigint THEN (
-                          pg_size_bytes(current_setting('shared_buffers')) < mem_total :: numeric * 0.25
-                        ) :: int
-                        ELSE (
-                          pg_size_bytes(current_setting('shared_buffers')) < 8589934592 :: bigint
-                        ) :: int
-                      END AS value
+                      (
+                        pg_size_bytes(current_setting('shared_buffers')) < (mem_total / 4 / 1048576) * 1048576
+                      ) :: int AS value
                     FROM
                       memory
                 refId: A
@@ -1114,7 +1107,7 @@ groups:
           noDataState: NoData
           execErrState: Error
           annotations:
-            summary: Detects when the shared_buffers Postgres setting seems too low for the amount of RAM in your machine, and creates an issue with severity "warning". Resolves once the setting has been adjusted to within the recommended range.
+            summary: Detects when the shared_buffers Postgres setting is below the pgtune.sh value (25% of RAM), and creates an issue with severity "warning". Resolves once the setting has been raised to at least that value.
           labels:
             module: config
             severity: warning
@@ -1138,27 +1131,42 @@ groups:
                 maxDataPoints: 43200
                 rawQuery: true
                 rawSql: |-
-                  WITH memory AS (
-                    SELECT value AS memory_bytes
-                    FROM pganalyze.sys_stats
-                    WHERE metric = 'node_memory_MemTotal_bytes'
-                    ORDER BY time DESC
-                    LIMIT 1
+                  -- Same as cmp_work_mem() in pgtune.sh, using host RAM and CPU count
+                  WITH host AS (
+                    SELECT
+                      (
+                        SELECT value :: bigint
+                        FROM pganalyze.sys_stats
+                        WHERE metric = 'node_memory_MemTotal_bytes'
+                        ORDER BY time DESC
+                        LIMIT 1
+                      ) AS mem,
+                      (SELECT MAX(cpu_count) FROM pganalyze.sys_info) :: bigint AS cpus
+                  ),
+                  calc AS (
+                    SELECT
+                      mem / 1024 AS ram_kb,
+                      -- maintenance_work_mem: 128MB per GB of RAM, 64MB..2047MB
+                      LEAST(GREATEST(mem / 1048576 / 8, 64), 2047) * 1024 AS maint_kb,
+                      -- autovacuum workers (25% CPUs, min 1) x autovacuum_work_mem 512MB
+                      GREATEST(cpus / 4, 1) * 524288 AS av_kb,
+                      -- max_connections + parallel workers
+                      CASE
+                        WHEN mem <= 2147483648 THEN 20
+                        WHEN mem <= 4294967296 THEN 50
+                        WHEN mem <= 6442450944 THEN 75
+                        ELSE 100
+                      END + cpus AS backends
+                    FROM host
+                    WHERE mem IS NOT NULL AND cpus IS NOT NULL
                   )
                   SELECT
                     (
-                      pg_size_bytes(current_setting('work_mem')) < GREATEST(
-                        1048576 :: bigint,
-                        LEAST(
-                          (
-                            memory_bytes - pg_size_bytes(current_setting('shared_buffers'))
-                          ) / current_setting('max_connections') :: bigint,
-                          268435456 :: bigint
-                        )
-                      )
+                      pg_size_bytes(current_setting('work_mem')) < 1024 * LEAST(GREATEST(
+                        ((ram_kb - ram_kb / 4 - maint_kb - av_kb) / 2) / (backends * 2 * 2),
+                        65536), 262144)
                     ) :: int AS value
-                  FROM
-                  memory;
+                  FROM calc;
                 refId: A
                 sql:
                     columns:
@@ -1226,7 +1234,7 @@ groups:
           noDataState: NoData
           execErrState: Error
           annotations:
-            summary: Detects when the Postgres work_mem setting seems too low for the amount of RAM in your machine and the number of connections you have configured, and creates an issue with severity "warning".
+            summary: Detects when the Postgres work_mem setting is below the pgtune.sh value for the host RAM and CPU count (64MB-256MB), and creates an issue with severity "warning". Resolves once work_mem is raised to at least that value.
           labels:
             module: config
             severity: warning
@@ -1258,12 +1266,12 @@ groups:
                       WHERE
                         xmin_horizon <> 0
                       ORDER BY
-                        collected_at DESC
+                        time DESC
                       LIMIT
                         1
                     ), horizon_age AS (
                       SELECT
-                        MIN(ds.collected_at) AS assigned_at
+                        MIN(ds.time) AS assigned_at
                       FROM
                         pganalyze.database_stats ds
                         CROSS JOIN current_horizon ch
@@ -1370,7 +1378,7 @@ groups:
                 rawSql: |-
                     SELECT
                       ROUND(
-                        100.0 * MAX(age(datfrozenxid)) / 4294967296,
+                        100.0 * MAX(age(datfrozenxid)) / 2147483648,
                         4
                       ) AS xid_utilization_percent
                     FROM
@@ -1442,7 +1450,7 @@ groups:
           noDataState: NoData
           execErrState: Error
           annotations:
-            summary: Detects when transaction ID space utilization on the server is more than 50% and creates an issue with severity "warning".  Resolves once utilization falls below the threshold.
+            summary: Detects when transaction ID space utilization on the server is more than 50% of the 2^31 wraparound limit and creates an issue with severity "warning".  Resolves once utilization falls below the threshold.
           labels:
             module: vacuum
             severity: warning
@@ -1468,7 +1476,7 @@ groups:
                 rawSql: |-
                     SELECT
                       ROUND(
-                        100.0 * MAX(mxid_age(datminmxid)) / 4294967296,
+                        100.0 * MAX(mxid_age(datminmxid)) / 2147483648,
                         4
                       ) AS mxid_utilization_percent
                     FROM
@@ -1540,7 +1548,7 @@ groups:
           noDataState: NoData
           execErrState: Error
           annotations:
-            summary: Detects when multixact ID space utilization on the server is more than 50% and creates an issue with severity "warning". Resolves once utilization falls below the threshold.
+            summary: Detects when multixact ID space utilization on the server is more than 50% of the 2^31 wraparound limit and creates an issue with severity "warning". Resolves once utilization falls below the threshold.
           labels:
             module: vacuum
             severity: warning

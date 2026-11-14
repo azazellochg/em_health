@@ -56,7 +56,7 @@ class FileWatcher:
         self.path = path
         self.json_fn = json_fn
         # An explicit -t wins over WATCH_INTERVAL (the systemd unit loads docker/.env)
-        self.interval = interval if interval is not None else int(os.getenv("WATCH_INTERVAL", 300))
+        self.interval = interval if interval is not None else int(os.getenv("WATCH_INTERVAL", "300"))
         if self.interval <= 0:
             raise ValueError(f"Polling interval must be positive, got {self.interval}")
         self.stable_time = int(os.getenv("WATCH_SIZE_COUNTER", stable_time))
@@ -64,14 +64,14 @@ class FileWatcher:
         self.observer = PollingObserver(timeout=self.interval)
         self.stability_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="file-stability")
         self.import_executor = ThreadPoolExecutor(max_workers=self.max_workers, thread_name_prefix="xml-import")
-        self.in_progress = set()
+        self.in_progress: set[str] = set()
         self.lock = threading.Lock()
         self.stop_event = threading.Event()
 
     def start(self):
         """Run the observer until shutdown is requested or it fails."""
         event_handler = PatternMatchingEventHandler(
-            patterns=["*_data.xml", "*_data.xml.gz"],
+            patterns=["**/*_data.xml", "**/*_data.xml.gz"],
             ignore_directories=True
         )
         event_handler.on_created = self.on_file_detected
