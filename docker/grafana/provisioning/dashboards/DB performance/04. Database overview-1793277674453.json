@@ -686,7 +686,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  time AS time,\n  deadlocks\nFROM pganalyze.database_stats\nORDER BY time\n",
+                        "rawSql": "SELECT\n  time AS time,\n  deadlocks\nFROM pganalyze.database_stats\nWHERE $__timeFilter(time)\nORDER BY time\n",
                         "sql": {
                           "columns": [
                             {
@@ -1678,7 +1678,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH user_hypertables AS (\n    SELECT hypertable_schema,\n           hypertable_name\n    FROM timescaledb_information.hypertables\n    WHERE hypertable_schema NOT LIKE '_timescale%'\n),\nall_chunks AS (\n    SELECT\n        c.hypertable_schema,\n        c.hypertable_name,\n        ch.chunk_name,\n        ch.is_compressed\n    FROM user_hypertables c\n    JOIN timescaledb_information.chunks ch\n      ON ch.hypertable_name = c.hypertable_name\n     AND ch.hypertable_schema = c.hypertable_schema\n),\nchunk_sizes AS (\n    SELECT\n        ac.is_compressed,\n        cds.total_bytes\n    FROM all_chunks ac\n    JOIN LATERAL chunks_detailed_size(ac.hypertable_schema || '.' || ac.hypertable_name) cds\n       ON cds.chunk_name = ac.chunk_name\n)\nSELECT\n    SUM(CASE WHEN is_compressed = false THEN total_bytes ELSE 0 END) AS \"Rowstore\",\n    SUM(CASE WHEN is_compressed = true THEN total_bytes ELSE 0 END) AS \"Columnstore\",\n    SUM(total_bytes) AS \"Storage used\"\nFROM chunk_sizes;\n",
+                        "rawSql": "-- chunks_detailed_size() is called once per hypertable, not once per chunk\nWITH chunk_sizes AS MATERIALIZED (\n    SELECT\n        cds.chunk_schema,\n        cds.chunk_name,\n        cds.total_bytes\n    FROM timescaledb_information.hypertables h\n    CROSS JOIN LATERAL chunks_detailed_size(\n        format('%I.%I', h.hypertable_schema, h.hypertable_name)::regclass\n    ) cds\n    WHERE h.hypertable_schema NOT LIKE '_timescale%'\n)\nSELECT\n    SUM(CASE WHEN ch.is_compressed = false THEN cs.total_bytes ELSE 0 END) AS \"Rowstore\",\n    SUM(CASE WHEN ch.is_compressed = true THEN cs.total_bytes ELSE 0 END) AS \"Columnstore\",\n    SUM(cs.total_bytes) AS \"Storage used\"\nFROM chunk_sizes cs\nJOIN timescaledb_information.chunks ch\n  ON ch.chunk_schema = cs.chunk_schema\n AND ch.chunk_name = cs.chunk_name;\n",
                         "sql": {
                           "columns": [
                             {
