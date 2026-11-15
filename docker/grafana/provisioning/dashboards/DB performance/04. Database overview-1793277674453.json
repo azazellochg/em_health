@@ -666,7 +666,7 @@
         "spec": {
           "id": 27,
           "title": "Deadlocks",
-          "description": "",
+          "description": "Deadlocks detected in the selected time range.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -686,7 +686,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  time AS time,\n  deadlocks\nFROM pganalyze.database_stats\nWHERE $__timeFilter(time)\nORDER BY time\n",
+                        "rawSql": "WITH samples AS (\n  SELECT\n    time,\n    deadlocks,\n    LAG(deadlocks) OVER (ORDER BY time) AS prev\n  FROM pganalyze.database_stats\n  -- one sample before the range start, so the first point has a previous value (samples are 10 min apart)\n  WHERE time BETWEEN $__timeFrom()::timestamptz - INTERVAL '1 hour' AND $__timeTo()::timestamptz\n)\nSELECT\n  time AS time,\n  -- new deadlocks since the previous sample; the counter starts from 0 again after a stats reset\n  CASE\n    WHEN deadlocks >= prev THEN deadlocks - prev\n    ELSE deadlocks\n  END AS deadlocks\nFROM samples\nWHERE $__timeFilter(time)\n  AND prev IS NOT NULL\nORDER BY time",
                         "sql": {
                           "columns": [
                             {
@@ -732,7 +732,7 @@
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
                   "calcs": [
-                    "last"
+                    "sum"
                   ],
                   "fields": "/^deadlocks$/",
                   "values": false
@@ -1437,7 +1437,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "WITH statement_rates AS (\n    SELECT\n        time_bucket(INTERVAL '$__interval', time) AS bucket,\n        queryid,\n        rate(counter_agg(time, total_exec_time)) AS exec_time_rate,\n        rate(counter_agg(time, calls)) AS calls_rate\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(time)\n    GROUP BY 1, queryid\n)\n\nSELECT\n    bucket AS time,\n    SUM(calls_rate) AS \"Calls/sec (QPS)\",\n    SUM(exec_time_rate) / 1000.0 AS \"Query duration (sec/sec)\"\nFROM statement_rates\nGROUP BY bucket\n",
+                        "rawSql": "WITH statement_rates AS (\n    SELECT\n        time_bucket(INTERVAL '$__interval', time) AS bucket,\n        queryid,\n        userid,\n        rate(counter_agg(time, total_exec_time)) AS exec_time_rate,\n        rate(counter_agg(time, calls)) AS calls_rate\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(time)\n    -- the same queryid run by different users is a separate counter\n    GROUP BY 1, queryid, userid\n)\n\nSELECT\n    bucket AS time,\n    SUM(calls_rate) AS \"Calls/sec (QPS)\",\n    SUM(exec_time_rate) / 1000.0 AS \"Query duration (sec/sec)\"\nFROM statement_rates\nGROUP BY bucket\n",
                         "sql": {
                           "columns": [
                             {

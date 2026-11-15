@@ -170,7 +170,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  ROUND(100.0 * age(datfrozenxid) / 4294967296, 4) AS xid_utilization_percent\nFROM pg_database\nWHERE datname = current_database()",
+                        "rawSql": "SELECT\n  -- wraparound happens 2^31 transaction IDs after datfrozenxid\n  ROUND(100.0 * age(datfrozenxid) / 2147483648, 4) AS xid_utilization_percent\nFROM pg_database\nWHERE datname = current_database()",
                         "sql": {
                           "columns": [
                             {
@@ -1125,7 +1125,7 @@
         "spec": {
           "id": 5,
           "title": "Total tables",
-          "description": "The total number of tables on this database - databases with a lot of tables can often times suffer from more autovacuum scheduling challenges.",
+          "description": "The number of tables autovacuum has to process on this database: tables (including hypertable chunks), materialized views and TOAST tables. Databases with a lot of tables can often times suffer from more autovacuum scheduling challenges.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1145,7 +1145,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT COUNT(*) AS total_tables\nFROM pg_class c\n",
+                        "rawSql": "SELECT COUNT(*) AS total_tables\nFROM pg_class c\n-- what autovacuum processes: tables (incl. hypertable chunks), materialized views and TOAST tables\nWHERE c.relkind IN ('r', 'm', 't')",
                         "sql": {
                           "columns": [
                             {

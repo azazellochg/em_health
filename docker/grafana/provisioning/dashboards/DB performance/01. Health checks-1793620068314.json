@@ -2619,7 +2619,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  irate_right(counter_agg(time, xact_commit + xact_rollback)) * 60 AS tx_per_min\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(time)",
+                        "rawSql": "-- average over the selected range: (last - first) / seconds between them\nSELECT\n  rate(counter_agg(time, xact_commit + xact_rollback)) AS tx_per_sec\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(time)",
                         "sql": {
                           "columns": [
                             {

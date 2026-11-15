@@ -52,7 +52,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  100 - (irate_right(summary) / $cpu_count * 100.0) AS cpu_usage_percent\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n      counter_agg(time, value) AS summary\n    FROM\n      pganalyze.sys_stats\n    WHERE\n      metric = 'node_cpu_seconds_total'\n      AND labels ->> 'mode' = 'idle'\n      AND $__timeFilter(time) \n    GROUP BY\n      bucket\n  ) t",
+                        "rawSql": "SELECT\n  bucket AS time,\n  100 - (rate(summary) / $cpu_count * 100.0) AS cpu_usage_percent\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n      counter_agg(time, value) AS summary\n    FROM\n      pganalyze.sys_stats\n    WHERE\n      metric = 'node_cpu_seconds_total'\n      AND labels ->> 'mode' = 'idle'\n      AND $__timeFilter(time) \n    GROUP BY\n      bucket\n  ) t",
                         "sql": {
                           "columns": [
                             {
@@ -491,7 +491,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  \"mode\",\n  (irate_right(summary) / $cpu_count * 100.0) AS cpu_usage_percent\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n      labels ->> 'mode' AS \"mode\",\n      counter_agg(time, value) AS summary\n    FROM\n      pganalyze.sys_stats\n    WHERE\n      metric = 'node_cpu_seconds_total'\n      AND labels ->> 'mode' != 'idle'\n      AND $__timeFilter(time) \n    GROUP BY\n      bucket, \"mode\"\n  ) t\n  ORDER BY time\n  ",
+                        "rawSql": "SELECT\n  bucket AS time,\n  \"mode\",\n  (rate(summary) / $cpu_count * 100.0) AS cpu_usage_percent\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n      labels ->> 'mode' AS \"mode\",\n      counter_agg(time, value) AS summary\n    FROM\n      pganalyze.sys_stats\n    WHERE\n      metric = 'node_cpu_seconds_total'\n      AND labels ->> 'mode' != 'idle'\n      AND $__timeFilter(time) \n    GROUP BY\n      bucket, \"mode\"\n  ) t\n  ORDER BY time\n  ",
                         "sql": {
                           "columns": [
                             {
@@ -1086,7 +1086,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  device || ' ' || CASE\n        WHEN metric = 'node_disk_reads_completed_total' THEN 'reads'\n        WHEN metric = 'node_disk_writes_completed_total' THEN 'writes'\n      END AS metric,\n  irate_right(summary) AS value\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n      labels ->> 'device' AS device,\n      metric,\n      counter_agg(time, value) AS summary\n    FROM\n      pganalyze.sys_stats\n    WHERE\n      metric IN ('node_disk_reads_completed_total', 'node_disk_writes_completed_total')\n      AND $__timeFilter(time)\n    GROUP BY\n      bucket,\n      metric,\n      device\n  ) t\nORDER BY\n  time",
+                        "rawSql": "SELECT\n  bucket AS time,\n  device || ' ' || CASE\n        WHEN metric = 'node_disk_reads_completed_total' THEN 'reads'\n        WHEN metric = 'node_disk_writes_completed_total' THEN 'writes'\n      END AS metric,\n  rate(summary) AS value\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n      labels ->> 'device' AS device,\n      metric,\n      counter_agg(time, value) AS summary\n    FROM\n      pganalyze.sys_stats\n    WHERE\n      metric IN ('node_disk_reads_completed_total', 'node_disk_writes_completed_total')\n      AND $__timeFilter(time)\n    GROUP BY\n      bucket,\n      metric,\n      device\n  ) t\nORDER BY\n  time",
                         "sql": {
                           "columns": [
                             {
@@ -1230,7 +1230,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  device || ' ' || CASE\n        WHEN metric = 'node_disk_read_bytes_total' THEN 'read'\n        WHEN metric = 'node_disk_written_bytes_total' THEN 'write'\n      END AS metric,\n  irate_right(summary) AS value\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n      labels ->> 'device' AS device,\n      metric,\n      counter_agg(time, value) AS summary\n    FROM\n      pganalyze.sys_stats\n    WHERE\n      metric IN ('node_disk_read_bytes_total', 'node_disk_written_bytes_total')\n      AND $__timeFilter(time)\n    GROUP BY\n      bucket,\n      metric,\n      device\n  ) t\nORDER BY\n  time",
+                        "rawSql": "SELECT\n  bucket AS time,\n  device || ' ' || CASE\n        WHEN metric = 'node_disk_read_bytes_total' THEN 'read'\n        WHEN metric = 'node_disk_written_bytes_total' THEN 'write'\n      END AS metric,\n  rate(summary) AS value\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n      labels ->> 'device' AS device,\n      metric,\n      counter_agg(time, value) AS summary\n    FROM\n      pganalyze.sys_stats\n    WHERE\n      metric IN ('node_disk_read_bytes_total', 'node_disk_written_bytes_total')\n      AND $__timeFilter(time)\n    GROUP BY\n      bucket,\n      metric,\n      device\n  ) t\nORDER BY\n  time",
                         "sql": {
                           "columns": [
                             {
@@ -1363,7 +1363,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  device,\n  irate_right(summary) * 100 AS percent -- sec/sec\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n      labels ->> 'device' AS device,\n      counter_agg(time, value) AS summary\n    FROM\n      pganalyze.sys_stats\n    WHERE\n      metric = 'node_disk_io_time_seconds_total'\n      AND $__timeFilter(time)\n    GROUP BY\n      bucket,\n      device\n  ) t\nORDER BY\n  time",
+                        "rawSql": "SELECT\n  bucket AS time,\n  device,\n  rate(summary) * 100 AS percent -- sec/sec\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n      labels ->> 'device' AS device,\n      counter_agg(time, value) AS summary\n    FROM\n      pganalyze.sys_stats\n    WHERE\n      metric = 'node_disk_io_time_seconds_total'\n      AND $__timeFilter(time)\n    GROUP BY\n      bucket,\n      device\n  ) t\nORDER BY\n  time",
                         "sql": {
                           "columns": [
                             {
@@ -1507,7 +1507,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    bucket AS time,\n    device,\n    (\n        irate_right(write_time_summary)\n        / NULLIF(irate_right(write_completed_summary), 0)\n    ) AS write,\n    (\n        irate_right(read_time_summary)\n        / NULLIF(irate_right(read_completed_summary), 0)\n    ) AS read\nFROM (\n    SELECT\n        time_bucket('$agg_interval'::INTERVAL, time) AS bucket,\n        labels ->> 'device' AS device,\n        counter_agg(time, value) FILTER (\n            WHERE metric = 'node_disk_write_time_seconds_total'\n        ) AS write_time_summary,\n        counter_agg(time, value) FILTER (\n            WHERE metric = 'node_disk_writes_completed_total'\n        ) AS write_completed_summary,\n        counter_agg(time, value) FILTER (\n            WHERE metric = 'node_disk_read_time_seconds_total'\n        ) AS read_time_summary,\n        counter_agg(time, value) FILTER (\n            WHERE metric = 'node_disk_reads_completed_total'\n        ) AS read_completed_summary\n    FROM pganalyze.sys_stats\n    WHERE\n        metric IN (\n            'node_disk_write_time_seconds_total',\n            'node_disk_writes_completed_total',\n            'node_disk_read_time_seconds_total',\n            'node_disk_reads_completed_total'\n        )\n        AND $__timeFilter(time)\n    GROUP BY\n        bucket,\n        device\n) t\nORDER BY time",
+                        "rawSql": "SELECT\n    bucket AS time,\n    device,\n    (\n        delta(write_time_summary)\n        / NULLIF(delta(write_completed_summary), 0)\n    ) AS write,\n    (\n        delta(read_time_summary)\n        / NULLIF(delta(read_completed_summary), 0)\n    ) AS read\nFROM (\n    SELECT\n        time_bucket('$agg_interval'::INTERVAL, time) AS bucket,\n        labels ->> 'device' AS device,\n        counter_agg(time, value) FILTER (\n            WHERE metric = 'node_disk_write_time_seconds_total'\n        ) AS write_time_summary,\n        counter_agg(time, value) FILTER (\n            WHERE metric = 'node_disk_writes_completed_total'\n        ) AS write_completed_summary,\n        counter_agg(time, value) FILTER (\n            WHERE metric = 'node_disk_read_time_seconds_total'\n        ) AS read_time_summary,\n        counter_agg(time, value) FILTER (\n            WHERE metric = 'node_disk_reads_completed_total'\n        ) AS read_completed_summary\n    FROM pganalyze.sys_stats\n    WHERE\n        metric IN (\n            'node_disk_write_time_seconds_total',\n            'node_disk_writes_completed_total',\n            'node_disk_read_time_seconds_total',\n            'node_disk_reads_completed_total'\n        )\n        AND $__timeFilter(time)\n    GROUP BY\n        bucket,\n        device\n) t\nORDER BY time",
                         "sql": {
                           "columns": [
                             {
@@ -1640,7 +1640,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  container,\n  irate_right(summary) * 100 AS value\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n      labels ->> 'container' AS container,\n      counter_agg(time, value) AS summary\n    FROM\n      pganalyze.sys_stats\n    WHERE\n      metric = 'container_cpu_usage_seconds_total'\n      AND $__timeFilter(time)\n    GROUP BY\n      bucket,\n      container\n  ) t\nORDER BY\n  time\n",
+                        "rawSql": "SELECT\n  bucket AS time,\n  container,\n  rate(summary) * 100 AS value\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n      labels ->> 'container' AS container,\n      counter_agg(time, value) AS summary\n    FROM\n      pganalyze.sys_stats\n    WHERE\n      metric = 'container_cpu_usage_seconds_total'\n      AND $__timeFilter(time)\n    GROUP BY\n      bucket,\n      container\n  ) t\nORDER BY\n  time\n",
                         "sql": {
                           "columns": [
                             {
