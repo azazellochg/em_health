@@ -261,8 +261,8 @@
         "kind": "Panel",
         "spec": {
           "id": 48,
-          "title": "Unused indexes (non-PK)",
-          "description": "Scans < 10",
+          "title": "Unused indexes",
+          "description": "Plain indexes (not primary key, unique or constraint indexes) with fewer than 10 scans since the last statistics reset.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -283,7 +283,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH latest AS (\n  SELECT\n    DISTINCT ON (i.indexrelid) i.indexrelid,\n    format('%I.%I', s.schemaname, s.relname) AS \"Table\",\n    s.indexrelname AS \"Index\",\n    i.scan AS \"Scans\"\n  FROM\n    pganalyze.index_stats i\n    JOIN pg_stat_user_indexes s USING (indexrelid)\n  WHERE\n    s.indexrelname NOT LIKE '%_pkey'\n    -- index_stats is collected every 10 min, so only the last day can hold the latest sample\n    AND i.time > now() - INTERVAL '1 day'\n  ORDER BY\n    i.indexrelid,\n    i.time DESC\n)\nSELECT\n  \"Table\",\n  \"Index\",\n  \"Scans\"\nFROM\n  latest\nWHERE\n  \"Scans\" < 10\nORDER BY\n  \"Table\"",
+                        "rawSql": "WITH latest AS (\n  SELECT\n    DISTINCT ON (i.indexrelid) i.indexrelid,\n    format('%I.%I', s.schemaname, s.relname) AS \"Table\",\n    s.indexrelname AS \"Index\",\n    i.scan AS \"Scans\"\n  FROM\n    pganalyze.index_stats i\n    JOIN pg_stat_user_indexes s USING (indexrelid)\n    JOIN pg_index x USING (indexrelid)\n  WHERE\n    -- plain indexes only: primary keys, unique indexes and constraints are needed even without scans\n    NOT x.indisunique\n    AND NOT x.indisprimary\n    AND NOT EXISTS (SELECT 1 FROM pg_constraint con WHERE con.conindid = i.indexrelid)\n    -- index_stats is collected every 10 min, so only the last day can hold the latest sample\n    AND i.time > now() - INTERVAL '1 day'\n  ORDER BY\n    i.indexrelid,\n    i.time DESC\n)\nSELECT\n  \"Table\",\n  \"Index\",\n  \"Scans\"\nFROM\n  latest\nWHERE\n  \"Scans\" < 10\nORDER BY\n  \"Table\"",
                         "sql": {
                           "columns": [
                             {

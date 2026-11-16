@@ -1088,7 +1088,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    bucket as time,\n    (\n      delta(counter_agg(time, blk_read_time)) +\n      delta(counter_agg(time, blk_write_time))\n    ) AS blk_io_time_ms\nFROM (\n    SELECT\n        time_bucket(INTERVAL '$__interval', time) AS bucket,\n        time,\n        blk_read_time,\n        blk_write_time\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(time)\n) sub\nGROUP BY bucket\nORDER BY bucket;\n",
+                        "rawSql": "WITH samples AS (\n  SELECT\n    time,\n    blk_read_time + blk_write_time AS io_time,\n    LAG(blk_read_time + blk_write_time) OVER (ORDER BY time) AS prev_io\n  FROM pganalyze.database_stats\n  -- one sample before the range start, so the first bucket has a previous value (samples are 10 min apart)\n  WHERE time BETWEEN $__timeFrom()::timestamptz - INTERVAL '1 hour' AND $__timeTo()::timestamptz\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', time) AS time,\n  -- change since the previous sample; a counter starts from 0 again after a stats reset\n  SUM(CASE WHEN io_time >= prev_io THEN io_time - prev_io ELSE io_time END) AS blk_io_time_ms\nFROM samples\nWHERE $__timeFilter(time) AND prev_io IS NOT NULL\nGROUP BY 1\nORDER BY 1",
                         "sql": {
                           "columns": [
                             {

@@ -629,7 +629,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  delta(summary) AS wal_generated_bytes\nFROM (\n  SELECT\n    time_bucket('$agg_interval'::INTERVAL, time) AS bucket,\n    counter_agg(\n      time,\n      pg_wal_lsn_diff(wal_lsn, '0/0'::pg_lsn)\n    ) AS summary\n  FROM pganalyze.database_stats\n  WHERE $__timeFilter(time)\n  GROUP BY bucket\n) t\nORDER BY time;",
+                        "rawSql": "WITH samples AS (\n  SELECT\n    time,\n    pg_wal_lsn_diff(wal_lsn, '0/0'::pg_lsn) AS wal,\n    LAG(pg_wal_lsn_diff(wal_lsn, '0/0'::pg_lsn)) OVER (ORDER BY time) AS prev_wal\n  FROM pganalyze.database_stats\n  -- one sample before the range start, so the first bucket has a previous value (samples are 10 min apart)\n  WHERE time BETWEEN $__timeFrom()::timestamptz - INTERVAL '1 hour' AND $__timeTo()::timestamptz\n)\nSELECT\n  time_bucket('$agg_interval'::INTERVAL, time) AS time,\n  -- WAL written since the previous sample\n  SUM(wal - prev_wal) AS wal_generated_bytes\nFROM samples\nWHERE $__timeFilter(time) AND prev_wal IS NOT NULL\nGROUP BY 1\nORDER BY 1",
                         "sql": {
                           "columns": [
                             {
@@ -1507,7 +1507,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    bucket AS time,\n    delta(write_summary) AS \"Write time\",\n    delta(sync_summary) AS \"Sync time\",\n    delta(buffers_summary) * 8 * 1024 AS \"Buffers written\"\nFROM (\n    SELECT\n        time_bucket('$agg_interval'::interval, time) AS bucket,\n        counter_agg(time, chk_write_time) AS write_summary,\n        counter_agg(time, chk_sync_time) AS sync_summary,\n        counter_agg(time, chk_buffers_written) AS buffers_summary\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(time)\n    GROUP BY 1\n) t\nORDER BY 1",
+                        "rawSql": "WITH samples AS (\n  SELECT\n    time,\n    chk_write_time,\n    chk_sync_time,\n    chk_buffers_written,\n    LAG(chk_write_time) OVER w AS prev_write,\n    LAG(chk_sync_time) OVER w AS prev_sync,\n    LAG(chk_buffers_written) OVER w AS prev_buffers\n  FROM pganalyze.database_stats\n  -- one sample before the range start, so the first bucket has a previous value (samples are 10 min apart)\n  WHERE time BETWEEN $__timeFrom()::timestamptz - INTERVAL '1 hour' AND $__timeTo()::timestamptz\n  WINDOW w AS (ORDER BY time)\n)\nSELECT\n  time_bucket('$agg_interval'::interval, time) AS time,\n  -- change since the previous sample; a counter starts from 0 again after a stats reset\n  SUM(CASE WHEN chk_write_time >= prev_write THEN chk_write_time - prev_write ELSE chk_write_time END) AS \"Write time\",\n  SUM(CASE WHEN chk_sync_time >= prev_sync THEN chk_sync_time - prev_sync ELSE chk_sync_time END) AS \"Sync time\",\n  SUM(CASE WHEN chk_buffers_written >= prev_buffers THEN chk_buffers_written - prev_buffers ELSE chk_buffers_written END) * 8 * 1024 AS \"Buffers written\"\nFROM samples\nWHERE $__timeFilter(time) AND prev_write IS NOT NULL\nGROUP BY 1\nORDER BY 1",
                         "sql": {
                           "columns": [
                             {
@@ -1667,7 +1667,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  delta(summary_req) AS \"Requested\",\n  delta(summary_timed) AS \"Timed\"\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n      counter_agg(time, chk_requested) AS summary_req,\n      counter_agg(time, chk_timed) AS summary_timed\n    FROM\n      pganalyze.database_stats\n    WHERE\n      $__timeFilter(time)\n    GROUP BY\n      bucket\n  ) t\nORDER BY\n  time",
+                        "rawSql": "WITH samples AS (\n  SELECT\n    time,\n    chk_requested,\n    chk_timed,\n    LAG(chk_requested) OVER w AS prev_req,\n    LAG(chk_timed) OVER w AS prev_timed\n  FROM pganalyze.database_stats\n  -- one sample before the range start, so the first bucket has a previous value (samples are 10 min apart)\n  WHERE time BETWEEN $__timeFrom()::timestamptz - INTERVAL '1 hour' AND $__timeTo()::timestamptz\n  WINDOW w AS (ORDER BY time)\n)\nSELECT\n  time_bucket('$agg_interval'::INTERVAL, time) AS time,\n  -- change since the previous sample; a counter starts from 0 again after a stats reset\n  SUM(CASE WHEN chk_requested >= prev_req THEN chk_requested - prev_req ELSE chk_requested END) AS \"Requested\",\n  SUM(CASE WHEN chk_timed >= prev_timed THEN chk_timed - prev_timed ELSE chk_timed END) AS \"Timed\"\nFROM samples\nWHERE $__timeFilter(time) AND prev_req IS NOT NULL\nGROUP BY 1\nORDER BY 1",
                         "sql": {
                           "columns": [
                             {
