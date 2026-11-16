@@ -879,7 +879,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "WITH matching_params AS (\n  SELECT\n    param_id,\n    component\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'SensorTemperature'\n    AND display_name = 'Sensor temperature'\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', v.time) AS time,\n  p.component,\n  AVG(v.value_num - 273.15) AS temperature\nFROM\n  matching_params p\n  CROSS JOIN LATERAL (\n    SELECT\n      v.*\n    FROM\n      data v\n    WHERE\n      v.param_id = p.param_id\n      AND v.instrument_id = $instrument\n      AND $__timeFilter(v.time)\n      AND v.value_num != 0 -- filter bad values early\n    OFFSET 0\n  ) v\nGROUP BY\n  time,\n  p.component\nORDER BY\n  time;",
+                        "rawSql": "WITH matching_params AS (\n  SELECT\n    param_id,\n    component\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'SensorTemperature'\n    AND display_name = 'Sensor temperature'\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', v.time) AS time,\n  p.component,\n  AVG(v.value_num - 273.15) AS temperature\nFROM\n  matching_params p\n  CROSS JOIN LATERAL (\n    SELECT\n      v.*\n    FROM\n      data v\n    WHERE\n      v.param_id = p.param_id\n      AND v.instrument_id = $instrument\n      AND $__timeFilter(v.time)\n      AND v.value_num != 0 -- filter bad values early\n    OFFSET 0\n  ) v\nGROUP BY\n  1,\n  p.component\nORDER BY\n  time;",
                         "sql": {
                           "columns": [
                             {
