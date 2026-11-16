@@ -1046,7 +1046,7 @@
         "spec": {
           "id": 4,
           "title": "Est. Table Bloat",
-          "description": "The estimated overall table bloat on this  database - this is a very rough estimate and should be reviewed for individual tables. Compressed chunks are excluded and only tables > 1MB are considered.",
+          "description": "Median estimated bloat of the tables listed in \"Table bloat info\". Tables with no estimated bloat are not listed, so they are not part of the median. This is a very rough estimate and should be reviewed for individual tables. Compressed chunks are excluded. The minimum table size depends on the number of objects (pg_class rows) in the database: no minimum below 10,000 objects, more than 250 pages (2 MB) from 10,000 to 100,000 objects and more than 2,500 pages (20 MB) above 100,000. A page is 8 kB.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
