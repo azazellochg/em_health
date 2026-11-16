@@ -4,6 +4,7 @@ Changelog
 Version 0.1a12
 ^^^^^^^^^^^^^^
 
+* TEM dashboards read events.data per parameter (LATERAL): compressed batches of other parameters are skipped, same results
 * epu_sessions and tomo_sessions mviews read events.data per parameter (LATERAL), refresh no longer decompresses all data
 * vacuum_state_daily mview reads events.data per parameter (LATERAL)
 * new tem_pressure_monthly cagg (rollup of tem_pressure_daily), hourly/daily/monthly pressure tiers are kept forever
