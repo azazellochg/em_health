@@ -26,7 +26,11 @@ CREATE TABLE IF NOT EXISTS pganalyze.database_stats (
   chk_requested BIGINT NOT NULL,
   chk_write_time DOUBLE PRECISION NOT NULL,
   chk_sync_time DOUBLE PRECISION NOT NULL,
-  chk_buffers_written BIGINT NOT NULL
+  chk_buffers_written BIGINT NOT NULL,
+  -- next transaction ID (cluster-wide, 64-bit) and next multixact ID (32-bit, wraps around);
+  -- NULL in rows collected before migration 012
+  next_xid BIGINT,
+  next_mxid BIGINT
 );
 
 CREATE TABLE IF NOT EXISTS pganalyze.table_stats (

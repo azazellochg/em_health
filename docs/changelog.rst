@@ -4,6 +4,7 @@ Changelog
 Version 0.1a12
 ^^^^^^^^^^^^^^
 
+* migration 012: database_stats collects the next transaction ID and multixact ID; DB performance transaction ID panels use them instead of commits + rollbacks (read-only transactions use no transaction ID), and utilization covers all databases
 * TEM dashboards read events.data per parameter (LATERAL): compressed batches of other parameters are skipped, same results
 * fix TEM dashboards: time-series panels grouped by raw time instead of the time bucket
 * epu_sessions and tomo_sessions mviews read events.data per parameter (LATERAL), refresh no longer decompresses all data

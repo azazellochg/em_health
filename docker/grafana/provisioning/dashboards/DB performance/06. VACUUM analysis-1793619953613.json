@@ -150,7 +150,7 @@
         "spec": {
           "id": 10,
           "title": "Transaction ID Utilization",
-          "description": "How much transaction ID space is utilized among the actual maximum available transaction IDs, in percent.",
+          "description": "How much transaction ID space is utilized among the actual maximum available transaction IDs, in percent. Transaction IDs are shared by all databases on the server, so this is the database with the oldest unfrozen transaction ID.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -170,7 +170,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  -- wraparound happens 2^31 transaction IDs after datfrozenxid\n  ROUND(100.0 * age(datfrozenxid) / 2147483648, 4) AS xid_utilization_percent\nFROM pg_database\nWHERE datname = current_database()",
+                        "rawSql": "SELECT\n  -- transaction IDs are shared by all databases: the oldest one decides when wraparound happens,\n  -- 2^31 transaction IDs after its datfrozenxid\n  ROUND(100.0 * MAX(age(datfrozenxid)) / 2147483648, 4) AS xid_utilization_percent\nFROM pg_database",
                         "sql": {
                           "columns": [
                             {
@@ -1479,7 +1479,7 @@
         "spec": {
           "id": 8,
           "title": "Next anti-wraparound vacuum",
-          "description": "Minimum time until any table reaches its anti-wraparound VACUUM threshold - this is a function of the rate of transaction ID consumption and the autovacuum_freeze_max_age setting. Higher values are better.",
+          "description": "Minimum time until any table reaches its anti-wraparound VACUUM threshold: autovacuum_freeze_max_age at the transaction ID allocation rate of the last 24 hours, or autovacuum_multixact_freeze_max_age at the multixact ID allocation rate, whichever comes first. Higher values are better.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1500,7 +1500,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH latest AS (\n  SELECT\n    time,\n    xact_commit + xact_rollback AS total_transactions\n  FROM\n    pganalyze.database_stats\n  ORDER BY\n    time DESC\n  LIMIT 1\n),\n-- the newest sample that is at least 24h older (a PK lookup, robust to collector gaps)\nday_ago AS (\n  SELECT\n    time,\n    xact_commit + xact_rollback AS total_transactions\n  FROM\n    pganalyze.database_stats\n  WHERE\n    time <= (SELECT time FROM latest) - INTERVAL '24 hours'\n  ORDER BY\n    time DESC\n  LIMIT 1\n),\nparams AS (\n  SELECT\n    (\n      l.total_transactions - d.total_transactions\n    ) :: numeric / NULLIF(\n      EXTRACT(\n        EPOCH\n        FROM\n          (\n            l.time - d.time\n          )\n      ),\n      0\n    ) AS tx_per_sec,\n    current_setting('autovacuum_freeze_max_age') :: bigint AS freeze_max_age,\n    current_setting('autovacuum_multixact_freeze_max_age') :: bigint AS multixact_freeze_max_age\n  FROM\n    latest l\n    CROSS JOIN day_ago d\n),\ntables AS (\n  SELECT\n    c.oid :: regclass :: text AS table_name,\n    LEAST(\n      p.freeze_max_age - age(c.relfrozenxid),\n      p.multixact_freeze_max_age - mxid_age(c.relminmxid)\n    ) AS tx_before_wraparound_vacuum\n  FROM\n    pg_class c\n    CROSS JOIN params p\n  WHERE\n    c.relfrozenxid != 0\n    AND c.oid > 16384\n),\nminimum AS (\n  SELECT\n    MIN(tx_before_wraparound_vacuum) AS min_tx_before_wraparound\n  FROM\n    tables\n)\nSELECT\n  min_tx_before_wraparound / NULLIF(p.tx_per_sec, 0) / 3600.0 AS min_hours_until_anti_wraparound_vacuum\nFROM\n  minimum\n  CROSS JOIN params p;",
+                        "rawSql": "WITH latest AS (\n  SELECT\n    time,\n    next_xid,\n    next_mxid\n  FROM\n    pganalyze.database_stats\n  ORDER BY\n    time DESC\n  LIMIT 1\n),\n-- the newest sample that is at least 24h older (a PK lookup, robust to collector gaps)\nday_ago AS (\n  SELECT\n    time,\n    next_xid,\n    next_mxid\n  FROM\n    pganalyze.database_stats\n  WHERE\n    time <= (SELECT time FROM latest) - INTERVAL '24 hours'\n  ORDER BY\n    time DESC\n  LIMIT 1\n),\nparams AS (\n  SELECT\n    (l.next_xid - d.next_xid) :: numeric\n      / NULLIF(EXTRACT(EPOCH FROM (l.time - d.time)), 0) AS xid_per_sec,\n    -- multixact IDs are 32-bit and wrap around\n    ((l.next_mxid - d.next_mxid + 4294967296) % 4294967296) :: numeric\n      / NULLIF(EXTRACT(EPOCH FROM (l.time - d.time)), 0) AS mxid_per_sec,\n    current_setting('autovacuum_freeze_max_age') :: bigint AS freeze_max_age,\n    current_setting('autovacuum_multixact_freeze_max_age') :: bigint AS multixact_freeze_max_age\n  FROM\n    latest l\n    CROSS JOIN day_ago d\n),\ntables AS (\n  SELECT\n    -- seconds until each threshold is reached at its own rate; LEAST skips a NULL (unused) rate\n    LEAST(\n      (p.freeze_max_age - age(c.relfrozenxid)) / NULLIF(p.xid_per_sec, 0),\n      (p.multixact_freeze_max_age - mxid_age(c.relminmxid)) / NULLIF(p.mxid_per_sec, 0)\n    ) AS seconds_left\n  FROM\n    pg_class c\n    CROSS JOIN params p\n  WHERE\n    c.relfrozenxid != 0\n    AND c.oid > 16384\n)\nSELECT\n  MIN(seconds_left) / 3600.0 AS min_hours_until_anti_wraparound_vacuum\nFROM\n  tables",
                         "sql": {
                           "columns": [
                             {
@@ -1581,7 +1581,7 @@
         "spec": {
           "id": 9,
           "title": "Transaction ID Allocation",
-          "description": "The rate of transaction IDs that are allocated per minute, as averaged over the last 24 hours. Higher allocation rates generally mean more freezing will be required.",
+          "description": "The rate of transaction IDs that are allocated per minute, as averaged over the last 24 hours. Transaction IDs are shared by all databases on the server, and read-only transactions don't use one. Higher allocation rates generally mean more freezing will be required.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1601,7 +1601,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    s.time AS time,\n    ROUND(\n        (\n            (s.xact_commit + s.xact_rollback)\n            - (p.xact_commit + p.xact_rollback)\n        )::numeric\n        /\n        NULLIF(\n            EXTRACT(\n                EPOCH FROM (s.time - p.time)\n            ) / 60.0,\n            0\n        ),\n        2\n    ) AS txn_per_minute_24h_avg\nFROM pganalyze.database_stats s\n-- the newest sample that is at least 24h older (a PK lookup, robust to collector gaps)\nCROSS JOIN LATERAL (\n    SELECT time, xact_commit, xact_rollback\n    FROM pganalyze.database_stats\n    WHERE time <= s.time - INTERVAL '24 hours'\n    ORDER BY time DESC\n    LIMIT 1\n) p\nWHERE $__timeFilter(s.time)\nORDER BY s.time",
+                        "rawSql": "SELECT\n    s.time AS time,\n    ROUND(\n        (s.next_xid - p.next_xid)::numeric\n        /\n        NULLIF(\n            EXTRACT(\n                EPOCH FROM (s.time - p.time)\n            ) / 60.0,\n            0\n        ),\n        2\n    ) AS txn_per_minute_24h_avg\nFROM pganalyze.database_stats s\n-- the newest sample that is at least 24h older (a PK lookup, robust to collector gaps)\nCROSS JOIN LATERAL (\n    SELECT time, next_xid\n    FROM pganalyze.database_stats\n    WHERE time <= s.time - INTERVAL '24 hours'\n    ORDER BY time DESC\n    LIMIT 1\n) p\nWHERE $__timeFilter(s.time)\n  -- samples collected before next_xid existed (migration 012)\n  AND p.next_xid IS NOT NULL\nORDER BY s.time",
                         "sql": {
                           "columns": [
                             {

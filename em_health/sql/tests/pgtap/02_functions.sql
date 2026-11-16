@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(17);
+SELECT plan(18);
 
 SELECT function_privs_are(
   'pg_read_file'::name,
@@ -33,6 +33,7 @@ SELECT has_function('uec'::name, 'import_errors'::name);
 -- PGANALYZE functions
 SELECT pganalyze.get_db_stats();
 SELECT isnt_empty('SELECT * FROM pganalyze.database_stats');
+SELECT isnt_empty('SELECT * FROM pganalyze.database_stats WHERE next_xid IS NOT NULL AND next_mxid IS NOT NULL');
 
 SELECT pganalyze.get_table_stats();
 SELECT isnt_empty('SELECT * FROM pganalyze.table_stats');

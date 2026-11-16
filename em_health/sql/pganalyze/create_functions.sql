@@ -32,7 +32,9 @@ BEGIN
     chk_requested,
     chk_write_time,
     chk_sync_time,
-    chk_buffers_written
+    chk_buffers_written,
+    next_xid,
+    next_mxid
   )
   WITH xmin_candidates AS (
     SELECT
@@ -88,7 +90,11 @@ BEGIN
     c.num_requested AS chk_requested,
     c.write_time AS chk_write_time,
     c.sync_time AS chk_sync_time,
-    c.buffers_written AS chk_buffers_written
+    c.buffers_written AS chk_buffers_written,
+    -- read from the snapshot: pg_current_xact_id() would use up a transaction ID
+    pg_snapshot_xmax(pg_current_snapshot())::text::bigint AS next_xid,
+    -- mxid_age() counts from the next multixact ID
+    (d.datminmxid::text::bigint + mxid_age(d.datminmxid)) % 4294967296 AS next_mxid
   FROM
     pg_catalog.pg_stat_database s
     JOIN pg_catalog.pg_database d
