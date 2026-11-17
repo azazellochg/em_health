@@ -15,8 +15,7 @@ CREATE MATERIALIZED VIEW events.load_counter_values_daily WITH (timescaledb.cont
     first(d.value_num, d.time) AS first_value,
     last(d.value_num, d.time) AS last_value,
     MIN(d.value_num) AS min_value,
-    MAX(d.value_num) AS max_value,
-    num_resets(counter_agg(d.time, d.value_num)) AS num_drops
+    MAX(d.value_num) AS max_value
   FROM
     events.data d
     JOIN events.parameters p
@@ -35,10 +34,11 @@ CREATE VIEW events.load_counters_daily AS
       day,
       instrument_id,
       counter,
-      -- loads within the day; with a drop (counter set to a lower value): the increments
-      -- before it (max - first) and after it (last - min)
+      -- loads within the day. A drop below the first value of the day (reset or restore):
+      -- the increments before it (max - first) and after it (last - min). A smaller drop, e.g. the
+      -- same value logged with fewer decimals, does not change last - first
       CASE
-        WHEN num_drops = 0 THEN last_value - first_value
+        WHEN last_value >= first_value THEN last_value - first_value
         ELSE (max_value - first_value) + (last_value - min_value)
       END
       -- loads between the previous day with data and the first point of this day

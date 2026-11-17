@@ -299,8 +299,8 @@ def main(dbname, action, days=None):
                 "events.epu_sessions": False,
                 "events.tomo_sessions": False,
                 "events.load_counter_values_daily": True, # also creates the view load_counters_daily
-                "events.data_counters_daily": True,
-                "events.image_counters_daily": True,
+                "events.data_counter_values_daily": True, # also creates the view data_counters_daily
+                "events.image_counter_values_daily": True, # also creates the view image_counters_daily
                 "events.epu_state_daily": True,
                 "events.tomo_state_daily": True,
                 "events.tem_cryocycle_daily": True,
