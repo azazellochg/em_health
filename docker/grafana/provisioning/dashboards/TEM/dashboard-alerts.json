@@ -950,12 +950,12 @@
               "name": "${sourceTEM}"
             },
             "spec": {
-              "__legacyStringValue": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name IN ('Status', 'CompuStageStatus', 'StageState')\n    AND subsystem IN ('Compustage', 'MdlSmc')"
+              "__legacyStringValue": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name IN ('Status', 'CompuStageStatus', 'StageState')\n    AND subsystem IN ('Compustage', 'MdlSmc')\n    AND is_active"
             }
           },
           "regex": "",
           "sort": "disabled",
-          "definition": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name IN ('Status', 'CompuStageStatus', 'StageState')\n    AND subsystem IN ('Compustage', 'MdlSmc')",
+          "definition": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name IN ('Status', 'CompuStageStatus', 'StageState')\n    AND subsystem IN ('Compustage', 'MdlSmc')\n    AND is_active",
           "options": [],
           "multi": false,
           "includeAll": false,

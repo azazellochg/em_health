@@ -7,6 +7,8 @@ Version 0.1a12
 * migration 012: database_stats collects the next transaction ID and multixact ID; DB performance transaction ID panels use them instead of commits + rollbacks (read-only transactions use no transaction ID), and utilization covers all databases
 * TEM dashboards read events.data per parameter (LATERAL): compressed batches of other parameters are skipped, same results
 * fix TEM dashboards: time-series panels grouped by raw time instead of the time bucket
+* tem_cryocycle_daily cagg groups points by cycle (start time, end time, peak duration) instead of a daily state_agg
+* fix TEM dashboards: autoloader load recovery uses counter increments, SA aperture errors, Stage B settling, TEM server timeline, stage status variable, overrides, sorted time series
 * epu_sessions and tomo_sessions mviews read events.data per parameter (LATERAL), refresh no longer decompresses all data
 * vacuum_state_daily mview reads events.data per parameter (LATERAL)
 * new tem_pressure_monthly cagg (rollup of tem_pressure_daily), hourly/daily/monthly pressure tiers are kept forever

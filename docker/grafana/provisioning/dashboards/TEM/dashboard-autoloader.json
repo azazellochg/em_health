@@ -236,8 +236,8 @@
                   },
                   {
                     "matcher": {
-                      "id": "byName",
-                      "options": "Settling Duration"
+                      "id": "byRegexp",
+                      "options": "/^Settling (Duration|Time)$/"
                     },
                     "properties": [
                       {
@@ -502,8 +502,8 @@
                   },
                   {
                     "matcher": {
-                      "id": "byName",
-                      "options": "Settling Duration"
+                      "id": "byRegexp",
+                      "options": "/^Settling (Duration|Time)$/"
                     },
                     "properties": [
                       {
@@ -930,7 +930,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "    SELECT\n        start_time,\n        end_time,\n        EXTRACT(EPOCH FROM(end_time - start_time)) AS total_duration\n    FROM tem_cryocycle_daily,\n        state_periods(agg, 1) -- boolean = 1 where value = CryoCycle\n    WHERE instrument_id = $instrument\n      AND param_name = 'Autoloader'\n      AND $__timeFilter(day)\n",
+                        "rawSql": "-- Cryo cycles from the daily cagg: all points of a cycle share cycle_start (time - counter).\n-- A cycle ends at its peak (peak_value = duration), the last point before the counter is reset.\nWITH cycle_rows AS (\n  SELECT\n    cycle_start,\n    last_time,\n    peak_value,\n    LAG(cycle_start) OVER (ORDER BY cycle_start) AS prev_start\n  FROM tem_cryocycle_daily\n  WHERE instrument_id = $instrument\n    AND param_name = 'Autoloader'\n    AND peak_value > 0\n    AND day >= $__timeFrom()::timestamptz - INTERVAL '1 day'\n    AND day <= $__timeTo()::timestamptz\n),\n\n-- cycle_start is rounded to a second and a cycle has a row per day: merge rows of one cycle\ncycles AS (\n  SELECT\n    MIN(cycle_start) AS start_time,\n    MAX(last_time) AS end_time,\n    MAX(peak_value) AS peak_value\n  FROM (\n    SELECT\n      *,\n      COUNT(*) FILTER (WHERE prev_start IS NULL OR cycle_start > prev_start + INTERVAL '1 minute')\n        OVER (ORDER BY cycle_start) AS cycle_id\n    FROM cycle_rows\n  ) r\n  GROUP BY cycle_id\n),\n\n-- only cycles that start and end inside the time range and have ended:\n-- a reset (0) or the next cycle is logged after the peak\ncomplete_cycles AS (\n  SELECT c.*\n  FROM cycles c\n  WHERE c.start_time >= $__timeFrom()::timestamptz\n    AND c.end_time <= $__timeTo()::timestamptz\n    AND EXISTS (\n      SELECT 1\n      FROM tem_cryocycle_daily n\n      WHERE n.instrument_id = $instrument\n        AND n.param_name = 'Autoloader'\n        AND n.day >= time_bucket('1 day', c.end_time)\n        AND n.cycle_start > c.end_time\n    )\n)\n\nSELECT\n  start_time,\n  end_time,\n  peak_value AS total_duration\nFROM complete_cycles\nORDER BY start_time\n",
                         "sql": {
                           "columns": [
                             {
@@ -1063,7 +1063,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "WITH matching_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'VacuumLeakFactor'\n)\n\nSELECT\n  time,\n  value AS \"PPal pressure\"\nFROM unnest(\n  (\n    SELECT lttb(\n      time,\n      value_num,\n      2 * (($__to - $__from) / $__interval_ms)::int\n    )\n    FROM data\n    WHERE instrument_id = $instrument\n      AND param_id = (SELECT param_id FROM matching_param)\n      AND $__timeFilter(time)\n  )\n)\nORDER BY time;\n",
+                        "rawSql": "WITH matching_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'VacuumLeakFactor'\n)\n\nSELECT\n  time,\n  value AS \"Vacuum leak factor\"\nFROM unnest(\n  (\n    SELECT lttb(\n      time,\n      value_num,\n      2 * (($__to - $__from) / $__interval_ms)::int\n    )\n    FROM data\n    WHERE instrument_id = $instrument\n      AND param_id = (SELECT param_id FROM matching_param)\n      AND $__timeFilter(time)\n  )\n)\nORDER BY time;\n",
                         "sql": {
                           "columns": [
                             {
@@ -1638,7 +1638,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH \n-- Get parameter IDs\ncounter_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND param_name = 'LoadCassetteCounter'\n),\ntemperature_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND param_name = 'Tcartridge'\n),\n\n-- Last timestamp per counter value → last 10 increments\nload_events AS (\n  SELECT *\n  FROM (\n    SELECT DISTINCT ON (d.value_num)\n      d.value_num,\n      d.time AS event_time\n    FROM\n      counter_param p\n      CROSS JOIN LATERAL (\n        SELECT\n          d.*\n        FROM\n          data d\n        WHERE\n          d.param_id = p.param_id\n          AND d.instrument_id = $instrument\n          AND $__timeFilter(d.time)\n        OFFSET 0\n      ) d\nORDER BY d.value_num ASC, d.time DESC\n  ) sub\n  ORDER BY event_time DESC\n  LIMIT 10\n),\n\n-- Compute pre-load temperature stats (-3 min)\nevent_metrics AS (\n  SELECT\n    l.event_time,\n\n    -- min/max/diff of temperature in -3 min window\n    (SELECT MIN(t.value_num)\n     FROM\n       temperature_param tp\n       CROSS JOIN LATERAL (\n         SELECT\n           t.*\n         FROM\n           data t\n         WHERE\n           t.param_id = tp.param_id\n           AND t.instrument_id = $instrument\n         OFFSET 0\n       ) t\n     WHERE\n       t.time BETWEEN l.event_time - INTERVAL '3 minutes' AND l.event_time\n   ) AS temp_min_pre,\n\n    (SELECT MAX(t.value_num)\n     FROM\n       temperature_param tp\n       CROSS JOIN LATERAL (\n         SELECT\n           t.*\n         FROM\n           data t\n         WHERE\n           t.param_id = tp.param_id\n           AND t.instrument_id = $instrument\n         OFFSET 0\n       ) t\n     WHERE\n       t.time BETWEEN l.event_time - INTERVAL '3 minutes' AND l.event_time\n   ) AS temp_max_pre,\n\n    -- temperature at +10 min\n    (SELECT t.value_num\n     FROM\n       temperature_param tp\n       CROSS JOIN LATERAL (\n         SELECT\n           t.*\n         FROM\n           data t\n         WHERE\n           t.param_id = tp.param_id\n           AND t.instrument_id = $instrument\n         OFFSET 0\n       ) t\n     WHERE\n       t.time >= l.event_time + INTERVAL '10 minutes'\nORDER BY t.time\n     LIMIT 1\n    ) AS temp_at_plus10\n\n  FROM load_events l\n)\n\n-- Final aggregated summary\nSELECT\n  MAX(temp_max_pre) AS \"Max T after cassette load\",\n  AVG(temp_max_pre - temp_min_pre) AS \"Avg T increase during load\",\n  AVG(temp_at_plus10 - temp_min_pre) AS \"Avg T recovery 10 min after load\"\nFROM event_metrics",
+                        "rawSql": "WITH \n-- Get parameter IDs\ncounter_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'LoadCassetteCounter'\n),\ntemperature_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Tcartridge'\n),\n\n-- Detect counter increments (cassette load events)\ncounter_events AS (\n  SELECT\n    d.time AS event_time,\n    d.value_num,\n    LAG(d.value_num) OVER (ORDER BY d.time) AS prev_value\n  FROM\n    counter_param p\n    CROSS JOIN LATERAL (\n      SELECT\n        d.*\n      FROM\n        data d\n      WHERE\n        d.param_id = p.param_id\n        AND d.instrument_id = $instrument\n        AND $__timeFilter(d.time)\n      OFFSET 0\n    ) d\n),\n\n-- Keep only the last 10 increment events\nload_events AS (\n  SELECT event_time\n  FROM (\n    SELECT event_time\n    FROM counter_events\n    WHERE prev_value IS NOT NULL AND value_num > prev_value\n    ORDER BY event_time DESC\n    LIMIT 10\n  ) sub\n),\n\n-- Pre-event temperature data (-3min to 0min)\npre_window AS (\n  SELECT\n    l.event_time,\n    t.value_num AS temperature\n  FROM load_events l\n  CROSS JOIN temperature_param tp\n  CROSS JOIN LATERAL (\n    SELECT t.value_num\n    FROM data t\n    WHERE t.instrument_id = $instrument\n      AND t.param_id = tp.param_id\n      AND t.time BETWEEN l.event_time - INTERVAL '3 minutes' AND l.event_time\n    OFFSET 0\n  ) t\n),\n\n-- Final result per event (with post +10 min temp via LATERAL)\nevent_metrics AS (\n  SELECT\n    l.event_time,\n    MIN(p.temperature) AS temp_min_pre,\n    MAX(p.temperature) AS temp_max_pre,\n    MAX(p.temperature) - MIN(p.temperature) AS temp_diff_pre,\n    post.temperature_at_plus10,\n    post.temperature_at_plus10 - MIN(p.temperature) AS delta_temp_plus10_minus_min_pre\n  FROM load_events l\n  LEFT JOIN pre_window p ON l.event_time = p.event_time\n  LEFT JOIN LATERAL (\n    SELECT t.value_num AS temperature_at_plus10\n    FROM\n      temperature_param tp\n      CROSS JOIN LATERAL (\n        SELECT\n          t.*\n        FROM\n          data t\n        WHERE\n          t.param_id = tp.param_id\n          AND t.instrument_id = $instrument\n        OFFSET 0\n      ) t\n    WHERE\n      t.time >= l.event_time + INTERVAL '10 minutes'\nORDER BY t.time\n    LIMIT 1\n  ) post ON TRUE\n  GROUP BY l.event_time, post.temperature_at_plus10\n)\n\n-- Final aggregated summary\nSELECT\n  MAX(temp_max_pre) AS \"Max T after cassette load\",\n  AVG(temp_diff_pre) AS \"Avg T increase during load\",\n  AVG(delta_temp_plus10_minus_min_pre) AS \"Avg T recovery 10 min after load\"\nFROM event_metrics;\n",
                         "sql": {
                           "columns": [
                             {
@@ -1709,7 +1709,7 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Avg CRT temperature increase during load"
+                      "options": "Avg T increase during load"
                     },
                     "properties": [
                       {
@@ -1737,7 +1737,7 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Avg temperature recovery 10 min after load"
+                      "options": "Avg T recovery 10 min after load"
                     },
                     "properties": [
                       {
@@ -1793,7 +1793,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH \n-- Get parameter IDs\ncounter_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND param_name = 'LoadCassetteCounter'\n),\ntemperature_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND param_name = 'Tdocker'\n),\n\n-- Last timestamp per counter value → last 10 increments\nload_events AS (\n  SELECT *\n  FROM (\n    SELECT DISTINCT ON (d.value_num)\n      d.value_num,\n      d.time AS event_time\n    FROM\n      counter_param p\n      CROSS JOIN LATERAL (\n        SELECT\n          d.*\n        FROM\n          data d\n        WHERE\n          d.param_id = p.param_id\n          AND d.instrument_id = $instrument\n          AND $__timeFilter(d.time)\n        OFFSET 0\n      ) d\nORDER BY d.value_num ASC, d.time DESC\n  ) sub\n  ORDER BY event_time DESC\n  LIMIT 10\n),\n\n-- Compute pre-load temperature stats (-3 min)\nevent_metrics AS (\n  SELECT\n    l.event_time,\n\n    -- min/max/diff of temperature in -3 min window\n    (SELECT MIN(t.value_num)\n     FROM\n       temperature_param tp\n       CROSS JOIN LATERAL (\n         SELECT\n           t.*\n         FROM\n           data t\n         WHERE\n           t.param_id = tp.param_id\n           AND t.instrument_id = $instrument\n         OFFSET 0\n       ) t\n     WHERE\n       t.time BETWEEN l.event_time - INTERVAL '3 minutes' AND l.event_time\n   ) AS temp_min_pre,\n\n    (SELECT MAX(t.value_num)\n     FROM\n       temperature_param tp\n       CROSS JOIN LATERAL (\n         SELECT\n           t.*\n         FROM\n           data t\n         WHERE\n           t.param_id = tp.param_id\n           AND t.instrument_id = $instrument\n         OFFSET 0\n       ) t\n     WHERE\n       t.time BETWEEN l.event_time - INTERVAL '3 minutes' AND l.event_time\n   ) AS temp_max_pre,\n\n    -- temperature at +10 min\n    (SELECT t.value_num\n     FROM\n       temperature_param tp\n       CROSS JOIN LATERAL (\n         SELECT\n           t.*\n         FROM\n           data t\n         WHERE\n           t.param_id = tp.param_id\n           AND t.instrument_id = $instrument\n         OFFSET 0\n       ) t\n     WHERE\n       t.time >= l.event_time + INTERVAL '10 minutes'\nORDER BY t.time\n     LIMIT 1\n    ) AS temp_at_plus10\n\n  FROM load_events l\n)\n\n-- Final aggregated summary\nSELECT\n  MAX(temp_max_pre) AS \"Max T after cassette load\",\n  AVG(temp_max_pre - temp_min_pre) AS \"Avg T increase during load\",\n  AVG(temp_at_plus10 - temp_min_pre) AS \"Avg T recovery 10 min after load\"\nFROM event_metrics",
+                        "rawSql": "WITH \n-- Get parameter IDs\ncounter_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'LoadCassetteCounter'\n),\ntemperature_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Tdocker'\n),\n\n-- Detect counter increments (cassette load events)\ncounter_events AS (\n  SELECT\n    d.time AS event_time,\n    d.value_num,\n    LAG(d.value_num) OVER (ORDER BY d.time) AS prev_value\n  FROM\n    counter_param p\n    CROSS JOIN LATERAL (\n      SELECT\n        d.*\n      FROM\n        data d\n      WHERE\n        d.param_id = p.param_id\n        AND d.instrument_id = $instrument\n        AND $__timeFilter(d.time)\n      OFFSET 0\n    ) d\n),\n\n-- Keep only the last 10 increment events\nload_events AS (\n  SELECT event_time\n  FROM (\n    SELECT event_time\n    FROM counter_events\n    WHERE prev_value IS NOT NULL AND value_num > prev_value\n    ORDER BY event_time DESC\n    LIMIT 10\n  ) sub\n),\n\n-- Pre-event temperature data (-3min to 0min)\npre_window AS (\n  SELECT\n    l.event_time,\n    t.value_num AS temperature\n  FROM load_events l\n  CROSS JOIN temperature_param tp\n  CROSS JOIN LATERAL (\n    SELECT t.value_num\n    FROM data t\n    WHERE t.instrument_id = $instrument\n      AND t.param_id = tp.param_id\n      AND t.time BETWEEN l.event_time - INTERVAL '3 minutes' AND l.event_time\n    OFFSET 0\n  ) t\n),\n\n-- Final result per event (with post +10 min temp via LATERAL)\nevent_metrics AS (\n  SELECT\n    l.event_time,\n    MIN(p.temperature) AS temp_min_pre,\n    MAX(p.temperature) AS temp_max_pre,\n    MAX(p.temperature) - MIN(p.temperature) AS temp_diff_pre,\n    post.temperature_at_plus10,\n    post.temperature_at_plus10 - MIN(p.temperature) AS delta_temp_plus10_minus_min_pre\n  FROM load_events l\n  LEFT JOIN pre_window p ON l.event_time = p.event_time\n  LEFT JOIN LATERAL (\n    SELECT t.value_num AS temperature_at_plus10\n    FROM\n      temperature_param tp\n      CROSS JOIN LATERAL (\n        SELECT\n          t.*\n        FROM\n          data t\n        WHERE\n          t.param_id = tp.param_id\n          AND t.instrument_id = $instrument\n        OFFSET 0\n      ) t\n    WHERE\n      t.time >= l.event_time + INTERVAL '10 minutes'\nORDER BY t.time\n    LIMIT 1\n  ) post ON TRUE\n  GROUP BY l.event_time, post.temperature_at_plus10\n)\n\n-- Final aggregated summary\nSELECT\n  MAX(temp_max_pre) AS \"Max T after cassette load\",\n  AVG(temp_diff_pre) AS \"Avg T increase during load\",\n  AVG(delta_temp_plus10_minus_min_pre) AS \"Avg T recovery 10 min after load\"\nFROM event_metrics;\n",
                         "sql": {
                           "columns": [
                             {
@@ -1864,7 +1864,7 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Avg CRT temperature increase during load"
+                      "options": "Avg T increase during load"
                     },
                     "properties": [
                       {
@@ -1892,7 +1892,7 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Avg temperature recovery 10 min after load"
+                      "options": "Avg T recovery 10 min after load"
                     },
                     "properties": [
                       {
@@ -1948,7 +1948,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH last_cryo AS (\n  SELECT\n    end_time\n  FROM\n    tem_cryocycle_daily,\n    state_periods(agg, 1) -- boolean = 1 where value>0\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'Autoloader'\n  ORDER BY\n    end_time DESC\n  LIMIT\n    1\n)\nSELECT\n  COALESCE(SUM(lcd.daily_cassette_count), 0) AS cassette_loads_since_cryocycle\nFROM\n  load_counters_daily lcd\n  CROSS JOIN last_cryo lc\nWHERE\n  lcd.instrument_id = $instrument AND lcd.day > lc.end_time",
+                        "rawSql": "-- Cassette loads since the end of the last autoloader cryo cycle (its peak: the last point\n-- before the duration counter is reset)\nWITH last_cycle_end AS (\n  SELECT MAX(last_time) AS end_time\n  FROM tem_cryocycle_daily\n  WHERE instrument_id = $instrument\n    AND param_name = 'Autoloader'\n    AND peak_value > 0\n),\n\ncounter_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'LoadCassetteCounter'\n),\n\n-- loads later on the day the cycle ended come from raw data (less than a day of one counter),\n-- starting from the last counter value at or before the cycle end\nbaseline AS (\n  SELECT d.time\n  FROM\n    counter_param c\n    CROSS JOIN last_cycle_end e\n    CROSS JOIN LATERAL (\n      SELECT time\n      FROM data\n      WHERE instrument_id = $instrument\n        AND param_id = c.param_id\n        AND time <= e.end_time\n      ORDER BY time DESC\n      LIMIT 1\n    ) d\n),\n\nend_day_loads AS (\n  SELECT delta(counter_agg(d.time, d.value_num)) AS loads\n  FROM\n    counter_param c\n    CROSS JOIN last_cycle_end e\n    CROSS JOIN LATERAL (\n      SELECT\n        time,\n        value_num\n      FROM data\n      WHERE instrument_id = $instrument\n        AND param_id = c.param_id\n        AND time >= COALESCE((SELECT time FROM baseline), e.end_time)\n        AND time < time_bucket('1 day', e.end_time) + INTERVAL '1 day'\n      OFFSET 0\n    ) d\n),\n\n-- whole days after that from the daily cagg\nlater_loads AS (\n  SELECT SUM(l.daily_cassette_count) AS loads\n  FROM\n    load_counters_daily l\n    CROSS JOIN last_cycle_end e\n  WHERE l.instrument_id = $instrument\n    AND l.day >= time_bucket('1 day', e.end_time) + INTERVAL '1 day'\n)\n\nSELECT\n  (COALESCE((SELECT loads FROM end_day_loads), 0)\n   + COALESCE((SELECT loads FROM later_loads), 0))::INT AS cassette_loads_since_cryocycle\n",
                         "sql": {
                           "columns": [
                             {

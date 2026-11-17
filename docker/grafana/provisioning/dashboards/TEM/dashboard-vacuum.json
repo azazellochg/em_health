@@ -326,7 +326,7 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Avg CRT temperature increase during load"
+                      "options": "Avg T increase during load"
                     },
                     "properties": [
                       {
@@ -354,7 +354,7 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Avg temperature recovery 10 min after load"
+                      "options": "Avg T recovery 10 min after load"
                     },
                     "properties": [
                       {
@@ -481,7 +481,7 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Avg CRT temperature increase during load"
+                      "options": "Avg T increase during load"
                     },
                     "properties": [
                       {
@@ -509,7 +509,7 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Avg temperature recovery 10 min after load"
+                      "options": "Avg T recovery 10 min after load"
                     },
                     "properties": [
                       {
