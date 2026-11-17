@@ -355,7 +355,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  bucket AS time,\n  irate_right(summary) AS \"WAL generated\"\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n      counter_agg(time, pg_wal_lsn_diff(wal_lsn, '0/0'::pg_lsn)) AS summary\n    FROM\n      pganalyze.database_stats\n    WHERE\n     $__timeFilter(time)\n    GROUP BY bucket\n  ) t\nORDER BY\n  time\n",
+                        "rawSql": "SELECT\n  bucket AS time,\n  rate(summary) AS \"WAL generated\"\nFROM\n  (\n    SELECT\n      time_bucket('$agg_interval' :: INTERVAL, time) AS bucket,\n      counter_agg(time, pg_wal_lsn_diff(wal_lsn, '0/0'::pg_lsn)) AS summary\n    FROM\n      pganalyze.database_stats\n    WHERE\n     $__timeFilter(time)\n    GROUP BY bucket\n  ) t\nORDER BY\n  time\n",
                         "sql": {
                           "columns": [
                             {
@@ -867,7 +867,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "WITH rates AS (\n    SELECT\n        queryid,\n        bucket,\n        SUM(value) AS value\n    FROM (\n        SELECT\n            queryid,\n            time_bucket('$agg_interval'::interval, time) AS bucket,\n            irate_right(counter_agg(time, wal_bytes)) AS value\n        FROM pganalyze.stat_statements\n        WHERE $__timeFilter(time)\n        -- the same queryid run by different users is a separate counter\n        GROUP BY queryid, userid, bucket\n    ) per_user\n    GROUP BY queryid, bucket\n),\ntop_queries AS (\n    SELECT queryid\n    FROM rates\n    GROUP BY queryid\n    ORDER BY AVG(value) DESC\n    LIMIT 10\n)\nSELECT\n    r.queryid::text,\n    r.bucket AS time,\n    r.value AS query\nFROM rates r\nJOIN top_queries t USING (queryid)\nORDER BY time",
+                        "rawSql": "WITH rates AS (\n    SELECT\n        queryid,\n        bucket,\n        SUM(value) AS value\n    FROM (\n        SELECT\n            queryid,\n            time_bucket('$agg_interval'::interval, time) AS bucket,\n            rate(counter_agg(time, wal_bytes)) AS value\n        FROM pganalyze.stat_statements\n        WHERE $__timeFilter(time)\n        -- the same queryid run by different users is a separate counter\n        GROUP BY queryid, userid, bucket\n    ) per_user\n    GROUP BY queryid, bucket\n),\ntop_queries AS (\n    SELECT queryid\n    FROM rates\n    GROUP BY queryid\n    ORDER BY AVG(value) DESC\n    LIMIT 10\n)\nSELECT\n    r.queryid::text,\n    r.bucket AS time,\n    r.value AS query\nFROM rates r\nJOIN top_queries t USING (queryid)\nORDER BY time",
                         "sql": {
                           "columns": [
                             {

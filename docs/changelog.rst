@@ -4,6 +4,7 @@ Changelog
 Version 0.1a12
 ^^^^^^^^^^^^^^
 
+* DB performance: SEM copies of the per-database alerts, database picker on Health checks, SEM table list on Schema statistics, WAL rates averaged per bucket, STANDBY instead of REPLICA
 * migration 012: database_stats collects the next transaction ID and multixact ID; DB performance transaction ID panels use them instead of commits + rollbacks (read-only transactions use no transaction ID), and utilization covers all databases
 * TEM dashboards read events.data per parameter (LATERAL): compressed batches of other parameters are skipped, same results
 * fix TEM dashboards: time-series panels grouped by raw time instead of the time bucket

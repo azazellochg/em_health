@@ -2625,7 +2625,6 @@
             "group": "grafana-postgresql-datasource",
             "version": "v0",
             "spec": {
-              "dataset": "tem",
               "editorMode": "code",
               "format": "table",
               "query": "SELECT tablename\nFROM pg_tables\nWHERE schemaname = '$schema'",
@@ -2649,6 +2648,9 @@
                 ],
                 "limit": 50
               }
+            },
+            "datasource": {
+              "name": "${source}"
             }
           },
           "regex": "",

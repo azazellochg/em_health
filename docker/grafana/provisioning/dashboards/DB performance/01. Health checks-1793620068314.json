@@ -73,7 +73,7 @@
         "spec": {
           "id": 39,
           "title": "Instance role",
-          "description": "Whether this server accepts writes (Primary) or is read-only (Replica)",
+          "description": "Whether this server accepts writes (Primary) or is a read-only standby (Standby)",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -91,7 +91,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  CASE\n    WHEN pg_is_in_recovery() THEN 'REPLICA'\n    ELSE 'PRIMARY'\n  END AS server_role",
+                        "rawSql": "SELECT\n  CASE\n    WHEN pg_is_in_recovery() THEN 'STANDBY'\n    ELSE 'PRIMARY'\n  END AS server_role",
                         "sql": {
                           "columns": [
                             {
@@ -150,7 +150,7 @@
                           "color": "green",
                           "index": 1
                         },
-                        "REPLICA": {
+                        "STANDBY": {
                           "color": "yellow",
                           "index": 0
                         }
@@ -521,7 +521,6 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
@@ -543,6 +542,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -623,7 +629,6 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
@@ -645,6 +650,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -720,7 +732,6 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
@@ -742,6 +753,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -814,7 +832,6 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
@@ -836,6 +853,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -1748,7 +1772,6 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
@@ -1770,6 +1793,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -2169,7 +2199,6 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
@@ -2191,6 +2220,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -2271,7 +2307,6 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
@@ -2293,6 +2328,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -2475,7 +2517,6 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
@@ -2497,6 +2538,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -2615,7 +2663,6 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
@@ -2637,6 +2684,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -2716,7 +2770,6 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
@@ -2738,6 +2791,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -2957,7 +3017,6 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
@@ -2979,6 +3038,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -3050,7 +3116,6 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
@@ -3072,6 +3137,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -3291,7 +3363,6 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
@@ -3313,6 +3384,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -3431,7 +3509,6 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
@@ -3453,6 +3530,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -3576,7 +3660,6 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
@@ -3598,6 +3681,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -4373,6 +4463,26 @@
     },
     "title": "01. Health checks",
     "variables": [
+      {
+        "kind": "DatasourceVariable",
+        "spec": {
+          "name": "source",
+          "pluginId": "grafana-postgresql-datasource",
+          "refresh": "onDashboardLoad",
+          "regex": "",
+          "current": {
+            "text": "",
+            "value": ""
+          },
+          "options": [],
+          "multi": false,
+          "includeAll": false,
+          "label": "Database",
+          "hide": "dontHide",
+          "skipUrlSync": false,
+          "allowCustomValue": false
+        }
+      },
       {
         "kind": "QueryVariable",
         "spec": {
