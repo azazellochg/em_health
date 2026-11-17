@@ -39,12 +39,15 @@ CREATE VIEW events.image_counters_daily AS
     instrument_id,
     param_name,
     (
-      -- increments within the day. A drop below the first value of the day (reset or restore):
-      -- the increments before it (max - first) and after it (last - min). A smaller drop, e.g. the
-      -- same value logged with fewer decimals, does not change last - first
+      -- increments within the day. The counter can drop (reset, restore): a cagg does not see the order
+      -- of the points, so min and max tell what happened
       CASE
-        WHEN last_value >= first_value THEN last_value - first_value
-        ELSE (max_value - first_value) + (last_value - min_value)
+        -- no drop below the first value (a value logged with fewer decimals is a tiny drop)
+        WHEN min_value >= first_value THEN last_value - first_value
+        -- dropped and stayed below the first value: increments before (max - first) and after (last - min)
+        WHEN last_value < first_value THEN (max_value - first_value) + (last_value - min_value)
+        -- dropped and grew past the first value: increments after the drop (before it unknown)
+        ELSE last_value - min_value
       END
       -- increment between the previous day with data and the first point of this day
       + GREATEST(first_value - LAG(last_value) OVER (PARTITION BY instrument_id, param_name ORDER BY day), 0)

@@ -154,7 +154,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    d.time,\n    d.value_num\nFROM data d\nJOIN parameters p \n    ON p.param_id = d.param_id\nJOIN enum_values e \n    ON e.enum_id = p.enum_id\n   AND e.value != d.value_num -- capture only error codes. No value = 99 = ON\nWHERE p.instrument_id = $instrument\n  AND p.subsystem = 'FLM'\n  AND p.param_name = 'FilterSwitcherFaultState'\n  AND e.member_name = 'None'\n  AND $__timeFilter(d.time)\nORDER BY d.time\n",
+                        "rawSql": "SELECT\n    d.time,\n    d.value_num\nFROM\n  parameters p\n  CROSS JOIN LATERAL (\n    SELECT\n      d.*\n    FROM\n      data d\n    WHERE\n      d.param_id = p.param_id\n      AND d.instrument_id = $instrument\n      AND $__timeFilter(d.time)\n    OFFSET 0\n  ) d\nJOIN enum_values e \n    ON e.enum_id = p.enum_id\n   AND e.value != d.value_num -- capture only error codes. No value = 99 = ON\nWHERE\n  p.instrument_id = $instrument\n  AND p.subsystem = 'FLM'\n  AND p.param_name = 'FilterSwitcherFaultState'\n  AND e.member_name = 'None'\nORDER BY d.time\n",
                         "sql": {
                           "columns": [
                             {
@@ -288,7 +288,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    d.time,\n    d.value_num\nFROM data d\nJOIN parameters p \n    ON p.param_id = d.param_id\nJOIN enum_values e \n    ON e.enum_id = p.enum_id\n   AND e.value = d.value_num -- capture offline = 3\nWHERE p.instrument_id = $instrument\n  AND p.subsystem = 'FluorescenceMicroscope'\n  AND p.param_name = 'OpticalMicroscopeStateParameter'\n  AND e.member_name = 'Offline'\n  AND $__timeFilter(d.time)\nORDER BY d.time\n",
+                        "rawSql": "SELECT\n    d.time,\n    d.value_num\nFROM\n  parameters p\n  CROSS JOIN LATERAL (\n    SELECT\n      d.*\n    FROM\n      data d\n    WHERE\n      d.param_id = p.param_id\n      AND d.instrument_id = $instrument\n      AND $__timeFilter(d.time)\n    OFFSET 0\n  ) d\nJOIN enum_values e \n    ON e.enum_id = p.enum_id\n   AND e.value = d.value_num -- capture offline = 3\nWHERE\n  p.instrument_id = $instrument\n  AND p.subsystem = 'FluorescenceMicroscope'\n  AND p.param_name = 'OpticalMicroscopeStateParameter'\n  AND e.member_name = 'Offline'\nORDER BY d.time\n",
                         "sql": {
                           "columns": [
                             {
@@ -621,7 +621,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    d.time AS \"Time\",\n    p.param_name AS \"Component\",\n    e.member_name AS \"Error\"\nFROM data d\nJOIN parameters p\n    ON p.param_id = d.param_id\n    AND p.instrument_id = $instrument\n    AND p.component = 'RetractableObjective'\n    AND p.param_name LIKE 'Retractable%State'\n    AND p.subsystem = 'FLM'\nJOIN enum_values e\n    ON e.enum_id = p.enum_id\n    AND e.value = d.value_num\n    AND e.member_name IN (\n        'OverTemperature',\n        'PositionerFault',\n        'PowerSupplyOverload',\n        'PowerSupplyFailure',\n        'Error'\n    )\nWHERE $__timeFilter(d.time)\nORDER BY d.time DESC",
+                        "rawSql": "SELECT\n    d.time AS \"Time\",\n    p.param_name AS \"Component\",\n    e.member_name AS \"Error\"\nFROM\n  parameters p\n  CROSS JOIN LATERAL (\n    SELECT\n      d.*\n    FROM\n      data d\n    WHERE\n      d.param_id = p.param_id\n      AND d.instrument_id = $instrument\n      AND $__timeFilter(d.time)\n    OFFSET 0\n  ) d\nJOIN enum_values e\n    ON e.enum_id = p.enum_id\n    AND e.value = d.value_num\n    AND e.member_name IN (\n        'OverTemperature',\n        'PositionerFault',\n        'PowerSupplyOverload',\n        'PowerSupplyFailure',\n        'Error'\n    )\nWHERE\n  p.instrument_id = $instrument\n  AND p.component = 'RetractableObjective'\n  AND p.param_name LIKE 'Retractable%State'\n  AND p.subsystem = 'FLM'\nORDER BY d.time DESC\n",
                         "sql": {
                           "columns": [
                             {

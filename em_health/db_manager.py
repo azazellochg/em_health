@@ -327,14 +327,15 @@ def main(dbname, action, days=None):
                 "events.em_off_daily": True,
                 "events.em_off": False, # depends on em_off_daily
                 "events.load_counter_values_daily": True, # also creates the view load_counters_daily
-                "events.fib_baa_counters_daily": True,
-                "events.fib_bda_counters_daily": True,
-                "events.gis_counters_daily": True,
+                "events.fib_baa_counter_values_daily": True, # also creates the view fib_baa_counters_daily
+                "events.fib_bda_counter_values_daily": True, # also creates the view fib_bda_counters_daily
+                "events.gis_counter_values_daily": True, # also creates the view gis_counters_daily
                 "events.fib_beam_daily": True,
                 "events.sem_beam_daily": True,
                 "events.flm_beam_daily": True,
                 "events.sem_cryocycle_al_daily": True,
                 "events.sem_cryocycle_noal_daily": True,
+                "events.sem_cryocycles": False, # depends on sem_cryocycle_al_daily and sem_cryocycle_noal_daily
                 "events.sem_chamber_state_daily": True,
                 "events.sem_pressure_hourly": True,
                 "events.sem_pressure_daily": True, # depends on sem_pressure_hourly

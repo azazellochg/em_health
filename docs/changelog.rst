@@ -12,6 +12,12 @@ Version 0.1a12
 * fix image_counters_daily and data_counters_daily the same way (increments between days were lost: up to 6.7% of offloaded TB): they are now views over the new image_counter_values_daily and data_counter_values_daily caggs: rerun create-stats. All three counter views treat only a drop below the first value of the day as a reset, not a value logged with fewer decimals
 * fix em_off: a server outage that crossed midnight was lost (the state at the start of a day now comes from the previous day)
 * fix TEM productivity: images/day and data/day sum all counters of the instrument per day before averaging (instruments with two cameras showed half)
+* counter views: a drop that is followed by growth past the first value of the day counts the growth after the drop
+* fix SEM counter caggs like the TEM ones: fib_baa_counters_daily, fib_bda_counters_daily and gis_counters_daily are now views over new *_counter_values_daily caggs (increments between days were lost; a single logged 0 is ignored; GIS counters stored in hours are converted to seconds): rerun create-stats
+* new sem_cryocycles mview: SEM cryo cycles merged across midnight (a cycle that crossed midnight was lost)
+* fix sem_beamtime_daily: states carry over midnight, cryo cycles and server-off periods come from sem_cryocycles and em_off
+* SEM dashboards read events.data per parameter (LATERAL)
+* fix SEM dashboards: time-series panels grouped by raw time instead of the time bucket, cryo cycles from sem_cryocycles, loads since cryo cycle (instrument filter), autoloader load recovery uses counter increments, xT server timeline, current module status regardless of the time range, base vacuum limited to the time range (rolling median from hourly sketches), BAA daily usage (instrument filter), FIB source age and ignition ratio, IGP spikes and gas usage from counter increments, GIS usage from gis_counters_daily, instrument filter on data scans
 * fix TEM dashboards: autoloader load recovery uses counter increments, SA aperture errors, Stage B settling, TEM server timeline, stage status variable, overrides, sorted time series
 * epu_sessions and tomo_sessions mviews read events.data per parameter (LATERAL), refresh no longer decompresses all data
 * vacuum_state_daily mview reads events.data per parameter (LATERAL)

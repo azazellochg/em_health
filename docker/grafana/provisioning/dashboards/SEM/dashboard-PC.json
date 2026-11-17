@@ -113,7 +113,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'Usage.CPU'\n    AND subsystem = 'ProcessMonitor'\n    AND component = 'SystemResources'\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', v.time) AS time,\n  avg(v.value_num) AS \"CPU load avg\"\nFROM\n  data v\nWHERE\n  $__timeFilter(v.time)\n  AND v.instrument_id = $instrument\n  AND v.param_id = (\n    SELECT\n      param_id\n    FROM\n      matching_param\n  )\nGROUP BY\n  time\nORDER BY\n  time",
+                        "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'Usage.CPU'\n    AND subsystem = 'ProcessMonitor'\n    AND component = 'SystemResources'\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', v.time) AS time,\n  avg(v.value_num) AS \"CPU load avg\"\nFROM\n  data v\nWHERE\n  $__timeFilter(v.time)\n  AND v.instrument_id = $instrument\n  AND v.param_id = (\n    SELECT\n      param_id\n    FROM\n      matching_param\n  )\nGROUP BY\n  1\nORDER BY\n  time",
                         "sql": {
                           "columns": [
                             {
@@ -255,7 +255,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'AvailableMBytes.PhysicalMemory'\n    AND subsystem = 'ProcessMonitor'\n    AND component = 'SystemResources'\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', v.time) AS time,\n  avg(v.value_num) AS \"Available memory avg\"\nFROM\n  data v\nWHERE\n  $__timeFilter(v.time)\n  AND v.instrument_id = $instrument\n  AND v.param_id = (\n    SELECT\n      param_id\n    FROM\n      matching_param\n  )\nGROUP BY\n  time\nORDER BY\n  time",
+                        "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'AvailableMBytes.PhysicalMemory'\n    AND subsystem = 'ProcessMonitor'\n    AND component = 'SystemResources'\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', v.time) AS time,\n  avg(v.value_num) AS \"Available memory avg\"\nFROM\n  data v\nWHERE\n  $__timeFilter(v.time)\n  AND v.instrument_id = $instrument\n  AND v.param_id = (\n    SELECT\n      param_id\n    FROM\n      matching_param\n  )\nGROUP BY\n  1\nORDER BY\n  time",
                         "sql": {
                           "columns": [
                             {
@@ -395,7 +395,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'AvailableGBytes.CDriveSpace'\n    AND subsystem = 'ProcessMonitor'\n    AND component = 'SystemResources'\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', v.time) AS time,\n  avg(v.value_num) AS \"Free space\"\nFROM\n  data v\nWHERE\n  $__timeFilter(v.time)\n  AND v.instrument_id = $instrument\n  AND v.param_id = (\n    SELECT\n      param_id\n    FROM\n      matching_param\n  )\nGROUP BY\n  time\nORDER BY\n  time",
+                        "rawSql": "WITH matching_param AS (\n  SELECT\n    param_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'AvailableGBytes.CDriveSpace'\n    AND subsystem = 'ProcessMonitor'\n    AND component = 'SystemResources'\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', v.time) AS time,\n  avg(v.value_num) AS \"Free space\"\nFROM\n  data v\nWHERE\n  $__timeFilter(v.time)\n  AND v.instrument_id = $instrument\n  AND v.param_id = (\n    SELECT\n      param_id\n    FROM\n      matching_param\n  )\nGROUP BY\n  1\nORDER BY\n  time",
                         "sql": {
                           "columns": [
                             {
@@ -547,7 +547,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH off_events AS (\n  SELECT start_time AS time, 0 AS value\n  FROM em_off\n  WHERE instrument_id = $instrument\n    AND $__timeFilter(start_time)\n)\n\nSELECT * FROM off_events\n\nUNION ALL\n\nSELECT\n  $__timeFrom() AS time,\n  1 AS value\nWHERE NOT EXISTS (SELECT 1 FROM off_events)\n\nORDER BY time;",
+                        "rawSql": "-- xT server state (1 = up, 0 = down). The value is logged every 2 minutes,\n-- only the points where the state changes are returned.\nWITH server_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'Server'\n    AND param_name = 'Value'\n),\n\npoints AS (\n  SELECT\n    d.time,\n    d.value_num,\n    LAG(d.value_num) OVER (ORDER BY d.time) AS prev_value\n  FROM\n    server_param p\n    CROSS JOIN LATERAL (\n      SELECT\n        d.*\n      FROM\n        data d\n      WHERE\n        d.param_id = p.param_id\n        AND d.instrument_id = $instrument\n        AND $__timeFilter(d.time)\n      OFFSET 0\n    ) d\n)\n\nSELECT\n  time,\n  value_num::INT AS value\nFROM points\nWHERE prev_value IS DISTINCT FROM value_num\nORDER BY time\n",
                         "sql": {
                           "columns": [
                             {

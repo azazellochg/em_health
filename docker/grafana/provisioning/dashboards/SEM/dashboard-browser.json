@@ -366,7 +366,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "WITH params AS (\n  SELECT\n    param_id,\n    display_name\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_id IN ($param)\n)\nSELECT\n  d.time,\n  d.value_num AS \"value\",\n  p.display_name AS \"__name__\"\nFROM\n  data d\n  JOIN params p USING (param_id)\nWHERE\n  d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nORDER BY\n  d.time;",
+                        "rawSql": "WITH params AS (\n  SELECT\n    param_id,\n    display_name\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_id IN ($param)\n)\nSELECT\n  d.time,\n  d.value_num AS \"value\",\n  p.display_name AS \"__name__\"\nFROM\n  params p\n  CROSS JOIN LATERAL (\n    SELECT\n      d.*\n    FROM\n      data d\n    WHERE\n      d.param_id = p.param_id\n      AND d.instrument_id = $instrument\n      AND $__timeFilter(d.time)\n    OFFSET 0\n  ) d\nORDER BY\n  d.time;",
                         "sql": {
                           "columns": [
                             {
