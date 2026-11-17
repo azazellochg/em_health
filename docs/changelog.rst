@@ -11,6 +11,7 @@ Version 0.1a12
 * fix load_counters_daily: loads whose new counter value was the first point of a day were not counted, a counter drop counted as loads. It is now a view over the new load_counter_values_daily cagg: rerun create-stats
 * fix image_counters_daily and data_counters_daily the same way (increments between days were lost: up to 6.7% of offloaded TB): they are now views over the new image_counter_values_daily and data_counter_values_daily caggs: rerun create-stats. All three counter views treat only a drop below the first value of the day as a reset, not a value logged with fewer decimals
 * fix em_off: a server outage that crossed midnight was lost (the state at the start of a day now comes from the previous day)
+* fix TEM productivity: images/day and data/day sum all counters of the instrument per day before averaging (instruments with two cameras showed half)
 * fix TEM dashboards: autoloader load recovery uses counter increments, SA aperture errors, Stage B settling, TEM server timeline, stage status variable, overrides, sorted time series
 * epu_sessions and tomo_sessions mviews read events.data per parameter (LATERAL), refresh no longer decompresses all data
 * vacuum_state_daily mview reads events.data per parameter (LATERAL)
