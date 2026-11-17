@@ -339,6 +339,7 @@ def main(dbname, action, days=None):
                 "events.sem_chamber_state_daily": True,
                 "events.sem_pressure_hourly": True,
                 "events.sem_pressure_daily": True, # depends on sem_pressure_hourly
+                "events.sem_pressure_monthly": True, # depends on sem_pressure_daily
                 #"events.sem_source_counter_daily": True,
                 #"events.fibsem_apertures_daily": True,
 

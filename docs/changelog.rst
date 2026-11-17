@@ -11,7 +11,7 @@ Version 0.1a12
 * fix all counters_daily: first point of a day was not counted. All counter views treat only a drop below the first value of the day as a reset. Increments between days were lost
 * images/day and data/day now sum all counters of the instrument per day before averaging
 * fix beamtime, cryo cycles and server-off periods come that carry on over midnight
-* new tem_pressure_monthly cagg (rollup of tem_pressure_daily), hourly/daily/monthly pressure tiers are kept forever
+* new pressure_monthly cagg (rollup of pressure_daily), hourly/daily/monthly pressure tiers are kept forever
 * enum members are identified by value (new PK), renamed members are updated on import instead of failing
 * warn when parameter storage/display units change on import
 * drop unused chunk skipping on events.data.param_id
