@@ -4,28 +4,34 @@ Changelog
 Version 0.1a12
 ^^^^^^^^^^^^^^
 
-* migration 012: database_stats collects the next transaction ID and multixact ID; DB performance transaction ID panels use them instead of commits + rollbacks (read-only transactions use no transaction ID), and utilization covers all databases
-* TEM dashboards read events.data per parameter (LATERAL): compressed batches of other parameters are skipped, same results
-* fix TEM dashboards: time-series panels grouped by raw time instead of the time bucket
-* tem_cryocycle_daily cagg groups points by cycle (start time, end time, peak duration) instead of a daily state_agg
-* fix load_counters_daily: loads whose new counter value was the first point of a day were not counted, a counter drop counted as loads. It is now a view over the new load_counter_values_daily cagg: rerun create-stats
-* fix image_counters_daily and data_counters_daily the same way (increments between days were lost: up to 6.7% of offloaded TB): they are now views over the new image_counter_values_daily and data_counter_values_daily caggs: rerun create-stats. All three counter views treat only a drop below the first value of the day as a reset, not a value logged with fewer decimals
-* fix em_off: a server outage that crossed midnight was lost (the state at the start of a day now comes from the previous day)
-* fix TEM productivity: images/day and data/day sum all counters of the instrument per day before averaging (instruments with two cameras showed half)
-* counter views: a drop that is followed by growth past the first value of the day counts the growth after the drop
-* fix SEM counter caggs like the TEM ones: fib_baa_counters_daily, fib_bda_counters_daily and gis_counters_daily are now views over new *_counter_values_daily caggs (increments between days were lost; a single logged 0 is ignored; GIS counters stored in hours are converted to seconds): rerun create-stats
-* new sem_cryocycles mview: SEM cryo cycles merged across midnight (a cycle that crossed midnight was lost)
-* fix sem_beamtime_daily: states carry over midnight, cryo cycles and server-off periods come from sem_cryocycles and em_off
-* SEM dashboards read events.data per parameter (LATERAL)
-* fix SEM dashboards: time-series panels grouped by raw time instead of the time bucket, cryo cycles from sem_cryocycles, loads since cryo cycle (instrument filter), autoloader load recovery uses counter increments, xT server timeline, current module status regardless of the time range, base vacuum limited to the time range (rolling median from hourly sketches), BAA daily usage (instrument filter), FIB source age and ignition ratio, IGP spikes and gas usage from counter increments, GIS usage from gis_counters_daily, instrument filter on data scans
-* fix TEM dashboards: autoloader load recovery uses counter increments, SA aperture errors, Stage B settling, TEM server timeline, stage status variable, overrides, sorted time series
-* epu_sessions and tomo_sessions mviews read events.data per parameter (LATERAL), refresh no longer decompresses all data
-* vacuum_state_daily mview reads events.data per parameter (LATERAL)
+* migration 012 for pganalyze schema changes: database_stats collects the next transaction ID and multixact ID; DB performance transaction ID panels use them instead of commits + rollbacks (read-only transactions use no transaction ID), and utilization covers all databases
+* TEM/SEM dashboards read events.data per parameter (using LATERAL instead of standard JOIN)
+* fix: time-series panels were grouped by raw time instead of the time bucket
+* cryocycle_daily cagg groups points by cycle (start time, end time, peak duration) instead of a daily state_agg
+* fix all counters_daily: first point of a day was not counted. All counter views treat only a drop below the first value of the day as a reset. Increments between days were lost
+* images/day and data/day now sum all counters of the instrument per day before averaging
+* fix beamtime, cryo cycles and server-off periods come that carry on over midnight
 * new tem_pressure_monthly cagg (rollup of tem_pressure_daily), hourly/daily/monthly pressure tiers are kept forever
 * enum members are identified by value (new PK), renamed members are updated on import instead of failing
 * warn when parameter storage/display units change on import
 * drop unused chunk skipping on events.data.param_id
 * remove "_new" suffix from events constraint and sequence names, name events.data constraints in base DDL
+* move dockerignore to the right place
+* fix pyproject classifiers and status
+* rename pg log file to keep only 1 week of logs
+* git clone depth 1
+* pg healthcheck via localhost not socket to make sure init-db has finished before e.g. restore
+* remove POSTGRES_HOST
+* load only required env vars to db container instead of the whole file
+* fix pattern matching for new watchdog 7.0+
+* fix CRLF for Windows task file
+* fix manifest file
+* static type checks with mypy and ruff
+* do not mount backups dir for grafana since we only need it for busybox container during restore
+* reduce max connections for roles to 50, limit to 20 per grafana datasource
+* refactor work_mem calculation and increase it for create-stats
+* track cagg refreshes in stat statements
+* increase shm_size for pg container
 
 Version 0.1a11
 ^^^^^^^^^^^^^^
