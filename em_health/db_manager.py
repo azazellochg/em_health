@@ -298,7 +298,7 @@ def main(dbname, action, days=None):
                 "events.em_off": False, # depends on em_off_daily
                 "events.epu_sessions": False,
                 "events.tomo_sessions": False,
-                "events.load_counters_daily": True,
+                "events.load_counter_values_daily": True, # also creates the view load_counters_daily
                 "events.data_counters_daily": True,
                 "events.image_counters_daily": True,
                 "events.epu_state_daily": True,
@@ -326,7 +326,7 @@ def main(dbname, action, days=None):
             "sem": {
                 "events.em_off_daily": True,
                 "events.em_off": False, # depends on em_off_daily
-                "events.load_counters_daily": True,
+                "events.load_counter_values_daily": True, # also creates the view load_counters_daily
                 "events.fib_baa_counters_daily": True,
                 "events.fib_bda_counters_daily": True,
                 "events.gis_counters_daily": True,

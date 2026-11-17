@@ -8,6 +8,7 @@ Version 0.1a12
 * TEM dashboards read events.data per parameter (LATERAL): compressed batches of other parameters are skipped, same results
 * fix TEM dashboards: time-series panels grouped by raw time instead of the time bucket
 * tem_cryocycle_daily cagg groups points by cycle (start time, end time, peak duration) instead of a daily state_agg
+* fix load_counters_daily: loads whose new counter value was the first point of a day were not counted, a counter drop counted as loads. It is now a view over the new load_counter_values_daily cagg: rerun create-stats
 * fix TEM dashboards: autoloader load recovery uses counter increments, SA aperture errors, Stage B settling, TEM server timeline, stage status variable, overrides, sorted time series
 * epu_sessions and tomo_sessions mviews read events.data per parameter (LATERAL), refresh no longer decompresses all data
 * vacuum_state_daily mview reads events.data per parameter (LATERAL)
