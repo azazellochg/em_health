@@ -549,7 +549,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH off_events AS (\n  SELECT start_time AS time, 0 AS value\n  FROM em_off\n  WHERE instrument_id = $instrument\n    AND $__timeFilter(start_time)\n)\n\nSELECT * FROM off_events\n\nUNION ALL\n\nSELECT\n  $__timeFrom() AS time,\n  1 AS value\nWHERE NOT EXISTS (SELECT 1 FROM off_events)\n\nORDER BY time;",
+                        "rawSql": "-- TEM server state (1 = up, 0 = down). The value is logged every 2 minutes,\n-- only the points where the state changes are returned.\nWITH server_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'Server'\n    AND param_name = 'Value'\n),\n\npoints AS (\n  SELECT\n    d.time,\n    d.value_num,\n    LAG(d.value_num) OVER (ORDER BY d.time) AS prev_value\n  FROM\n    server_param p\n    CROSS JOIN LATERAL (\n      SELECT\n        d.*\n      FROM\n        data d\n      WHERE\n        d.param_id = p.param_id\n        AND d.instrument_id = $instrument\n        AND $__timeFilter(d.time)\n      OFFSET 0\n    ) d\n)\n\nSELECT\n  time,\n  value_num::INT AS value\nFROM points\nWHERE prev_value IS DISTINCT FROM value_num\nORDER BY time\n",
                         "sql": {
                           "columns": [
                             {

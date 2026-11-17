@@ -113,7 +113,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "WITH param_id AS (\n  SELECT\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND subsystem = 'EPU'\n    AND component = 'Corrections'\n    AND param_name = 'DriftMeasurement'\n)\nSELECT\n    d.time AS time,\n    d.value_num * 10^9 AS \"Drift\"\nFROM\n  param_id p\n  CROSS JOIN LATERAL (\n    SELECT\n      d.*\n    FROM\n      data d\n    WHERE\n      d.param_id = p.param_id\n      AND d.instrument_id = $instrument\n      AND $__timeFilter(d.time)\n    OFFSET 0\n  ) d",
+                        "rawSql": "WITH param_id AS (\n  SELECT\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND subsystem = 'EPU'\n    AND component = 'Corrections'\n    AND param_name = 'DriftMeasurement'\n)\nSELECT\n    d.time AS time,\n    d.value_num * 10^9 AS \"Drift\"\nFROM\n  param_id p\n  CROSS JOIN LATERAL (\n    SELECT\n      d.*\n    FROM\n      data d\n    WHERE\n      d.param_id = p.param_id\n      AND d.instrument_id = $instrument\n      AND $__timeFilter(d.time)\n    OFFSET 0\n  ) d\nORDER BY d.time\n",
                         "sql": {
                           "columns": [
                             {

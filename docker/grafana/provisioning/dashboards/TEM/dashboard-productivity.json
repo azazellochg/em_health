@@ -766,7 +766,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  ROUND(AVG(daily_images)) AS \"images/day\",\n  SUM(daily_images) AS \"total images\"\nFROM image_counters_daily\nWHERE $__timeFilter(day)\n  AND instrument_id = $instrument\n",
+                        "rawSql": "-- an instrument can have several counters (one per camera): sum them per day first\nWITH per_day AS (\n  SELECT\n    day,\n    SUM(daily_images) AS images\n  FROM image_counters_daily\n  WHERE $__timeFilter(day)\n    AND instrument_id = $instrument\n  GROUP BY day\n)\nSELECT\n  ROUND(AVG(images)) AS \"images/day\",\n  SUM(images) AS \"total images\"\nFROM per_day\n",
                         "sql": {
                           "columns": [
                             {
@@ -804,7 +804,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  AVG(daily_terabytes) AS \"data/day\",\n  SUM(daily_terabytes) AS \"total data\"\nFROM data_counters_daily\nWHERE $__timeFilter(day)\n  AND instrument_id = $instrument\n",
+                        "rawSql": "-- an instrument can have several counters (one per camera): sum them per day first\nWITH per_day AS (\n  SELECT\n    day,\n    SUM(daily_terabytes) AS terabytes\n  FROM data_counters_daily\n  WHERE $__timeFilter(day)\n    AND instrument_id = $instrument\n  GROUP BY day\n)\nSELECT\n  AVG(terabytes) AS \"data/day\",\n  SUM(terabytes) AS \"total data\"\nFROM per_day\n",
                         "sql": {
                           "columns": [
                             {

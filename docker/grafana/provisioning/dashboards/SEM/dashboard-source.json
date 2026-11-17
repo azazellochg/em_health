@@ -488,7 +488,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH state_param AS (\n  SELECT\n    param_id, param_name\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name IN ('I-Column.IGP1_PeakCount', 'I-Column.IGP2_PeakCount')\n    AND subsystem = 'Vacuum'\n)\nSELECT\n  p.param_name,\n  MAX(d.value_num) - MIN(d.value_num) AS counts\nFROM data d\nJOIN state_param p USING (param_id)\nWHERE instrument_id = $instrument \n  AND $__timeFilter(d.time)\nGROUP BY p.param_name",
+                        "rawSql": "-- Spikes counted from the counter increments (a counter reset is not a spike)\nWITH state_param AS (\n  SELECT\n    param_id, param_name\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name IN ('I-Column.IGP1_PeakCount', 'I-Column.IGP2_PeakCount')\n    AND subsystem = 'Vacuum'\n)\nSELECT\n  p.param_name,\n  COALESCE(SUM(GREATEST(d.value_num - d.prev_value, 0)), 0) AS counts\nFROM\n  state_param p\n  CROSS JOIN LATERAL (\n    SELECT\n      d.value_num,\n      LAG(d.value_num) OVER (ORDER BY d.time) AS prev_value\n    FROM\n      data d\n    WHERE\n      d.param_id = p.param_id\n      AND d.instrument_id = $instrument\n      AND $__timeFilter(d.time)\n  ) d\nGROUP BY p.param_name\n",
                         "sql": {
                           "columns": [
                             {
@@ -628,7 +628,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH state_param AS (\n  SELECT\n    param_id, param_name\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name IN ('I-Column.IGP3_PeakCount', 'I-Column.IGP4_PeakCount')\n    AND subsystem = 'Vacuum'\n)\nSELECT\n  p.param_name,\n  MAX(d.value_num) - MIN(d.value_num) AS counts\nFROM data d\nJOIN state_param p USING (param_id)\nWHERE instrument_id = $instrument \n  AND $__timeFilter(d.time)\nGROUP BY p.param_name",
+                        "rawSql": "-- Spikes counted from the counter increments (a counter reset is not a spike)\nWITH state_param AS (\n  SELECT\n    param_id, param_name\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name IN ('I-Column.IGP3_PeakCount', 'I-Column.IGP4_PeakCount')\n    AND subsystem = 'Vacuum'\n)\nSELECT\n  p.param_name,\n  COALESCE(SUM(GREATEST(d.value_num - d.prev_value, 0)), 0) AS counts\nFROM\n  state_param p\n  CROSS JOIN LATERAL (\n    SELECT\n      d.value_num,\n      LAG(d.value_num) OVER (ORDER BY d.time) AS prev_value\n    FROM\n      data d\n    WHERE\n      d.param_id = p.param_id\n      AND d.instrument_id = $instrument\n      AND $__timeFilter(d.time)\n  ) d\nGROUP BY p.param_name\n",
                         "sql": {
                           "columns": [
                             {
@@ -768,7 +768,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH counter_param AS (\n  SELECT instrument_id, param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'FIB'\n    AND param_name IN ('SourceAgeParameter', 'OperatingTimeFIBParameter')\n),\n\nfiltered AS (\n  SELECT\n    d.time,\n    d.value_num AS operate_time\n  FROM data d\n  JOIN counter_param p USING (instrument_id, param_id)\n),\n\nchanges AS (\n  SELECT\n    time,\n    operate_time,\n    lag(operate_time) OVER (ORDER BY time) AS prev_value\n  FROM filtered\n),\n\nlast_replacement AS (\n  SELECT time\n  FROM changes\n  WHERE operate_time < prev_value   -- counter reset\n  ORDER BY time DESC\n  LIMIT 1\n),\n\nlast_value AS (\n  SELECT last(operate_time, time) AS source_age\n  FROM filtered\n)\n\nSELECT\n  lv.source_age / 3600 AS \"Source age\",\n  lr.time AS \"Last replacement\"\nFROM last_value lv\nLEFT JOIN last_replacement lr ON true\n",
+                        "rawSql": "-- An instrument logs one of the two counters: use the one with the latest point\nWITH counter_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'FIB'\n    AND param_name IN ('SourceAgeParameter', 'OperatingTimeFIBParameter')\n),\n\nlast_value AS (\n  SELECT\n    p.param_id,\n    d.time,\n    d.value_num AS source_age\n  FROM\n    counter_param p\n    CROSS JOIN LATERAL (\n      SELECT time, value_num\n      FROM data\n      WHERE instrument_id = $instrument\n        AND param_id = p.param_id\n      ORDER BY time DESC\n      LIMIT 1\n    ) d\n  ORDER BY d.time DESC\n  LIMIT 1\n),\n\n-- the counter is reset when the source is replaced\nlast_replacement AS (\n  SELECT MAX(c.time) AS time\n  FROM\n    last_value lv\n    CROSS JOIN LATERAL (\n      SELECT\n        time,\n        value_num,\n        LAG(value_num) OVER (ORDER BY time) AS prev_value\n      FROM data\n      WHERE instrument_id = $instrument\n        AND param_id = lv.param_id\n    ) c\n  WHERE c.value_num < c.prev_value\n)\n\nSELECT\n  lv.source_age / 3600 AS \"Source age\",\n  lr.time AS \"Last replacement\"\nFROM last_value lv\nLEFT JOIN last_replacement lr ON true\n",
                         "sql": {
                           "columns": [
                             {
@@ -1030,7 +1030,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT d.value_num\nFROM data d\nJOIN parameters p\n  ON d.param_id = p.param_id\nWHERE p.instrument_id = $instrument\n  AND p.component = 'FIB'\n  AND p.param_name IN ('TotalLifetimeHeatsParameter', 'TotalIgnitionCountParameter')\nORDER BY d.time DESC\nLIMIT 1",
+                        "rawSql": "-- An instrument logs one of the two counters: the latest point of either\nSELECT d.value_num\nFROM\n  parameters p\n  CROSS JOIN LATERAL (\n    SELECT time, value_num\n    FROM data\n    WHERE instrument_id = $instrument\n      AND param_id = p.param_id\n    ORDER BY time DESC\n    LIMIT 1\n  ) d\nWHERE p.instrument_id = $instrument\n  AND p.component = 'FIB'\n  AND p.param_name IN ('TotalLifetimeHeatsParameter', 'TotalIgnitionCountParameter')\nORDER BY d.time DESC\nLIMIT 1\n",
                         "sql": {
                           "columns": [
                             {
@@ -1126,7 +1126,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH latest_week AS (\n  SELECT time_bucket('1 week', max(d.time)) AS bucket\n  FROM data d\n  JOIN parameters p\n    ON d.instrument_id = p.instrument_id\n   AND d.param_id = p.param_id\n  WHERE p.instrument_id = $instrument \n    AND p.component = 'FIB'\n    AND p.param_name IN ('SuccessfulIgnitionCountParameter', 'TotalIgnitionCountParameter')\n    AND $__timeFilter(d.time)\n)\n\nSELECT\n  COALESCE(NULLIF(delta(counter_agg(d.time, d.value_num) FILTER (WHERE p.param_name = 'SuccessfulIgnitionCountParameter')), 0), 1)::float\n  /\n  COALESCE(NULLIF(delta(counter_agg(d.time, d.value_num) FILTER (WHERE p.param_name = 'TotalIgnitionCountParameter')), 0), 1) AS ratio\n\nFROM data d\nJOIN parameters p\n  ON d.instrument_id = p.instrument_id\n AND d.param_id = p.param_id\nJOIN latest_week lw\n  ON time_bucket('1 week', d.time) = lw.bucket\nWHERE p.instrument_id = $instrument \n  AND p.component = 'FIB'\n  AND p.param_name IN ('SuccessfulIgnitionCountParameter', 'TotalIgnitionCountParameter')\n",
+                        "rawSql": "WITH params AS (\n  SELECT param_id, param_name\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'FIB'\n    AND param_name IN ('SuccessfulIgnitionCountParameter', 'TotalIgnitionCountParameter')\n),\n\nlatest_week AS (\n  SELECT time_bucket('1 week', MAX(d.time)) AS bucket\n  FROM\n    params p\n    CROSS JOIN LATERAL (\n      SELECT time\n      FROM data\n      WHERE instrument_id = $instrument\n        AND param_id = p.param_id\n        AND $__timeFilter(time)\n      ORDER BY time DESC\n      LIMIT 1\n    ) d\n),\n\ncounts AS (\n  SELECT\n    p.param_name,\n    delta(counter_agg(d.time, d.value_num)) AS ignitions\n  FROM\n    params p\n    CROSS JOIN latest_week lw\n    CROSS JOIN LATERAL (\n      SELECT time, value_num\n      FROM data\n      WHERE instrument_id = $instrument\n        AND param_id = p.param_id\n        AND time >= lw.bucket\n        AND time < lw.bucket + INTERVAL '1 week'\n      OFFSET 0\n    ) d\n  GROUP BY p.param_name\n)\n\n-- no ignitions in the week: no ratio\nSELECT\n  (SELECT ignitions FROM counts WHERE param_name = 'SuccessfulIgnitionCountParameter')::float\n  / NULLIF((SELECT ignitions FROM counts WHERE param_name = 'TotalIgnitionCountParameter'), 0) AS ratio\n",
                         "sql": {
                           "columns": [
                             {
@@ -1944,7 +1944,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH counter_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'FEG'\n    AND param_name = 'OperateTimeFEGParameter'\n)\n\nSELECT d.value_num AS \"OperationTimeCounter\"\nFROM data d\nJOIN counter_param p ON p.param_id = d.param_id\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time) \nORDER BY d.time DESC\nLIMIT 1;\n",
+                        "rawSql": "WITH counter_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'FEG'\n    AND param_name = 'OperateTimeFEGParameter'\n)\n\nSELECT d.value_num AS \"OperationTimeCounter\"\nFROM\n  counter_param p\n  CROSS JOIN LATERAL (\n    SELECT\n      d.*\n    FROM\n      data d\n    WHERE\n      d.param_id = p.param_id\n      AND d.instrument_id = $instrument\n      AND $__timeFilter(d.time)\n    OFFSET 0\n  ) d\nORDER BY d.time DESC\nLIMIT 1;\n",
                         "sql": {
                           "columns": [
                             {

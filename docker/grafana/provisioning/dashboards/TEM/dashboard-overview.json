@@ -306,7 +306,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH cryo_cycles AS (\n  SELECT\n    param_name,\n    start_time,\n    end_time\n  FROM tem_cryocycle_daily,\n  LATERAL state_periods(agg, 1) -- boolean = 1 where value = CryoCycle\n  WHERE instrument_id = $instrument \n    AND (end_time - start_time) > INTERVAL '0 second'\n  ORDER BY start_time\n)\n\nSELECT\n  DISTINCT ON (param_name) param_name,\n  CURRENT_DATE - start_time :: date AS days_since_cryocycle_start\nFROM cryo_cycles\nORDER BY param_name, start_time DESC\n",
+                        "rawSql": "-- Days since the start of the last cryo cycle: the counter counts seconds since the cycle start\nSELECT\n  param_name,\n  CURRENT_DATE - MAX(cycle_start)::date AS days_since_cryocycle_start\nFROM tem_cryocycle_daily\nWHERE instrument_id = $instrument\n  AND peak_value > 0\nGROUP BY param_name\nORDER BY param_name\n",
                         "sql": {
                           "columns": [
                             {

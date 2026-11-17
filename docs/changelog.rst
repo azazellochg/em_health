@@ -5,16 +5,34 @@ Version 0.1a12
 ^^^^^^^^^^^^^^
 
 * DB performance: SEM copies of the per-database alerts, database picker on Health checks, SEM table list on Schema statistics, WAL rates averaged per bucket, STANDBY instead of REPLICA
-* migration 012: database_stats collects the next transaction ID and multixact ID; DB performance transaction ID panels use them instead of commits + rollbacks (read-only transactions use no transaction ID), and utilization covers all databases
-* TEM dashboards read events.data per parameter (LATERAL): compressed batches of other parameters are skipped, same results
-* fix TEM dashboards: time-series panels grouped by raw time instead of the time bucket
-* epu_sessions and tomo_sessions mviews read events.data per parameter (LATERAL), refresh no longer decompresses all data
-* vacuum_state_daily mview reads events.data per parameter (LATERAL)
-* new tem_pressure_monthly cagg (rollup of tem_pressure_daily), hourly/daily/monthly pressure tiers are kept forever
+* migration 012 for pganalyze schema changes: database_stats collects the next transaction ID and multixact ID; DB performance transaction ID panels use them instead of commits + rollbacks (read-only transactions use no transaction ID), and utilization covers all databases
+* TEM/SEM dashboards read events.data per parameter (using LATERAL instead of standard JOIN)
+* fix: time-series panels were grouped by raw time instead of the time bucket
+* cryocycle_daily cagg groups points by cycle (start time, end time, peak duration) instead of a daily state_agg
+* fix all counters_daily: first point of a day was not counted. All counter views treat only a drop below the first value of the day as a reset. Increments between days were lost
+* images/day and data/day now sum all counters of the instrument per day before averaging
+* fix beamtime, cryo cycles and server-off periods come that carry on over midnight
+* new pressure_monthly cagg (rollup of pressure_daily), hourly/daily/monthly pressure tiers are kept forever
 * enum members are identified by value (new PK), renamed members are updated on import instead of failing
 * warn when parameter storage/display units change on import
 * drop unused chunk skipping on events.data.param_id
 * remove "_new" suffix from events constraint and sequence names, name events.data constraints in base DDL
+* move dockerignore to the right place
+* fix pyproject classifiers and status
+* rename pg log file to keep only 1 week of logs
+* git clone depth 1
+* pg healthcheck via localhost not socket to make sure init-db has finished before e.g. restore
+* remove POSTGRES_HOST
+* load only required env vars to db container instead of the whole file
+* fix pattern matching for new watchdog 7.0+
+* fix CRLF for Windows task file
+* fix manifest file
+* static type checks with mypy and ruff
+* do not mount backups dir for grafana since we only need it for busybox container during restore
+* reduce max connections for roles to 50, limit to 20 per grafana datasource
+* refactor work_mem calculation and increase it for create-stats
+* track cagg refreshes in stat statements
+* increase shm_size for pg container
 
 Version 0.1a11
 ^^^^^^^^^^^^^^

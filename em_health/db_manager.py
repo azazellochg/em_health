@@ -298,9 +298,9 @@ def main(dbname, action, days=None):
                 "events.em_off": False, # depends on em_off_daily
                 "events.epu_sessions": False,
                 "events.tomo_sessions": False,
-                "events.load_counters_daily": True,
-                "events.data_counters_daily": True,
-                "events.image_counters_daily": True,
+                "events.load_counter_values_daily": True, # also creates the view load_counters_daily
+                "events.data_counter_values_daily": True, # also creates the view data_counters_daily
+                "events.image_counter_values_daily": True, # also creates the view image_counters_daily
                 "events.epu_state_daily": True,
                 "events.tomo_state_daily": True,
                 "events.tem_cryocycle_daily": True,
@@ -326,18 +326,20 @@ def main(dbname, action, days=None):
             "sem": {
                 "events.em_off_daily": True,
                 "events.em_off": False, # depends on em_off_daily
-                "events.load_counters_daily": True,
-                "events.fib_baa_counters_daily": True,
-                "events.fib_bda_counters_daily": True,
-                "events.gis_counters_daily": True,
+                "events.load_counter_values_daily": True, # also creates the view load_counters_daily
+                "events.fib_baa_counter_values_daily": True, # also creates the view fib_baa_counters_daily
+                "events.fib_bda_counter_values_daily": True, # also creates the view fib_bda_counters_daily
+                "events.gis_counter_values_daily": True, # also creates the view gis_counters_daily
                 "events.fib_beam_daily": True,
                 "events.sem_beam_daily": True,
                 "events.flm_beam_daily": True,
                 "events.sem_cryocycle_al_daily": True,
                 "events.sem_cryocycle_noal_daily": True,
+                "events.sem_cryocycles": False, # depends on sem_cryocycle_al_daily and sem_cryocycle_noal_daily
                 "events.sem_chamber_state_daily": True,
                 "events.sem_pressure_hourly": True,
                 "events.sem_pressure_daily": True, # depends on sem_pressure_hourly
+                "events.sem_pressure_monthly": True, # depends on sem_pressure_daily
                 #"events.sem_source_counter_daily": True,
                 #"events.fibsem_apertures_daily": True,
 

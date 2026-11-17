@@ -65,10 +65,32 @@ ruff check && mypy                                       # lint and type check (
   on a missing one. `psql -v var_name=raw_value` (the init scripts) quotes them itself, so pass raw values.
 - `init_db.sql` uses `\i /sql/...` and runs only through psql inside the container.
 - Caggs live in `sql/events/cagg/` and mviews in `sql/events/mviews/`. They're registered in `db_manager.main()`.
-  Their order there is the dependency order.
+  Their order there is the dependency order. `create-stats` drops and recreates them all, so a cagg/mview change
+  needs no migration, only a changelog note to rerun `create-stats`. The name suffix (`hourly`/`daily`/`monthly`)
+  picks the refresh policy.
+- A cagg only sees the points of its own day, and most parameters are logged only when they change:
+  - Counters: never `delta(counter_agg)` per day (the step from yesterday's last value is lost, and a drop counts
+    as a reset to 0). Store per-day first/last/min/max in a `*_counter_values_daily` cagg, and compute daily
+    increments in a plain view with the old name (`LAG(last_value)`), created in the same file. See
+    `load_counter_values_daily.sql`.
+  - States: carry the previous day's state with `interpolated_duration_in`/`interpolated_state_periods` and
+    `LAG(agg)`. Periods that cross midnight are merged in an mview (`em_off`, `sem_cryocycles`).
+- Cagg expressions must be immutable (e.g. `EXTRACT(EPOCH FROM time - 'epoch'::timestamptz)`, not
+  `EXTRACT(EPOCH FROM time)`), otherwise TimescaleDB warns.
 - Scheduled jobs use static procedures with a `config` JSONB, never generated per-object code:
   `public.refresh_mview` (`{"view": "schema.name"}`) for mviews and `uec.import_errors`
   (`{"instrument_id", "fdw_schema"}`) for UEC import, one job per instrument.
+
+## Grafana dashboard SQL
+- Dashboards are v2 JSON in `docker/grafana/provisioning/dashboards/{TEM,SEM}`; queries are `rawSql` strings.
+  Edit them by replacing the JSON-encoded string, not by re-serializing the file.
+- Read `events.data` per parameter: `params p CROSS JOIN LATERAL (SELECT ... FROM data d WHERE d.param_id = p.param_id
+  AND d.instrument_id = $instrument AND $__timeFilter(d.time) OFFSET 0) d`. The instrument filter is needed for
+  compressed-batch pruning (segmentby `instrument_id`). Don't disable nested loops to force plans.
+- `GROUP BY time` after `time_bucket(...) AS time` groups by the raw `data.time` column: use `GROUP BY 1`.
+- Compressed scans return rows mostly newest first: time series need an explicit `ORDER BY`.
+- Match subsystem/component/param names case-insensitively (`lower()`); they differ in case between instruments.
+  Field overrides that cover several labels use `byRegexp`.
 
 ## Data import
 - The XML is parsed in streaming order: enumerations, then parameters, then values. Rows go through COPY
