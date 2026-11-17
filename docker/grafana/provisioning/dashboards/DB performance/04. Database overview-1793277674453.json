@@ -1883,7 +1883,7 @@
         "spec": {
           "id": 43,
           "title": "WAL size for all DBs",
-          "description": "",
+          "description": "Size of the pg_wal directory, which holds the WAL of all databases on the server.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1900,7 +1900,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  time AS time,\n  pg_wal_lsn_diff(\n    wal_lsn,\n    LAG(wal_lsn) OVER (ORDER BY time)\n  ) AS wal_bytes\nFROM pganalyze.database_stats\nWHERE $__timeFilter(time)\n",
+                        "rawSql": "-- pg_wal is shared by all databases; sys_stats is collected in tem only (default datasource)\nSELECT\n  time AS time,\n  value AS wal_bytes\nFROM pganalyze.sys_stats\nWHERE metric = 'postgres_wal_size_bytes'\n  AND $__timeFilter(time)\nORDER BY time",
                         "sql": {
                           "columns": [
                             {

@@ -172,7 +172,7 @@
         "spec": {
           "id": 11,
           "title": "Index hits & reads: $index_name",
-          "description": "",
+          "description": "Share of the index's block reads in each interval that were found in shared buffers, and that had to be read from disk (or the OS cache).",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -196,7 +196,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  time AS time,\n  CASE \n    WHEN (blks_hit + blks_read) > 0 THEN ROUND(100.0 * blks_hit / (blks_hit + blks_read), 2)\n    ELSE 0\n  END AS \"% From Buffer Cache\",\n  CASE \n    WHEN (blks_hit + blks_read) > 0 THEN ROUND(100.0 * blks_read / (blks_hit + blks_read), 2)\n    ELSE 0\n  END AS \"% From Disk\"\nFROM pganalyze.index_stats\nWHERE indexrelid = $index\nAND $__timeFilter(time) \n",
+                        "rawSql": "WITH samples AS (\n  SELECT\n    time,\n    blks_hit,\n    blks_read,\n    LAG(blks_hit) OVER w AS prev_hit,\n    LAG(blks_read) OVER w AS prev_read\n  FROM pganalyze.index_stats\n  WHERE indexrelid = $index\n    -- one sample before the range start, so the first bucket has a previous value (samples are 10 min apart)\n    AND time BETWEEN $__timeFrom()::timestamptz - INTERVAL '1 hour' AND $__timeTo()::timestamptz\n  WINDOW w AS (ORDER BY time)\n),\nbuckets AS (\n  SELECT\n    time_bucket(INTERVAL '$__interval', time) AS bucket,\n    -- blocks since the previous sample. The hypertable totals add up the chunk indexes, so they go\n    -- down when retention drops a chunk (or after a stats reset): count that interval as 0\n    SUM(GREATEST(blks_hit - prev_hit, 0)) AS hits,\n    SUM(GREATEST(blks_read - prev_read, 0)) AS reads\n  FROM samples\n  WHERE $__timeFilter(time) AND prev_hit IS NOT NULL\n  GROUP BY bucket\n)\nSELECT\n  bucket AS time,\n  -- no index reads in the interval: no value\n  ROUND(100.0 * hits / NULLIF(hits + reads, 0), 2) AS \"% From Buffer Cache\",\n  ROUND(100.0 * reads / NULLIF(hits + reads, 0), 2) AS \"% From Disk\"\nFROM buckets\nORDER BY bucket",
                         "sql": {
                           "columns": [
                             {
