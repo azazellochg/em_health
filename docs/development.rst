@@ -109,7 +109,7 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
     * error_code
     * subsystem
     * error_definitions
-    * errors - main UEC data table for all instruments
+    * errors - main UEC data table for all TEM instruments
 
 * fdw - foreign tables on the microscope servers, named <server>_<table>. For MSSQL with UECs (for each instrument ID):
 

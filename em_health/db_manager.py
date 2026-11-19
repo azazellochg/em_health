@@ -243,13 +243,13 @@ class DatabaseManager(PgClient):
 
     def import_uec(self):
         if any(os.getenv(var) in ["None", "", None] for var in ["MSSQL_USER", "MSSQL_PASSWORD"]):
-            logger.warning("MSSQL_USER and MSSQL_PASSWORD are not set.")
+            logger.error("MSSQL_USER and MSSQL_PASSWORD are not set.")
             sys.exit()
 
         servers = self.run_query("SELECT id, server FROM events.instruments WHERE server IS NOT NULL",
                                  mode="fetchall")
         if not servers:
-            logger.warning("No servers found in the events.instruments table")
+            logger.error("No servers found in the events.instruments table")
             sys.exit()
 
         from em_health.fdw_manager import FDWManager
@@ -387,5 +387,9 @@ def main(dbname, action, days=None):
             db.prune_data(days)
 
     elif action == "import-uec":
-        with DatabaseManager(dbname) as db:
-            db.import_uec()
+        if dbname == "sem":
+            logger.error("SEM instruments do not have UEC")
+            return
+        else:
+            with DatabaseManager("tem") as db:
+                db.import_uec()
