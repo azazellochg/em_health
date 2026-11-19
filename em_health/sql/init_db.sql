@@ -66,6 +66,11 @@ SET ROLE postgres;
 GRANT USAGE ON FOREIGN DATA WRAPPER postgres_fdw TO emhealth;
 GRANT USAGE ON FOREIGN DATA WRAPPER tds_fdw TO emhealth;
 
+-- fdw schema: foreign tables on the microscope servers, one set per instrument named <server>_<table>. Only emhealth has user mappings.
+CREATE SCHEMA IF NOT EXISTS fdw AUTHORIZATION emhealth;
+
+COMMENT ON SCHEMA fdw IS 'Foreign tables on microscope servers, named <server>_<table> (e.g. ms_5_error_notifications)';
+
 -- pganalyze schema
 CREATE SCHEMA IF NOT EXISTS pganalyze AUTHORIZATION pganalyze;
 

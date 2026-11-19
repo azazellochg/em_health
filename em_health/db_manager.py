@@ -255,12 +255,12 @@ class DatabaseManager(PgClient):
         from em_health.fdw_manager import FDWManager
 
         for instr_id, server in servers:
-            fdw = FDWManager(self, "tds_fdw", str(server), instr_id)
-            self.schedule_uec_import(instr_id, fdw.fdw_schema)
+            FDWManager(self, "tds_fdw", str(server), instr_id)
+            self.schedule_uec_import(instr_id)
 
-    def schedule_uec_import(self, instr_id: int, fdw_schema: str, interval: str = "1 hour") -> None:
+    def schedule_uec_import(self, instr_id: int, interval: str = "1 hour") -> None:
         """ Schedule the static uec.import_errors procedure for one instrument.
-        Instrument id and FDW schema go into the job config, so no SQL is generated.
+        Only the instrument id goes into the job config, so no SQL is generated.
         An existing job for the same instrument is replaced, so re-running import-uec
         does not create duplicate jobs.
         """
@@ -273,7 +273,7 @@ class DatabaseManager(PgClient):
         """, values=(instr_id,), mode=None)
 
         self.run_query("SELECT add_job('uec.import_errors', %s::interval, config => %s)",
-                       values=(interval, Jsonb({"instrument_id": instr_id, "fdw_schema": fdw_schema})))
+                       values=(interval, Jsonb({"instrument_id": instr_id})))
 
         logger.info("Scheduled UEC import job for instrument %s", instr_id)
 

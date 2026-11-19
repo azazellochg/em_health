@@ -79,7 +79,11 @@ ruff check && mypy                                       # lint and type check (
   `EXTRACT(EPOCH FROM time)`), otherwise TimescaleDB warns.
 - Scheduled jobs use static procedures with a `config` JSONB, never generated per-object code:
   `public.refresh_mview` (`{"view": "schema.name"}`) for mviews and `uec.import_errors`
-  (`{"instrument_id", "fdw_schema"}`) for UEC import, one job per instrument.
+  (`{"instrument_id"}`) for UEC import, one job per instrument.
+- Foreign tables live in the `fdw` schema (owned by `emhealth`, no grants to `grafana`/`pganalyze`),
+  named `<server>_<table>`, e.g. `fdw.ms_5_error_notifications`. tds_fdw maps one foreign server to one
+  microscope, so each instrument has its own tables. With the `query` option tds_fdw matches columns by
+  exact name: alias them in lower case.
 
 ## Grafana dashboard SQL
 - Dashboards are v2 JSON in `docker/grafana/provisioning/dashboards/{TEM,SEM}`; queries are `rawSql` strings.

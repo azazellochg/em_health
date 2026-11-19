@@ -65,6 +65,11 @@ RUN set -ex && \
     && rm -rf /build/timescaledb-toolkit
 
 # ---------- Build TDS-FDW ----------
+# FreeTDS hands SQL Server dates to tds_fdw as text in its locale "date format". The default
+# (%b %e %Y %I:%M%p) drops the seconds, so add seconds and fractions (%z is fractional seconds in
+# FreeTDS, not a time zone). There is no specifier for the offset, so a datetimeoffset still loses it:
+# UEC ErrorDtm is converted to UTC on the SQL Server side instead (see fdw_manager.py).
+# https://github.com/tds-fdw/tds_fdw/issues/271#issuecomment-731581415
 RUN git clone --depth 1 --branch $TDS_VERSION https://github.com/tds-fdw/tds_fdw.git /build/tds_fdw \
     && cd /build/tds_fdw \
     && make USE_PGXS=1 \
@@ -72,7 +77,6 @@ RUN git clone --depth 1 --branch $TDS_VERSION https://github.com/tds-fdw/tds_fdw
     && echo "[default]\n\tdate format = %b %e %Y %I:%M:%S.%z%p" >> /etc/freetds/locales.conf \
     && rm -rf /build \
     && apt-get clean
-# change the date format used by freetds https://github.com/tds-fdw/tds_fdw/issues/271#issuecomment-731581415
 
 # ---------- Runtime stage ----------
 FROM ${PG_IMAGE} AS release

@@ -46,7 +46,6 @@ class FDWManager:
         if self.wrapper == "tds_fdw":
             self.name = f"ms_{instr_id}"
             self.setup_fdw_mssql()
-            self.fdw_schema = f"fdw_{self.name}"
             self.create_fdw_tables_ms()
         elif self.wrapper == "postgres_fdw":
             self.name = f"pg_{instr_id}"
@@ -64,12 +63,14 @@ class FDWManager:
             OPTIONS (
                 servername {server},
                 port '57659',
-                database 'DS'
+                database 'DS',
+                row_estimate_method 'showplan_all'
             );
 
+            -- tds_fdw accepts only username and password in a user mapping
             CREATE USER MAPPING IF NOT EXISTS FOR emhealth
             SERVER {name}
-            OPTIONS (username {user}, password {password}, row_estimate_method 'showplan_all');
+            OPTIONS (username {user}, password {password});
         """, identifiers={"name": self.name}, strings={
             "server": self.server,
             "user": user,
@@ -105,10 +106,13 @@ class FDWManager:
                     user, self.server)
 
     def create_fdw_tables_ms(self):
-        """ Create tables for MSSQL FDW. """
+        """ Create foreign tables for MSSQL in the shared fdw schema, named <server>_<table>
+        (fdw.ms_<id>_error_definitions, fdw.ms_<id>_error_notifications), as uec.import_errors expects.
+        Recreated every time: a foreign table holds no data, and IF NOT EXISTS would keep an old definition.
+        """
         self.dbm.run_query("""
-            CREATE SCHEMA IF NOT EXISTS {schema};
-            CREATE FOREIGN TABLE IF NOT EXISTS {schema}.error_definitions (
+            DROP FOREIGN TABLE IF EXISTS {table};
+            CREATE FOREIGN TABLE {table} (
                 ErrorDefinitionID INTEGER,
                 SubsystemID INTEGER,
                 Subsystem TEXT,
@@ -120,16 +124,25 @@ class FDWManager:
                 ErrorCode TEXT
             ) SERVER {name}
             OPTIONS (schema_name 'qry', table_name 'ErrorDefinitions');
-        """, {"schema": self.fdw_schema, "name": self.name})
+        """, {"table": f"fdw.{self.name}_error_definitions", "name": self.name})
 
+        # ErrorDtm is a datetimeoffset in local time. FreeTDS drops the offset when it converts it,
+        # so SQL Server sends it as ISO 8601 UTC text instead (style 127, e.g. 2026-08-12T19:24:38Z).
+        # With the query option tds_fdw matches columns by exact name, so the aliases are lower case like
+        # the unquoted Postgres column names.
         self.dbm.run_query("""
-            CREATE FOREIGN TABLE IF NOT EXISTS {schema}.error_notifications (
+            DROP FOREIGN TABLE IF EXISTS {table};
+            CREATE FOREIGN TABLE {table} (
                 ErrorDtm TIMESTAMPTZ,
                 ErrorDefinitionID INTEGER,
                 MessageText TEXT
             ) SERVER {name}
-            OPTIONS (schema_name 'qry', table_name 'ErrorNotifications');
-        """, {"schema": self.fdw_schema, "name": self.name})
+            OPTIONS (query {query});
+        """, {"table": f"fdw.{self.name}_error_notifications", "name": self.name}, strings={
+            "query": "SELECT CONVERT(varchar(40), ErrorDtm, 127) AS errordtm, "
+                     "ErrorDefinitionID AS errordefinitionid, MessageText AS messagetext "
+                     "FROM qry.ErrorNotifications"
+        })
 
     def create_fdw_tables_pg(self):
         """ Create tables for Postgres FDW. """

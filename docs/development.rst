@@ -111,10 +111,10 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
     * error_definitions
     * errors - main UEC data table for all instruments
 
-* fdw_ms_IID - foreign server schema for MSSQL with UECs (for each instrument ID)
+* fdw - foreign tables on the microscope servers, named <server>_<table>. For MSSQL with UECs (for each instrument ID):
 
-    * error_definitions
-    * error_notifications
+    * ms_IID_error_definitions
+    * ms_IID_error_notifications
 
 * fdw_pg_IID - foreign server schema for PostgreSQL with HM data (for each instrument ID)
 

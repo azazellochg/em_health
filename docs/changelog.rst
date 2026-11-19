@@ -5,6 +5,8 @@ Version 0.1a12
 ^^^^^^^^^^^^^^
 
 * DB performance: index cache hit ratio per interval instead of since the stats reset, WAL size panel shows the pg_wal directory sizem, SEM copies of the per-database alerts, database picker on Health checks, SEM table list on Schema statistics, WAL rates averaged per bucket, STANDBY instead of REPLICA
+* migration 014: UEC foreign tables of all instruments live in one fdw schema (fdw.ms_<id>_error_notifications etc.) instead of a schema per instrument, which emhealth had no privilege to create. Rerun 'emhealth dev -d tem import-uec' after migrating
+* fix import-uec FDW setup: row_estimate_method is a tds_fdw server option (user mappings only take username and password), and UEC error times are sent as UTC by SQL Server because FreeTDS drops the datetimeoffset offset (summer-time errors were 1 h late)
 * migration 013, fix UEC import: databases created before the uec column rename get the uec tables recreated with the new names (they were never filled), the first run for an instrument imported no errors (no previous error time to compare with), and error definition 0 was never imported
 * migration 012 for pganalyze schema changes: database_stats collects the next transaction ID and multixact ID; DB performance transaction ID panels use them instead of commits + rollbacks (read-only transactions use no transaction ID), and utilization covers all databases
 * TEM/SEM dashboards read events.data per parameter (using LATERAL instead of standard JOIN)
