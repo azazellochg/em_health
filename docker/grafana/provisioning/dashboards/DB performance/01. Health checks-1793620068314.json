@@ -73,7 +73,7 @@
         "spec": {
           "id": 39,
           "title": "Instance role",
-          "description": "Whether this server accepts writes (Primary) or is read-only (Replica)",
+          "description": "Whether this server accepts writes (Primary) or is a read-only standby (Standby)",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -91,7 +91,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  CASE\n    WHEN pg_is_in_recovery() THEN 'REPLICA'\n    ELSE 'PRIMARY'\n  END AS server_role",
+                        "rawSql": "SELECT\n  CASE\n    WHEN pg_is_in_recovery() THEN 'STANDBY'\n    ELSE 'PRIMARY'\n  END AS server_role",
                         "sql": {
                           "columns": [
                             {
@@ -150,7 +150,7 @@
                           "color": "green",
                           "index": 1
                         },
-                        "REPLICA": {
+                        "STANDBY": {
                           "color": "yellow",
                           "index": 0
                         }
@@ -521,7 +521,6 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
@@ -543,6 +542,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -623,7 +629,6 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
@@ -645,6 +650,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -720,7 +732,6 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
@@ -742,6 +753,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -814,7 +832,6 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
@@ -836,6 +853,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -1166,7 +1190,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  pg_wal_lsn_diff(\n    last(wal_lsn, collected_at),\n    first(wal_lsn, collected_at)\n  ) AS wal_generated_bytes\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
+                        "rawSql": "SELECT\n  pg_wal_lsn_diff(\n    last(wal_lsn, time),\n    first(wal_lsn, time)\n  ) AS wal_generated_bytes\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(time)",
                         "sql": {
                           "columns": [
                             {
@@ -1613,7 +1637,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  last(chk_requested, collected_at) - first(chk_requested, collected_at) AS requested_checkpoints_24h\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
+                        "rawSql": "SELECT\n  last(chk_requested, time) - first(chk_requested, time) AS requested_checkpoints_24h\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(time)",
                         "sql": {
                           "columns": [
                             {
@@ -1734,7 +1758,7 @@
         "spec": {
           "id": 59,
           "title": "Rows inserted / min",
-          "description": "",
+          "description": "Average number of rows inserted per minute in the selected time range.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1748,11 +1772,10 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  irate_right(counter_agg(collected_at, tup_inserted)) * 60 AS inserted_per_min\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
+                        "rawSql": "-- average over the selected range: (last - first) / minutes between them\nSELECT\n  rate(counter_agg(time, tup_inserted)) * 60 AS inserted_per_min\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(time)",
                         "sql": {
                           "columns": [
                             {
@@ -1770,6 +1793,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -2155,7 +2185,7 @@
         "spec": {
           "id": 64,
           "title": "Rows updated /min",
-          "description": "",
+          "description": "Average number of rows updated per minute in the selected time range.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -2169,11 +2199,10 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  irate_right(counter_agg(collected_at, tup_updated)) * 60 AS updated_per_min\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
+                        "rawSql": "-- average over the selected range: (last - first) / minutes between them\nSELECT\n  rate(counter_agg(time, tup_updated)) * 60 AS updated_per_min\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(time)",
                         "sql": {
                           "columns": [
                             {
@@ -2191,6 +2220,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -2257,7 +2293,7 @@
         "spec": {
           "id": 65,
           "title": "Rows deleted /min",
-          "description": "",
+          "description": "Average number of rows deleted per minute in the selected time range.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -2271,11 +2307,10 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  irate_right(counter_agg(collected_at, tup_deleted)) * 60 AS deleted_per_min\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
+                        "rawSql": "-- average over the selected range: (last - first) / minutes between them\nSELECT\n  rate(counter_agg(time, tup_deleted)) * 60 AS deleted_per_min\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(time)",
                         "sql": {
                           "columns": [
                             {
@@ -2293,6 +2328,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -2377,7 +2419,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  (\n    pg_wal_lsn_diff(\n      last(wal_lsn, collected_at),\n      first(wal_lsn, collected_at)\n    )\n    /\n    EXTRACT(\n      EPOCH FROM (\n        last(collected_at, collected_at)\n        - first(collected_at, collected_at)\n      )\n    )\n  ) AS wal_bytes_per_second\nFROM pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
+                        "rawSql": "SELECT\n  (\n    pg_wal_lsn_diff(\n      last(wal_lsn, time),\n      first(wal_lsn, time)\n    )\n    /\n    EXTRACT(\n      EPOCH FROM (\n        last(time, time)\n        - first(time, time)\n      )\n    )\n  ) AS wal_bytes_per_second\nFROM pganalyze.database_stats\nWHERE $__timeFilter(time)",
                         "sql": {
                           "columns": [
                             {
@@ -2475,11 +2517,10 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  (\n    last(temp_bytes, collected_at)\n    - first(temp_bytes, collected_at)\n  )::double precision\n  /\n  EXTRACT(\n    EPOCH FROM (\n      last(collected_at, collected_at)\n      - first(collected_at, collected_at)\n    )\n  ) AS temp_bytes_per_second\nFROM pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
+                        "rawSql": "SELECT\n  (\n    last(temp_bytes, time)\n    - first(temp_bytes, time)\n  )::double precision\n  /\n  EXTRACT(\n    EPOCH FROM (\n      last(time, time)\n      - first(time, time)\n    )\n  ) AS temp_bytes_per_second\nFROM pganalyze.database_stats\nWHERE $__timeFilter(time)",
                         "sql": {
                           "columns": [
                             {
@@ -2497,6 +2538,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -2615,11 +2663,10 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  irate_right(counter_agg(collected_at, xact_commit + xact_rollback)) * 60 AS tx_per_min\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
+                        "rawSql": "-- average over the selected range: (last - first) / seconds between them\nSELECT\n  rate(counter_agg(time, xact_commit + xact_rollback)) AS tx_per_sec\nFROM\n  pganalyze.database_stats\nWHERE $__timeFilter(time)",
                         "sql": {
                           "columns": [
                             {
@@ -2637,6 +2684,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -2702,7 +2756,7 @@
         "spec": {
           "id": 70,
           "title": "Rolled-back transactions",
-          "description": "Share of transactions that were rolled back rather than committed.",
+          "description": "Share of transactions that were rolled back rather than committed in the selected time range.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -2716,11 +2770,10 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  100.0 *\n  irate_right(counter_agg(collected_at, xact_rollback))\n  /\n  NULLIF(\n    irate_right(\n      counter_agg(collected_at, xact_commit + xact_rollback)\n    ),\n    0\n  ) AS rollback_pct\nFROM pganalyze.database_stats\nWHERE $__timeFilter(collected_at)",
+                        "rawSql": "-- share over the selected range\nSELECT\n  100.0 *\n  delta(counter_agg(time, xact_rollback))\n  /\n  NULLIF(\n    delta(\n      counter_agg(time, xact_commit + xact_rollback)\n    ),\n    0\n  ) AS rollback_pct\nFROM pganalyze.database_stats\nWHERE $__timeFilter(time)",
                         "sql": {
                           "columns": [
                             {
@@ -2738,6 +2791,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -2943,7 +3003,7 @@
         "spec": {
           "id": 73,
           "title": "Queries / sec",
-          "description": "Average number of queries executed per second.",
+          "description": "Average number of queries executed per second in the selected time range.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -2957,11 +3017,10 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  SUM(qps) AS qps\nFROM (\n  SELECT\n    irate_right(counter_agg(time, calls)) AS qps\n  FROM pganalyze.stat_statements\n  WHERE $__timeFilter(time)\n  GROUP BY queryid, userid\n) s",
+                        "rawSql": "WITH per_query AS (\n  SELECT\n    delta(counter_agg(time, calls)) AS calls,\n    MIN(time) AS first_time,\n    MAX(time) AS last_time\n  FROM pganalyze.stat_statements\n  WHERE $__timeFilter(time)\n  -- the same queryid run by different users is a separate counter\n  GROUP BY queryid, userid\n)\n-- average over the selected range: all calls divided by the same time span,\n-- so queries that ran only part of the time are not counted as running all the time\nSELECT\n  SUM(calls) / NULLIF(EXTRACT(EPOCH FROM MAX(last_time) - MIN(first_time)), 0) AS qps\nFROM per_query",
                         "sql": {
                           "columns": [
                             {
@@ -2979,6 +3038,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -3050,7 +3116,6 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
@@ -3072,6 +3137,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -3291,11 +3363,10 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH stats AS (\n    SELECT\n        delta(counter_agg(collected_at, blks_hit::double precision))\n            AS hits_delta,\n        delta(counter_agg(collected_at, blks_read::double precision))\n            AS reads_delta\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(collected_at)\n)\nSELECT\n    ROUND(\n        (100.0 * hits_delta /\n         NULLIF(hits_delta + reads_delta, 0))::numeric,\n        2\n    ) AS avg_buffer_cache_hit_rate_pct\nFROM stats",
+                        "rawSql": "WITH stats AS (\n    SELECT\n        delta(counter_agg(time, blks_hit::double precision))\n            AS hits_delta,\n        delta(counter_agg(time, blks_read::double precision))\n            AS reads_delta\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(time)\n)\nSELECT\n    ROUND(\n        (100.0 * hits_delta /\n         NULLIF(hits_delta + reads_delta, 0))::numeric,\n        2\n    ) AS avg_buffer_cache_hit_rate_pct\nFROM stats",
                         "sql": {
                           "columns": [
                             {
@@ -3313,6 +3384,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -3417,7 +3495,7 @@
         "spec": {
           "id": 79,
           "title": "Large table scans / min",
-          "description": "Full scans per minute on tables larger than 100 MB. Frequent scans often mean a missing index.",
+          "description": "Average full scans per minute in the selected time range on tables larger than 100 MB. Frequent scans often mean a missing index.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -3431,11 +3509,10 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH per_table AS (\n  SELECT\n    relid,\n    irate_right(\n      counter_agg(collected_at, seq_scans :: double precision)\n    ) AS scans_per_second\n  FROM\n    pganalyze.table_stats\n  WHERE\n    $__timeFilter(collected_at)\n    AND table_bytes > 100000000\n  GROUP BY\n    relid\n)\nSELECT\n  COALESCE(SUM(scans_per_second * 60), 0) AS full_scans_per_min\nFROM\n  per_table",
+                        "rawSql": "WITH per_table AS (\n  SELECT\n    delta(counter_agg(time, seq_scans :: double precision)) AS scans,\n    MIN(time) AS first_time,\n    MAX(time) AS last_time\n  FROM\n    pganalyze.table_stats\n  WHERE\n    $__timeFilter(time)\n  GROUP BY\n    relid\n  HAVING\n    MAX(table_bytes) > 100000000\n)\n-- average over the selected range\nSELECT\n  COALESCE(\n    SUM(scans) / NULLIF(EXTRACT(EPOCH FROM MAX(last_time) - MIN(first_time)) / 60, 0),\n    0\n  ) AS full_scans_per_min\nFROM\n  per_table",
                         "sql": {
                           "columns": [
                             {
@@ -3453,6 +3530,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -3576,11 +3660,10 @@
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
                       "spec": {
-                        "dataset": "tem",
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH invalid_indexes AS (\n  SELECT\n    COUNT(*) AS total\n  FROM\n    pg_index i\n    JOIN pg_class c ON c.oid = i.indexrelid\n    JOIN pg_namespace n ON n.oid = c.relnamespace\n  WHERE\n    NOT i.indisvalid\n    AND n.nspname NOT IN ('pg_catalog', 'information_schema')\n),\nunused_indexes AS (\nWITH latest AS (\n    SELECT DISTINCT ON (i.indexrelid)\n        i.indexrelid,\n        i.scan\n    FROM\n        pganalyze.index_stats i\n    JOIN\n        pg_stat_user_indexes s USING (indexrelid)\n    WHERE\n        s.indexrelname NOT LIKE '%_pkey'\n    ORDER BY\n        i.indexrelid,\n        i.collected_at DESC\n)\nSELECT\n    COUNT(DISTINCT indexrelid) AS total\nFROM\n    latest\nWHERE\n    scan < 10\n),\nduplicate_indexes AS (\n  SELECT\n    COUNT(*) AS total\n  FROM\n    (\n      SELECT\n        indrelid,\n        indkey,\n        indclass,\n        indcollation,\n        indoption,\n        indexprs,\n        indpred,\n        indisunique,\n        am.amname\n      FROM\n        pg_index i\n        JOIN pg_class c ON c.oid = i.indexrelid\n        JOIN pg_am am ON am.oid = c.relam\n      WHERE\n        i.indisvalid\n      GROUP BY\n        indrelid,\n        indkey,\n        indclass,\n        indcollation,\n        indoption,\n        indexprs,\n        indpred,\n        indisunique,\n        am.amname\n      HAVING\n        COUNT(*) > 1\n    ) d\n)\nSELECT\n  (\n    SELECT\n      total\n    FROM\n      invalid_indexes\n  ) AS invalid,\n  (\n    SELECT\n      total\n    FROM\n      unused_indexes\n  ) AS unused,\n  (\n    SELECT\n      total\n    FROM\n      duplicate_indexes\n  ) AS duplicate",
+                        "rawSql": "WITH invalid_indexes AS (\n  SELECT\n    COUNT(*) AS total\n  FROM\n    pg_index i\n    JOIN pg_class c ON c.oid = i.indexrelid\n    JOIN pg_namespace n ON n.oid = c.relnamespace\n  WHERE\n    NOT i.indisvalid\n    AND n.nspname NOT IN ('pg_catalog', 'information_schema')\n),\nunused_indexes AS (\nWITH latest AS (\n    SELECT DISTINCT ON (i.indexrelid)\n        i.indexrelid,\n        i.scan\n    FROM\n        pganalyze.index_stats i\n    JOIN\n        pg_index x USING (indexrelid)\n    WHERE\n        -- plain indexes only: primary keys, unique indexes and constraints are needed even without scans\n        NOT x.indisunique\n        AND NOT x.indisprimary\n        AND NOT EXISTS (SELECT 1 FROM pg_constraint con WHERE con.conindid = i.indexrelid)\n        -- index_stats is collected every 10 min, so only the last day can hold the latest sample\n        AND i.time > now() - INTERVAL '1 day'\n    ORDER BY\n        i.indexrelid,\n        i.time DESC\n)\nSELECT\n    COUNT(DISTINCT indexrelid) AS total\nFROM\n    latest\nWHERE\n    scan < 10\n),\nduplicate_indexes AS (\n  SELECT\n    COUNT(*) AS total\n  FROM\n    (\n      SELECT\n        indrelid,\n        indkey,\n        indclass,\n        indcollation,\n        indoption,\n        indexprs,\n        indpred,\n        indisunique,\n        am.amname\n      FROM\n        pg_index i\n        JOIN pg_class c ON c.oid = i.indexrelid\n        JOIN pg_am am ON am.oid = c.relam\n      WHERE\n        i.indisvalid\n      GROUP BY\n        indrelid,\n        indkey,\n        indclass,\n        indcollation,\n        indoption,\n        indexprs,\n        indpred,\n        indisunique,\n        am.amname\n      HAVING\n        COUNT(*) > 1\n    ) d\n)\nSELECT\n  (\n    SELECT\n      total\n    FROM\n      invalid_indexes\n  ) AS invalid,\n  (\n    SELECT\n      total\n    FROM\n      unused_indexes\n  ) AS unused,\n  (\n    SELECT\n      total\n    FROM\n      duplicate_indexes\n  ) AS duplicate",
                         "sql": {
                           "columns": [
                             {
@@ -3598,6 +3681,13 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "datasource": {
+                        "name": "${source}"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${source}"
                       }
                     },
                     "refId": "A",
@@ -4373,6 +4463,26 @@
     },
     "title": "01. Health checks",
     "variables": [
+      {
+        "kind": "DatasourceVariable",
+        "spec": {
+          "name": "source",
+          "pluginId": "grafana-postgresql-datasource",
+          "refresh": "onDashboardLoad",
+          "regex": "",
+          "current": {
+            "text": "",
+            "value": ""
+          },
+          "options": [],
+          "multi": false,
+          "includeAll": false,
+          "label": "Database",
+          "hide": "dontHide",
+          "skipUrlSync": false,
+          "allowCustomValue": false
+        }
+      },
       {
         "kind": "QueryVariable",
         "spec": {

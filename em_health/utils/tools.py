@@ -34,7 +34,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 try:
-    from memory_profiler import memory_usage
+    from memory_profiler import memory_usage  # type: ignore[import-untyped]
     HAS_MEMORY_PROFILER = True
 except ImportError:
     HAS_MEMORY_PROFILER = False
@@ -105,7 +105,7 @@ def profile(fn):
         thread = Thread(target=_target)
         thread.start()
         if HAS_MEMORY_PROFILER:
-            mem_usage = memory_usage((lambda: thread.join()), interval=0.1, timeout=None)
+            mem_usage = memory_usage(thread.join, interval=0.1, timeout=None)
         elapsed = time.perf_counter() - t0
 
         print(f'Time   {elapsed:.4f} s')

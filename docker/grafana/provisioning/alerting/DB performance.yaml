@@ -165,7 +165,7 @@ groups:
                       a.state = 'idle in transaction'
                       AND a.state_change IS NOT NULL
                       AND a.pid <> pg_backend_pid()
-                      AND NOW() - a.state_change > interval '1800 seconds'
+                      AND NOW() - a.state_change > interval '300 seconds'
                 refId: A
                 sql:
                     columns:
@@ -233,7 +233,7 @@ groups:
           noDataState: OK
           execErrState: Error
           annotations:
-            description: Detects transactions that have been open with no activity (the idle in transaction state) for longer than the specified threshold of 1800 seconds and creates an issue with severity "warning". Resolves automatically once the transactions are committed, rolled back, or show activity again.
+            description: Detects transactions that have been open with no activity (the idle in transaction state) for longer than the specified threshold of 300 seconds and creates an issue with severity "warning". Resolves automatically once the transactions are committed, rolled back, or show activity again.
             summary: 'Idle transaction (PID {{ index $labels "PID" }}, {{ index $labels "User" }}@{{ index $labels "Database" }}, application {{ index $labels "Application" }}): {{ index $labels "Query" }}, duration {{ $values.A.Value }}s'
           labels:
             module: queries
@@ -472,6 +472,110 @@ groups:
           isPaused: false
           notification_settings:
             receiver: email-contact-point
+        - uid: ffvjs4zz4syyoc-sem
+          title: Inefficient Index Phase (SEM)
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: hm-sem
+              model:
+                dataset: tem
+                editorMode: code
+                format: table
+                intervalMs: 1000
+                maxDataPoints: 43200
+                rawQuery: true
+                rawSql: |-
+                    SELECT
+                      CASE
+                        WHEN EXISTS (
+                          SELECT
+                            1
+                          FROM
+                            pganalyze.vacuum_stats
+                          WHERE
+                            started_at >= now() - interval '24 hours'
+                            AND index_scans > 1
+                        ) THEN 1
+                        ELSE 0
+                      END AS value;
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: reducer
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: avg
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: reducer
+                type: reduce
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: reducer
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          annotations:
+            summary: Detects when autovacuum runs in this server are forced to perform inefficient multiple index scan phases due to limited configured memory, and creates an issue with severity "warning". Triggers when at least 1 autovacuum run in the last 24h have had multiple index scan phases. Resolves automatically once fewer than 1 autovacuum run in the last 24h have had multiple index scan phases.
+          labels:
+            module: vacuum
+            severity: warning
+          isPaused: false
+          notification_settings:
+            receiver: email-contact-point
         - uid: bfvjslgfrb400c
           title: Bloat - Insufficient VACUUM Frequency
           condition: C
@@ -491,36 +595,36 @@ groups:
                 rawSql: |-
                     WITH stats AS (
                       SELECT
-                        collected_at,
+                        time,
                         relid,
                         table_bytes,
                         num_dead_rows,
                         num_live_rows,
                         tup_ins,
-                        LAG(collected_at) OVER (
+                        LAG(time) OVER (
                           PARTITION BY relid
                           ORDER BY
-                            collected_at
+                            time
                         ) AS prev_at,
                         LAG(table_bytes) OVER (
                           PARTITION BY relid
                           ORDER BY
-                            collected_at
+                            time
                         ) AS prev_table_bytes,
                         LAG(num_dead_rows) OVER (
                           PARTITION BY relid
                           ORDER BY
-                            collected_at
+                            time
                         ) AS prev_dead_rows,
                         LAG(tup_ins) OVER (
                           PARTITION BY relid
                           ORDER BY
-                            collected_at
+                            time
                         ) AS prev_tup_ins
                       FROM
                         pganalyze.table_stats
                       WHERE
-                        collected_at >= now() - interval '7 days'
+                        time >= now() - interval '7 days'
                     ),
                     intervals AS (
                       SELECT
@@ -554,7 +658,225 @@ groups:
                           WHERE
                             v.relid = i.relid
                             AND v.finished_at > i.prev_at
-                            AND v.finished_at <= i.collected_at
+                            AND v.finished_at <= i.time
+                        ) AS vacuum_ran
+                      FROM
+                        intervals i
+                    ),
+                    avoidable AS (
+                      SELECT
+                        relid,
+                        /*
+                         * If VACUUM didn't run during the interval, the dead rows
+                         * available at the start could not be reused.
+                         *
+                         * We estimate how many new rows therefore required new
+                         * physical space.
+                         */
+                        CASE
+                          WHEN vacuum_ran THEN 0
+                          ELSE LEAST(new_rows, reusable_rows)
+                        END AS avoidable_rows,
+                        /*
+                         * Total new rows during the period.
+                         */
+                        new_rows,
+                        /*
+                         * Estimate the physical size of one row using the latest
+                         * observed table size / live row count.
+                         */
+                        CASE
+                          WHEN num_live_rows > 0 THEN table_bytes :: numeric / num_live_rows
+                          ELSE 0
+                        END AS bytes_per_row
+                      FROM
+                        vacuum_intervals
+                    ),
+                    per_table AS (
+                      SELECT
+                        relid,
+                        SUM(avoidable_rows) AS avoidable_rows,
+                        SUM(new_rows) AS new_rows,
+                        /*
+                         * Convert avoidable rows to approximate bytes.
+                         */
+                        SUM(avoidable_rows * bytes_per_row) AS avoidable_bytes
+                      FROM
+                        avoidable
+                      GROUP BY
+                        relid
+                    )
+                    SELECT
+                      CASE
+                        WHEN EXISTS (
+                          SELECT
+                            1
+                          FROM
+                            per_table
+                          WHERE
+                            avoidable_rows > 0
+                            AND avoidable_rows :: numeric / NULLIF(new_rows, 0) > 0.20
+                            AND avoidable_bytes >= 10 * 1024 * 1024
+                        ) THEN 1
+                        ELSE 0
+                      END AS value;
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: reducer
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: avg
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: reducer
+                type: reduce
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: reducer
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          annotations:
+            summary: Detects when insufficient VACUUM frequency leads to avoidable growth in a table. It analyzes the table statistic from the past seven days and calculates the amount of rows that could have been avoided to grow if VACUUM had been performed more frequently. Creates an issue when such rows exceeds 20% of total new rows, as well as 10MB accumulated. Resolves once such growth decreases.
+          labels:
+            module: vacuum
+            severity: warning
+          isPaused: false
+          notification_settings:
+            receiver: email-contact-point
+        - uid: bfvjslgfrb400c-sem
+          title: Bloat - Insufficient VACUUM Frequency (SEM)
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: hm-sem
+              model:
+                dataset: tem
+                editorMode: code
+                format: table
+                intervalMs: 1000
+                maxDataPoints: 43200
+                rawQuery: true
+                rawSql: |-
+                    WITH stats AS (
+                      SELECT
+                        time,
+                        relid,
+                        table_bytes,
+                        num_dead_rows,
+                        num_live_rows,
+                        tup_ins,
+                        LAG(time) OVER (
+                          PARTITION BY relid
+                          ORDER BY
+                            time
+                        ) AS prev_at,
+                        LAG(table_bytes) OVER (
+                          PARTITION BY relid
+                          ORDER BY
+                            time
+                        ) AS prev_table_bytes,
+                        LAG(num_dead_rows) OVER (
+                          PARTITION BY relid
+                          ORDER BY
+                            time
+                        ) AS prev_dead_rows,
+                        LAG(tup_ins) OVER (
+                          PARTITION BY relid
+                          ORDER BY
+                            time
+                        ) AS prev_tup_ins
+                      FROM
+                        pganalyze.table_stats
+                      WHERE
+                        time >= now() - interval '7 days'
+                    ),
+                    intervals AS (
+                      SELECT
+                        s.*,
+                        /*
+                         * Inserts that happened during this sampling interval.
+                         */
+                        GREATEST(s.tup_ins - s.prev_tup_ins, 0) AS new_rows,
+                        /*
+                         * Dead rows that were already available for reuse at
+                         * the beginning of the interval.
+                         */
+                        GREATEST(s.prev_dead_rows, 0) AS reusable_rows
+                      FROM
+                        stats s
+                      WHERE
+                        s.prev_at IS NOT NULL
+                        AND s.prev_tup_ins IS NOT NULL
+                    ),
+                    vacuum_intervals AS (
+                      SELECT
+                        i.*,
+                        /*
+                         * Was there a VACUUM between the two statistics samples?
+                         */
+                        EXISTS (
+                          SELECT
+                            1
+                          FROM
+                            pganalyze.vacuum_stats v
+                          WHERE
+                            v.relid = i.relid
+                            AND v.finished_at > i.prev_at
+                            AND v.finished_at <= i.time
                         ) AS vacuum_ran
                       FROM
                         intervals i
@@ -719,7 +1041,129 @@ groups:
                       JOIN pg_class t ON t.oid = i.relid
                       JOIN pg_namespace n ON n.oid = t.relnamespace
                     WHERE
-                      i.collected_at >= now() - interval '35 days'
+                      i.time >= now() - interval '35 days'
+                      AND NOT ix.indisprimary
+                      AND NOT ix.indisunique
+                      AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+                      AND n.nspname NOT LIKE 'pg_toast%'
+                    GROUP BY
+                      i.indexrelid,
+                      n.nspname,
+                      t.relname,
+                      c.relname
+                    HAVING
+                      MAX(i.size_bytes) >= 32 * 1024
+                      AND MAX(i.scan) = 0
+                    ORDER BY
+                      MAX(i.size_bytes) DESC;
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: reducer
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: avg
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: count
+                refId: reducer
+                type: reduce
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: eq
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: reducer
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          annotations:
+            description: |-
+                Detects indexes that are not in use by any queries within the last 35 days and creates an issue with severity "warning", one for each table (or table hierarchy in case of inheritance or partitioning). Resolves once all unused indexes on a table are dropped or start being used. Note that if you have gaps in your collector reporting, this check may miss usage during un-reported periods.
+
+                Ignores small indexes (less than 32kB), primary keys, and unique indexes since they are necessary to enforce constraints.
+            summary: Unused index {{ index $labels "Index" }} on table {{ index $labels "Schema" }}.{{ index $labels "Table" }}
+          labels:
+            module: schema
+            severity: warning
+          isPaused: false
+          notification_settings:
+            receiver: email-contact-point
+        - uid: afvjzu44cfapsd-sem
+          title: Unused Indexes (SEM)
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: hm-sem
+              model:
+                dataset: tem
+                editorMode: code
+                format: table
+                intervalMs: 1000
+                maxDataPoints: 43200
+                rawQuery: true
+                rawSql: |-
+                    SELECT
+                      n.nspname AS "Schema",
+                      t.relname AS "Table",
+                      c.relname AS "Index",
+                      MAX(i.scan) AS "Scans"
+                    FROM
+                      pganalyze.index_stats i
+                      JOIN pg_class c ON c.oid = i.indexrelid
+                      JOIN pg_index ix ON ix.indexrelid = i.indexrelid
+                      JOIN pg_class t ON t.oid = i.relid
+                      JOIN pg_namespace n ON n.oid = t.relnamespace
+                    WHERE
+                      i.time >= now() - interval '35 days'
                       AND NOT ix.indisprimary
                       AND NOT ix.indisunique
                       AND n.nspname NOT IN ('pg_catalog', 'information_schema')
@@ -1026,25 +1470,18 @@ groups:
                 maxDataPoints: 43200
                 rawQuery: true
                 rawSql: |-
+                    -- Same as cmp_shared_buffers() in pgtune.sh: 25% of RAM, rounded down to whole MB
                     WITH memory AS (
-                      SELECT value AS mem_total
+                      SELECT value :: bigint AS mem_total
                       FROM pganalyze.sys_stats
                       WHERE metric = 'node_memory_MemTotal_bytes'
                       ORDER BY time DESC
                       LIMIT 1
                     )
                     SELECT
-                      CASE
-                        WHEN mem_total < 2147483648 :: bigint THEN (
-                          pg_size_bytes(current_setting('shared_buffers')) < mem_total :: numeric * 0.20
-                        ) :: int
-                        WHEN mem_total < 34359738368 :: bigint THEN (
-                          pg_size_bytes(current_setting('shared_buffers')) < mem_total :: numeric * 0.25
-                        ) :: int
-                        ELSE (
-                          pg_size_bytes(current_setting('shared_buffers')) < 8589934592 :: bigint
-                        ) :: int
-                      END AS value
+                      (
+                        pg_size_bytes(current_setting('shared_buffers')) < (mem_total / 4 / 1048576) * 1048576
+                      ) :: int AS value
                     FROM
                       memory
                 refId: A
@@ -1114,7 +1551,7 @@ groups:
           noDataState: NoData
           execErrState: Error
           annotations:
-            summary: Detects when the shared_buffers Postgres setting seems too low for the amount of RAM in your machine, and creates an issue with severity "warning". Resolves once the setting has been adjusted to within the recommended range.
+            summary: Detects when the shared_buffers Postgres setting is below the pgtune.sh value (25% of RAM), and creates an issue with severity "warning". Resolves once the setting has been raised to at least that value.
           labels:
             module: config
             severity: warning
@@ -1138,27 +1575,42 @@ groups:
                 maxDataPoints: 43200
                 rawQuery: true
                 rawSql: |-
-                  WITH memory AS (
-                    SELECT value AS memory_bytes
-                    FROM pganalyze.sys_stats
-                    WHERE metric = 'node_memory_MemTotal_bytes'
-                    ORDER BY time DESC
-                    LIMIT 1
+                  -- Same as cmp_work_mem() in pgtune.sh, using host RAM and CPU count
+                  WITH host AS (
+                    SELECT
+                      (
+                        SELECT value :: bigint
+                        FROM pganalyze.sys_stats
+                        WHERE metric = 'node_memory_MemTotal_bytes'
+                        ORDER BY time DESC
+                        LIMIT 1
+                      ) AS mem,
+                      (SELECT MAX(cpu_count) FROM pganalyze.sys_info) :: bigint AS cpus
+                  ),
+                  calc AS (
+                    SELECT
+                      mem / 1024 AS ram_kb,
+                      -- maintenance_work_mem: 128MB per GB of RAM, 64MB..2047MB
+                      LEAST(GREATEST(mem / 1048576 / 8, 64), 2047) * 1024 AS maint_kb,
+                      -- autovacuum workers (25% CPUs, min 1) x autovacuum_work_mem 512MB
+                      GREATEST(cpus / 4, 1) * 524288 AS av_kb,
+                      -- max_connections + parallel workers
+                      CASE
+                        WHEN mem <= 2147483648 THEN 20
+                        WHEN mem <= 4294967296 THEN 50
+                        WHEN mem <= 6442450944 THEN 75
+                        ELSE 100
+                      END + cpus AS backends
+                    FROM host
+                    WHERE mem IS NOT NULL AND cpus IS NOT NULL
                   )
                   SELECT
                     (
-                      pg_size_bytes(current_setting('work_mem')) < GREATEST(
-                        1048576 :: bigint,
-                        LEAST(
-                          (
-                            memory_bytes - pg_size_bytes(current_setting('shared_buffers'))
-                          ) / current_setting('max_connections') :: bigint,
-                          268435456 :: bigint
-                        )
-                      )
+                      pg_size_bytes(current_setting('work_mem')) < 1024 * LEAST(GREATEST(
+                        ((ram_kb - ram_kb / 4 - maint_kb - av_kb) / 2) / (backends * 2 * 2),
+                        65536), 262144)
                     ) :: int AS value
-                  FROM
-                  memory;
+                  FROM calc;
                 refId: A
                 sql:
                     columns:
@@ -1226,7 +1678,7 @@ groups:
           noDataState: NoData
           execErrState: Error
           annotations:
-            summary: Detects when the Postgres work_mem setting seems too low for the amount of RAM in your machine and the number of connections you have configured, and creates an issue with severity "warning".
+            summary: Detects when the Postgres work_mem setting is below the pgtune.sh value for the host RAM and CPU count (64MB-256MB), and creates an issue with severity "warning". Resolves once work_mem is raised to at least that value.
           labels:
             module: config
             severity: warning
@@ -1258,12 +1710,12 @@ groups:
                       WHERE
                         xmin_horizon <> 0
                       ORDER BY
-                        collected_at DESC
+                        time DESC
                       LIMIT
                         1
                     ), horizon_age AS (
                       SELECT
-                        MIN(ds.collected_at) AS assigned_at
+                        MIN(ds.time) AS assigned_at
                       FROM
                         pganalyze.database_stats ds
                         CROSS JOIN current_horizon ch
@@ -1370,7 +1822,7 @@ groups:
                 rawSql: |-
                     SELECT
                       ROUND(
-                        100.0 * MAX(age(datfrozenxid)) / 4294967296,
+                        100.0 * MAX(age(datfrozenxid)) / 2147483648,
                         4
                       ) AS xid_utilization_percent
                     FROM
@@ -1442,7 +1894,7 @@ groups:
           noDataState: NoData
           execErrState: Error
           annotations:
-            summary: Detects when transaction ID space utilization on the server is more than 50% and creates an issue with severity "warning".  Resolves once utilization falls below the threshold.
+            summary: Detects when transaction ID space utilization on the server is more than 50% of the 2^31 wraparound limit and creates an issue with severity "warning".  Resolves once utilization falls below the threshold.
           labels:
             module: vacuum
             severity: warning
@@ -1468,7 +1920,7 @@ groups:
                 rawSql: |-
                     SELECT
                       ROUND(
-                        100.0 * MAX(mxid_age(datminmxid)) / 4294967296,
+                        100.0 * MAX(mxid_age(datminmxid)) / 2147483648,
                         4
                       ) AS mxid_utilization_percent
                     FROM
@@ -1540,7 +1992,7 @@ groups:
           noDataState: NoData
           execErrState: Error
           annotations:
-            summary: Detects when multixact ID space utilization on the server is more than 50% and creates an issue with severity "warning". Resolves once utilization falls below the threshold.
+            summary: Detects when multixact ID space utilization on the server is more than 50% of the 2^31 wraparound limit and creates an issue with severity "warning". Resolves once utilization falls below the threshold.
           labels:
             module: vacuum
             severity: warning
@@ -1556,6 +2008,107 @@ groups:
                 from: 600
                 to: 0
               datasourceUid: hm-tem
+              model:
+                dataset: tem
+                editorMode: code
+                format: table
+                intervalMs: 1000
+                maxDataPoints: 43200
+                rawQuery: true
+                rawSql: |-
+                    SELECT
+                      COUNT(*) AS invalid_indexes
+                    FROM pg_catalog.pg_index i
+                    JOIN pg_catalog.pg_class c
+                      ON c.oid = i.indexrelid
+                    JOIN pg_catalog.pg_namespace n
+                      ON n.oid = c.relnamespace
+                    WHERE NOT i.indisvalid
+                      AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+                      AND n.nspname NOT LIKE 'pg_toast%';
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: reducer
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: avg
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: reducer
+                type: reduce
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: reducer
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          annotations:
+            summary: Detects indexes that are not recognized as valid in Postgres and creates an issue with severity "info", one for each table (or table hierarchy in case of inheritance or partitioning). These indexes typically are left over when using CREATE INDEX CONCURRENTLY and the command fails or is aborted by the user. Resolves once all invalid indexes on a table have been dropped.
+          labels:
+            module: schema
+            severity: info
+          isPaused: false
+          notification_settings:
+            receiver: email-contact-point
+        - uid: afvjxzc50uyv4c-sem
+          title: Invalid Indexes (SEM)
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: hm-sem
               model:
                 dataset: tem
                 editorMode: code

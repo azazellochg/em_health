@@ -47,7 +47,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN set -ex && \
     for ver in $TS_VERSIONS; do \
     echo "=== Building TimescaleDB $ver ===" && \
-    git clone --branch $ver https://github.com/timescale/timescaledb /build/timescaledb-$ver \
+    git clone --depth 1 --branch $ver https://github.com/timescale/timescaledb /build/timescaledb-$ver \
     && cd /build/timescaledb-$ver \
     && ./bootstrap -DTAP_CHECKS=OFF -DREGRESS_CHECKS=OFF -DWARNINGS_AS_ERRORS=OFF -DPROJECT_INSTALL_METHOD="docker" \
     && cd build && make -j 4 install; \
@@ -58,21 +58,25 @@ RUN set -ex && \
 
 # ---------- Build Timescale Toolkit ----------
 RUN set -ex && \
-    git clone --branch $TLK_VERSION https://github.com/timescale/timescaledb-toolkit.git /build/timescaledb-toolkit \
+    git clone --depth 1 --branch $TLK_VERSION https://github.com/timescale/timescaledb-toolkit.git /build/timescaledb-toolkit \
     && cd /build/timescaledb-toolkit/extension \
     && cargo pgrx install --release \
     && cargo run --release --manifest-path ../tools/post-install/Cargo.toml -- pg_config \
     && rm -rf /build/timescaledb-toolkit
 
 # ---------- Build TDS-FDW ----------
-RUN git clone --branch $TDS_VERSION https://github.com/tds-fdw/tds_fdw.git /build/tds_fdw \
+# FreeTDS hands SQL Server dates to tds_fdw as text in its locale "date format". The default
+# (%b %e %Y %I:%M%p) drops the seconds, so add seconds and fractions (%z is fractional seconds in
+# FreeTDS, not a time zone). There is no specifier for the offset, so a datetimeoffset still loses it:
+# UEC ErrorDtm is converted to UTC on the SQL Server side instead (see fdw_manager.py).
+# https://github.com/tds-fdw/tds_fdw/issues/271#issuecomment-731581415
+RUN git clone --depth 1 --branch $TDS_VERSION https://github.com/tds-fdw/tds_fdw.git /build/tds_fdw \
     && cd /build/tds_fdw \
     && make USE_PGXS=1 \
     && make -j 4 install USE_PGXS=1 \
     && echo "[default]\n\tdate format = %b %e %Y %I:%M:%S.%z%p" >> /etc/freetds/locales.conf \
     && rm -rf /build \
     && apt-get clean
-# change the date format used by freetds https://github.com/tds-fdw/tds_fdw/issues/271#issuecomment-731581415
 
 # ---------- Runtime stage ----------
 FROM ${PG_IMAGE} AS release

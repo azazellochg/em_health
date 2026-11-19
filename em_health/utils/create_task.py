@@ -109,7 +109,7 @@ rem --end "2025-05-23 13:01:00 +01:00" (will be ignored when -r is used)
 rem --remove to overwrite old export files
 """
 
-        with open(task_file, "w", encoding="utf-8") as f:
+        with open(task_file, "w", encoding="utf-8", newline="\r\n") as f:
             f.write(cmd)
 
         logger.info("Created file: %s\n"

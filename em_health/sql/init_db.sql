@@ -66,6 +66,11 @@ SET ROLE postgres;
 GRANT USAGE ON FOREIGN DATA WRAPPER postgres_fdw TO emhealth;
 GRANT USAGE ON FOREIGN DATA WRAPPER tds_fdw TO emhealth;
 
+-- fdw schema: foreign tables on the microscope servers, one set per instrument named <server>_<table>. Only emhealth has user mappings.
+CREATE SCHEMA IF NOT EXISTS fdw AUTHORIZATION emhealth;
+
+COMMENT ON SCHEMA fdw IS 'Foreign tables on microscope servers, named <server>_<table> (e.g. ms_5_error_notifications)';
+
 -- pganalyze schema
 CREATE SCHEMA IF NOT EXISTS pganalyze AUTHORIZATION pganalyze;
 
@@ -101,6 +106,8 @@ ALTER ROLE emhealth SET search_path = events,uec,public;
 ALTER ROLE pganalyze SET search_path = pganalyze,public;
 
 ALTER ROLE grafana SET search_path = events,uec,pganalyze,public;
+
+ALTER ROLE grafana SET statement_timeout = '5min';
 
 -- set current schema version (passed by docker/init-db.sh and reset-db.sh: highest migrations/NNN.sql) --
 INSERT INTO public.schema_info (version)

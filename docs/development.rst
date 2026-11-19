@@ -109,20 +109,20 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
     * error_code
     * subsystem
     * error_definitions
-    * errors - main UEC data table for all instruments
+    * errors - main UEC data table for all TEM instruments
 
-* fdw_ms_IID - foreign server schema for MSSQL with UECs (for each instrument ID)
+* fdw - foreign tables on the microscope servers, named <server>_<table>. For MSSQL with UECs (for each instrument ID):
 
-    * error_definitions
-    * error_notifications
+    * ms_IID_error_definitions
+    * ms_IID_error_notifications
 
-* fdw_pg_IID - foreign server schema for PostgreSQL with HM data (for each instrument ID)
+  For PostgreSQL with HM data (for each instrument ID):
 
-    * event_property
-    * event_property_type
-    * event_type
-    * parameter_type
-    * instrument_event_config
+    * pg_IID_event_property
+    * pg_IID_event_property_type
+    * pg_IID_event_type
+    * pg_IID_parameter_type
+    * pg_IID_instrument_event_config
 
 * pganalyze - schema to store database statistics
 
@@ -133,8 +133,8 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
     * io_stats
     * stat_statements
     * queries
-    * sys_info
-    * sys_stats
+    * sys_info (populated only for tem db)
+    * sys_stats (populated only for tem db)
     * stat_explains
 
 Import HM data from PostgreSQL

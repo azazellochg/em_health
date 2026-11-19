@@ -82,6 +82,13 @@ BEGIN
       );
 
     RAISE NOTICE E'Updated parameter % for instrument %:\n%\n->\n%', old.param_id, old.instrument_id, old, new;
+
+    -- Same param_id, different units: events.data values before and after this change are not comparable
+    IF ROW(old.storage_unit, old.display_unit) IS DISTINCT FROM ROW(new.storage_unit, new.display_unit) THEN
+      RAISE WARNING 'Units changed for parameter % (%) of instrument %: storage % -> %, display % -> %',
+        old.param_id, old.param_name, old.instrument_id,
+        old.storage_unit, new.storage_unit, old.display_unit, new.display_unit;
+    END IF;
   END IF;
 
   RETURN new;
