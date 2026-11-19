@@ -252,10 +252,10 @@ class DatabaseManager(PgClient):
             logger.error("No servers found in the events.instruments table")
             sys.exit()
 
-        from em_health.fdw_manager import FDWManager
+        from em_health.fdw_mssql import MssqlFdw
 
         for instr_id, server in servers:
-            FDWManager(self, "tds_fdw", str(server), instr_id)
+            MssqlFdw(self, str(server), instr_id)
             self.schedule_uec_import(instr_id)
 
     def schedule_uec_import(self, instr_id: int, interval: str = "1 hour") -> None:

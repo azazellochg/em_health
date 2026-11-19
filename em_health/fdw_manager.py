@@ -24,258 +24,32 @@
 # *
 # **************************************************************************
 
-import os
-from typing import Literal
 
 from em_health.db_manager import DatabaseManager
-from em_health.utils.tools import logger
 
 
-class FDWManager:
-    """ Manager class for foreign data wrappers. """
-    def __init__(self,
-                 dbm: DatabaseManager,
-                 wrapper_type: Literal["tds_fdw", "postgres_fdw"],
-                 server: str,
-                 instr_id: int):
+class ForeignServer:
+    """ Base class for a foreign server on one microscope and its foreign tables.
+    The server is named <prefix>_<instrument id>. Its foreign tables live in the shared fdw schema,
+    named <server>_<table> (e.g. fdw.ms_5_error_notifications), since every microscope needs its own:
+    a foreign table belongs to exactly one foreign server.
+    """
+    prefix: str = ""
+
+    def __init__(self, dbm: DatabaseManager, server: str, instr_id: int):
         self.dbm = dbm
-        self.wrapper = wrapper_type
         self.server = server
         self.instr_id = instr_id
+        self.name = f"{self.prefix}_{instr_id}"
+        self.setup_server()
+        self.create_tables()
 
-        if self.wrapper == "tds_fdw":
-            self.name = f"ms_{instr_id}"
-            self.setup_fdw_mssql()
-            self.create_fdw_tables_ms()
-        elif self.wrapper == "postgres_fdw":
-            self.name = f"pg_{instr_id}"
-            self.setup_fdw_postgres()
-            self.fdw_schema = f"fdw_{self.name}"
-            self.create_fdw_tables_pg()
+    def table(self, name: str) -> str:
+        """ Foreign table of this server in the fdw schema, e.g. fdw.pg_5_event_property. """
+        return f"fdw.{self.name}_{name}"
 
-    def setup_fdw_mssql(self):
-        """ Create a foreign data wrapper for a MSSQL database. """
-        user = os.getenv("MSSQL_USER")
+    def setup_server(self) -> None:
+        raise NotImplementedError
 
-        self.dbm.run_query("""
-            CREATE SERVER IF NOT EXISTS {name}
-            FOREIGN DATA WRAPPER tds_fdw
-            OPTIONS (
-                servername {server},
-                port '57659',
-                database 'DS',
-                row_estimate_method 'showplan_all'
-            );
-
-            -- tds_fdw accepts only username and password in a user mapping
-            CREATE USER MAPPING IF NOT EXISTS FOR emhealth
-            SERVER {name}
-            OPTIONS (username {user}, password {password});
-        """, identifiers={"name": self.name}, strings={
-            "server": self.server,
-            "user": user,
-            "password": os.getenv("MSSQL_PASSWORD")
-        })
-
-        logger.info("Setup foreign server MSSQL %s@%s:57659 database DS",
-                    user, self.server)
-
-    def setup_fdw_postgres(self):
-        """ Create a foreign data wrapper for a Postgres database. """
-        user = os.getenv("MSSQL_USER").lower()
-
-        self.dbm.run_query("""
-            CREATE SERVER IF NOT EXISTS {name}
-            FOREIGN DATA WRAPPER postgres_fdw
-            OPTIONS (
-                host {server},
-                port '60659',
-                dbname 'ds'
-            );
-
-            CREATE USER MAPPING IF NOT EXISTS FOR emhealth
-            SERVER {name}
-            OPTIONS (user {user}, password {password}, application_name 'EMHealth');
-        """, identifiers={"name": self.name}, strings={
-            "server": self.server,
-            "user": user,
-            "password": os.getenv("MSSQL_PASSWORD")
-        })
-
-        logger.info("Setup foreign server PostgreSQL %s@%s:60659 database ds",
-                    user, self.server)
-
-    def create_fdw_tables_ms(self):
-        """ Create foreign tables for MSSQL in the shared fdw schema, named <server>_<table>
-        (fdw.ms_<id>_error_definitions, fdw.ms_<id>_error_notifications), as uec.import_errors expects.
-        Recreated every time: a foreign table holds no data, and IF NOT EXISTS would keep an old definition.
-        """
-        self.dbm.run_query("""
-            DROP FOREIGN TABLE IF EXISTS {table};
-            CREATE FOREIGN TABLE {table} (
-                ErrorDefinitionID INTEGER,
-                SubsystemID INTEGER,
-                Subsystem TEXT,
-                DeviceTypeID INTEGER,
-                DeviceType TEXT,
-                DeviceInstanceID INTEGER,
-                DeviceInstance TEXT,
-                ErrorCodeID INTEGER,
-                ErrorCode TEXT
-            ) SERVER {name}
-            OPTIONS (schema_name 'qry', table_name 'ErrorDefinitions');
-        """, {"table": f"fdw.{self.name}_error_definitions", "name": self.name})
-
-        # ErrorDtm is a datetimeoffset in local time. FreeTDS drops the offset when it converts it,
-        # so SQL Server sends it as ISO 8601 UTC text instead (style 127, e.g. 2026-08-12T19:24:38Z).
-        # With the query option tds_fdw matches columns by exact name, so the aliases are lower case like
-        # the unquoted Postgres column names.
-        self.dbm.run_query("""
-            DROP FOREIGN TABLE IF EXISTS {table};
-            CREATE FOREIGN TABLE {table} (
-                ErrorDtm TIMESTAMPTZ,
-                ErrorDefinitionID INTEGER,
-                MessageText TEXT
-            ) SERVER {name}
-            OPTIONS (query {query});
-        """, {"table": f"fdw.{self.name}_error_notifications", "name": self.name}, strings={
-            "query": "SELECT CONVERT(varchar(40), ErrorDtm, 127) AS errordtm, "
-                     "ErrorDefinitionID AS errordefinitionid, MessageText AS messagetext "
-                     "FROM qry.ErrorNotifications"
-        })
-
-    def create_fdw_tables_pg(self):
-        """ Create tables for Postgres FDW. """
-        self.dbm.run_query("""
-            IMPORT FOREIGN SCHEMA core
-            LIMIT TO (event_property, event_property_type, event_type, parameter_type, instrument_event_config)
-            FROM SERVER {name}
-            INTO {schema};
-        """, {"schema": self.fdw_schema, "name": self.name})
-
-    def query_pg_events(self):
-        """ Query new events from Postgres FDW. """
-        return self.dbm.run_query("""
-            SELECT
-                event_property_type_id AS param_id,
-                event_dtm AS time,
-                COALESCE(
-                    value_float,
-                    value_int::double precision,
-                    value_bool::int::double precision
-                ) AS value_num,
-                value_string AS value_text
-            FROM {schema}.event_property
-            WHERE event_dtm > COALESCE(
-                (SELECT MAX(time) FROM events.data WHERE instrument_id = %s),
-                '1900-01-01'
-            )
-        """,
-                                  {"schema": self.fdw_schema},
-                                  values=(self.instr_id,),
-                                  mode="fetchall")
-
-    def query_pg_enums(self):
-        """ Query enumerations from Postgres. """
-
-        # Get param_id:enum_name mapping
-        params_with_enums = self.dbm.run_query("""
-            -- Get config values for existing parameters
-            WITH config_xml AS (
-                SELECT 
-                    regexp_replace(
-                        iec.config::text,
-                        'xmlns:nil="[^"]*"',
-                        ''
-                    )::xml AS config
-                FROM (
-                    SELECT DISTINCT upd_config_id
-                    FROM {schema}.event_property_type
-                    WHERE is_active = true
-                ) ept
-                JOIN {schema}.instrument_event_config iec
-                    ON iec.instrument_event_config_id = ept.upd_config_id
-            )
-
-            -- Extract all Parm nodes with Enum attribute
-            SELECT DISTINCT
-                (xpath('/Parm/@ID', unnest(xpath('//Instrument//Parm[@Enum]', config))))[1]::text::int AS param_id,
-                (xpath('/Parm/@Enum', unnest(xpath('//Instrument//Parm[@Enum]', config))))[1]::text AS enum_name
-            FROM config_xml
-            ORDER BY param_id
-        """, {"schema": self.fdw_schema}, mode="fetchall")
-
-        # Get enum_name:member_name:value mapping
-        enum_values = self.dbm.run_query("""
-            -- Get config values for existing parameters
-            WITH config_xml AS (
-                SELECT 
-                    regexp_replace(
-                        iec.config::text,
-                        'xmlns:nil="[^"]*"',
-                        ''
-                    )::xml AS config
-                FROM (
-                    SELECT DISTINCT upd_config_id
-                    FROM {schema}.event_property_type
-                    WHERE is_active = true
-                ) ept
-                JOIN {schema}.instrument_event_config iec
-                    ON iec.instrument_event_config_id = ept.upd_config_id
-            ),
-
-            -- Unnest Enums cleanly
-            enum_nodes AS (
-                SELECT
-                    unnest(xpath('//Enum', config)) AS enum_node
-                FROM config_xml
-            ),
-
-            -- Extract values from each Enum node
-            enums AS (
-                SELECT
-                    (xpath('/Enum/@Name', enum_node))[1]::text AS name,
-                    unnest(xpath('/Enum/Value', enum_node)) AS value_node
-                FROM enum_nodes
-            )
-
-            SELECT DISTINCT
-                name,
-                (xpath('Value/@Name', value_node))[1]::text AS member_name,
-                (xpath('Value/@ID', value_node))[1]::text::int AS value
-            FROM enums
-            ORDER BY name, value
-        """, {"schema": self.fdw_schema}, mode="fetchall")
-
-        return params_with_enums, enum_values
-
-    def query_pg_parameters(self):
-        """ Query new parameters data from Postgres.
-        A single event (id/name) can be used by multiple parameters (id/name).
-        event_property_type_id (param_id) is unique per instrument
-        ept.event_type_id+ept.identifying_name must be unique
-        """
-        return self.dbm.run_query("""
-            SELECT
-                ept.event_property_type_id AS param_id,
-                ept.event_type_id AS event_id,
-                et.identifying_name AS event_name,
-                ept.identifying_name AS param_name,
-                ept.label AS display_name,
-                ept.display_units AS display_unit,
-                ept.storage_units AS storage_unit,
-                pt.identifying_name AS value_type,
-                ept.absolute_min AS abs_min,
-                ept.absolute_max AS abs_max,
-                ept.caution_min,
-                ept.caution_max,
-                ept.warning_min,
-                ept.warning_max,
-                ept.critical_min,
-                ept.critical_max
-            FROM {schema}.event_property_type ept
-            JOIN {schema}.parameter_type pt ON pt.parameter_type_id = ept.parameter_type_id
-            JOIN {schema}.event_type et ON et.event_type_id = ept.event_type_id
-            WHERE ept.is_active = true
-            ORDER BY ept.event_property_type_id
-        """, {"schema": self.fdw_schema}, mode="fetchall")
+    def create_tables(self) -> None:
+        raise NotImplementedError

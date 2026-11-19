@@ -116,13 +116,13 @@ We have two databases: *tem* and *sem*, both have the same structure at the mome
     * ms_IID_error_definitions
     * ms_IID_error_notifications
 
-* fdw_pg_IID - foreign server schema for PostgreSQL with HM data (for each instrument ID)
+  For PostgreSQL with HM data (for each instrument ID):
 
-    * event_property
-    * event_property_type
-    * event_type
-    * parameter_type
-    * instrument_event_config
+    * pg_IID_event_property
+    * pg_IID_event_property_type
+    * pg_IID_event_type
+    * pg_IID_parameter_type
+    * pg_IID_instrument_event_config
 
 * pganalyze - schema to store database statistics
 

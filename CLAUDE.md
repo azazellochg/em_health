@@ -83,7 +83,11 @@ ruff check && mypy                                       # lint and type check (
 - Foreign tables live in the `fdw` schema (owned by `emhealth`, no grants to `grafana`/`pganalyze`),
   named `<server>_<table>`, e.g. `fdw.ms_5_error_notifications`. tds_fdw maps one foreign server to one
   microscope, so each instrument has its own tables. With the `query` option tds_fdw matches columns by
-  exact name: alias them in lower case.
+  exact name: alias them in lower case. `fdw_manager.ForeignServer` is the base class; `fdw_mssql.MssqlFdw`
+  (tds_fdw, UEC from the SQL Server `qry` views, TEMs only) and `fdw_pg.PgFdw` (postgres_fdw, HM events from
+  the microscope Postgres `core` schema) create their server and tables. Declare foreign table columns
+  explicitly (no IMPORT FOREIGN SCHEMA: names would collide, and remote types like citext don't exist here).
+  Pass import watermarks as values, not subqueries on local tables, so the filter runs on the microscope.
 
 ## Grafana dashboard SQL
 - Dashboards are v2 JSON in `docker/grafana/provisioning/dashboards/{TEM,SEM}`; queries are `rawSql` strings.
