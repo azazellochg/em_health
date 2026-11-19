@@ -19,7 +19,8 @@ BEGIN
     CREATE TEMP TABLE new_error_types ON COMMIT DROP AS
     SELECT *
     FROM %I.error_definitions edf
-    WHERE edf.ErrorDefinitionID > COALESCE((SELECT MAX(error_definition_id) FROM uec.error_definitions), 0)
+    -- -1 on the first run: the UEC catalogue starts at ErrorDefinitionID 0
+    WHERE edf.ErrorDefinitionID > COALESCE((SELECT MAX(error_definition_id) FROM uec.error_definitions), -1)
   $q$, v_schema);
 
   -- Subsystems
@@ -73,7 +74,8 @@ BEGIN
       en.MessageText
     FROM %I.error_notifications en
     JOIN uec.error_definitions ed ON ed.error_definition_id = en.ErrorDefinitionID
-    WHERE en.ErrorDtm > (SELECT MAX(time) FROM uec.errors WHERE instrument_id = $1)
+    -- '-infinity' on the first run, when the instrument has no errors yet (MAX is NULL)
+    WHERE en.ErrorDtm > COALESCE((SELECT MAX(time) FROM uec.errors WHERE instrument_id = $1), '-infinity')
     ON CONFLICT (time, instrument_id, error_id) DO NOTHING
   $q$, v_schema) USING v_instrument_id;
 END;
