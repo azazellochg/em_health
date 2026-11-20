@@ -28,8 +28,6 @@ import os
 import sys
 from pathlib import Path
 
-from em_health.utils.tools import logger
-
 
 def main(script_fn: str,
          service_name: str,
@@ -81,8 +79,5 @@ WantedBy=default.target
     with open(service_file, "w") as f:
         f.write(content)
 
-    logger.info("Created file: %s\n"
-                "Run:\n\tsystemctl --user daemon-reload\n"
-                "\tsystemctl --user enable --now %s",
-                os.path.abspath(service_file),
-                f"{service_name}.service")
+    print(f"Created file: {os.path.abspath(service_file)}\n"
+          f"Run:\n\tsystemctl --user daemon-reload\n\tsystemctl --user enable --now {service_name}.service")
