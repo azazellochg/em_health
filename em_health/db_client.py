@@ -83,7 +83,7 @@ class BaseDBClient(ABC):
         try:
             if exc_type:
                 self.conn.rollback()
-                logger.warning("Transaction rolled back due to: %s", exc_value)
+                logger.error("Transaction rolled back due to: %s", exc_value)
             else:
                 self.conn.commit()
         finally:
@@ -190,7 +190,11 @@ class PgClient(BaseDBClient):
             format_args.update({k: sql.Literal(v) for k, v in strings.items()})
 
         sql_query = sql.SQL(query).format(**format_args)
-        logger.debug("Executing query:\n%s", sql_query.as_string(self.conn))
+
+        # don't render strings (e.g. FDW passwords) into the log
+        masked_args = {**format_args, **{k: sql.SQL("'***'") for k in strings or {}}}
+        log_query = sql.SQL(query).format(**masked_args).as_string(self.conn)
+        logger.debug("Executing query: %s\n\tvalues: %r", log_query, values)
 
         self.cur.execute(sql_query, values)
 

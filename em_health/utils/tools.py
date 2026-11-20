@@ -85,6 +85,15 @@ logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
 
 
+def setup_service_logging():
+    """ For systemd services: log only to stderr (journal), without timestamps. """
+    for handler in logger.handlers:
+        handler.close()
+    handler = logging.StreamHandler()
+    handler.setFormatter(PrefixFormatter(fmt="[%(levelname)s] %(message)s"))
+    logger.handlers = [handler]
+
+
 def profile(fn):
     """ Decorator for profiling functions.
     See https://hakibenita.com/fast-load-data-python-postgresql

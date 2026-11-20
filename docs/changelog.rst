@@ -4,6 +4,7 @@ Changelog
 Version 0.1a12
 ^^^^^^^^^^^^^^
 
+* improve logging for systemd services: send msg to journal instead of emhealth.log
 * DB performance: index cache hit ratio per interval instead of since the stats reset, WAL size panel shows the pg_wal directory sizem, SEM copies of the per-database alerts, database picker on Health checks, SEM table list on Schema statistics, WAL rates averaged per bucket, STANDBY instead of REPLICA
 * postgres_fdw import (not used yet) fixed for the fdw schema: foreign tables fdw.pg_<id>_<table> with explicit columns instead of IMPORT FOREIGN SCHEMA, application_name is a server option, new events are filtered on the microscope instead of fetching the whole event_property table, and inactive parameters are imported too (their values are still in event_property). FDW code split into fdw_manager.py (base), fdw_mssql.py (UEC) and fdw_pg.py (HM events)
 * migration 014: UEC foreign tables of all instruments live in one fdw schema (fdw.ms_<id>_error_notifications etc.) instead of a schema per instrument, which emhealth had no privilege to create. Rerun 'emhealth dev -d tem import-uec' after migrating

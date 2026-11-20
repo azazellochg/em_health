@@ -34,7 +34,7 @@ from watchdog.observers.polling import PollingObserver
 from watchdog.events import PatternMatchingEventHandler
 
 from em_health.utils.import_xml import main as import_main
-from em_health.utils.tools import logger
+from em_health.utils.tools import logger, setup_service_logging
 
 
 class FileWatcher:
@@ -67,6 +67,7 @@ class FileWatcher:
         self.in_progress: set[str] = set()
         self.lock = threading.Lock()
         self.stop_event = threading.Event()
+        logger.info("Running emhealth-importer with %d s interval", self.interval)
 
     def start(self):
         """Run the observer until shutdown is requested or it fails."""
@@ -206,6 +207,7 @@ class FileWatcher:
 
 
 def main():
+    setup_service_logging()
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
