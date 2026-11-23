@@ -28,8 +28,6 @@ import os
 import sys
 import json
 
-from em_health.utils.tools import logger
-
 HM_EXE = r"C:\Program Files (x86)\Thermo Scientific Health Monitor\HealthMonitorCmd.exe"
 
 
@@ -52,7 +50,7 @@ class CreateTaskCmd:
             instrument = m["instrument"]
             server = m["server"]
             if server is None:
-                logger.warning("Server IP not found for: %s, skipping..", instrument)
+                print(f"Server IP not found for: {instrument}, skipping..")
                 continue
             xml_file = str(m["serial"]) + "_data.xml"
             export_cmds.append(f'call :RunExport {xml_file} {server} "{instrument}"')
@@ -109,30 +107,28 @@ rem --end "2025-05-23 13:01:00 +01:00" (will be ignored when -r is used)
 rem --remove to overwrite old export files
 """
 
-        with open(task_file, "w", encoding="utf-8") as f:
+        with open(task_file, "w", encoding="utf-8", newline="\r\n") as f:
             f.write(cmd)
 
-        logger.info("Created file: %s\n"
-                    "Create a task in the Task Scheduler on a Windows system with Health Monitor "
-                    "to run the above script periodically. See documentation for details.",
-                    os.path.abspath(task_file))
+        print(f"Created file: {os.path.abspath(task_file)}\n"
+              "Create a task in the Task Scheduler on a Windows system with Health Monitor "
+              "to run the above script periodically. See documentation for details.")
 
 
 def main(exe, json_fn):
     # Validate JSON file
     if not (os.path.exists(json_fn) and json_fn.endswith(".json")):
-        logger.error("Settings file '%s' not found or is not a .json file.", json_fn)
+        print(f"Settings file '{json_fn}' not found or is not a .json file.")
         sys.exit(1)
 
     try:
         with open(json_fn, encoding="utf-8") as f:
             json_info = json.load(f)
             if not json_info:
-                logger.error("Settings file '%s' is empty or invalid", json_fn)
+                print(f"Settings file '{json_fn}' is empty or invalid")
                 sys.exit(1)
-            logger.debug("Loaded json_info: %s", json_info)
     except json.JSONDecodeError as e:
-        logger.error("Failed to parse JSON file '%s': %s", json_fn, e)
+        print(f"Failed to parse JSON file '{json_fn}': {str(e)}")
         sys.exit(1)
 
     # Create a task

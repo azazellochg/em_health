@@ -16,6 +16,7 @@ datasources:
       database: tem
       sslmode: disable
       postgresVersion: 1500
+      maxOpenConns: 20
       timescaledb: true
 
   - name: sem
@@ -30,6 +31,7 @@ datasources:
       database: sem
       sslmode: disable
       postgresVersion: 1500
+      maxOpenConns: 20
       timescaledb: true
 
   - name: json

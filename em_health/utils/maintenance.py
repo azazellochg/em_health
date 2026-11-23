@@ -263,6 +263,8 @@ def migrate(dbname: str):
 
             if current_ver < latest_ver:
                 db.run_query("REVOKE CONNECT ON DATABASE {dbname} FROM PUBLIC", {"dbname": dbname})
+                # Stop the job scheduler so no job runs during the migration
+                db.run_query("SELECT _timescaledb_functions.stop_background_workers()")
                 db.run_query("""
                     SELECT pg_terminate_backend(pid)
                     FROM pg_stat_activity
@@ -282,6 +284,7 @@ def migrate(dbname: str):
 
     finally:
         with DBM(dbname, username="postgres", password="POSTGRES_PASSWORD") as db:
+            db.run_query("SELECT _timescaledb_functions.start_background_workers()")
             db.run_query("GRANT CONNECT ON DATABASE {dbname} TO PUBLIC", {"dbname": dbname})
 
 

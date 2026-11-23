@@ -210,7 +210,7 @@ def main():
     args = parser.parse_args()
 
     if args.command in COMMAND_DISPATCH:
-        if args.command not in ["db", "dev", "update", "create-watcher"]:
+        if args.command not in ["db", "dev", "update", "create-watcher", "create-task"]:
             from em_health.utils.maintenance import check_db_schema
             check_db_schema()
 

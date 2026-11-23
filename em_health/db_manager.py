@@ -25,6 +25,7 @@
 # **************************************************************************
 
 import os
+import sys
 import time
 from datetime import datetime
 import json
@@ -34,7 +35,7 @@ from typing import Any
 from psycopg.types.json import Jsonb
 
 from em_health.db_client import PgClient
-from em_health.utils.tools import logger, profile
+from em_health.utils.tools import logger
 
 
 
@@ -75,8 +76,6 @@ class DatabaseManager(PgClient):
             "SELECT * FROM events.import_instrument(%s, %s, %s)",
             values=(Jsonb(instr_dict), config_hash, Jsonb(config_dict)),
             mode="fetchone")[0]
-
-        logger.info("Instrument imported", extra={"prefix": self.instrument_name})
 
         return instrument_id
 
@@ -242,24 +241,24 @@ class DatabaseManager(PgClient):
 
     def import_uec(self):
         if any(os.getenv(var) in ["None", "", None] for var in ["MSSQL_USER", "MSSQL_PASSWORD"]):
-            logger.warning("MSSQL_USER and MSSQL_PASSWORD are not set.")
-            exit(0)
+            logger.error("MSSQL_USER and MSSQL_PASSWORD are not set.")
+            sys.exit()
 
         servers = self.run_query("SELECT id, server FROM events.instruments WHERE server IS NOT NULL",
                                  mode="fetchall")
         if not servers:
-            logger.warning("No servers found in the events.instruments table")
-            exit(0)
+            logger.error("No servers found in the events.instruments table")
+            sys.exit()
 
-        from em_health.fdw_manager import FDWManager
+        from em_health.fdw_mssql import MssqlFdw
 
         for instr_id, server in servers:
-            fdw = FDWManager(self, "tds_fdw", str(server), instr_id)
-            self.schedule_uec_import(instr_id, fdw.fdw_schema)
+            MssqlFdw(self, str(server), instr_id)
+            self.schedule_uec_import(instr_id)
 
-    def schedule_uec_import(self, instr_id: int, fdw_schema: str, interval: str = "1 hour") -> None:
+    def schedule_uec_import(self, instr_id: int, interval: str = "1 hour") -> None:
         """ Schedule the static uec.import_errors procedure for one instrument.
-        Instrument id and FDW schema go into the job config, so no SQL is generated.
+        Only the instrument id goes into the job config, so no SQL is generated.
         An existing job for the same instrument is replaced, so re-running import-uec
         does not create duplicate jobs.
         """
@@ -272,7 +271,7 @@ class DatabaseManager(PgClient):
         """, values=(instr_id,), mode=None)
 
         self.run_query("SELECT add_job('uec.import_errors', %s::interval, config => %s)",
-                       values=(interval, Jsonb({"instrument_id": instr_id, "fdw_schema": fdw_schema})))
+                       values=(interval, Jsonb({"instrument_id": instr_id})))
 
         logger.info("Scheduled UEC import job for instrument %s", instr_id)
 
@@ -297,14 +296,15 @@ def main(dbname, action, days=None):
                 "events.em_off": False, # depends on em_off_daily
                 "events.epu_sessions": False,
                 "events.tomo_sessions": False,
-                "events.load_counters_daily": True,
-                "events.data_counters_daily": True,
-                "events.image_counters_daily": True,
+                "events.load_counter_values_daily": True, # also creates the view load_counters_daily
+                "events.data_counter_values_daily": True, # also creates the view data_counters_daily
+                "events.image_counter_values_daily": True, # also creates the view image_counters_daily
                 "events.epu_state_daily": True,
                 "events.tomo_state_daily": True,
                 "events.tem_cryocycle_daily": True,
                 "events.tem_pressure_hourly": True,
                 "events.tem_pressure_daily": True, # depends on tem_pressure_hourly
+                "events.tem_pressure_monthly": True, # depends on tem_pressure_daily
                 #"events.tem_feg_counter_daily": True,
 
                 # Depends on em_off
@@ -324,18 +324,20 @@ def main(dbname, action, days=None):
             "sem": {
                 "events.em_off_daily": True,
                 "events.em_off": False, # depends on em_off_daily
-                "events.load_counters_daily": True,
-                "events.fib_baa_counters_daily": True,
-                "events.fib_bda_counters_daily": True,
-                "events.gis_counters_daily": True,
+                "events.load_counter_values_daily": True, # also creates the view load_counters_daily
+                "events.fib_baa_counter_values_daily": True, # also creates the view fib_baa_counters_daily
+                "events.fib_bda_counter_values_daily": True, # also creates the view fib_bda_counters_daily
+                "events.gis_counter_values_daily": True, # also creates the view gis_counters_daily
                 "events.fib_beam_daily": True,
                 "events.sem_beam_daily": True,
                 "events.flm_beam_daily": True,
                 "events.sem_cryocycle_al_daily": True,
                 "events.sem_cryocycle_noal_daily": True,
+                "events.sem_cryocycles": False, # depends on sem_cryocycle_al_daily and sem_cryocycle_noal_daily
                 "events.sem_chamber_state_daily": True,
                 "events.sem_pressure_hourly": True,
                 "events.sem_pressure_daily": True, # depends on sem_pressure_hourly
+                "events.sem_pressure_monthly": True, # depends on sem_pressure_daily
                 #"events.sem_source_counter_daily": True,
                 #"events.fibsem_apertures_daily": True,
 
@@ -345,6 +347,8 @@ def main(dbname, action, days=None):
         }
 
         with DatabaseManager(dbname) as db:
+            # Full rebuild reads all raw data: give sorts/hashes in this session more memory
+            db.run_query("SET work_mem = '256MB'")
             for view, is_cagg in mviews[dbname].items():
                 schema, name = view.split(".")
                 if is_cagg:
@@ -355,6 +359,9 @@ def main(dbname, action, days=None):
                         db.schedule_cagg_refresh(view, start_offset="6 hours", end_offset="1 hour", interval="1 hour")
                     elif name.endswith("daily"):
                         db.schedule_cagg_refresh(view, start_offset="4 days",  end_offset="1 day", interval="12 hours")
+                    elif name.endswith("monthly"):
+                        # a month bucket is refreshed only once it is complete: cover the last 2 full months
+                        db.schedule_cagg_refresh(view, start_offset="3 months", end_offset="1 day", interval="1 day")
                     db.enable_rt_cagg(view)
                 else:
                     db.drop_mview(view)
@@ -378,5 +385,9 @@ def main(dbname, action, days=None):
             db.prune_data(days)
 
     elif action == "import-uec":
-        with DatabaseManager(dbname) as db:
-            db.import_uec()
+        if dbname == "sem":
+            logger.error("SEM instruments do not have UEC")
+            return
+        else:
+            with DatabaseManager("tem") as db:
+                db.import_uec()

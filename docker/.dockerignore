@@ -1,0 +1,5 @@
+.dockerignore
+build
+.env
+.env_old
+Dockerfile

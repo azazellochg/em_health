@@ -1,84 +1,88 @@
-/* Create a materialized view of SEM states: e-beam unblank, i-beam unblank, cryocycle, xT off
-   First, for the AL systems we need to merge overlapping cryocycles of the AL and column. Then union results with non-AL systems
+/* Create a materialized view of SEM states per day: e-beam unblank, i-beam unblank, FLM running,
+   chamber not pumped, cryocycle, xT off.
+   Depends on sem_cryocycles and em_off (periods merged across midnight) and the state caggs.
+   Cryo cycles of the autoloader and the column overlap: they are merged per instrument.
+   States are logged only when they change: the state at the start of a day comes from the previous
+   day with data. A day without any point of a state cagg has no row for that state.
    Note: if a system is warm / cryocycling and any beam is used, the total usage may be > 100%
  */
 CREATE MATERIALIZED VIEW IF NOT EXISTS events.sem_beamtime_daily AS
   WITH
-    cryocycles_al_intervals AS (
-      SELECT instrument_id, day, start_time, end_time
-      FROM events.sem_cryocycle_al_daily, state_periods(agg, 1) -- boolean = 1 where value = CryoCycle
-    ),
-
-    -- attach previous end_time to each interval. This lets you detect whether intervals overlap or are disjoint.
-    cryocycles_al_ordered AS (
-      SELECT
-        instrument_id,
-        day,
-        start_time,
-        end_time,
-          LAG(end_time) OVER ( PARTITION BY instrument_id, day ORDER BY start_time, end_time ) AS prev_end
-      FROM
-        cryocycles_al_intervals
-    ),
-
-    cryocycles_al_grouped AS (
-      SELECT
-        instrument_id,
-        day,
-        start_time,
-        end_time,
-          SUM(CASE WHEN prev_end IS NULL OR start_time > prev_end -- assign group 1 for each overlapping interval
-                     THEN 1
-                   ELSE 0 END) OVER ( PARTITION BY instrument_id, day ORDER BY start_time, end_time ) AS grp
-      FROM
-        cryocycles_al_ordered
-    ),
-
-    -- collapse each group into single interval
-    cryocycles_al_merged AS (
-      SELECT
-        instrument_id,
-        day,
-        MIN(start_time) AS start_time,
-        MAX(end_time) AS end_time
-      FROM
-        cryocycles_al_grouped
-      GROUP BY
-        instrument_id,
-        day,
-        grp
-    ),
-
-    cryocycles AS (
-      SELECT
-        instrument_id,
-        day,
-        'cryocycle' AS state,
-        SUM(end_time - start_time) AS total_duration
-      FROM
-        cryocycles_al_merged
-      GROUP BY
-        instrument_id,
-        day,
-        state
+    periods AS (
+      SELECT instrument_id, 'cryocycle' AS state, start_time, end_time
+      FROM events.sem_cryocycles
 
       UNION ALL
 
-      SELECT
-        instrument_id,
-        day,
-        'cryocycle' AS state,
-        duration_in(agg, 1) AS total_duration -- boolean = 1 where value > 0
-      FROM
-        events.sem_cryocycle_noal_daily
+      SELECT instrument_id, 'off' AS state, start_time, end_time
+      FROM events.em_off
     ),
 
+    -- end of the previous periods, to detect overlapping periods
+    periods_ordered AS (
+      SELECT
+        *,
+        MAX(end_time) OVER (
+          PARTITION BY instrument_id, state
+          ORDER BY start_time, end_time
+          ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+        ) AS prev_end
+      FROM
+        periods
+    ),
+
+    periods_grouped AS (
+      SELECT
+        *,
+        COUNT(*) FILTER (WHERE prev_end IS NULL OR start_time > prev_end)
+          OVER (PARTITION BY instrument_id, state ORDER BY start_time, end_time) AS grp
+      FROM
+        periods_ordered
+    ),
+
+    -- collapse overlapping periods into one
+    periods_merged AS (
+      SELECT
+        instrument_id,
+        state,
+        MIN(start_time) AS start_time,
+        MAX(end_time) AS end_time
+      FROM
+        periods_grouped
+      GROUP BY
+        instrument_id,
+        state,
+        grp
+    ),
+
+    -- split periods into days
+    period_days AS (
+      SELECT
+        p.instrument_id,
+        d.day,
+        p.state,
+        SUM(LEAST(p.end_time, d.day + INTERVAL '1 day') - GREATEST(p.start_time, d.day)) AS total_duration
+      FROM
+        periods_merged p
+        CROSS JOIN LATERAL generate_series(time_bucket('1 day', p.start_time), p.end_time, INTERVAL '1 day') AS d(day)
+      WHERE
+        d.day < p.end_time
+      GROUP BY
+        p.instrument_id,
+        d.day,
+        p.state
+    ),
+
+    -- the last day ends now
     ebeam AS (
       SELECT
         instrument_id,
         day,
         'ebeam' AS state,
-        toolkit_experimental.duration_in(agg, 0) AS total_duration -- state where value = 0 (unblanked)
+        toolkit_experimental.interpolated_duration_in(
+          agg, 0, day, LEAST(INTERVAL '1 day', now() - day),
+          LAG(agg) OVER (PARTITION BY instrument_id ORDER BY day)
+        ) AS total_duration -- state where value = 0 (unblanked)
       FROM
         events.sem_beam_daily
     ),
@@ -88,7 +92,10 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS events.sem_beamtime_daily AS
         instrument_id,
         day,
         'ibeam' AS state,
-        toolkit_experimental.duration_in(agg, 0) AS total_duration -- state where value = 0 (unblanked)
+        toolkit_experimental.interpolated_duration_in(
+          agg, 0, day, LEAST(INTERVAL '1 day', now() - day),
+          LAG(agg) OVER (PARTITION BY instrument_id ORDER BY day)
+        ) AS total_duration -- state where value = 0 (unblanked)
       FROM
         events.fib_beam_daily
     ),
@@ -98,7 +105,10 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS events.sem_beamtime_daily AS
         instrument_id,
         day,
         'flm' AS state,
-        toolkit_experimental.duration_in(agg, 1) AS total_duration -- boolean = 1 where value = Running
+        toolkit_experimental.interpolated_duration_in(
+          agg, 1, day, LEAST(INTERVAL '1 day', now() - day),
+          LAG(agg) OVER (PARTITION BY instrument_id ORDER BY day)
+        ) AS total_duration -- boolean = 1 where value = Running
       FROM
         events.flm_beam_daily
     ),
@@ -108,45 +118,24 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS events.sem_beamtime_daily AS
         instrument_id,
         day,
         'chamber' AS state,
-        toolkit_experimental.duration_in(agg, 1) AS total_duration -- boolean = 1 where value != Pumped
+        toolkit_experimental.interpolated_duration_in(
+          agg, 1, day, LEAST(INTERVAL '1 day', now() - day),
+          LAG(agg) OVER (PARTITION BY instrument_id ORDER BY day)
+        ) AS total_duration -- boolean = 1 where value != Pumped
       FROM
         events.sem_chamber_state_daily
     ),
 
-    sem_off AS (
-      SELECT
-        instrument_id,
-        day,
-        'off' AS state,
-        duration_in(agg, 1) AS total_duration -- boolean = 1 where value = 0 (off)
-      FROM
-        events.em_off_daily
-    ),
-
     all_states AS (
-      SELECT *
-      FROM
-        cryocycles
+      SELECT * FROM period_days
       UNION ALL
-      SELECT *
-      FROM
-        sem_off
+      SELECT * FROM ebeam
       UNION ALL
-      SELECT *
-      FROM
-        ibeam
+      SELECT * FROM ibeam
       UNION ALL
-      SELECT *
-      FROM
-        ebeam
+      SELECT * FROM flm
       UNION ALL
-      SELECT *
-      FROM
-        flm
-      UNION ALL
-      SELECT *
-      FROM
-        chamber
+      SELECT * FROM chamber
     )
 
   SELECT

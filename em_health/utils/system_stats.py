@@ -35,7 +35,7 @@ from pathlib import Path
 from psycopg.types.json import Jsonb
 
 from em_health.db_analyze import DatabaseAnalyzer
-from em_health.utils.tools import logger
+from em_health.utils.tools import logger, setup_service_logging
 
 
 MANAGER = os.getenv("MANAGER_TYPE", "podman")
@@ -73,20 +73,20 @@ def read_loadavg(metrics):
         logger.error("Unexpected content in /proc/loadavg")
         return
 
-    metrics.append({
-        "metric": "node_load1",
-        "value": float(parts[0])
-    })
-
-    metrics.append({
-        "metric": "node_load5",
-        "value": float(parts[1])
-    })
-
-    metrics.append({
-        "metric": "node_load15",
-        "value": float(parts[2])
-    })
+    metrics.extend([
+        {
+            "metric": "node_load1",
+            "value": float(parts[0])
+        },
+        {
+            "metric": "node_load5",
+            "value": float(parts[1])
+        },
+        {
+            "metric": "node_load15",
+            "value": float(parts[2])
+        }
+    ])
 
 
 def read_cpu_seconds(metrics):
@@ -169,21 +169,22 @@ def read_filesystem_usage(metrics):
             size_bytes = stat.f_blocks * stat.f_frsize
             avail_bytes = stat.f_bavail * stat.f_frsize
 
-            metrics.append({
-                "metric": "node_filesystem_size_bytes",
-                "device": device,
-                "mountpoint": mountpoint,
-                "fstype": fstype,
-                "value": size_bytes
-            })
-
-            metrics.append({
-                "metric": "node_filesystem_avail_bytes",
-                "device": device,
-                "mountpoint": mountpoint,
-                "fstype": fstype,
-                "value": avail_bytes
-            })
+            metrics.extend([
+                {
+                    "metric": "node_filesystem_size_bytes",
+                    "device": device,
+                    "mountpoint": mountpoint,
+                    "fstype": fstype,
+                    "value": size_bytes
+                },
+                {
+                    "metric": "node_filesystem_avail_bytes",
+                    "device": device,
+                    "mountpoint": mountpoint,
+                    "fstype": fstype,
+                    "value": avail_bytes
+                }
+            ])
 
 
 def read_disk_io(metrics):
@@ -205,47 +206,43 @@ def read_disk_io(metrics):
             if (sys_block / "partition").exists():
                 continue
 
-            metrics.append({
-                "metric": "node_disk_reads_completed_total",
-                "device": device,
-                "value": int(parts[3])
-            })
-
-            metrics.append({
-                "metric": "node_disk_read_bytes_total",
-                "device": device,
-                "value": int(parts[5]) * 512
-            })
-
-            metrics.append({
-                "metric": "node_disk_writes_completed_total",
-                "device": device,
-                "value": int(parts[7])
-            })
-
-            metrics.append({
-                "metric": "node_disk_written_bytes_total",
-                "device": device,
-                "value": int(parts[9]) * 512
-            })
-
-            metrics.append({
-                "metric": "node_disk_read_time_seconds_total",
-                "device": device,
-                "value": int(parts[6]) / 1000.0
-            })
-
-            metrics.append({
-                "metric": "node_disk_write_time_seconds_total",
-                "device": device,
-                "value": int(parts[10]) / 1000.0
-            })
-
-            metrics.append({
-                "metric": "node_disk_io_time_seconds_total",
-                "device": device,
-                "value": int(parts[12]) / 1000.0
-            })
+            metrics.extend([
+                {
+                    "metric": "node_disk_reads_completed_total",
+                    "device": device,
+                    "value": int(parts[3])
+                },
+                {
+                    "metric": "node_disk_read_bytes_total",
+                    "device": device,
+                    "value": int(parts[5]) * 512
+                },
+                {
+                    "metric": "node_disk_writes_completed_total",
+                    "device": device,
+                    "value": int(parts[7])
+                },
+                {
+                    "metric": "node_disk_written_bytes_total",
+                    "device": device,
+                    "value": int(parts[9]) * 512
+                },
+                {
+                    "metric": "node_disk_read_time_seconds_total",
+                    "device": device,
+                    "value": int(parts[6]) / 1000.0
+                },
+                {
+                    "metric": "node_disk_write_time_seconds_total",
+                    "device": device,
+                    "value": int(parts[10]) / 1000.0
+                },
+                {
+                    "metric": "node_disk_io_time_seconds_total",
+                    "device": device,
+                    "value": int(parts[12]) / 1000.0
+                }
+            ])
 
 
 def read_container_cpu_usage(cgroup_paths, metrics):
@@ -307,17 +304,18 @@ def read_container_fs_io(cgroup_paths, metrics):
         except OSError:
             continue
 
-        metrics.append({
-            "metric": "container_fs_reads_bytes_total",
-            "container": container,
-            "value": read_bytes
-        })
-
-        metrics.append({
-            "metric": "container_fs_writes_bytes_total",
-            "container": container,
-            "value": write_bytes
-        })
+        metrics.extend([
+            {
+                "metric": "container_fs_reads_bytes_total",
+                "container": container,
+                "value": read_bytes
+            },
+            {
+                "metric": "container_fs_writes_bytes_total",
+                "container": container,
+                "value": write_bytes
+            }
+        ])
 
 
 def read_pgdata_usage(metrics):
@@ -385,10 +383,12 @@ def get_podman_cgroup_path(container):
 
 def get_pgdata_bytes():
     """ Run du -s on the db container. """
+    # don't log podman exec events to the journal
+    manager_cmd = [MANAGER, "--events-backend=none"] if MANAGER == "podman" else [MANAGER]
     try:
         result = subprocess.run(
             [
-                MANAGER,
+                *manager_cmd,
                 "exec",
                 "emhealth-db",
                 "sh",
@@ -417,9 +417,9 @@ def get_os_name():
     """ Parse Linux OS name. """
     with open("/etc/os-release") as f:
         for line in f:
-            line = line.strip()
-            if line.startswith("PRETTY_NAME"):
-                return line.split("=")[-1].strip('"')
+            stripped = line.strip()
+            if stripped.startswith("PRETTY_NAME"):
+                return stripped.split("=")[-1].strip('"')
     return None
 
 
@@ -431,7 +431,7 @@ def acquire_lock():
         fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB,)
     except BlockingIOError:
         lock_file.close()
-        raise RuntimeError("Another system collector is already running")
+        raise RuntimeError("Another system collector is already running") from None
 
     return lock_file
 
@@ -565,6 +565,7 @@ def run_collector(collector: SystemCollector,
 
 
 def main():
+    setup_service_logging()
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", dest="fast", type=int, default=15,
                         help="Fast time interval in seconds (default: 15)")
@@ -591,6 +592,7 @@ def main():
     }
 
     collector = SystemCollector()
+    logger.info("Running emhealth-collector with %d s and %d s intervals", fast_int, slow_int)
     with DatabaseAnalyzer("tem", username="pganalyze", password="POSTGRES_PGANALYZE_PASSWORD") as db:
         db.run_query("SELECT pganalyze.import_sysinfo(%s)",
                      values=(Jsonb(static_metrics),))

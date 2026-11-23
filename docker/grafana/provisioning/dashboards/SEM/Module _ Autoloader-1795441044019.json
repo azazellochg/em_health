@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "4395e67b-0280-47fd-94a8-644503f10800",
-    "generation": 1,
-    "creationTimestamp": "2026-07-09T09:04:12Z",
+    "generation": 3,
+    "creationTimestamp": "2026-11-17T16:11:50Z",
     "labels": {},
     "annotations": {}
   },
@@ -70,6 +70,10 @@
                 ],
                 "limit": 50
               }
+            },
+            "labels": {
+              "grafana.app/export-label": "grafana-postgresql-datasource-1",
+              "grafana.app/export-datasource-name": "${sourceSEM}"
             }
           },
           "enable": true,
@@ -114,7 +118,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH params AS (\n  SELECT * FROM (VALUES\n    ('Autoloader', 'X', 'X.MaxControllerOut'),\n    ('Autoloader', 'X', 'X.SettlingDuration'),\n    ('Autoloader', 'X', 'X.MaxPositionError'),\n    ('Autoloader', 'X', 'X.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.MaxControllerOut', 'Max Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Motion Error'),\n    ('X.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.subsystem = t.subsystem\n   AND p.component = t.component\n   AND p.param_name = t.param_name\n  WHERE p.instrument_id = $instrument\n),\n\nraw_values AS (\n  SELECT\n    d.time,\n    p.param_name,\n    d.value_num\n  FROM data d\n  JOIN matching_params p ON d.param_id = p.param_id\n  WHERE d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE\n    WHEN av.param_name ~* 'Position' THEN\n      CASE\n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE\n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;\n",
+                        "rawSql": "WITH params AS (\n  SELECT * FROM (VALUES\n    ('Autoloader', 'X', 'X.MaxControllerOut'),\n    ('Autoloader', 'X', 'X.SettlingDuration'),\n    ('Autoloader', 'X', 'X.MaxPositionError'),\n    ('Autoloader', 'X', 'X.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('X.MaxControllerOut', 'Max Controller Output'),\n    ('X.SettlingDuration', 'Settling Duration'),\n    ('X.MaxPositionError', 'Motion Error'),\n    ('X.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.subsystem = t.subsystem\n   AND p.component = t.component\n   AND p.param_name = t.param_name\n  WHERE p.instrument_id = $instrument\n),\n\nraw_values AS (\n  SELECT\n    d.time,\n    p.param_name,\n    d.value_num\n  FROM\n    matching_params p\n    CROSS JOIN LATERAL (\n      SELECT\n        d.*\n      FROM\n        data d\n      WHERE\n        d.param_id = p.param_id\n        AND d.instrument_id = $instrument\n        AND $__timeFilter(d.time)\n      OFFSET 0\n    ) d\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE\n    WHEN av.param_name ~* 'Position' THEN\n      CASE\n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE\n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;\n",
                         "sql": {
                           "columns": [
                             {
@@ -132,6 +136,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -380,7 +388,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH params AS (\n  SELECT * FROM (VALUES\n    ('Autoloader', 'Z', 'Z.MaxControllerOut'),\n    ('Autoloader', 'Z', 'Z.SettlingDuration'),\n    ('Autoloader', 'Z', 'Z.MaxPositionError'),\n    ('Autoloader', 'Z', 'Z.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Z.MaxControllerOut', 'Max Controller Output'),\n    ('Z.SettlingDuration', 'Settling Duration'),\n    ('Z.MaxPositionError', 'Motion Error'),\n    ('Z.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.subsystem = t.subsystem\n   AND p.component = t.component\n   AND p.param_name = t.param_name\n  WHERE p.instrument_id = $instrument\n),\n\nraw_values AS (\n  SELECT\n    d.time,\n    p.param_name,\n    d.value_num\n  FROM data d\n  JOIN matching_params p ON d.param_id = p.param_id\n  WHERE d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE\n    WHEN av.param_name ~* 'Position' THEN\n      CASE\n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE\n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;\n",
+                        "rawSql": "WITH params AS (\n  SELECT * FROM (VALUES\n    ('Autoloader', 'Z', 'Z.MaxControllerOut'),\n    ('Autoloader', 'Z', 'Z.SettlingDuration'),\n    ('Autoloader', 'Z', 'Z.MaxPositionError'),\n    ('Autoloader', 'Z', 'Z.PositionError')\n  ) AS t(subsystem, component, param_name)\n),\n\nlabel_map AS (\n  SELECT * FROM (VALUES\n    ('Z.MaxControllerOut', 'Max Controller Output'),\n    ('Z.SettlingDuration', 'Settling Duration'),\n    ('Z.MaxPositionError', 'Motion Error'),\n    ('Z.PositionError', 'Position Error')\n  ) AS lm(param_name, label)\n),\n\nmatching_params AS (\n  SELECT p.param_id, p.param_name\n  FROM parameters p\n  JOIN params t\n    ON p.subsystem = t.subsystem\n   AND p.component = t.component\n   AND p.param_name = t.param_name\n  WHERE p.instrument_id = $instrument\n),\n\nraw_values AS (\n  SELECT\n    d.time,\n    p.param_name,\n    d.value_num\n  FROM\n    matching_params p\n    CROSS JOIN LATERAL (\n      SELECT\n        d.*\n      FROM\n        data d\n      WHERE\n        d.param_id = p.param_id\n        AND d.instrument_id = $instrument\n        AND $__timeFilter(d.time)\n      OFFSET 0\n    ) d\n),\n\nagg_values AS (\n  SELECT\n    param_name,\n    MIN(value_num) AS raw_min,\n    MAX(value_num) AS raw_max,\n    AVG(value_num) AS raw_avg,\n    STDDEV(value_num) AS raw_stdev\n  FROM raw_values\n  GROUP BY param_name\n)\n\nSELECT\n  COALESCE(lm.label, av.param_name) AS parameter,\n  CASE\n    WHEN av.param_name ~* 'Position' THEN\n      CASE\n        WHEN '$stat_type' = 'min'   THEN av.raw_min   * 1000\n        WHEN '$stat_type' = 'max'   THEN av.raw_max   * 1000\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg   * 1000\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev * 1000\n      END\n    ELSE\n      CASE\n        WHEN '$stat_type' = 'min'   THEN av.raw_min\n        WHEN '$stat_type' = 'max'   THEN av.raw_max\n        WHEN '$stat_type' = 'avg'   THEN av.raw_avg\n        WHEN '$stat_type' = 'stdev' THEN av.raw_stdev\n      END\n  END AS value\nFROM agg_values av\nLEFT JOIN label_map lm ON av.param_name = lm.param_name\nORDER BY parameter;\n",
                         "sql": {
                           "columns": [
                             {
@@ -398,6 +406,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -664,6 +676,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "PPal pressure",
@@ -784,7 +800,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "WITH matching_params AS (\n  SELECT param_id, display_name\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'KriosTemperatures'\n    AND param_name IN ('TSample', 'Tcldwr', 'Taldwr', 'Tdocker', 'Tcassette', 'Tcartridge')\n)\n\nSELECT\n  time_bucket(INTERVAL '$__interval', d.time) AS time,\n  p.display_name,\n  AVG(d.value_num) AS temperature\nFROM data d\nJOIN matching_params p\n  ON d.param_id = p.param_id\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\n  AND d.value_num != 0\nGROUP BY time, p.display_name\nORDER BY time;\n",
+                        "rawSql": "WITH matching_params AS (\n  SELECT param_id, display_name\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'KriosTemperatures'\n    AND param_name IN ('TSample', 'Tcldwr', 'Taldwr', 'Tdocker', 'Tcassette', 'Tcartridge')\n)\n\nSELECT\n  time_bucket(INTERVAL '$__interval', d.time) AS time,\n  p.display_name,\n  AVG(d.value_num) AS temperature\nFROM\n  matching_params p\n  CROSS JOIN LATERAL (\n    SELECT\n      d.*\n    FROM\n      data d\n    WHERE\n      d.param_id = p.param_id\n      AND d.instrument_id = $instrument\n      AND $__timeFilter(d.time)\n      AND d.value_num != 0\n    OFFSET 0\n  ) d\nGROUP BY 1, p.display_name\nORDER BY time;\n",
                         "sql": {
                           "columns": [
                             {
@@ -802,6 +818,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -924,7 +944,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "    SELECT\n        start_time,\n        end_time,\n        EXTRACT(EPOCH FROM(end_time - start_time)) AS total_duration\n    FROM sem_cryocycle_al_daily,\n        state_periods(agg, 1) -- boolean = 1 where value = CryoCycle\n    WHERE instrument_id = $instrument\n      AND param_name = 'Autoloader'\n      AND $__timeFilter(day)\n",
+                        "rawSql": "-- Cryo cycles that start and end inside the time range\nSELECT\n  start_time,\n  end_time,\n  EXTRACT(EPOCH FROM (end_time - start_time)) AS total_duration\nFROM sem_cryocycles\nWHERE instrument_id = $instrument\n  AND param_name = 'Autoloader'\n  AND start_time >= $__timeFrom()::timestamptz\n  AND end_time <= $__timeTo()::timestamptz\nORDER BY start_time\n",
                         "sql": {
                           "columns": [
                             {
@@ -942,6 +962,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -1023,7 +1047,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "WITH matching_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'TempCtrl'\n    AND param_name = 'Laldwr'\n),\n\nbucketed AS (\n  SELECT\n    time_bucket('30 seconds', d.time) AS bucket,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN matching_param p ON d.param_id = p.param_id\n  WHERE d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n  GROUP BY bucket\n),\n\nlagged AS (\n  SELECT\n    bucket,\n    avg_value,\n    LAG(avg_value, 1) OVER (ORDER BY bucket) AS val_1,\n    LAG(avg_value, 2) OVER (ORDER BY bucket) AS val_2,\n    LAG(avg_value, 3) OVER (ORDER BY bucket) AS val_3\n  FROM bucketed\n),\n\nlabeled AS (\n  SELECT *,\n    CASE\n      WHEN avg_value > 90 AND (val_1 < 90 OR val_1 IS NULL) THEN true\n      WHEN avg_value >= COALESCE(val_1, -1e9)\n       AND avg_value >= COALESCE(val_2, -1e9)\n       AND avg_value >= COALESCE(val_3, -1e9)\n       AND avg_value > 90 THEN true\n      ELSE false\n    END AS is_peak\n  FROM lagged\n),\n\nwith_peak_groups AS (\n  SELECT *,\n    CASE\n      WHEN is_peak AND NOT LAG(is_peak, 1, false) OVER (ORDER BY bucket) THEN 1\n      ELSE 0\n    END AS new_peak_start\n  FROM labeled\n),\n\npeak_groups AS (\n  SELECT *,\n    SUM(new_peak_start) OVER (ORDER BY bucket) AS peak_group_id\n  FROM with_peak_groups\n),\n\nranked_peaks AS (\n  SELECT\n    bucket AS time,\n    avg_value,\n    peak_group_id,\n    RANK() OVER (PARTITION BY peak_group_id ORDER BY avg_value DESC) AS val_rank\n  FROM peak_groups\n  WHERE is_peak\n),\n\ncollapsed_peaks AS (\n  SELECT\n    time,\n    avg_value AS value,\n    'Refill' AS type\n  FROM ranked_peaks\n  WHERE val_rank = 1\n),\n\nraw_values AS (\n  SELECT\n    bucket AS time,\n    avg_value AS value,\n    'LN level' AS type\n  FROM bucketed\n)\n\nSELECT * FROM raw_values\nUNION ALL\nSELECT * FROM collapsed_peaks\nORDER BY time;\n",
+                        "rawSql": "WITH matching_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'TempCtrl'\n    AND param_name = 'Laldwr'\n),\n\nbucketed AS (\n  SELECT\n    time_bucket('30 seconds', d.time) AS bucket,\n    AVG(d.value_num) AS avg_value\n  FROM\n    matching_param p\n    CROSS JOIN LATERAL (\n      SELECT\n        d.*\n      FROM\n        data d\n      WHERE\n        d.param_id = p.param_id\n        AND d.instrument_id = $instrument\n        AND $__timeFilter(d.time)\n      OFFSET 0\n    ) d\nGROUP BY bucket\n),\n\nlagged AS (\n  SELECT\n    bucket,\n    avg_value,\n    LAG(avg_value, 1) OVER (ORDER BY bucket) AS val_1,\n    LAG(avg_value, 2) OVER (ORDER BY bucket) AS val_2,\n    LAG(avg_value, 3) OVER (ORDER BY bucket) AS val_3\n  FROM bucketed\n),\n\nlabeled AS (\n  SELECT *,\n    CASE\n      WHEN avg_value > 90 AND (val_1 < 90 OR val_1 IS NULL) THEN true\n      WHEN avg_value >= COALESCE(val_1, -1e9)\n       AND avg_value >= COALESCE(val_2, -1e9)\n       AND avg_value >= COALESCE(val_3, -1e9)\n       AND avg_value > 90 THEN true\n      ELSE false\n    END AS is_peak\n  FROM lagged\n),\n\nwith_peak_groups AS (\n  SELECT *,\n    CASE\n      WHEN is_peak AND NOT LAG(is_peak, 1, false) OVER (ORDER BY bucket) THEN 1\n      ELSE 0\n    END AS new_peak_start\n  FROM labeled\n),\n\npeak_groups AS (\n  SELECT *,\n    SUM(new_peak_start) OVER (ORDER BY bucket) AS peak_group_id\n  FROM with_peak_groups\n),\n\nranked_peaks AS (\n  SELECT\n    bucket AS time,\n    avg_value,\n    peak_group_id,\n    RANK() OVER (PARTITION BY peak_group_id ORDER BY avg_value DESC) AS val_rank\n  FROM peak_groups\n  WHERE is_peak\n),\n\ncollapsed_peaks AS (\n  SELECT\n    time,\n    avg_value AS value,\n    'Refill' AS type\n  FROM ranked_peaks\n  WHERE val_rank = 1\n),\n\nraw_values AS (\n  SELECT\n    bucket AS time,\n    avg_value AS value,\n    'LN level' AS type\n  FROM bucketed\n)\n\nSELECT * FROM raw_values\nUNION ALL\nSELECT * FROM collapsed_peaks\nORDER BY time;\n",
                         "sql": {
                           "columns": [
                             {
@@ -1041,6 +1065,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -1179,7 +1207,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH matching_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'TempCtrl'\n    AND param_name = 'Laldwr'\n),\n\nbucketed AS (\n  SELECT\n    time_bucket('30 seconds', d.time) AS bucket,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN matching_param p ON d.param_id = p.param_id\n  WHERE d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n  GROUP BY bucket\n),\n\nlagged AS (\n  SELECT\n    bucket,\n    avg_value,\n    LAG(avg_value, 1) OVER (ORDER BY bucket) AS val_1,\n    LAG(avg_value, 2) OVER (ORDER BY bucket) AS val_2,\n    LAG(avg_value, 3) OVER (ORDER BY bucket) AS val_3\n  FROM bucketed\n),\n\nlabeled AS (\n  SELECT *,\n    CASE\n      WHEN avg_value > 90 AND (val_1 < 90 OR val_1 IS NULL) THEN true\n      WHEN avg_value >= COALESCE(val_1, -1e9)\n       AND avg_value >= COALESCE(val_2, -1e9)\n       AND avg_value >= COALESCE(val_3, -1e9)\n       AND avg_value > 90 THEN true\n      ELSE false\n    END AS is_peak\n  FROM lagged\n),\n\nwith_peak_groups AS (\n  SELECT *,\n    CASE\n      WHEN is_peak AND NOT LAG(is_peak, 1, false) OVER (ORDER BY bucket) THEN 1\n      ELSE 0\n    END AS new_peak_start\n  FROM labeled\n),\n\npeak_groups AS (\n  SELECT *,\n    SUM(new_peak_start) OVER (ORDER BY bucket) AS peak_group_id\n  FROM with_peak_groups\n),\n\nranked_peaks AS (\n  SELECT\n    bucket AS time,\n    avg_value,\n    peak_group_id,\n    RANK() OVER (PARTITION BY peak_group_id ORDER BY avg_value DESC) AS val_rank\n  FROM peak_groups\n  WHERE is_peak\n),\n\ncollapsed_peaks AS (\n  SELECT time\n  FROM ranked_peaks\n  WHERE val_rank = 1\n),\n\nwith_deltas AS (\n  SELECT\n    time,\n    LAG(time) OVER (ORDER BY time) AS prev_time\n  FROM collapsed_peaks\n),\n\ndeltas AS (\n  SELECT\n    EXTRACT(EPOCH FROM (time - prev_time)) AS sec_between\n  FROM with_deltas\n  WHERE prev_time IS NOT NULL\n)\n\nSELECT AVG(sec_between) AS avg_sec_between_refills\nFROM deltas;\n",
+                        "rawSql": "WITH matching_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'TempCtrl'\n    AND param_name = 'Laldwr'\n),\n\nbucketed AS (\n  SELECT\n    time_bucket('30 seconds', d.time) AS bucket,\n    AVG(d.value_num) AS avg_value\n  FROM\n    matching_param p\n    CROSS JOIN LATERAL (\n      SELECT\n        d.*\n      FROM\n        data d\n      WHERE\n        d.param_id = p.param_id\n        AND d.instrument_id = $instrument\n        AND $__timeFilter(d.time)\n      OFFSET 0\n    ) d\nGROUP BY bucket\n),\n\nlagged AS (\n  SELECT\n    bucket,\n    avg_value,\n    LAG(avg_value, 1) OVER (ORDER BY bucket) AS val_1,\n    LAG(avg_value, 2) OVER (ORDER BY bucket) AS val_2,\n    LAG(avg_value, 3) OVER (ORDER BY bucket) AS val_3\n  FROM bucketed\n),\n\nlabeled AS (\n  SELECT *,\n    CASE\n      WHEN avg_value > 90 AND (val_1 < 90 OR val_1 IS NULL) THEN true\n      WHEN avg_value >= COALESCE(val_1, -1e9)\n       AND avg_value >= COALESCE(val_2, -1e9)\n       AND avg_value >= COALESCE(val_3, -1e9)\n       AND avg_value > 90 THEN true\n      ELSE false\n    END AS is_peak\n  FROM lagged\n),\n\nwith_peak_groups AS (\n  SELECT *,\n    CASE\n      WHEN is_peak AND NOT LAG(is_peak, 1, false) OVER (ORDER BY bucket) THEN 1\n      ELSE 0\n    END AS new_peak_start\n  FROM labeled\n),\n\npeak_groups AS (\n  SELECT *,\n    SUM(new_peak_start) OVER (ORDER BY bucket) AS peak_group_id\n  FROM with_peak_groups\n),\n\nranked_peaks AS (\n  SELECT\n    bucket AS time,\n    avg_value,\n    peak_group_id,\n    RANK() OVER (PARTITION BY peak_group_id ORDER BY avg_value DESC) AS val_rank\n  FROM peak_groups\n  WHERE is_peak\n),\n\ncollapsed_peaks AS (\n  SELECT time\n  FROM ranked_peaks\n  WHERE val_rank = 1\n),\n\nwith_deltas AS (\n  SELECT\n    time,\n    LAG(time) OVER (ORDER BY time) AS prev_time\n  FROM collapsed_peaks\n),\n\ndeltas AS (\n  SELECT\n    EXTRACT(EPOCH FROM (time - prev_time)) AS sec_between\n  FROM with_deltas\n  WHERE prev_time IS NOT NULL\n)\n\nSELECT AVG(sec_between) AS avg_sec_between_refills\nFROM deltas;\n",
                         "sql": {
                           "columns": [
                             {
@@ -1197,6 +1225,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -1323,7 +1355,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH matching_params AS (\n  SELECT param_id, param_name\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'KriosTemperatures'\n    AND param_name IN ('TSample', 'Tcldwr', 'Taldwr', 'Tdocker', 'Tcassette', 'Tcartridge')\n)\n\nSELECT\n  COUNT(*) AS \"Count\",\n  MAX(d.time) AS \"Last outlier\"\nFROM data d\nJOIN matching_params p ON d.param_id = p.param_id\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\n  AND (d.value_num < 70 OR d.value_num > 310);\n",
+                        "rawSql": "WITH matching_params AS (\n  SELECT param_id, param_name\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'KriosTemperatures'\n    AND param_name IN ('TSample', 'Tcldwr', 'Taldwr', 'Tdocker', 'Tcassette', 'Tcartridge')\n)\n\nSELECT\n  COUNT(*) AS \"Count\",\n  MAX(d.time) AS \"Last outlier\"\nFROM\n  matching_params p\n  CROSS JOIN LATERAL (\n    SELECT\n      d.*\n    FROM\n      data d\n    WHERE\n      d.param_id = p.param_id\n      AND d.instrument_id = $instrument\n      AND $__timeFilter(d.time)\n      AND (d.value_num < 70 OR d.value_num > 310)\n    OFFSET 0\n  ) d\n;\n",
                         "sql": {
                           "columns": [
                             {
@@ -1341,6 +1373,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -1444,7 +1480,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH \n-- Get parameter IDs\ncounter_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND param_name = 'LoadCassetteCounter'\n),\ntemperature_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND param_name = 'Tcartridge'\n),\n\n-- Last timestamp per counter value → last 10 increments\nload_events AS (\n  SELECT *\n  FROM (\n    SELECT DISTINCT ON (d.value_num)\n      d.value_num,\n      d.time AS event_time\n    FROM data d\n    JOIN counter_param p ON d.param_id = p.param_id\n    WHERE d.instrument_id = $instrument \n      AND $__timeFilter(d.time)\n    ORDER BY d.value_num ASC, d.time DESC\n  ) sub\n  ORDER BY event_time DESC\n  LIMIT 10\n),\n\n-- Compute pre-load temperature stats (-3 min)\nevent_metrics AS (\n  SELECT\n    l.event_time,\n\n    -- min/max/diff of temperature in -3 min window\n    (SELECT MIN(t.value_num)\n     FROM data t\n     JOIN temperature_param tp ON t.param_id = tp.param_id\n     WHERE t.instrument_id = $instrument \n       AND t.time BETWEEN l.event_time - INTERVAL '3 minutes' AND l.event_time\n    ) AS temp_min_pre,\n\n    (SELECT MAX(t.value_num)\n     FROM data t\n     JOIN temperature_param tp ON t.param_id = tp.param_id\n     WHERE t.instrument_id = $instrument \n       AND t.time BETWEEN l.event_time - INTERVAL '3 minutes' AND l.event_time\n    ) AS temp_max_pre,\n\n    -- temperature at +10 min\n    (SELECT t.value_num\n     FROM data t\n     JOIN temperature_param tp ON t.param_id = tp.param_id\n     WHERE t.instrument_id = $instrument \n       AND t.time >= l.event_time + INTERVAL '10 minutes'\n     ORDER BY t.time\n     LIMIT 1\n    ) AS temp_at_plus10\n\n  FROM load_events l\n)\n\n-- Final aggregated summary\nSELECT\n  MAX(temp_max_pre) AS \"Max T after cassette load\",\n  AVG(temp_max_pre - temp_min_pre) AS \"Avg T increase during load\",\n  AVG(temp_at_plus10 - temp_min_pre) AS \"Avg T recovery 10 min after load\"\nFROM event_metrics",
+                        "rawSql": "WITH \n-- Get parameter IDs\ncounter_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'LoadCassetteCounter'\n),\ntemperature_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Tcartridge'\n),\n\n-- Detect counter increments (cassette load events)\ncounter_events AS (\n  SELECT\n    d.time AS event_time,\n    d.value_num,\n    LAG(d.value_num) OVER (ORDER BY d.time) AS prev_value\n  FROM\n    counter_param p\n    CROSS JOIN LATERAL (\n      SELECT\n        d.*\n      FROM\n        data d\n      WHERE\n        d.param_id = p.param_id\n        AND d.instrument_id = $instrument\n        AND $__timeFilter(d.time)\n      OFFSET 0\n    ) d\n),\n\n-- Keep only the last 10 increment events\nload_events AS (\n  SELECT event_time\n  FROM (\n    SELECT event_time\n    FROM counter_events\n    WHERE prev_value IS NOT NULL AND value_num > prev_value\n    ORDER BY event_time DESC\n    LIMIT 10\n  ) sub\n),\n\n-- Pre-event temperature data (-3min to 0min)\npre_window AS (\n  SELECT\n    l.event_time,\n    t.value_num AS temperature\n  FROM load_events l\n  CROSS JOIN temperature_param tp\n  CROSS JOIN LATERAL (\n    SELECT t.value_num\n    FROM data t\n    WHERE t.instrument_id = $instrument\n      AND t.param_id = tp.param_id\n      AND t.time BETWEEN l.event_time - INTERVAL '3 minutes' AND l.event_time\n    OFFSET 0\n  ) t\n),\n\n-- Final result per event (with post +10 min temp via LATERAL)\nevent_metrics AS (\n  SELECT\n    l.event_time,\n    MIN(p.temperature) AS temp_min_pre,\n    MAX(p.temperature) AS temp_max_pre,\n    MAX(p.temperature) - MIN(p.temperature) AS temp_diff_pre,\n    post.temperature_at_plus10,\n    post.temperature_at_plus10 - MIN(p.temperature) AS delta_temp_plus10_minus_min_pre\n  FROM load_events l\n  LEFT JOIN pre_window p ON l.event_time = p.event_time\n  LEFT JOIN LATERAL (\n    SELECT t.value_num AS temperature_at_plus10\n    FROM\n      temperature_param tp\n      CROSS JOIN LATERAL (\n        SELECT\n          t.*\n        FROM\n          data t\n        WHERE\n          t.param_id = tp.param_id\n          AND t.instrument_id = $instrument\n        OFFSET 0\n      ) t\n    WHERE\n      t.time >= l.event_time + INTERVAL '10 minutes'\nORDER BY t.time\n    LIMIT 1\n  ) post ON TRUE\n  GROUP BY l.event_time, post.temperature_at_plus10\n)\n\n-- Final aggregated summary\nSELECT\n  MAX(temp_max_pre) AS \"Max T after cassette load\",\n  AVG(temp_diff_pre) AS \"Avg T increase during load\",\n  AVG(delta_temp_plus10_minus_min_pre) AS \"Avg T recovery 10 min after load\"\nFROM event_metrics;\n",
                         "sql": {
                           "columns": [
                             {
@@ -1462,6 +1498,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "B",
@@ -1515,7 +1555,7 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Avg CRT temperature increase during load"
+                      "options": "Avg T increase during load"
                     },
                     "properties": [
                       {
@@ -1543,7 +1583,7 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Avg temperature recovery 10 min after load"
+                      "options": "Avg T recovery 10 min after load"
                     },
                     "properties": [
                       {
@@ -1599,7 +1639,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH \n-- Get parameter IDs\ncounter_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND param_name = 'LoadCassetteCounter'\n),\ntemperature_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND param_name = 'Tdocker'\n),\n\n-- Last timestamp per counter value → last 10 increments\nload_events AS (\n  SELECT *\n  FROM (\n    SELECT DISTINCT ON (d.value_num)\n      d.value_num,\n      d.time AS event_time\n    FROM data d\n    JOIN counter_param p ON d.param_id = p.param_id\n    WHERE d.instrument_id = $instrument \n      AND $__timeFilter(d.time)\n    ORDER BY d.value_num ASC, d.time DESC\n  ) sub\n  ORDER BY event_time DESC\n  LIMIT 10\n),\n\n-- Compute pre-load temperature stats (-3 min)\nevent_metrics AS (\n  SELECT\n    l.event_time,\n\n    -- min/max/diff of temperature in -3 min window\n    (SELECT MIN(t.value_num)\n     FROM data t\n     JOIN temperature_param tp ON t.param_id = tp.param_id\n     WHERE t.instrument_id = $instrument \n       AND t.time BETWEEN l.event_time - INTERVAL '3 minutes' AND l.event_time\n    ) AS temp_min_pre,\n\n    (SELECT MAX(t.value_num)\n     FROM data t\n     JOIN temperature_param tp ON t.param_id = tp.param_id\n     WHERE t.instrument_id = $instrument \n       AND t.time BETWEEN l.event_time - INTERVAL '3 minutes' AND l.event_time\n    ) AS temp_max_pre,\n\n    -- temperature at +10 min\n    (SELECT t.value_num\n     FROM data t\n     JOIN temperature_param tp ON t.param_id = tp.param_id\n     WHERE t.instrument_id = $instrument \n       AND t.time >= l.event_time + INTERVAL '10 minutes'\n     ORDER BY t.time\n     LIMIT 1\n    ) AS temp_at_plus10\n\n  FROM load_events l\n)\n\n-- Final aggregated summary\nSELECT\n  MAX(temp_max_pre) AS \"Max T after cassette load\",\n  AVG(temp_max_pre - temp_min_pre) AS \"Avg T increase during load\",\n  AVG(temp_at_plus10 - temp_min_pre) AS \"Avg T recovery 10 min after load\"\nFROM event_metrics",
+                        "rawSql": "WITH \n-- Get parameter IDs\ncounter_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'LoadCassetteCounter'\n),\ntemperature_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Tdocker'\n),\n\n-- Detect counter increments (cassette load events)\ncounter_events AS (\n  SELECT\n    d.time AS event_time,\n    d.value_num,\n    LAG(d.value_num) OVER (ORDER BY d.time) AS prev_value\n  FROM\n    counter_param p\n    CROSS JOIN LATERAL (\n      SELECT\n        d.*\n      FROM\n        data d\n      WHERE\n        d.param_id = p.param_id\n        AND d.instrument_id = $instrument\n        AND $__timeFilter(d.time)\n      OFFSET 0\n    ) d\n),\n\n-- Keep only the last 10 increment events\nload_events AS (\n  SELECT event_time\n  FROM (\n    SELECT event_time\n    FROM counter_events\n    WHERE prev_value IS NOT NULL AND value_num > prev_value\n    ORDER BY event_time DESC\n    LIMIT 10\n  ) sub\n),\n\n-- Pre-event temperature data (-3min to 0min)\npre_window AS (\n  SELECT\n    l.event_time,\n    t.value_num AS temperature\n  FROM load_events l\n  CROSS JOIN temperature_param tp\n  CROSS JOIN LATERAL (\n    SELECT t.value_num\n    FROM data t\n    WHERE t.instrument_id = $instrument\n      AND t.param_id = tp.param_id\n      AND t.time BETWEEN l.event_time - INTERVAL '3 minutes' AND l.event_time\n    OFFSET 0\n  ) t\n),\n\n-- Final result per event (with post +10 min temp via LATERAL)\nevent_metrics AS (\n  SELECT\n    l.event_time,\n    MIN(p.temperature) AS temp_min_pre,\n    MAX(p.temperature) AS temp_max_pre,\n    MAX(p.temperature) - MIN(p.temperature) AS temp_diff_pre,\n    post.temperature_at_plus10,\n    post.temperature_at_plus10 - MIN(p.temperature) AS delta_temp_plus10_minus_min_pre\n  FROM load_events l\n  LEFT JOIN pre_window p ON l.event_time = p.event_time\n  LEFT JOIN LATERAL (\n    SELECT t.value_num AS temperature_at_plus10\n    FROM\n      temperature_param tp\n      CROSS JOIN LATERAL (\n        SELECT\n          t.*\n        FROM\n          data t\n        WHERE\n          t.param_id = tp.param_id\n          AND t.instrument_id = $instrument\n        OFFSET 0\n      ) t\n    WHERE\n      t.time >= l.event_time + INTERVAL '10 minutes'\nORDER BY t.time\n    LIMIT 1\n  ) post ON TRUE\n  GROUP BY l.event_time, post.temperature_at_plus10\n)\n\n-- Final aggregated summary\nSELECT\n  MAX(temp_max_pre) AS \"Max T after cassette load\",\n  AVG(temp_diff_pre) AS \"Avg T increase during load\",\n  AVG(delta_temp_plus10_minus_min_pre) AS \"Avg T recovery 10 min after load\"\nFROM event_metrics;\n",
                         "sql": {
                           "columns": [
                             {
@@ -1617,6 +1657,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -1670,7 +1714,7 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Avg CRT temperature increase during load"
+                      "options": "Avg T increase during load"
                     },
                     "properties": [
                       {
@@ -1698,7 +1742,7 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Avg temperature recovery 10 min after load"
+                      "options": "Avg T recovery 10 min after load"
                     },
                     "properties": [
                       {
@@ -1754,7 +1798,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH last_cryo AS (\n  SELECT\n    end_time\n  FROM\n    sem_cryocycle_al_daily,\n    state_periods(agg, 1) -- boolean = 1 where value = CryoCycle\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'Autoloader'\n  ORDER BY\n    end_time DESC\n  LIMIT\n    1\n)\nSELECT\n  COALESCE(SUM(lcd.daily_cassette_count), 0) AS cassette_loads_since_cryocycle\nFROM\n  load_counters_daily lcd\n  CROSS JOIN last_cryo lc\nWHERE\n  lcd.day > lc.end_time",
+                        "rawSql": "-- Cassette loads since the end of the last autoloader cryo cycle\nWITH last_cycle_end AS (\n  SELECT MAX(end_time) AS end_time\n  FROM sem_cryocycles\n  WHERE instrument_id = $instrument\n    AND param_name = 'Autoloader'\n),\n\ncounter_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'LoadCassetteCounter'\n),\n\n-- loads later on the day the cycle ended come from raw data (less than a day of one counter),\n-- starting from the last counter value at or before the cycle end\nbaseline AS (\n  SELECT d.time\n  FROM\n    counter_param c\n    CROSS JOIN last_cycle_end e\n    CROSS JOIN LATERAL (\n      SELECT time\n      FROM data\n      WHERE instrument_id = $instrument\n        AND param_id = c.param_id\n        AND time <= e.end_time\n      ORDER BY time DESC\n      LIMIT 1\n    ) d\n),\n\nend_day_loads AS (\n  SELECT delta(counter_agg(d.time, d.value_num)) AS loads\n  FROM\n    counter_param c\n    CROSS JOIN last_cycle_end e\n    CROSS JOIN LATERAL (\n      SELECT\n        time,\n        value_num\n      FROM data\n      WHERE instrument_id = $instrument\n        AND param_id = c.param_id\n        AND time >= COALESCE((SELECT time FROM baseline), e.end_time)\n        AND time < time_bucket('1 day', e.end_time) + INTERVAL '1 day'\n      OFFSET 0\n    ) d\n),\n\n-- whole days after that from the daily cagg\nlater_loads AS (\n  SELECT SUM(l.daily_cassette_count) AS loads\n  FROM\n    load_counters_daily l\n    CROSS JOIN last_cycle_end e\n  WHERE l.instrument_id = $instrument\n    AND l.day >= time_bucket('1 day', e.end_time) + INTERVAL '1 day'\n)\n\nSELECT\n  (COALESCE((SELECT loads FROM end_day_loads), 0)\n   + COALESCE((SELECT loads FROM later_loads), 0))::INT AS cassette_loads_since_cryocycle\n",
                         "sql": {
                           "columns": [
                             {
@@ -1772,6 +1816,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -2203,6 +2251,10 @@
             },
             "spec": {
               "__legacyStringValue": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nWHERE is_active IS TRUE\nORDER BY name;\n"
+            },
+            "labels": {
+              "grafana.app/export-label": "grafana-postgresql-datasource-1",
+              "grafana.app/export-datasource-name": "${sourceSEM}"
             }
           },
           "regex": "",

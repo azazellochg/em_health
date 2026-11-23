@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "4395e67b-0345-47fd-94a8-683653567800",
-    "generation": 1,
-    "creationTimestamp": "2026-07-09T09:04:11Z",
+    "generation": 3,
+    "creationTimestamp": "2026-11-17T16:11:49Z",
     "labels": {},
     "annotations": {}
   },
@@ -70,6 +70,10 @@
                 ],
                 "limit": 50
               }
+            },
+            "labels": {
+              "grafana.app/export-label": "grafana-postgresql-datasource-1",
+              "grafana.app/export-datasource-name": "${sourceSEM}"
             }
           },
           "enable": true,
@@ -118,7 +122,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "    SELECT\n        start_time,\n        end_time,\n        EXTRACT(EPOCH FROM(end_time - start_time)) AS total_duration\n    FROM sem_cryocycle_al_daily,\n        state_periods(agg, 1) -- boolean = 1 where value = CryoCycle\n    WHERE instrument_id = $instrument\n      AND param_name = 'Column'\n      AND $__timeFilter(day)\n",
+                        "rawSql": "-- Cryo cycles that start and end inside the time range\nSELECT\n  start_time,\n  end_time,\n  EXTRACT(EPOCH FROM (end_time - start_time)) AS total_duration\nFROM sem_cryocycles\nWHERE instrument_id = $instrument\n  AND param_name = 'Column'\n  AND start_time >= $__timeFrom()::timestamptz\n  AND end_time <= $__timeTo()::timestamptz\nORDER BY start_time\n",
                         "sql": {
                           "columns": [
                             {
@@ -136,6 +140,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "Arctis",
@@ -156,7 +164,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "    SELECT\n        start_time,\n        end_time,\n        EXTRACT(EPOCH FROM(end_time - start_time)) AS total_duration\n    FROM sem_cryocycle_noal_daily,\n        state_periods(agg, 1) -- boolean = 1 where value > 0\n    WHERE instrument_id = $instrument\n      AND $__timeFilter(day)\n",
+                        "rawSql": "-- Cryo cycles that start and end inside the time range\nSELECT\n  start_time,\n  end_time,\n  EXTRACT(EPOCH FROM (end_time - start_time)) AS total_duration\nFROM sem_cryocycles\nWHERE instrument_id = $instrument\n  AND param_name = 'CryoShield'\n  AND start_time >= $__timeFrom()::timestamptz\n  AND end_time <= $__timeTo()::timestamptz\nORDER BY start_time\n",
                         "sql": {
                           "columns": [
                             {
@@ -174,6 +182,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "Aquilos",
@@ -254,7 +266,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH matching_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'TempCtrl'\n    AND param_name = 'Lcldwr'\n),\n\nbucketed AS (\n  SELECT\n    time_bucket('30 seconds', d.time) AS bucket,\n    AVG(d.value_num) AS avg_value\n  FROM data d\n  JOIN matching_param p ON d.param_id = p.param_id\n  WHERE d.instrument_id = $instrument\n    AND $__timeFilter(d.time)\n  GROUP BY bucket\n),\n\nlagged AS (\n  SELECT\n    bucket,\n    avg_value,\n    LAG(avg_value, 1) OVER (ORDER BY bucket) AS val_1,\n    LAG(avg_value, 2) OVER (ORDER BY bucket) AS val_2,\n    LAG(avg_value, 3) OVER (ORDER BY bucket) AS val_3\n  FROM bucketed\n),\n\nlabeled AS (\n  SELECT *,\n    CASE\n      WHEN avg_value > 90 AND (val_1 < 90 OR val_1 IS NULL) THEN true\n      WHEN avg_value >= COALESCE(val_1, -1e9)\n       AND avg_value >= COALESCE(val_2, -1e9)\n       AND avg_value >= COALESCE(val_3, -1e9)\n       AND avg_value > 90 THEN true\n      ELSE false\n    END AS is_peak\n  FROM lagged\n),\n\nwith_peak_groups AS (\n  SELECT *,\n    CASE\n      WHEN is_peak AND NOT LAG(is_peak, 1, false) OVER (ORDER BY bucket) THEN 1\n      ELSE 0\n    END AS new_peak_start\n  FROM labeled\n),\n\npeak_groups AS (\n  SELECT *,\n    SUM(new_peak_start) OVER (ORDER BY bucket) AS peak_group_id\n  FROM with_peak_groups\n),\n\nranked_peaks AS (\n  SELECT\n    bucket AS time,\n    avg_value,\n    peak_group_id,\n    RANK() OVER (PARTITION BY peak_group_id ORDER BY avg_value DESC) AS val_rank\n  FROM peak_groups\n  WHERE is_peak\n),\n\ncollapsed_peaks AS (\n  SELECT time\n  FROM ranked_peaks\n  WHERE val_rank = 1\n),\n\nwith_deltas AS (\n  SELECT\n    time,\n    LAG(time) OVER (ORDER BY time) AS prev_time\n  FROM collapsed_peaks\n),\n\ndeltas AS (\n  SELECT\n    EXTRACT(EPOCH FROM (time - prev_time)) AS sec_between\n  FROM with_deltas\n  WHERE prev_time IS NOT NULL\n)\n\nSELECT AVG(sec_between) AS avg_sec_between_refills\nFROM deltas;\n",
+                        "rawSql": "WITH matching_param AS (\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND component = 'TempCtrl'\n    AND param_name = 'Lcldwr'\n),\n\nbucketed AS (\n  SELECT\n    time_bucket('30 seconds', d.time) AS bucket,\n    AVG(d.value_num) AS avg_value\n  FROM\n    matching_param p\n    CROSS JOIN LATERAL (\n      SELECT\n        d.*\n      FROM\n        data d\n      WHERE\n        d.param_id = p.param_id\n        AND d.instrument_id = $instrument\n        AND $__timeFilter(d.time)\n      OFFSET 0\n    ) d\nGROUP BY bucket\n),\n\nlagged AS (\n  SELECT\n    bucket,\n    avg_value,\n    LAG(avg_value, 1) OVER (ORDER BY bucket) AS val_1,\n    LAG(avg_value, 2) OVER (ORDER BY bucket) AS val_2,\n    LAG(avg_value, 3) OVER (ORDER BY bucket) AS val_3\n  FROM bucketed\n),\n\nlabeled AS (\n  SELECT *,\n    CASE\n      WHEN avg_value > 90 AND (val_1 < 90 OR val_1 IS NULL) THEN true\n      WHEN avg_value >= COALESCE(val_1, -1e9)\n       AND avg_value >= COALESCE(val_2, -1e9)\n       AND avg_value >= COALESCE(val_3, -1e9)\n       AND avg_value > 90 THEN true\n      ELSE false\n    END AS is_peak\n  FROM lagged\n),\n\nwith_peak_groups AS (\n  SELECT *,\n    CASE\n      WHEN is_peak AND NOT LAG(is_peak, 1, false) OVER (ORDER BY bucket) THEN 1\n      ELSE 0\n    END AS new_peak_start\n  FROM labeled\n),\n\npeak_groups AS (\n  SELECT *,\n    SUM(new_peak_start) OVER (ORDER BY bucket) AS peak_group_id\n  FROM with_peak_groups\n),\n\nranked_peaks AS (\n  SELECT\n    bucket AS time,\n    avg_value,\n    peak_group_id,\n    RANK() OVER (PARTITION BY peak_group_id ORDER BY avg_value DESC) AS val_rank\n  FROM peak_groups\n  WHERE is_peak\n),\n\ncollapsed_peaks AS (\n  SELECT time\n  FROM ranked_peaks\n  WHERE val_rank = 1\n),\n\nwith_deltas AS (\n  SELECT\n    time,\n    LAG(time) OVER (ORDER BY time) AS prev_time\n  FROM collapsed_peaks\n),\n\ndeltas AS (\n  SELECT\n    EXTRACT(EPOCH FROM (time - prev_time)) AS sec_between\n  FROM with_deltas\n  WHERE prev_time IS NOT NULL\n)\n\nSELECT AVG(sec_between) AS avg_sec_between_refills\nFROM deltas;\n",
                         "sql": {
                           "columns": [
                             {
@@ -272,6 +284,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -352,7 +368,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH chamber_state_param AS (\n    SELECT param_id, enum_id\n    FROM parameters\n    WHERE \n        instrument_id = $instrument\n        AND subsystem = 'Vacuum'\n        AND component = 'Chamber'\n        AND param_name = 'Chamber.StateSC'\n),\npumped_value AS (\n    SELECT \n        e.value AS pumped_value_num,\n        p.param_id\n    FROM chamber_state_param p\n    JOIN enum_values e ON e.enum_id = p.enum_id\n    WHERE e.member_name = 'Pumped'\n),\nraw_states AS (\n    SELECT state_agg(v.time, v.value_num::bigint) AS agg\n    FROM data v\n    JOIN chamber_state_param p ON p.param_id = v.param_id\n    WHERE v.instrument_id = $instrument\n      AND $__timeFilter(v.time)\n),\npumped_states AS (\n    SELECT start_time, end_time\n    FROM state_periods(\n        (SELECT agg FROM raw_states),\n        (SELECT pumped_value_num FROM pumped_value)::bigint\n        )\n),\npressure_param AS (\n    SELECT param_id\n    FROM parameters\n    WHERE \n      instrument_id = $instrument\n      AND component = 'Chamber'\n      AND param_name = 'Chamber.HVG'\n),\npressure_values AS (\n    SELECT \n        v.time,\n        v.value_num AS pressure_value\n    FROM data v\n    JOIN pressure_param p ON p.param_id = v.param_id\n    JOIN pumped_states r \n        ON v.time >= r.start_time \n        AND v.time <= r.end_time\n    WHERE \n        v.instrument_id = $instrument\n)\nSELECT\n    time,\n    approx_percentile(\n        0.5,\n        percentile_agg(pressure_value)\n            OVER (\n                ORDER BY time\n                RANGE BETWEEN INTERVAL '24 hours' PRECEDING AND CURRENT ROW\n            )\n    ) AS \"Rolling 24-hour median HVG pressure\"\nFROM pressure_values\nORDER BY time;",
+                        "rawSql": "WITH chamber_state_param AS (\n    SELECT param_id, enum_id\n    FROM parameters\n    WHERE\n        instrument_id = $instrument\n        AND subsystem = 'Vacuum'\n        AND component = 'Chamber'\n        AND param_name = 'Chamber.StateSC'\n),\npumped_value AS (\n    SELECT\n        e.value AS pumped_value_num,\n        p.param_id\n    FROM chamber_state_param p\n    JOIN enum_values e ON e.enum_id = p.enum_id\n    WHERE e.member_name = 'Pumped'\n),\nraw_states AS (\n    SELECT state_agg(v.time, v.value_num::bigint) AS agg\n    FROM\n      chamber_state_param p\n      CROSS JOIN LATERAL (\n        SELECT\n          v.*\n        FROM\n          data v\n        WHERE\n          v.param_id = p.param_id\n          AND v.instrument_id = $instrument\n          AND $__timeFilter(v.time)\n        OFFSET 0\n      ) v\n  ),\npumped_states AS (\n    SELECT start_time, end_time\n    FROM state_periods(\n        (SELECT agg FROM raw_states),\n        (SELECT pumped_value_num FROM pumped_value)::bigint\n        )\n),\npressure_param AS (\n    SELECT param_id\n    FROM parameters\n    WHERE\n      instrument_id = $instrument\n      AND component = 'Chamber'\n      AND param_name = 'Chamber.HVG'\n),\n-- hourly percentile sketches of the pressure while pumped\nhourly AS (\n    SELECT\n        time_bucket('1 hour', v.time) AS hour,\n        percentile_agg(v.value_num) AS agg\n    FROM\n      pressure_param p\n      CROSS JOIN LATERAL (\n        SELECT\n          v.*\n        FROM\n          data v\n        WHERE\n          v.param_id = p.param_id\n          AND v.instrument_id = $instrument\n          AND $__timeFilter(v.time)\n        OFFSET 0\n      ) v\n    JOIN pumped_states r\n        ON v.time >= r.start_time\n        AND v.time <= r.end_time\n    GROUP BY 1\n  )\n-- median of the last 24 hours, one point per hour\nSELECT\n    hour AS time,\n    approx_percentile(\n        0.5,\n        rollup(agg)\n            OVER (\n                ORDER BY hour\n                RANGE BETWEEN INTERVAL '23 hours' PRECEDING AND CURRENT ROW\n            )\n    ) AS \"Rolling 24-hour median HVG pressure\"\nFROM hourly\nORDER BY hour;\n",
                         "sql": {
                           "columns": [
                             {
@@ -370,6 +386,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -485,7 +505,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH counter_param AS (\n  SELECT param_id, param_name\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND component = 'Service'\n    AND param_name = 'PVP1Lifetime'\n)\n\n  SELECT d.value_num\n  FROM data d\n  JOIN counter_param p ON p.param_id = d.param_id\n  WHERE d.instrument_id = $instrument \n    AND $__timeFilter(d.time)\n  ORDER BY d.time DESC\n  LIMIT 1\n",
+                        "rawSql": "WITH counter_param AS (\n  SELECT param_id, param_name\n  FROM parameters\n  WHERE instrument_id = $instrument \n    AND component = 'Service'\n    AND param_name = 'PVP1Lifetime'\n)\n\n  SELECT d.value_num\n  FROM\n    counter_param p\n    CROSS JOIN LATERAL (\n      SELECT\n        d.*\n      FROM\n        data d\n      WHERE\n        d.param_id = p.param_id\n        AND d.instrument_id = $instrument\n        AND $__timeFilter(d.time)\n      OFFSET 0\n    ) d\nORDER BY d.time DESC\n  LIMIT 1\n",
                         "sql": {
                           "columns": [
                             {
@@ -503,6 +523,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -599,6 +623,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "B",
@@ -723,6 +751,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "hourly",
@@ -761,6 +793,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "daily",
@@ -901,6 +937,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -1007,7 +1047,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND subsystem = 'Options'\n    AND component = 'Thermometers'\n    AND param_name LIKE 'ExperimentalThermometerCryo%Temperature'\n)\nSELECT\n    time_bucket_gapfill('1 hour', d.time) AS time,\n    p.param_name,\n    locf(approx_percentile(0.5, percentile_agg(d.value_num))) AS median_1h\nFROM data d\nJOIN param_ids p ON p.param_id = d.param_id\nWHERE d.instrument_id = $instrument\n  AND $__timeFilter(d.time)\nGROUP BY 1, 2\nORDER BY 1\n",
+                        "rawSql": "WITH param_ids AS (\n  SELECT\n    param_name,\n    param_id\n  FROM parameters\n  WHERE\n    instrument_id = $instrument\n    AND subsystem = 'Options'\n    AND component = 'Thermometers'\n    AND param_name LIKE 'ExperimentalThermometerCryo%Temperature'\n)\nSELECT\n    time_bucket_gapfill('1 hour', d.time) AS time,\n    p.param_name,\n    locf(approx_percentile(0.5, percentile_agg(d.value_num))) AS median_1h\nFROM\n  param_ids p\n  CROSS JOIN LATERAL (\n    SELECT\n      d.*\n    FROM\n      data d\n    WHERE\n      d.param_id = p.param_id\n      AND d.instrument_id = $instrument\n      AND $__timeFilter(d.time)\n    OFFSET 0\n  ) d\nWHERE\n  $__timeFilter(d.time)\nGROUP BY 1, 2\nORDER BY 1\n",
                         "sql": {
                           "columns": [
                             {
@@ -1025,6 +1065,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -1159,7 +1203,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    p.param_name,\n    COUNT(*) AS bad_count\nFROM data d\nJOIN parameters p \n    ON d.param_id = p.param_id\n    AND p.instrument_id = $instrument\n    AND p.subsystem = 'Vacuum'\n    AND p.component = 'Interlocks'\nJOIN enum_values e\n    ON e.enum_id = p.enum_id\n    AND e.value = d.value_num\nWHERE $__timeFilter(d.time)\n  AND e.member_name IN ('Interlock BAD', 'Disabled')\nGROUP BY p.param_name\nORDER BY p.param_name\n",
+                        "rawSql": "SELECT\n    p.param_name,\n    COUNT(*) AS bad_count\nFROM\n  parameters p\n  CROSS JOIN LATERAL (\n    SELECT\n      d.*\n    FROM\n      data d\n    WHERE\n      d.param_id = p.param_id\n      AND d.instrument_id = $instrument\n      AND $__timeFilter(d.time)\n    OFFSET 0\n  ) d\nJOIN enum_values e\n    ON e.enum_id = p.enum_id\n    AND e.value = d.value_num\nWHERE p.instrument_id = $instrument\n  AND p.subsystem = 'Vacuum'\n  AND p.component = 'Interlocks'\n  AND e.member_name IN ('Interlock BAD', 'Disabled')\nGROUP BY p.param_name\nORDER BY p.param_name\n",
                         "sql": {
                           "columns": [
                             {
@@ -1177,6 +1221,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -1284,6 +1332,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -1390,7 +1442,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH state_param AS (\n  SELECT\n    param_id,\n    enum_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'Buffer.BufferState'\n    AND subsystem = 'Vacuum'\n),\n\nstate_enum AS (\n  SELECT e.member_name, e.value\n  FROM\n    enum_values e\n    JOIN state_param p USING (enum_id)\n),\n\ndurations AS (\n  SELECT\n    e.member_name AS state,\n    EXTRACT(EPOCH FROM (end_time-start_time)) AS duration\n  FROM\n    state_int_timeline(\n      (\n        SELECT\n          state_agg(d.time, d.value_num :: bigint) AS agg\n        FROM\n          data d\n          JOIN state_param p USING (param_id)\n        WHERE\n          d.instrument_id = $instrument\n          AND $__timeFilter(d.time)\n          AND d.value_num != 0 -- filter out zeros\n      )\n    )\n  JOIN state_enum e ON e.value = state\n)\n\nSELECT\n  AVG(duration) FILTER (WHERE state = 'Overflow') AS \"Avg duration\",\n  AVG(duration) FILTER (WHERE state = 'OK')  AS \"Avg time between cycles\"\nFROM durations\n",
+                        "rawSql": "WITH state_param AS (\n  SELECT\n    param_id,\n    enum_id\n  FROM\n    parameters\n  WHERE\n    instrument_id = $instrument\n    AND param_name = 'Buffer.BufferState'\n    AND subsystem = 'Vacuum'\n),\n\nstate_enum AS (\n  SELECT e.member_name, e.value\n  FROM\n    enum_values e\n    JOIN state_param p USING (enum_id)\n),\n\ndurations AS (\n  SELECT\n    e.member_name AS state,\n    EXTRACT(EPOCH FROM (end_time-start_time)) AS duration\n  FROM\n    state_int_timeline(\n      (\n        SELECT\n          state_agg(d.time, d.value_num :: bigint) AS agg\n        FROM\n          state_param p\n          CROSS JOIN LATERAL (\n            SELECT\n              d.*\n            FROM\n              data d\n            WHERE\n              d.param_id = p.param_id\n              AND d.instrument_id = $instrument\n              AND $__timeFilter(d.time)\n              AND d.value_num != 0 -- filter out zeros\n            OFFSET 0\n          ) d\n      )\n    )\n  JOIN state_enum e ON e.value = state\n)\n\nSELECT\n  AVG(duration) FILTER (WHERE state = 'Overflow') AS \"Avg duration\",\n  AVG(duration) FILTER (WHERE state = 'OK')  AS \"Avg time between cycles\"\nFROM durations\n",
                         "sql": {
                           "columns": [
                             {
@@ -1408,6 +1460,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -1517,7 +1573,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH total AS (\n  SELECT\n    gis_port,\n    MAX(day) AS last_day,\n    last_val(rollup(agg)) AS total_usage\n  FROM gis_counters_daily\n  WHERE instrument_id = $instrument\n    AND $__timeFilter(day) \n  GROUP BY gis_port\n),\n\ndaily AS (\n  SELECT\n    gis_port,\n    AVG(delta(agg)) AS daily_avg\n  FROM gis_counters_daily\n    WHERE instrument_id = $instrument\n      AND $__timeFilter(day)\n    GROUP BY gis_port\n)\n\nSELECT\n  t.gis_port AS \"Port\",\n  COALESCE(d.daily_avg, 0) AS \"Daily usage\",\n  t.total_usage/3600.0 AS \"Total usage (h)\",\n  t.total_usage/3600.0/120*100 AS \"Total usage (%)\"\nFROM total t\nLEFT JOIN daily d USING (gis_port)\nORDER BY t.gis_port\n",
+                        "rawSql": "WITH total AS (\n  SELECT DISTINCT ON (gis_port)\n    gis_port,\n    day AS last_day,\n    total_usage\n  FROM gis_counters_daily\n  WHERE instrument_id = $instrument\n    AND $__timeFilter(day)\n  ORDER BY gis_port, day DESC\n),\n\ndaily AS (\n  SELECT\n    gis_port,\n    AVG(daily_usage) AS daily_avg\n  FROM gis_counters_daily\n  WHERE instrument_id = $instrument\n    AND $__timeFilter(day)\n  GROUP BY gis_port\n)\n\nSELECT\n  t.gis_port AS \"Port\",\n  COALESCE(d.daily_avg, 0) AS \"Daily usage\",\n  t.total_usage/3600.0 AS \"Total usage (h)\",\n  t.total_usage/3600.0/120*100 AS \"Total usage (%)\"\nFROM total t\nLEFT JOIN daily d USING (gis_port)\nORDER BY t.gis_port\n",
                         "sql": {
                           "columns": [
                             {
@@ -1535,6 +1591,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -1940,6 +2000,10 @@
             },
             "spec": {
               "__legacyStringValue": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nWHERE is_active IS TRUE\nORDER BY name;\n"
+            },
+            "labels": {
+              "grafana.app/export-label": "grafana-postgresql-datasource-1",
+              "grafana.app/export-datasource-name": "${sourceSEM}"
             }
           },
           "regex": "",

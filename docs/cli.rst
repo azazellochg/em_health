@@ -243,12 +243,11 @@ Import Alarms
 Universal Error Codes (UECs) or Alarms from an instrument are stored (from TEM server 6.2) in a database separate from Health Monitor events and
 can be typically displayed with UEC Viewer. If you have the credentials to access the MSSQL server on MPC,
 you can import UECs from MSSQL into ``EMHealth`` database. To make it work, MSSQL_USER and MSSQL_PASSWORD (in the `docker/.env`) have to be defined,
-as well as the *server* field with IP address for each instrument in the `instruments.json`.
+as well as the *server* field with IP address for each instrument in the `instruments.json`. UECs only exist for TEM instruments.
 
 .. code-block::
 
     emhealth dev -d tem import-uec
-    emhealth dev -d sem import-uec
 
 ----
 

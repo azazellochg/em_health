@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(9);
+SELECT plan(10);
 
 -- Extensions
 SELECT extensions_are(ARRAY [
@@ -16,6 +16,7 @@ SELECT extensions_are(ARRAY [
 -- Schemas
 SELECT has_schema('events');
 SELECT has_schema('uec');
+SELECT has_schema('fdw');
 SELECT has_schema('pganalyze');
 
 -- public.schema_info

@@ -14,8 +14,8 @@ psql -v ON_ERROR_STOP=1 <<'EOSQL'
     \getenv pganalyze_pw POSTGRES_PGANALYZE_PASSWORD
     CREATE DATABASE tem;
     CREATE DATABASE sem;
-    CREATE ROLE grafana WITH LOGIN PASSWORD :'grafana_pw' CONNECTION LIMIT 100;
-    CREATE ROLE emhealth WITH LOGIN PASSWORD :'emhealth_pw' CONNECTION LIMIT 100;
+    CREATE ROLE grafana WITH LOGIN PASSWORD :'grafana_pw' CONNECTION LIMIT 50;
+    CREATE ROLE emhealth WITH LOGIN PASSWORD :'emhealth_pw' CONNECTION LIMIT 50;
     CREATE ROLE pganalyze WITH LOGIN PASSWORD :'pganalyze_pw' CONNECTION LIMIT 5;
     GRANT pg_monitor, pg_read_server_files TO pganalyze;
 EOSQL

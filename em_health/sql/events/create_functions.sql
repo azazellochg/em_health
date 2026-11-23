@@ -38,7 +38,7 @@ AS $$
 DECLARE
   v_current_config_hash BYTEA;
   v_config_id BIGINT;
-  v_mismatch RECORD;
+  v_renamed RECORD;
 BEGIN
   -- Find the instrument and lock it so concurrent imports for the same instrument cannot race
   SELECT i.id, c.config_hash
@@ -138,15 +138,14 @@ BEGIN
       WHERE e.name = et.name
     );
 
-  -- Check for mismatch in enum values for existing members
-  FOR v_mismatch IN
+  -- Report enum members renamed in place: the value is the member identity
+  -- (it is what events.data stores), the name is only a label that HM can change
+  FOR v_renamed IN
     SELECT
-      et.instrument_id,
-      et.enum_id,
       et.name AS enum_name,
-      ev.key AS member_name,
-      existing.value AS old_value,
-      ev.value::INTEGER AS new_value
+      existing.value,
+      existing.member_name AS old_name,
+      ev.key AS new_name
     FROM jsonb_each(p_config_dict->'enums') AS e(key, value)
          JOIN events.enum_types AS et
         ON et.instrument_id = v_instrument_id
@@ -155,20 +154,18 @@ BEGIN
          JOIN events.enum_values AS existing
         ON existing.instrument_id = v_instrument_id
         AND existing.enum_id = et.enum_id
-        AND existing.member_name = ev.key
-    WHERE existing.value <> ev.value::INTEGER
+        AND existing.value = ev.value::INTEGER
+    WHERE existing.member_name <> ev.key
   LOOP
-    RAISE EXCEPTION
-      'Enum value mismatch: instr_id=%, enum_id=%, name=%, member=%, old_value=%, new_value=%',
-      v_mismatch.instrument_id,
-      v_mismatch.enum_id,
-      v_mismatch.enum_name,
-      v_mismatch.member_name,
-      v_mismatch.old_value,
-      v_mismatch.new_value;
+    RAISE NOTICE '[%] Enum % value % renamed: % -> %',
+      p_instr_dict ->> 'name',
+      v_renamed.enum_name,
+      v_renamed.value,
+      v_renamed.old_name,
+      v_renamed.new_name;
   END LOOP;
 
-  -- Insert enum values
+  -- Insert new enum values, rename existing ones
   INSERT INTO events.enum_values (
     instrument_id,
     enum_id,
@@ -185,8 +182,10 @@ BEGIN
       ON et.instrument_id = v_instrument_id
       AND et.name = e.key
        CROSS JOIN LATERAL jsonb_each_text(e.value) AS ev(key, value)
-  ON CONFLICT (instrument_id, enum_id, member_name)
-    DO NOTHING;
+  ON CONFLICT (instrument_id, enum_id, value)
+    DO UPDATE SET
+    member_name = EXCLUDED.member_name
+  WHERE events.enum_values.member_name IS DISTINCT FROM EXCLUDED.member_name;
 
   -- Insert parameters
   INSERT INTO events.parameters (

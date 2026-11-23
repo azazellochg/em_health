@@ -55,7 +55,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    bucket AS time,\n    (\n        rate(counter_agg(collected_at, tup_inserted)) +\n        rate(counter_agg(collected_at, tup_updated)) +\n        rate(counter_agg(collected_at, tup_deleted)) +\n        rate(counter_agg(collected_at, tup_fetched)) +\n        rate(counter_agg(collected_at, tup_returned))\n    ) AS total_tuples_rate_per_sec\nFROM (\n    SELECT\n        time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n        collected_at,\n        tup_inserted,\n        tup_updated,\n        tup_deleted,\n        tup_fetched,\n        tup_returned\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(collected_at)\n) sub\nGROUP BY bucket\nORDER BY bucket;\n",
+                        "rawSql": "SELECT\n    bucket AS time,\n    (\n        rate(counter_agg(time, tup_inserted)) +\n        rate(counter_agg(time, tup_updated)) +\n        rate(counter_agg(time, tup_deleted)) +\n        rate(counter_agg(time, tup_fetched)) +\n        rate(counter_agg(time, tup_returned))\n    ) AS total_tuples_rate_per_sec\nFROM (\n    SELECT\n        time_bucket(INTERVAL '$__interval', time) AS bucket,\n        time,\n        tup_inserted,\n        tup_updated,\n        tup_deleted,\n        tup_fetched,\n        tup_returned\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(time)\n) sub\nGROUP BY bucket\nORDER BY bucket;\n",
                         "sql": {
                           "columns": [
                             {
@@ -162,7 +162,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    bucket AS time,\n    rate(counter_agg(collected_at, tup_inserted)) AS inserted,\n    rate(counter_agg(collected_at, tup_updated)) AS updated,\n    rate(counter_agg(collected_at, tup_deleted)) AS deleted,\n    rate(counter_agg(collected_at, tup_fetched)) AS fetched,\n    rate(counter_agg(collected_at, tup_returned)) AS returned\nFROM (\n    SELECT\n        time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n        collected_at,\n        tup_inserted,\n        tup_updated,\n        tup_deleted,\n        tup_fetched,\n        tup_returned\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(collected_at)\n) sub\nGROUP BY bucket\nORDER BY bucket;\n",
+                        "rawSql": "SELECT\n    bucket AS time,\n    rate(counter_agg(time, tup_inserted)) AS inserted,\n    rate(counter_agg(time, tup_updated)) AS updated,\n    rate(counter_agg(time, tup_deleted)) AS deleted,\n    rate(counter_agg(time, tup_fetched)) AS fetched,\n    rate(counter_agg(time, tup_returned)) AS returned\nFROM (\n    SELECT\n        time_bucket(INTERVAL '$__interval', time) AS bucket,\n        time,\n        tup_inserted,\n        tup_updated,\n        tup_deleted,\n        tup_fetched,\n        tup_returned\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(time)\n) sub\nGROUP BY bucket\nORDER BY bucket;\n",
                         "sql": {
                           "columns": [
                             {
@@ -306,7 +306,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    bucket AS time,\n    (\n        rate(counter_agg(collected_at, xact_commit)) +\n        rate(counter_agg(collected_at, xact_rollback))\n    ) AS total_xact_rate_per_sec\nFROM (\n    SELECT\n        time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n        collected_at,\n        xact_commit,\n        xact_rollback\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(collected_at)\n) sub\nGROUP BY bucket\nORDER BY bucket;\n",
+                        "rawSql": "SELECT\n    bucket AS time,\n    (\n        rate(counter_agg(time, xact_commit)) +\n        rate(counter_agg(time, xact_rollback))\n    ) AS total_xact_rate_per_sec\nFROM (\n    SELECT\n        time_bucket(INTERVAL '$__interval', time) AS bucket,\n        time,\n        xact_commit,\n        xact_rollback\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(time)\n) sub\nGROUP BY bucket\nORDER BY bucket;\n",
                         "sql": {
                           "columns": [
                             {
@@ -413,7 +413,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    bucket AS time,\n    rate(counter_agg(collected_at, xact_commit)) AS commits,\n    rate(counter_agg(collected_at, xact_rollback)) AS rollbacks\nFROM (\n    SELECT\n        time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n        collected_at,\n        xact_commit,\n        xact_rollback\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(collected_at)\n) sub\nGROUP BY bucket\nORDER BY bucket;\n",
+                        "rawSql": "SELECT\n    bucket AS time,\n    rate(counter_agg(time, xact_commit)) AS commits,\n    rate(counter_agg(time, xact_rollback)) AS rollbacks\nFROM (\n    SELECT\n        time_bucket(INTERVAL '$__interval', time) AS bucket,\n        time,\n        xact_commit,\n        xact_rollback\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(time)\n) sub\nGROUP BY bucket\nORDER BY bucket;\n",
                         "sql": {
                           "columns": [
                             {
@@ -557,7 +557,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  collected_at AS time,\n  temp_files - LAG(temp_files) OVER (ORDER BY collected_at) AS temp_files,\n  temp_bytes - LAG(temp_bytes) OVER (ORDER BY collected_at) AS temp_bytes\nFROM pganalyze.database_stats\nWHERE $__timeFilter(collected_at) \nORDER BY collected_at\n",
+                        "rawSql": "SELECT\n  time AS time,\n  temp_files - LAG(temp_files) OVER (ORDER BY time) AS temp_files,\n  temp_bytes - LAG(temp_bytes) OVER (ORDER BY time) AS temp_bytes\nFROM pganalyze.database_stats\nWHERE $__timeFilter(time) \nORDER BY time\n",
                         "sql": {
                           "columns": [
                             {
@@ -666,7 +666,7 @@
         "spec": {
           "id": 27,
           "title": "Deadlocks",
-          "description": "",
+          "description": "Deadlocks detected in the selected time range.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -686,7 +686,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  collected_at AS time,\n  deadlocks\nFROM pganalyze.database_stats\nORDER BY collected_at\n",
+                        "rawSql": "WITH samples AS (\n  SELECT\n    time,\n    deadlocks,\n    LAG(deadlocks) OVER (ORDER BY time) AS prev\n  FROM pganalyze.database_stats\n  -- one sample before the range start, so the first point has a previous value (samples are 10 min apart)\n  WHERE time BETWEEN $__timeFrom()::timestamptz - INTERVAL '1 hour' AND $__timeTo()::timestamptz\n)\nSELECT\n  time AS time,\n  -- new deadlocks since the previous sample; the counter starts from 0 again after a stats reset\n  CASE\n    WHEN deadlocks >= prev THEN deadlocks - prev\n    ELSE deadlocks\n  END AS deadlocks\nFROM samples\nWHERE $__timeFilter(time)\n  AND prev IS NOT NULL\nORDER BY time",
                         "sql": {
                           "columns": [
                             {
@@ -732,7 +732,7 @@
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
                   "calcs": [
-                    "last"
+                    "sum"
                   ],
                   "fields": "/^deadlocks$/",
                   "values": false
@@ -986,7 +986,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  collected_at AS time,\n  db_size\nFROM pganalyze.database_stats\nWHERE $__timeFilter(collected_at) \nORDER BY collected_at\n",
+                        "rawSql": "SELECT\n  time AS time,\n  db_size\nFROM pganalyze.database_stats\nWHERE $__timeFilter(time) \nORDER BY time\n",
                         "sql": {
                           "columns": [
                             {
@@ -1088,7 +1088,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    bucket as time,\n    (\n      delta(counter_agg(collected_at, blk_read_time)) +\n      delta(counter_agg(collected_at, blk_write_time))\n    ) AS blk_io_time_ms\nFROM (\n    SELECT\n        time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n        collected_at,\n        blk_read_time,\n        blk_write_time\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(collected_at)\n) sub\nGROUP BY bucket\nORDER BY bucket;\n",
+                        "rawSql": "WITH samples AS (\n  SELECT\n    time,\n    blk_read_time + blk_write_time AS io_time,\n    LAG(blk_read_time + blk_write_time) OVER (ORDER BY time) AS prev_io\n  FROM pganalyze.database_stats\n  -- one sample before the range start, so the first bucket has a previous value (samples are 10 min apart)\n  WHERE time BETWEEN $__timeFrom()::timestamptz - INTERVAL '1 hour' AND $__timeTo()::timestamptz\n)\nSELECT\n  time_bucket(INTERVAL '$__interval', time) AS time,\n  -- change since the previous sample; a counter starts from 0 again after a stats reset\n  SUM(CASE WHEN io_time >= prev_io THEN io_time - prev_io ELSE io_time END) AS blk_io_time_ms\nFROM samples\nWHERE $__timeFilter(time) AND prev_io IS NOT NULL\nGROUP BY 1\nORDER BY 1",
                         "sql": {
                           "columns": [
                             {
@@ -1194,7 +1194,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    bucket as time,\n    (delta(counter_agg(collected_at, blks_hit)))::double precision\n      / NULLIF(\n          delta(counter_agg(collected_at, blks_hit))\n        + delta(counter_agg(collected_at, blks_read)),\n          0\n        ) * 100.0 AS cache_hit_ratio\nFROM (\n    SELECT\n        time_bucket(INTERVAL '$__interval', collected_at) AS bucket,\n        collected_at,\n        blks_hit,\n        blks_read\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(collected_at)\n) sub\nGROUP BY bucket\nORDER BY bucket;\n",
+                        "rawSql": "SELECT\n    bucket as time,\n    (delta(counter_agg(time, blks_hit)))::double precision\n      / NULLIF(\n          delta(counter_agg(time, blks_hit))\n        + delta(counter_agg(time, blks_read)),\n          0\n        ) * 100.0 AS cache_hit_ratio\nFROM (\n    SELECT\n        time_bucket(INTERVAL '$__interval', time) AS bucket,\n        time,\n        blks_hit,\n        blks_read\n    FROM pganalyze.database_stats\n    WHERE $__timeFilter(time)\n) sub\nGROUP BY bucket\nORDER BY bucket;\n",
                         "sql": {
                           "columns": [
                             {
@@ -1437,7 +1437,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "WITH statement_rates AS (\n    SELECT\n        time_bucket(INTERVAL '$__interval', time) AS bucket,\n        queryid,\n        rate(counter_agg(time, total_exec_time)) AS exec_time_rate,\n        rate(counter_agg(time, calls)) AS calls_rate\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(time)\n    GROUP BY 1, queryid\n)\n\nSELECT\n    bucket AS time,\n    SUM(calls_rate) AS \"Calls/sec (QPS)\",\n    SUM(exec_time_rate) / 1000.0 AS \"Query duration (sec/sec)\"\nFROM statement_rates\nGROUP BY bucket\n",
+                        "rawSql": "WITH statement_rates AS (\n    SELECT\n        time_bucket(INTERVAL '$__interval', time) AS bucket,\n        queryid,\n        userid,\n        rate(counter_agg(time, total_exec_time)) AS exec_time_rate,\n        rate(counter_agg(time, calls)) AS calls_rate\n    FROM pganalyze.stat_statements\n    WHERE $__timeFilter(time)\n    -- the same queryid run by different users is a separate counter\n    GROUP BY 1, queryid, userid\n)\n\nSELECT\n    bucket AS time,\n    SUM(calls_rate) AS \"Calls/sec (QPS)\",\n    SUM(exec_time_rate) / 1000.0 AS \"Query duration (sec/sec)\"\nFROM statement_rates\nGROUP BY bucket\n",
                         "sql": {
                           "columns": [
                             {
@@ -1574,7 +1574,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  (\n    last(value, time) FILTER (\n      WHERE\n        metric = 'node_load15'\n    ) / NULLIF($cpu_count, 0)\n  ) * 100 AS \"CPU (total $cpu_count)\",\n  (\n    (\n      last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_MemTotal_bytes'\n      ) - last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_MemFree_bytes'\n      ) - last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_Buffers_bytes'\n      ) - last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_Cached_bytes'\n      ) - last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_SReclaimable_bytes'\n      )\n    ) / NULLIF(\n      last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_MemTotal_bytes'\n      ),\n      0\n    )\n  ) * 100 AS \"RAM\"\nFROM\n  pganalyze.sys_stats\nWHERE\n  metric IN (\n    'node_load15',\n    'node_memory_MemTotal_bytes',\n    'node_memory_MemFree_bytes',\n    'node_memory_Buffers_bytes',\n    'node_memory_Cached_bytes',\n    'node_memory_SReclaimable_bytes'\n  )",
+                        "rawSql": "SELECT\n  (\n    last(value, time) FILTER (\n      WHERE\n        metric = 'node_load15'\n    ) / NULLIF($cpu_count, 0)\n  ) * 100 AS \"CPU (total $cpu_count)\",\n  (\n    (\n      last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_MemTotal_bytes'\n      ) - last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_MemFree_bytes'\n      ) - last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_Buffers_bytes'\n      ) - last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_Cached_bytes'\n      ) - last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_SReclaimable_bytes'\n      )\n    ) / NULLIF(\n      last(value, time) FILTER (\n        WHERE\n          metric = 'node_memory_MemTotal_bytes'\n      ),\n      0\n    )\n  ) * 100 AS \"RAM\"\nFROM\n  pganalyze.sys_stats\nWHERE\n  metric IN (\n    'node_load15',\n    'node_memory_MemTotal_bytes',\n    'node_memory_MemFree_bytes',\n    'node_memory_Buffers_bytes',\n    'node_memory_Cached_bytes',\n    'node_memory_SReclaimable_bytes'\n  )\n  -- host stats are collected every 15s\n  AND time > now() - INTERVAL '10 minutes'",
                         "sql": {
                           "columns": [
                             {
@@ -1678,7 +1678,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH user_hypertables AS (\n    SELECT hypertable_schema,\n           hypertable_name\n    FROM timescaledb_information.hypertables\n    WHERE hypertable_schema NOT LIKE '_timescale%'\n),\nall_chunks AS (\n    SELECT\n        c.hypertable_schema,\n        c.hypertable_name,\n        ch.chunk_name,\n        ch.is_compressed\n    FROM user_hypertables c\n    JOIN timescaledb_information.chunks ch\n      ON ch.hypertable_name = c.hypertable_name\n     AND ch.hypertable_schema = c.hypertable_schema\n),\nchunk_sizes AS (\n    SELECT\n        ac.is_compressed,\n        cds.total_bytes\n    FROM all_chunks ac\n    JOIN LATERAL chunks_detailed_size(ac.hypertable_schema || '.' || ac.hypertable_name) cds\n       ON cds.chunk_name = ac.chunk_name\n)\nSELECT\n    SUM(CASE WHEN is_compressed = false THEN total_bytes ELSE 0 END) AS \"Rowstore\",\n    SUM(CASE WHEN is_compressed = true THEN total_bytes ELSE 0 END) AS \"Columnstore\",\n    SUM(total_bytes) AS \"Storage used\"\nFROM chunk_sizes;\n",
+                        "rawSql": "-- chunks_detailed_size() is called once per hypertable, not once per chunk\nWITH chunk_sizes AS MATERIALIZED (\n    SELECT\n        cds.chunk_schema,\n        cds.chunk_name,\n        cds.total_bytes\n    FROM timescaledb_information.hypertables h\n    CROSS JOIN LATERAL chunks_detailed_size(\n        format('%I.%I', h.hypertable_schema, h.hypertable_name)::regclass\n    ) cds\n    WHERE h.hypertable_schema NOT LIKE '_timescale%'\n)\nSELECT\n    SUM(CASE WHEN ch.is_compressed = false THEN cs.total_bytes ELSE 0 END) AS \"Rowstore\",\n    SUM(CASE WHEN ch.is_compressed = true THEN cs.total_bytes ELSE 0 END) AS \"Columnstore\",\n    SUM(cs.total_bytes) AS \"Storage used\"\nFROM chunk_sizes cs\nJOIN timescaledb_information.chunks ch\n  ON ch.chunk_schema = cs.chunk_schema\n AND ch.chunk_name = cs.chunk_name;\n",
                         "sql": {
                           "columns": [
                             {
@@ -1883,7 +1883,7 @@
         "spec": {
           "id": 43,
           "title": "WAL size for all DBs",
-          "description": "",
+          "description": "Size of the pg_wal directory, which holds the WAL of all databases on the server.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1900,7 +1900,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n  collected_at AS time,\n  pg_wal_lsn_diff(\n    wal_lsn,\n    LAG(wal_lsn) OVER (ORDER BY collected_at)\n  ) AS wal_bytes\nFROM pganalyze.database_stats\nWHERE $__timeFilter(collected_at)\n",
+                        "rawSql": "-- pg_wal is shared by all databases; sys_stats is collected in tem only (default datasource)\nSELECT\n  time AS time,\n  value AS wal_bytes\nFROM pganalyze.sys_stats\nWHERE metric = 'postgres_wal_size_bytes'\n  AND $__timeFilter(time)\nORDER BY time",
                         "sql": {
                           "columns": [
                             {

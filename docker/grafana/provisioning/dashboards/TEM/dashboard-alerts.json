@@ -113,7 +113,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH family_param AS (\n    SELECT param_id, enum_id\n    FROM parameters\n    WHERE instrument_id = $instrument\n      AND param_name = 'ProductFamily'\n),\n\nserial_param AS (\n    SELECT param_id\n    FROM parameters\n    WHERE instrument_id = $instrument\n      AND param_name = 'SerialNumber'\n),\n\nlatest_product_family AS (\n    SELECT e.member_name AS product_family\n    FROM data d\n    JOIN family_param p\n      ON d.param_id = p.param_id\n     AND d.instrument_id = $instrument\n     AND d.value_num > 0\n     AND d.time > now() - interval '365 days'\n    JOIN enum_values e\n      ON e.enum_id = p.enum_id\n     AND e.value = d.value_num\n    ORDER BY d.time DESC\n    LIMIT 1\n),\n\nlatest_serial AS (\n    SELECT d.value_num AS serial\n    FROM data d\n    JOIN serial_param sp\n      ON d.param_id = sp.param_id\n    WHERE d.instrument_id = $instrument\n      AND d.value_num > 0\n      AND d.time > now() - interval '365 days'\n    ORDER BY d.time DESC\n    LIMIT 1\n),\n\ninstrument_times AS (\n    SELECT\n        (SELECT time FROM data WHERE instrument_id = $instrument ORDER BY time ASC LIMIT 1) AS oldest_data,\n        (SELECT time FROM data WHERE instrument_id = $instrument ORDER BY time DESC LIMIT 1) AS latest_data\n)\n\nSELECT i.name AS \"Name\",\n       ls.serial AS \"Serial\",\n       i.serial AS \"D-number\",\n       i.model AS \"Model\",\n       lpf.product_family AS \"Product family\",\n       i.server AS \"Server IP\",\n       i.ds_version AS \"Data services\",\n       it.oldest_data AS \"Oldest data\",\n       it.latest_data AS \"Latest data\" \nFROM instruments i \nLEFT JOIN latest_product_family lpf ON TRUE\nLEFT JOIN latest_serial ls ON TRUE\nLEFT JOIN instrument_times it ON TRUE\nWHERE i.id = $instrument;\n",
+                        "rawSql": "WITH family_param AS (\n    SELECT param_id, enum_id\n    FROM parameters\n    WHERE instrument_id = $instrument\n      AND param_name = 'ProductFamily'\n),\n\nserial_param AS (\n    SELECT param_id\n    FROM parameters\n    WHERE instrument_id = $instrument\n      AND param_name = 'SerialNumber'\n),\n\nlatest_product_family AS (\n    SELECT e.member_name AS product_family\n    FROM data d\n    JOIN family_param p\n      ON d.param_id = p.param_id\n     AND d.instrument_id = $instrument\n     AND d.value_num > 0\n     AND d.time > now() - interval '365 days'\n    JOIN enum_values e\n      ON e.enum_id = p.enum_id\n     AND e.value = d.value_num\n    ORDER BY d.time DESC\n    LIMIT 1\n),\n\nlatest_serial AS (\n    SELECT d.value_num AS serial\n    FROM\n      serial_param sp\n      CROSS JOIN LATERAL (\n        SELECT\n          d.*\n        FROM\n          data d\n        WHERE\n          d.param_id = sp.param_id\n          AND d.instrument_id = $instrument\n          AND d.value_num > 0\n          AND d.time > now() - interval '365 days'\n        OFFSET 0\n      ) d\nORDER BY d.time DESC\n    LIMIT 1\n),\n\ninstrument_times AS (\n    SELECT\n        (SELECT time FROM data WHERE instrument_id = $instrument ORDER BY time ASC LIMIT 1) AS oldest_data,\n        (SELECT time FROM data WHERE instrument_id = $instrument ORDER BY time DESC LIMIT 1) AS latest_data\n)\n\nSELECT i.name AS \"Name\",\n       ls.serial AS \"Serial\",\n       i.serial AS \"D-number\",\n       i.model AS \"Model\",\n       lpf.product_family AS \"Product family\",\n       i.server AS \"Server IP\",\n       i.ds_version AS \"Data services\",\n       it.oldest_data AS \"Oldest data\",\n       it.latest_data AS \"Latest data\" \nFROM instruments i \nLEFT JOIN latest_product_family lpf ON TRUE\nLEFT JOIN latest_serial ls ON TRUE\nLEFT JOIN instrument_times it ON TRUE\nWHERE i.id = $instrument;\n",
                         "sql": {
                           "columns": [
                             {
@@ -250,7 +250,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH target_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument AND param_id = $param_id_feg\n)\n\n\nSELECT\n  'FEG' AS name,\n  ev.member_name AS value_num,\n  d.time\nFROM\n  data d\nJOIN target_param tp ON tp.param_id = d.param_id\nJOIN enum_values ev ON ev.enum_id = tp.enum_id\nWHERE\n  d.instrument_id = $instrument\n  AND d.param_id = $param_id_feg\n  AND d.value_num = ev.value\nORDER BY\n  d.time DESC\nLIMIT\n  1",
+                        "rawSql": "WITH target_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument AND param_id = $param_id_feg\n)\n\n\nSELECT\n  'FEG' AS name,\n  ev.member_name AS value_num,\n  d.time\nFROM\n  target_param tp\n  CROSS JOIN LATERAL (\n    SELECT\n      d.*\n    FROM\n      data d\n    WHERE\n      d.param_id = tp.param_id\n      AND d.instrument_id = $instrument\n      AND d.param_id = $param_id_feg\n    OFFSET 0\n  ) d\nJOIN enum_values ev ON ev.enum_id = tp.enum_id\nWHERE\n  d.value_num = ev.value\nORDER BY\n  d.time DESC\nLIMIT\n  1",
                         "sql": {
                           "columns": [
                             {
@@ -288,7 +288,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH target_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument AND param_id = $param_id_ht\n)\n\n\nSELECT\n  'HT' AS name,\n  ev.member_name AS value_num,\n  d.time\nFROM\n  data d\nJOIN target_param tp ON tp.param_id = d.param_id\nJOIN enum_values ev ON ev.enum_id = tp.enum_id\nWHERE\n  d.instrument_id = $instrument\n  AND d.param_id = $param_id_ht\n  AND d.value_num = ev.value\nORDER BY\n  d.time DESC\nLIMIT\n  1",
+                        "rawSql": "WITH target_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument AND param_id = $param_id_ht\n)\n\n\nSELECT\n  'HT' AS name,\n  ev.member_name AS value_num,\n  d.time\nFROM\n  target_param tp\n  CROSS JOIN LATERAL (\n    SELECT\n      d.*\n    FROM\n      data d\n    WHERE\n      d.param_id = tp.param_id\n      AND d.instrument_id = $instrument\n      AND d.param_id = $param_id_ht\n    OFFSET 0\n  ) d\nJOIN enum_values ev ON ev.enum_id = tp.enum_id\nWHERE\n  d.value_num = ev.value\nORDER BY\n  d.time DESC\nLIMIT\n  1",
                         "sql": {
                           "columns": [
                             {
@@ -326,7 +326,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH target_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument AND param_id IN ($param_id_stage)\n)\n\n\nSELECT\n  'Stage' AS name,\n  ev.member_name AS value_num,\n  d.time\nFROM\n  data d\nJOIN target_param tp ON tp.param_id = d.param_id\nJOIN enum_values ev ON ev.enum_id = tp.enum_id\nWHERE\n  d.instrument_id = $instrument\n  AND d.param_id IN ($param_id_stage)\n  AND d.value_num = ev.value\nORDER BY\n  d.time DESC\nLIMIT\n  1",
+                        "rawSql": "WITH target_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument AND param_id IN ($param_id_stage)\n)\n\n\nSELECT\n  'Stage' AS name,\n  ev.member_name AS value_num,\n  d.time\nFROM\n  target_param tp\n  CROSS JOIN LATERAL (\n    SELECT\n      d.*\n    FROM\n      data d\n    WHERE\n      d.param_id = tp.param_id\n      AND d.instrument_id = $instrument\n      AND d.param_id IN ($param_id_stage)\n    OFFSET 0\n  ) d\nJOIN enum_values ev ON ev.enum_id = tp.enum_id\nWHERE\n  d.value_num = ev.value\nORDER BY\n  d.time DESC\nLIMIT\n  1",
                         "sql": {
                           "columns": [
                             {
@@ -364,7 +364,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH target_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument AND param_id = $param_id_optics\n)\n\n\nSELECT\n  'Optics' AS name,\n  ev.member_name AS value_num,\n  d.time\nFROM\n  data d\nJOIN target_param tp ON tp.param_id = d.param_id\nJOIN enum_values ev ON ev.enum_id = tp.enum_id\nWHERE\n  d.instrument_id = $instrument\n  AND d.param_id = $param_id_optics\n  AND d.value_num = ev.value\nORDER BY\n  d.time DESC\nLIMIT\n  1",
+                        "rawSql": "WITH target_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument AND param_id = $param_id_optics\n)\n\n\nSELECT\n  'Optics' AS name,\n  ev.member_name AS value_num,\n  d.time\nFROM\n  target_param tp\n  CROSS JOIN LATERAL (\n    SELECT\n      d.*\n    FROM\n      data d\n    WHERE\n      d.param_id = tp.param_id\n      AND d.instrument_id = $instrument\n      AND d.param_id = $param_id_optics\n    OFFSET 0\n  ) d\nJOIN enum_values ev ON ev.enum_id = tp.enum_id\nWHERE\n  d.value_num = ev.value\nORDER BY\n  d.time DESC\nLIMIT\n  1",
                         "sql": {
                           "columns": [
                             {
@@ -402,7 +402,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH target_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument AND param_id = $param_id_autoloader\n)\n\n\nSELECT\n  'Autoloader' AS name,\n  ev.member_name AS value_num,\n  d.time\nFROM\n  data d\nJOIN target_param tp ON tp.param_id = d.param_id\nJOIN enum_values ev ON ev.enum_id = tp.enum_id\nWHERE\n  d.instrument_id = $instrument\n  AND d.param_id = $param_id_autoloader\n  AND d.value_num = ev.value\nORDER BY\n  d.time DESC\nLIMIT\n  1",
+                        "rawSql": "WITH target_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument AND param_id = $param_id_autoloader\n)\n\n\nSELECT\n  'Autoloader' AS name,\n  ev.member_name AS value_num,\n  d.time\nFROM\n  target_param tp\n  CROSS JOIN LATERAL (\n    SELECT\n      d.*\n    FROM\n      data d\n    WHERE\n      d.param_id = tp.param_id\n      AND d.instrument_id = $instrument\n      AND d.param_id = $param_id_autoloader\n    OFFSET 0\n  ) d\nJOIN enum_values ev ON ev.enum_id = tp.enum_id\nWHERE\n  d.value_num = ev.value\nORDER BY\n  d.time DESC\nLIMIT\n  1",
                         "sql": {
                           "columns": [
                             {
@@ -440,7 +440,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH target_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument AND param_id = $param_id_tempctrl\n)\n\n\nSELECT\n  'Temperature' AS name,\n  ev.member_name AS value_num,\n  d.time\nFROM\n  data d\nJOIN target_param tp ON tp.param_id = d.param_id\nJOIN enum_values ev ON ev.enum_id = tp.enum_id\nWHERE\n  d.instrument_id = $instrument\n  AND d.param_id = $param_id_tempctrl\n  AND d.value_num = ev.value\nORDER BY\n  d.time DESC\nLIMIT\n  1",
+                        "rawSql": "WITH target_param AS (\n  SELECT param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument AND param_id = $param_id_tempctrl\n)\n\n\nSELECT\n  'Temperature' AS name,\n  ev.member_name AS value_num,\n  d.time\nFROM\n  target_param tp\n  CROSS JOIN LATERAL (\n    SELECT\n      d.*\n    FROM\n      data d\n    WHERE\n      d.param_id = tp.param_id\n      AND d.instrument_id = $instrument\n      AND d.param_id = $param_id_tempctrl\n    OFFSET 0\n  ) d\nJOIN enum_values ev ON ev.enum_id = tp.enum_id\nWHERE\n  d.value_num = ev.value\nORDER BY\n  d.time DESC\nLIMIT\n  1",
                         "sql": {
                           "columns": [
                             {
@@ -516,7 +516,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH target_params AS (\n  SELECT component, param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Availability'\n    AND display_name IN ('Camera availability', 'Availability')\n),\nlatest_data AS (\n  SELECT DISTINCT ON (param_id) *\n  FROM data\n  WHERE instrument_id = $instrument\n    AND param_id IN (SELECT param_id FROM target_params)\n  ORDER BY param_id, time DESC\n)\nSELECT\n  'Detector: ' || tp.component AS name,\n  ev.member_name AS value_num,\n  ld.time\nFROM target_params tp\nJOIN latest_data ld\n  ON ld.param_id = tp.param_id\nJOIN enum_values ev\n  ON ev.enum_id = tp.enum_id\n  AND ld.value_num = ev.value\nORDER BY ld.time DESC;\n",
+                        "rawSql": "WITH target_params AS (\n  SELECT component, param_id, enum_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Availability'\n    AND display_name IN ('Camera availability', 'Availability')\n),\nlatest_data AS (\n  SELECT ld.*\n  FROM target_params tp\n  CROSS JOIN LATERAL (\n    SELECT *\n    FROM data\n    WHERE instrument_id = $instrument\n      AND param_id = tp.param_id\n    ORDER BY time DESC\n    LIMIT 1\n  ) ld\n)\nSELECT\n  'Detector: ' || tp.component AS name,\n  ev.member_name AS value_num,\n  ld.time\nFROM target_params tp\nJOIN latest_data ld\n  ON ld.param_id = tp.param_id\nJOIN enum_values ev\n  ON ev.enum_id = tp.enum_id\n  AND ld.value_num = ev.value\nORDER BY ld.time DESC;\n",
                         "sql": {
                           "columns": [
                             {
@@ -950,12 +950,12 @@
               "name": "${sourceTEM}"
             },
             "spec": {
-              "__legacyStringValue": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name IN ('Status', 'CompuStageStatus', 'StageState')\n    AND subsystem IN ('Compustage', 'MdlSmc')"
+              "__legacyStringValue": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name IN ('Status', 'CompuStageStatus', 'StageState')\n    AND subsystem IN ('Compustage', 'MdlSmc')\n    AND is_active"
             }
           },
           "regex": "",
           "sort": "disabled",
-          "definition": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name IN ('Status', 'CompuStageStatus', 'StageState')\n    AND subsystem IN ('Compustage', 'MdlSmc')",
+          "definition": "  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name IN ('Status', 'CompuStageStatus', 'StageState')\n    AND subsystem IN ('Compustage', 'MdlSmc')\n    AND is_active",
           "options": [],
           "multi": false,
           "includeAll": false,

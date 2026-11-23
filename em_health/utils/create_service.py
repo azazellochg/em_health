@@ -28,8 +28,6 @@ import os
 import sys
 from pathlib import Path
 
-from em_health.utils.tools import logger
-
 
 def main(script_fn: str,
          service_name: str,
@@ -47,7 +45,7 @@ def main(script_fn: str,
     project_dir = script_path.parents[2]
     env_file = project_dir / "docker" / ".env"
     script = script_path.parent / script_fn
-    python_path = Path(sys.executable).resolve()
+    python_path = Path(sys.executable)
     systemd_dir = Path.home() / ".config" / "systemd" / "user"
     service_file = systemd_dir / f"{service_name}.service"
     kwargs = {k: v for k, v in kwargs.items() if v is not None}  # unset options are left out
@@ -81,8 +79,5 @@ WantedBy=default.target
     with open(service_file, "w") as f:
         f.write(content)
 
-    logger.info("Created file: %s\n"
-                "Run:\n\tsystemctl --user daemon-reload\n"
-                "\tsystemctl --user enable --now %s",
-                os.path.abspath(service_file),
-                f"{service_name}.service")
+    print(f"Created file: {os.path.abspath(service_file)}\n"
+          f"Run:\n\tsystemctl --user daemon-reload\n\tsystemctl --user enable --now {service_name}.service")
