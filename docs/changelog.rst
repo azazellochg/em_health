@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 0.1a13
+^^^^^^^^^^^^^^
+
+* updated Docker image 835 -> 527 Mb, extensions built in parallel stages
+
 Version 0.1a12
 ^^^^^^^^^^^^^^
 

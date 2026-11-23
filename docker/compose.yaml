@@ -4,7 +4,7 @@ services:
   timescaledb:
     # Image version (independent of the Python package version). Bump it whenever
     # docker/Dockerfile changes; CI publishes the image under this tag.
-    image: ghcr.io/azazellochg/timescaledb:0.1a11
+    image: ghcr.io/azazellochg/timescaledb:12
     container_name: emhealth-db
     restart: unless-stopped
     shm_size: 1gb
@@ -67,7 +67,7 @@ services:
       - emhealth-net
 
   renderer:
-    image: docker.io/grafana/grafana-image-renderer:v5.12.5@sha256:76542ccc4c045e5ff9f80f87b25de6fcc71b31222172de5031a8ceba33772ee1
+    image: docker.io/grafana/grafana-image-renderer:v5.12.11@sha256:e0c9a01cf23ffe3e0786c17bc3ae4fddfd688dfd5573c4e54ab928eead0627e6
     container_name: emhealth-renderer
     restart: unless-stopped
     shm_size: 2gb
@@ -80,7 +80,7 @@ services:
       - emhealth-net
 
   grafana:
-    image: docker.io/grafana/grafana:13.2-slim@sha256:b6b738cd706a1b23190e60546425cb624150d8e015a41ee67a1a4b155457278d
+    image: docker.io/grafana/grafana:13.3.1-slim@sha256:f4a05fb420ec25efa0faaa36a9cdfdad9d9505f4c3a8e600467d0a68a3329c71
     container_name: emhealth-grafana
     restart: unless-stopped
     shm_size: 128mb
