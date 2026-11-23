@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "4395e67b-0280-47fd-94a8-644503f10800",
-    "generation": 1,
-    "creationTimestamp": "2026-07-09T09:04:12Z",
+    "generation": 3,
+    "creationTimestamp": "2026-11-17T16:11:50Z",
     "labels": {},
     "annotations": {}
   },
@@ -70,6 +70,10 @@
                 ],
                 "limit": 50
               }
+            },
+            "labels": {
+              "grafana.app/export-label": "grafana-postgresql-datasource-1",
+              "grafana.app/export-datasource-name": "${sourceSEM}"
             }
           },
           "enable": true,
@@ -132,6 +136,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -398,6 +406,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -664,6 +676,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "PPal pressure",
@@ -802,6 +818,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -942,6 +962,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -1041,6 +1065,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -1197,6 +1225,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -1341,6 +1373,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -1462,6 +1498,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "B",
@@ -1617,6 +1657,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -1772,6 +1816,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -2203,6 +2251,10 @@
             },
             "spec": {
               "__legacyStringValue": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nWHERE is_active IS TRUE\nORDER BY name;\n"
+            },
+            "labels": {
+              "grafana.app/export-label": "grafana-postgresql-datasource-1",
+              "grafana.app/export-datasource-name": "${sourceSEM}"
             }
           },
           "regex": "",

@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "4395e67b-0330-47fd-94a8-6796b3f44893",
-    "generation": 1,
-    "creationTimestamp": "2026-07-09T09:04:12Z",
+    "generation": 3,
+    "creationTimestamp": "2026-11-17T16:11:51Z",
     "labels": {},
     "annotations": {}
   },
@@ -136,6 +136,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "A",
@@ -235,6 +239,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "SEM server",
@@ -273,6 +281,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "Water",
@@ -311,6 +323,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "Air",
@@ -349,6 +365,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "Detectors",
@@ -387,6 +407,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "Stage",
@@ -425,6 +449,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "E-column",
@@ -463,6 +491,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "I-column",
@@ -501,6 +533,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "Vacuum",
@@ -539,6 +575,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
                       }
                     },
                     "refId": "Ins",
@@ -832,6 +872,10 @@
             },
             "spec": {
               "__legacyStringValue": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nWHERE is_active IS TRUE\nORDER BY name;\n"
+            },
+            "labels": {
+              "grafana.app/export-label": "grafana-postgresql-datasource-1",
+              "grafana.app/export-datasource-name": "${sourceSEM}"
             }
           },
           "regex": "",
@@ -863,6 +907,10 @@
             },
             "spec": {
               "__legacyStringValue": "  SELECT COALESCE((\nSELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Console.Compressed_Air'\n    AND component = 'SystemStatus'\n), 0)"
+            },
+            "labels": {
+              "grafana.app/export-label": "grafana-postgresql-datasource-1",
+              "grafana.app/export-datasource-name": "${sourceSEM}"
             }
           },
           "regex": "",
@@ -894,6 +942,10 @@
             },
             "spec": {
               "__legacyStringValue": "SELECT COALESCE((\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Value'\n    AND component = 'Server'\n), 0)"
+            },
+            "labels": {
+              "grafana.app/export-label": "grafana-postgresql-datasource-1",
+              "grafana.app/export-datasource-name": "${sourceSEM}"
             }
           },
           "regex": "",
@@ -925,6 +977,10 @@
             },
             "spec": {
               "__legacyStringValue": "SELECT COALESCE((\n  SELECT\n  param_id\nFROM\n  parameters\nWHERE\n  instrument_id = $instrument\n  AND param_name = 'Console.Cooling_Water'\n      AND component = 'SystemStatus'\n), 0)"
+            },
+            "labels": {
+              "grafana.app/export-label": "grafana-postgresql-datasource-1",
+              "grafana.app/export-datasource-name": "${sourceSEM}"
             }
           },
           "regex": "",
@@ -956,6 +1012,10 @@
             },
             "spec": {
               "__legacyStringValue": "SELECT COALESCE((\n  SELECT param_id\n  FROM parameters\n  WHERE instrument_id = $instrument\n    AND param_name = 'Vacuum.Vacuum Board'\nAND component = 'SystemStatus'\n), 0)"
+            },
+            "labels": {
+              "grafana.app/export-label": "grafana-postgresql-datasource-1",
+              "grafana.app/export-datasource-name": "${sourceSEM}"
             }
           },
           "regex": "",
