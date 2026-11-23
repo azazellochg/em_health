@@ -77,8 +77,6 @@ class DatabaseManager(PgClient):
             values=(Jsonb(instr_dict), config_hash, Jsonb(config_dict)),
             mode="fetchone")[0]
 
-        logger.info("Instrument imported", extra={"prefix": self.instrument_name})
-
         return instrument_id
 
     def add_thresholds(self,

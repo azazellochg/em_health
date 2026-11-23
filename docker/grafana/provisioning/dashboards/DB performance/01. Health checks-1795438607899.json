@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "ee46bdfb-c046-42b1-b547-23990e2ec0f3",
-    "generation": 3,
-    "creationTimestamp": "2026-10-29T14:54:53Z",
+    "generation": 5,
+    "creationTimestamp": "2026-11-17T16:11:49Z",
     "labels": {},
     "annotations": {}
   },
@@ -520,6 +520,9 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "datasource": {
+                        "name": "${source}"
+                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
@@ -542,9 +545,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "datasource": {
-                        "name": "${source}"
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
@@ -628,6 +628,9 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "datasource": {
+                        "name": "${source}"
+                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
@@ -650,9 +653,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "datasource": {
-                        "name": "${source}"
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
@@ -731,6 +731,9 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "datasource": {
+                        "name": "${source}"
+                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
@@ -753,9 +756,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "datasource": {
-                        "name": "${source}"
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
@@ -831,6 +831,9 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "datasource": {
+                        "name": "${source}"
+                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
@@ -853,9 +856,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "datasource": {
-                        "name": "${source}"
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
@@ -1771,6 +1771,9 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "datasource": {
+                        "name": "${source}"
+                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
@@ -1793,9 +1796,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "datasource": {
-                        "name": "${source}"
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
@@ -2198,6 +2198,9 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "datasource": {
+                        "name": "${source}"
+                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
@@ -2220,9 +2223,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "datasource": {
-                        "name": "${source}"
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
@@ -2306,6 +2306,9 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "datasource": {
+                        "name": "${source}"
+                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
@@ -2328,9 +2331,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "datasource": {
-                        "name": "${source}"
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
@@ -2516,6 +2516,9 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "datasource": {
+                        "name": "${source}"
+                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
@@ -2538,9 +2541,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "datasource": {
-                        "name": "${source}"
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
@@ -2662,6 +2662,9 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "datasource": {
+                        "name": "${source}"
+                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
@@ -2684,9 +2687,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "datasource": {
-                        "name": "${source}"
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
@@ -2769,6 +2769,9 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "datasource": {
+                        "name": "${source}"
+                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
@@ -2791,9 +2794,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "datasource": {
-                        "name": "${source}"
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
@@ -3016,6 +3016,9 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "datasource": {
+                        "name": "${source}"
+                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
@@ -3038,9 +3041,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "datasource": {
-                        "name": "${source}"
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
@@ -3115,6 +3115,9 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "datasource": {
+                        "name": "${source}"
+                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
@@ -3137,9 +3140,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "datasource": {
-                        "name": "${source}"
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
@@ -3362,6 +3362,9 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "datasource": {
+                        "name": "${source}"
+                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
@@ -3384,9 +3387,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "datasource": {
-                        "name": "${source}"
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
@@ -3508,6 +3508,9 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "datasource": {
+                        "name": "${source}"
+                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
@@ -3530,9 +3533,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "datasource": {
-                        "name": "${source}"
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
@@ -3659,6 +3659,9 @@
                       "kind": "DataQuery",
                       "group": "grafana-postgresql-datasource",
                       "version": "v0",
+                      "datasource": {
+                        "name": "${source}"
+                      },
                       "spec": {
                         "editorMode": "code",
                         "format": "table",
@@ -3681,9 +3684,6 @@
                           ],
                           "limit": 50
                         }
-                      },
-                      "datasource": {
-                        "name": "${source}"
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-postgresql-datasource-1",
@@ -4654,14 +4654,15 @@
               "infinityQuery": {
                 "columns": [],
                 "data": "{\n  version: (\"$server_major\" + \".\" + \"$server_minor\"),\n  major_latest: .current,\n  minor_latest: (.latestMinor == (\"$server_minor\" | tonumber))\n}",
-                "filterExpression": "latestMinor == \"$server_minor\"",
+                "filterExpression": "major == \"$server_major\"",
                 "filters": [],
                 "format": "table",
                 "parser": "backend",
                 "refId": "",
                 "root_selector": "",
                 "source": "url",
-                "summarizeExpression": "max(latestMinor)",
+                "summarizeBy": "",
+                "summarizeExpression": "max(latestminor)",
                 "type": "json",
                 "url": "https://www.postgresql.org/versions.json",
                 "url_options": {
