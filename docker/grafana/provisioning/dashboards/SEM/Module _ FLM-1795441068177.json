@@ -427,7 +427,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH state_agg AS (\n  SELECT\n    p.enum_id,\n    toolkit_experimental.compact_state_agg(\n        d.time,\n        d.value_num::bigint\n    ) AS agg\n  FROM data d\n  JOIN parameters p USING (instrument_id, param_id)\n  WHERE d.instrument_id = $instrument \n    AND p.param_name = 'FilterSwitcherFilterType'\n    AND p.subsystem = 'FLM'\n    AND $__timeFilter(d.time)\n  GROUP BY p.enum_id\n)\n\nSELECT\n  ev.member_name AS state,\n  EXTRACT(EPOCH FROM s.duration) AS duration\nFROM state_agg sa\nCROSS JOIN LATERAL toolkit_experimental.into_int_values(sa.agg) s\nJOIN enum_values ev\n  ON ev.enum_id = sa.enum_id\n AND ev.value = s.state\nORDER BY ev.member_name",
+                        "rawSql": "WITH state_agg AS (\n  SELECT\n    p.enum_id,\n    state_agg(\n        d.time,\n        d.value_num::bigint\n    ) AS agg\n  FROM data d\n  JOIN parameters p USING (instrument_id, param_id)\n  WHERE d.instrument_id = $instrument \n    AND p.param_name = 'FilterSwitcherFilterType'\n    AND p.subsystem = 'FLM'\n    AND $__timeFilter(d.time)\n  GROUP BY p.enum_id\n)\n\nSELECT\n  ev.member_name AS state,\n  EXTRACT(EPOCH FROM s.duration) AS duration\nFROM state_agg sa\nCROSS JOIN LATERAL into_int_values(sa.agg) s\nJOIN enum_values ev\n  ON ev.enum_id = sa.enum_id\n AND ev.value = s.state\nORDER BY ev.member_name",
                         "sql": {
                           "columns": [
                             {
@@ -534,7 +534,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH state_agg AS (\n  SELECT\n    p.enum_id,\n    toolkit_experimental.compact_state_agg(\n        d.time,\n        d.value_num::bigint\n    ) AS agg\n  FROM data d\n  JOIN parameters p USING (instrument_id, param_id)\n  WHERE d.instrument_id = $instrument \n    AND p.param_name = 'LightSourceLEDColor'\n    AND p.subsystem = 'FLM'\n    AND $__timeFilter(d.time)\n  GROUP BY p.enum_id\n)\n\nSELECT\n  ev.member_name AS state,\n  EXTRACT(EPOCH FROM s.duration) AS duration\nFROM state_agg sa\nCROSS JOIN LATERAL toolkit_experimental.into_int_values(sa.agg) s\nJOIN enum_values ev\n  ON ev.enum_id = sa.enum_id\n AND ev.value = s.state\nORDER BY ev.member_name",
+                        "rawSql": "WITH state_agg AS (\n  SELECT\n    p.enum_id,\n    state_agg(\n        d.time,\n        d.value_num::bigint\n    ) AS agg\n  FROM data d\n  JOIN parameters p USING (instrument_id, param_id)\n  WHERE d.instrument_id = $instrument \n    AND p.param_name = 'LightSourceLEDColor'\n    AND p.subsystem = 'FLM'\n    AND $__timeFilter(d.time)\n  GROUP BY p.enum_id\n)\n\nSELECT\n  ev.member_name AS state,\n  EXTRACT(EPOCH FROM s.duration) AS duration\nFROM state_agg sa\nCROSS JOIN LATERAL into_int_values(sa.agg) s\nJOIN enum_values ev\n  ON ev.enum_id = sa.enum_id\n AND ev.value = s.state\nORDER BY ev.member_name",
                         "sql": {
                           "columns": [
                             {

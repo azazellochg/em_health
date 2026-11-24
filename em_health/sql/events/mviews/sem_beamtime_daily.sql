@@ -79,7 +79,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS events.sem_beamtime_daily AS
         instrument_id,
         day,
         'ebeam' AS state,
-        toolkit_experimental.interpolated_duration_in(
+        interpolated_duration_in(
           agg, 0, day, LEAST(INTERVAL '1 day', now() - day),
           LAG(agg) OVER (PARTITION BY instrument_id ORDER BY day)
         ) AS total_duration -- state where value = 0 (unblanked)
@@ -92,7 +92,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS events.sem_beamtime_daily AS
         instrument_id,
         day,
         'ibeam' AS state,
-        toolkit_experimental.interpolated_duration_in(
+        interpolated_duration_in(
           agg, 0, day, LEAST(INTERVAL '1 day', now() - day),
           LAG(agg) OVER (PARTITION BY instrument_id ORDER BY day)
         ) AS total_duration -- state where value = 0 (unblanked)
@@ -105,7 +105,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS events.sem_beamtime_daily AS
         instrument_id,
         day,
         'flm' AS state,
-        toolkit_experimental.interpolated_duration_in(
+        interpolated_duration_in(
           agg, 1, day, LEAST(INTERVAL '1 day', now() - day),
           LAG(agg) OVER (PARTITION BY instrument_id ORDER BY day)
         ) AS total_duration -- boolean = 1 where value = Running
@@ -118,7 +118,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS events.sem_beamtime_daily AS
         instrument_id,
         day,
         'chamber' AS state,
-        toolkit_experimental.interpolated_duration_in(
+        interpolated_duration_in(
           agg, 1, day, LEAST(INTERVAL '1 day', now() - day),
           LAG(agg) OVER (PARTITION BY instrument_id ORDER BY day)
         ) AS total_duration -- boolean = 1 where value != Pumped

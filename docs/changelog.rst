@@ -5,6 +5,7 @@ Version 0.1a13
 ^^^^^^^^^^^^^^
 
 * updated Docker image 835 -> 527 Mb, extensions built in parallel stages
+* replace toolkit_experimental funcs due to all dependent views being dropped when toolkit extension is updated
 
 Version 0.1a12
 ^^^^^^^^^^^^^^

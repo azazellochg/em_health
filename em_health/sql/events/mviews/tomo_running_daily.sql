@@ -32,8 +32,8 @@ CREATE MATERIALIZED VIEW tomo_running_daily AS
   SELECT
     instrument_id,
     time,
-    toolkit_experimental.interpolated_duration_in(agg, se.running_value, time, '1 day',
-                                                  LAG(agg) OVER ( PARTITION BY instrument_id ORDER BY time )) AS running_duration
+    interpolated_duration_in(agg, se.running_value, time, '1 day',
+                             LAG(agg) OVER ( PARTITION BY instrument_id ORDER BY time )) AS running_duration
   FROM
     events.tomo_state_daily
     JOIN state_enum se

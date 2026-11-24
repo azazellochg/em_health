@@ -50,9 +50,9 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS events.epu_runs AS
                          state,
                          duration
                        FROM
-                         toolkit_experimental.into_int_values((
+                         into_int_values((
                            SELECT
-                             toolkit_experimental.compact_state_agg(d.time, d.value_num::BIGINT)
+                             state_agg(d.time, d.value_num::BIGINT)
                            FROM
                              events.data d
                            WHERE
