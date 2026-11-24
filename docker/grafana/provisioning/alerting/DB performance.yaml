@@ -369,7 +369,7 @@ groups:
       interval: 1d
       rules:
         - uid: ffvjs4zz4syyoc
-          title: Inefficient Index Phase
+          title: Inefficient Index Phase (TEM)
           condition: C
           data:
             - refId: A
@@ -1013,7 +1013,7 @@ groups:
           notification_settings:
             receiver: email-contact-point
         - uid: afvjzu44cfapsd
-          title: Unused Indexes
+          title: Unused Indexes (TEM)
           condition: C
           data:
             - refId: A
@@ -1029,33 +1029,53 @@ groups:
                 maxDataPoints: 43200
                 rawQuery: true
                 rawSql: |-
+                    WITH index_usage AS (
+                        SELECT
+                            i.indexrelid,
+                            i.relid,
+                            first(i.scan, i.time) AS first_scan,
+                            last(i.scan, i.time) AS last_scan,
+                            first(i.time, i.time) AS first_time,
+                            last(i.size_bytes, i.time) AS size_bytes
+                        FROM
+                            pganalyze.index_stats i
+                        WHERE
+                            i.time >= now() - INTERVAL '35 days'
+                        GROUP BY
+                            i.indexrelid,
+                            i.relid
+                    )
+
                     SELECT
-                      n.nspname AS "Schema",
-                      t.relname AS "Table",
-                      c.relname AS "Index",
-                      MAX(i.scan) AS "Scans"
+                        format('%I.%I', s.schemaname, s.relname) AS "Table",
+                        s.indexrelname AS "Index"
+
                     FROM
-                      pganalyze.index_stats i
-                      JOIN pg_class c ON c.oid = i.indexrelid
-                      JOIN pg_index ix ON ix.indexrelid = i.indexrelid
-                      JOIN pg_class t ON t.oid = i.relid
-                      JOIN pg_namespace n ON n.oid = t.relnamespace
+                        index_usage u
+                        JOIN pg_stat_user_indexes s
+                            USING (indexrelid)
+                        JOIN pg_index x
+                            USING (indexrelid)
+
                     WHERE
-                      i.time >= now() - interval '35 days'
-                      AND NOT ix.indisprimary
-                      AND NOT ix.indisunique
-                      AND n.nspname NOT IN ('pg_catalog', 'information_schema')
-                      AND n.nspname NOT LIKE 'pg_toast%'
-                    GROUP BY
-                      i.indexrelid,
-                      n.nspname,
-                      t.relname,
-                      c.relname
-                    HAVING
-                      MAX(i.size_bytes) >= 32 * 1024
-                      AND MAX(i.scan) = 0
+                        -- Exclude unique, primary-key and constraint indexes
+                        NOT x.indisunique
+                        AND NOT x.indisprimary
+                        AND NOT EXISTS (
+                            SELECT 1
+                            FROM pg_constraint con
+                            WHERE con.conindid = u.indexrelid
+                        )
+                        -- Ignore indexes smaller than 32 kB
+                        AND u.size_bytes >= 32768
+                        -- Require at least 35 days of monitoring
+                        AND u.first_time <= now() - INTERVAL '35 days'
+                        -- No recorded usage during the period
+                        AND u.first_scan = u.last_scan
+
                     ORDER BY
-                      MAX(i.size_bytes) DESC;
+                        "Table",
+                        "Index";
                 refId: A
                 sql:
                     columns:
@@ -1127,7 +1147,7 @@ groups:
                 Detects indexes that are not in use by any queries within the last 35 days and creates an issue with severity "warning", one for each table (or table hierarchy in case of inheritance or partitioning). Resolves once all unused indexes on a table are dropped or start being used. Note that if you have gaps in your collector reporting, this check may miss usage during un-reported periods.
 
                 Ignores small indexes (less than 32kB), primary keys, and unique indexes since they are necessary to enforce constraints.
-            summary: Unused index {{ index $labels "Index" }} on table {{ index $labels "Schema" }}.{{ index $labels "Table" }}
+            summary: Unused index {{ index $labels "Index" }} on table {{ index $labels "Table" }}
           labels:
             module: schema
             severity: warning
@@ -1151,33 +1171,53 @@ groups:
                 maxDataPoints: 43200
                 rawQuery: true
                 rawSql: |-
+                    WITH index_usage AS (
+                        SELECT
+                            i.indexrelid,
+                            i.relid,
+                            first(i.scan, i.time) AS first_scan,
+                            last(i.scan, i.time) AS last_scan,
+                            first(i.time, i.time) AS first_time,
+                            last(i.size_bytes, i.time) AS size_bytes
+                        FROM
+                            pganalyze.index_stats i
+                        WHERE
+                            i.time >= now() - INTERVAL '35 days'
+                        GROUP BY
+                            i.indexrelid,
+                            i.relid
+                    )
+
                     SELECT
-                      n.nspname AS "Schema",
-                      t.relname AS "Table",
-                      c.relname AS "Index",
-                      MAX(i.scan) AS "Scans"
+                        format('%I.%I', s.schemaname, s.relname) AS "Table",
+                        s.indexrelname AS "Index"
+
                     FROM
-                      pganalyze.index_stats i
-                      JOIN pg_class c ON c.oid = i.indexrelid
-                      JOIN pg_index ix ON ix.indexrelid = i.indexrelid
-                      JOIN pg_class t ON t.oid = i.relid
-                      JOIN pg_namespace n ON n.oid = t.relnamespace
+                        index_usage u
+                        JOIN pg_stat_user_indexes s
+                            USING (indexrelid)
+                        JOIN pg_index x
+                            USING (indexrelid)
+
                     WHERE
-                      i.time >= now() - interval '35 days'
-                      AND NOT ix.indisprimary
-                      AND NOT ix.indisunique
-                      AND n.nspname NOT IN ('pg_catalog', 'information_schema')
-                      AND n.nspname NOT LIKE 'pg_toast%'
-                    GROUP BY
-                      i.indexrelid,
-                      n.nspname,
-                      t.relname,
-                      c.relname
-                    HAVING
-                      MAX(i.size_bytes) >= 32 * 1024
-                      AND MAX(i.scan) = 0
+                        -- Exclude unique, primary-key and constraint indexes
+                        NOT x.indisunique
+                        AND NOT x.indisprimary
+                        AND NOT EXISTS (
+                            SELECT 1
+                            FROM pg_constraint con
+                            WHERE con.conindid = u.indexrelid
+                        )
+                        -- Ignore indexes smaller than 32 kB
+                        AND u.size_bytes >= 32768
+                        -- Require at least 35 days of monitoring
+                        AND u.first_time <= now() - INTERVAL '35 days'
+                        -- No recorded usage during the period
+                        AND u.first_scan = u.last_scan
+
                     ORDER BY
-                      MAX(i.size_bytes) DESC;
+                        "Table",
+                        "Index";
                 refId: A
                 sql:
                     columns:
@@ -1249,7 +1289,7 @@ groups:
                 Detects indexes that are not in use by any queries within the last 35 days and creates an issue with severity "warning", one for each table (or table hierarchy in case of inheritance or partitioning). Resolves once all unused indexes on a table are dropped or start being used. Note that if you have gaps in your collector reporting, this check may miss usage during un-reported periods.
 
                 Ignores small indexes (less than 32kB), primary keys, and unique indexes since they are necessary to enforce constraints.
-            summary: Unused index {{ index $labels "Index" }} on table {{ index $labels "Schema" }}.{{ index $labels "Table" }}
+            summary: Unused index {{ index $labels "Index" }} on table {{ index $labels "Table" }}
           labels:
             module: schema
             severity: warning
@@ -2000,7 +2040,7 @@ groups:
           notification_settings:
             receiver: email-contact-point
         - uid: afvjxzc50uyv4c
-          title: Invalid Indexes
+          title: Invalid Indexes (TEM)
           condition: C
           data:
             - refId: A
