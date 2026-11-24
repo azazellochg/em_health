@@ -135,7 +135,6 @@ get_pg_config() {
             current_setting('autovacuum_vacuum_cost_delay'),
             current_setting('autovacuum_vacuum_cost_limit'),
             current_setting('checkpoint_timeout'),
-            current_setting('checkpoint_completion_target'),
             current_setting('wal_buffers'),
             current_setting('min_wal_size'),
             current_setting('max_wal_size'),
@@ -172,7 +171,6 @@ get_pg_config() {
         PG_AV_COST_DELAY \
         PG_AV_COST_LIMIT \
         PG_CHK_TIMEOUT \
-        PG_CHK_TGT \
         PG_WAL_BUFFERS \
         PG_MIN_WAL \
         PG_MAX_WAL \
@@ -377,7 +375,6 @@ log "autovacuum_vacuum_cost_limit" "$PG_AV_COST_LIMIT" 2000 # shared between all
 printf "\n---WAL settings recommendations---\n"
 # Usually for best performance you would want more timed checkpoints rather than WAL-based checkpoints
 log "checkpoint_timeout" "$PG_CHK_TIMEOUT" "30min"
-log "checkpoint_completion_target" "$PG_CHK_TGT" "0.9"
 log "wal_buffers" "$PG_WAL_BUFFERS" "16MB"
 log "min_wal_size" "$PG_MIN_WAL" "512MB"
 log "max_wal_size" "$PG_MAX_WAL" "4GB"
@@ -449,7 +446,6 @@ apply() {
 
     # WAL
     set_cfg_value "checkpoint_timeout" "'30min'"
-    set_cfg_value "checkpoint_completion_target" "0.9"
     set_cfg_value "wal_buffers" "'16MB'"
     set_cfg_value "min_wal_size" "'512MB'"
     set_cfg_value "max_wal_size" "'4GB'"
