@@ -63,6 +63,15 @@ To use the new values from `docker/.env`, run:
 
 .. note:: To run `generate-keys.sh` script you need to have OpenSSL installed
 
+Setup Grafana behind reverse proxy
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you have a reverse proxy (e.g. Nginx) in front of Grafana that exposes it through a sub-path, edit Grafana env vars in `docker/compose.yaml`:
+
+.. code-block:: bash
+
+      GF_SERVER_ROOT_URL: http://my-server/emhealth
+      GF_SERVER_SERVE_FROM_SUB_PATH: true
 
 Creating a Windows Task
 ^^^^^^^^^^^^^^^^^^^^^^^

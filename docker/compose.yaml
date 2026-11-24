@@ -93,6 +93,8 @@ services:
       GF_LIVE_MAX_CONNECTIONS: 0
       GF_METRICS_ENABLED: false
       GF_SERVER_ENABLE_GZIP: true
+      GF_SERVER_ROOT_URL: http://localhost
+      GF_SERVER_SERVE_FROM_SUB_PATH: false
       GF_SMTP_ENABLED: ${GRAFANA_SMTP_ENABLED} # https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#smtp
       GF_SMTP_HOST: ${GRAFANA_SMTP_HOST}
       GF_SMTP_USER: ${GRAFANA_SMTP_USER}
