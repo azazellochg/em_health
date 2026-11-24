@@ -142,7 +142,7 @@ class PgFdw(ForeignServer):
         # psycopg can't load '-infinity' into a datetime. HM's valid_timestamptz domain starts in 1971.
         last_time = self.dbm.run_query(
             "SELECT MAX(time) FROM events.data WHERE instrument_id = %s",
-            values=(self.instr_id,), mode="fetchone")[0] or datetime(1970, 1, 1, tzinfo=timezone.utc)
+            values=(self.instr_id,), fetch="one")[0] or datetime(1970, 1, 1, tzinfo=timezone.utc)
 
         return self.dbm.run_query("""
             SELECT
@@ -159,7 +159,7 @@ class PgFdw(ForeignServer):
         """,
                                   self.pg_tables(),
                                   values=(last_time,),
-                                  mode="fetchall")
+                                  fetch="all")
 
     def query_pg_enums(self):
         """ Query enumerations from Postgres. """
@@ -188,7 +188,7 @@ class PgFdw(ForeignServer):
                 (xpath('/Parm/@Enum', unnest(xpath('//Instrument//Parm[@Enum]', config))))[1]::text AS enum_name
             FROM config_xml
             ORDER BY param_id
-        """, self.pg_tables(), mode="fetchall")
+        """, self.pg_tables(), fetch="all")
 
         # Get enum_name:member_name:value mapping
         enum_values = self.dbm.run_query("""
@@ -229,7 +229,7 @@ class PgFdw(ForeignServer):
                 (xpath('Value/@ID', value_node))[1]::text::int AS value
             FROM enums
             ORDER BY name, value
-        """, self.pg_tables(), mode="fetchall")
+        """, self.pg_tables(), fetch="all")
 
         return params_with_enums, enum_values
 
@@ -261,4 +261,4 @@ class PgFdw(ForeignServer):
             JOIN {pt_t} pt ON pt.parameter_type_id = ept.parameter_type_id
             JOIN {et_t} et ON et.event_type_id = ept.event_type_id
             ORDER BY ept.event_property_type_id
-        """, self.pg_tables(), mode="fetchall")
+        """, self.pg_tables(), fetch="all")

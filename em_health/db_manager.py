@@ -75,7 +75,7 @@ class DatabaseManager(PgClient):
         instrument_id = self.run_query(
             "SELECT * FROM events.import_instrument(%s, %s, %s)",
             values=(Jsonb(instr_dict), config_hash, Jsonb(config_dict)),
-            mode="fetchone")[0]
+            fetch="one")[0]
 
         return instrument_id
 
@@ -86,7 +86,7 @@ class DatabaseManager(PgClient):
         rows = self.run_query(
             "SELECT events.update_thresholds(%s, %s)",
             values=(instr_id, Jsonb(thresholds_dict),),
-            mode="fetchone")[0]
+            fetch="one")[0]
 
         if rows:
             logger.info("Updated parameter thresholds (%d rows)", rows,
@@ -101,16 +101,6 @@ class DatabaseManager(PgClient):
         :param rows: Iterable of tuples
         :param chunk_size: Number of bytes to read at a time
         """
-        self.cur.execute("""
-                         CREATE TEMP TABLE IF NOT EXISTS data_staging (
-                             time timestamptz NOT NULL,
-                             instrument_id BIGINT NOT NULL,
-                             param_id BIGINT NOT NULL,
-                             value_num DOUBLE PRECISION,
-                             value_text TEXT
-                         ) ON COMMIT DELETE ROWS
-        """)
-
         def format_col(col: Any) -> str:
             if col is None:
                 return "\\N"
@@ -141,17 +131,27 @@ class DatabaseManager(PgClient):
         # avg row size is ~ 48 bytes, below will give about ~175k rows per chunk
         max_size = int(os.getenv("WRITE_DATA_CHUNK_SIZE", chunk_size))  # 8 Mb
         t0 = time.perf_counter()
-        with self.cur.copy(query) as copy:
-            for chunk in stream_chunks(rows, max_size):
-                copy.write(chunk)
+        # the temp table is emptied on commit, so it must be filled and read in the same transaction
+        with self.conn.transaction():
+            self.cur.execute("""
+                             CREATE TEMP TABLE IF NOT EXISTS data_staging (
+                                 time timestamptz NOT NULL,
+                                 instrument_id BIGINT NOT NULL,
+                                 param_id BIGINT NOT NULL,
+                                 value_num DOUBLE PRECISION,
+                                 value_text TEXT
+                             ) ON COMMIT DELETE ROWS
+            """)
+            with self.cur.copy(query) as copy:
+                for chunk in stream_chunks(rows, max_size):
+                    copy.write(chunk)
 
-        self.cur.execute("""
-                         INSERT INTO events.data(time, instrument_id, param_id, value_num, value_text)
-                         SELECT time, instrument_id, param_id, value_num, value_text
-                         FROM data_staging
-                         ON CONFLICT DO NOTHING
-        """)
-        self.conn.commit()
+            self.cur.execute("""
+                             INSERT INTO events.data(time, instrument_id, param_id, value_num, value_text)
+                             SELECT time, instrument_id, param_id, value_num, value_text
+                             FROM data_staging
+                             ON CONFLICT DO NOTHING
+            """)
         t1 = time.perf_counter()
         logger.debug(f"INSERT into events.data done in: {t1-t0:.4f} s")
 
@@ -160,20 +160,20 @@ class DatabaseManager(PgClient):
 
     def drop_mview(self, view: str, is_cagg: bool = False) -> None:
         """ Delete a materialized view. """
-        if not is_cagg:
-            # for standard mat. views we need to manually remove the refresh job,
-            # the view name is stored in the job config (see schedule_mview_refresh)
-            self.run_query("""
-                           SELECT delete_job(job_id)
-                           FROM timescaledb_information.jobs
-                           WHERE proc_schema = 'public'
-                             AND proc_name = 'refresh_mview'
-                             AND config ->> 'view' = %s
-            """, values=(view,), mode=None)
+        with self.conn.transaction():
+            if not is_cagg:
+                # for standard mat. views we need to manually remove the refresh job,
+                # the view name is stored in the job config (see schedule_mview_refresh)
+                self.run_query("""
+                               SELECT delete_job(job_id)
+                               FROM timescaledb_information.jobs
+                               WHERE proc_schema = 'public'
+                                 AND proc_name = 'refresh_mview'
+                                 AND config ->> 'view' = %s
+                """, values=(view,))
 
-        self.run_query("DROP MATERIALIZED VIEW IF EXISTS {view} CASCADE",
-                       {"view": view}, mode=None)
-        self.conn.commit()
+            self.run_query("DROP MATERIALIZED VIEW IF EXISTS {view} CASCADE",
+                           {"view": view})
 
         logger.info("Dropped MVIEW %s", view)
 
@@ -221,10 +221,9 @@ class DatabaseManager(PgClient):
         instantly, so you don't have to wait for the data to be aggregated.
         Here we aggregate all historical data that has been imported so far.
         """
-        self.conn.autocommit = True  # required since CALL cannot be executed inside a transaction
+        # CALL cannot run inside a transaction block: the connection is in autocommit mode
         self.run_query("CALL refresh_continuous_aggregate(%s::regclass, NULL, NULL)",
                        values=(view,))
-        self.conn.autocommit = False
         logger.info("Forced CAGG refresh for %s", view)
 
     def enable_rt_cagg(self, view: str) -> None:
@@ -245,7 +244,7 @@ class DatabaseManager(PgClient):
             sys.exit()
 
         servers = self.run_query("SELECT id, server FROM events.instruments WHERE server IS NOT NULL",
-                                 mode="fetchall")
+                                 fetch="all")
         if not servers:
             logger.error("No servers found in the events.instruments table")
             sys.exit()
@@ -268,7 +267,7 @@ class DatabaseManager(PgClient):
             WHERE proc_schema = 'uec'
               AND proc_name = 'import_errors'
               AND (config ->> 'instrument_id')::bigint = %s
-        """, values=(instr_id,), mode=None)
+        """, values=(instr_id,))
 
         self.run_query("SELECT add_job('uec.import_errors', %s::interval, config => %s)",
                        values=(interval, Jsonb({"instrument_id": instr_id})))
@@ -277,12 +276,12 @@ class DatabaseManager(PgClient):
 
     def prune_data(self, days: int) -> None:
         """ Prune old data from a database. """
-        chunks_dropped = self.run_query("SELECT events.purge_old_chunks('events.data', %s)",
-                                        values=(days,), mode='fetchone')
-        self.run_query("DELETE FROM uec.errors WHERE time < current_timestamp - make_interval(days => %s::int)",
-                       values=(days,))
+        with self.conn.transaction():
+            chunks_dropped = self.run_query("SELECT events.purge_old_chunks('events.data', %s)",
+                                            values=(days,), fetch="one")
+            self.run_query("DELETE FROM uec.errors WHERE time < current_timestamp - make_interval(days => %s::int)",
+                           values=(days,))
 
-        self.conn.commit()
         logger.debug("Removed %s chunks from events.data; %s rows from uec.errors", chunks_dropped[0], self.cur.rowcount)
 
 

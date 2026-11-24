@@ -46,7 +46,7 @@ class DatabaseAnalyzer(DatabaseManager):
         }
         for env_name, value in settings.values():
             try:
-                self.run_query("SELECT %s::interval", values=(value,), mode="fetchone")
+                self.run_query("SELECT %s::interval", values=(value,), fetch="one")
             except psycopg.DataError as e:
                 raise ValueError(f"{env_name}={value!r} is not a valid interval") from e
 
@@ -67,11 +67,10 @@ class DatabaseAnalyzer(DatabaseManager):
         jobs = self.run_query(
             "SELECT job_id FROM timescaledb_information.jobs WHERE proc_schema = %s",
             values=('pganalyze',),
-            mode="fetchall")
+            fetch="all")
 
         if jobs:
             self.cur.executemany("SELECT delete_job(%s)", jobs)
-            self.conn.commit()
 
     def create_views(self) -> None:
         """ Create materialized views. """

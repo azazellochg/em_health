@@ -59,8 +59,11 @@ ruff check && mypy                                       # lint and type check (
 - `PgClient.run_query(query, identifiers=..., strings=..., values=...)`: `identifiers` are quoted with
   `sql.Identifier`, `strings` with `sql.Literal`, and `values` are bound `%s` parameters. Use `values` for
   everything except DDL that can't take parameters (FDW server/user mapping options).
-  The default `mode="commit"` commits right away.
-- `execute_file()` runs a whole `.sql` file in one transaction and commits it. Variables are written
+  `fetch="one"`/`"all"` returns rows.
+- The connection is in autocommit mode: every statement commits right away. Statements that must succeed or fail
+  together go in a `with self.conn.transaction():` block (commits at the end, rolls back on an exception).
+  Never call `commit()`/`rollback()` or switch `autocommit`.
+- `execute_file()` runs a whole `.sql` file in one transaction (one multi-statement message) and commits it. Variables are written
   `:'var_name'` (psql quoting). `execute_file(variables=...)` substitutes them as `sql.Literal` and raises
   on a missing one. `psql -v var_name=raw_value` (the init scripts) quotes them itself, so pass raw values.
 - `init_db.sql` uses `\i /sql/...` and runs only through psql inside the container.

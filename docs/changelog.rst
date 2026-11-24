@@ -4,8 +4,9 @@ Changelog
 Version 0.1a13
 ^^^^^^^^^^^^^^
 
-* updated Docker image 835 -> 527 Mb, extensions built in parallel stages
+* refactor psycopg transactions: use autocommit=true, refactor run_query and tasks that need to complete or fail in one transaction, __exit__ does not hide the original exception anymore
 * replace toolkit_experimental funcs due to all dependent views being dropped when toolkit extension is updated
+* updated Docker image 835 -> 527 Mb, extensions built in parallel stages
 
 Version 0.1a12
 ^^^^^^^^^^^^^^

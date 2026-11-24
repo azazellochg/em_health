@@ -79,19 +79,11 @@ class BaseDBClient(ABC):
             raise
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """ Rollback changes and exit on error. """
-        try:
-            if exc_type:
-                self.conn.rollback()
-                logger.error("Transaction rolled back due to: %s", exc_value)
-            else:
-                self.conn.commit()
-        finally:
-            if self._cur:
-                self._cur.close()
-            if self._conn:
-                self._conn.close()
-                logger.info("Connection closed.")
+        """ Close the connection. The connection is in autocommit mode: statements that must succeed
+        or fail together run in a conn.transaction() block, which commits or rolls back by itself. """
+        if self._conn:
+            self._conn.close()
+            logger.info("Connection closed.")
 
     @abstractmethod
     def connect(self):
@@ -128,7 +120,8 @@ class PgClient(BaseDBClient):
             dbname=self.db_name,
             user=self.username,
             password=self.password,
-            application_name="EMHealth"
+            application_name="EMHealth",
+            autocommit=True
         )
         self._conn.add_notice_handler(self.postgres_notice_handler)
         self._cur = self._conn.cursor()
@@ -159,8 +152,8 @@ class PgClient(BaseDBClient):
 
         raw_sql = SQL_VARIABLE_RE.sub(substitute, raw_sql)
 
+        # several statements without parameters are sent in one message, which Postgres runs as one transaction
         self.cur.execute(raw_sql)
-        self.conn.commit()
 
     def run_query(
             self,
@@ -168,10 +161,11 @@ class PgClient(BaseDBClient):
             identifiers: dict[str, str] | None = None,
             strings: dict[str, Any] | None = None,
             values: tuple | None = None,
-            mode: Literal["fetchone", "fetchmany", "fetchall", "commit", None] = "commit"
+            fetch: Literal["one", "all", None] = None
     ):
         """
-        Execute an SQL query and optionally return results.
+        Execute an SQL query and optionally return results. The connection is in autocommit mode,
+        so the query is committed right away unless it runs inside a conn.transaction() block.
 
         :param query: SQL query string with placeholders for identifiers and literals.
         :param identifiers: dict for table/column identifiers, safely quoted.
@@ -179,7 +173,7 @@ class PgClient(BaseDBClient):
             Use only where Postgres does not accept bound parameters (DDL such as
             CREATE SERVER / USER MAPPING options). Everything else should use values.
         :param values: tuple for parameterized query values (%s placeholders).
-        :param mode: fetch mode or commit.
+        :param fetch: "one" returns one row, "all" all rows, None nothing.
         """
         # Compose SQL query with identifiers and literals
         format_args: dict[str, sql.Composable] = {}
@@ -198,14 +192,8 @@ class PgClient(BaseDBClient):
 
         self.cur.execute(sql_query, values)
 
-        if mode == "fetchone": # single row
+        if fetch == "one":
             return self.cur.fetchone()
-        elif mode == "fetchmany":
-            return self.cur.fetchmany()
-        elif mode == "fetchall":
+        if fetch == "all":
             return self.cur.fetchall()
-        elif mode == "commit":
-            self.conn.commit()
-            return None
-        else:
-            return None
+        return None

@@ -307,7 +307,8 @@ def main(xml_fn, json_fn):
             instr_dict = xmlparser.get_microscope_dict()
             config_dict = {"params": xmlparser.params, "enums": xmlparser.enum_values}
 
-            with DatabaseManager(xmlparser.db_name) as dbm:
+            # one transaction per file: a failed import leaves no instrument or config changes behind
+            with DatabaseManager(xmlparser.db_name) as dbm, dbm.conn.transaction():
                 instrument_id = dbm.add_instrument(instr_dict, config_dict)
                 datapoints = xmlparser.parse_values(instrument_id, xmlparser.params)
                 dbm.write_data(datapoints)

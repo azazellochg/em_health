@@ -257,7 +257,7 @@ def migrate(dbname: str):
 
     try:
         with DBM(dbname, username="postgres", password="POSTGRES_PASSWORD") as db:
-            current_ver = db.run_query("SELECT version FROM public.schema_info", mode="fetchone")
+            current_ver = db.run_query("SELECT version FROM public.schema_info", fetch="one")
             current_ver = current_ver[0]
             logger.info("Current schema version: %s", current_ver)
 
@@ -294,7 +294,7 @@ def check_db_schema():
     for dbname, schema in [("tem", SCHEMA_VERSION), ("sem", SCHEMA_VERSION)]:
         logger.info("Checking database %s schema version", dbname)
         with DBM(dbname) as db:
-            current_ver = db.run_query("SELECT version FROM public.schema_info", mode="fetchone")
+            current_ver = db.run_query("SELECT version FROM public.schema_info", fetch="one")
             current_ver = current_ver[0]
         if current_ver != schema:
             raise Exception(f"Your actual {dbname} DB schema v{current_ver} does not match "
