@@ -22,6 +22,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false  # later steps don't use git, so don't leave the token in .git
 
       - name: Read image tag and component versions
         id: vars
