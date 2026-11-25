@@ -22,6 +22,7 @@ CREATE MATERIALIZED VIEW events.load_counter_values_daily WITH (timescaledb.cont
       USING (param_id, instrument_id)
   WHERE
     p.param_name IN ('LoadCartridgeCounter', 'LoadCassetteCounter', 'SampleTransferCount')
+    AND d.value_num <> 0
   GROUP BY
     day,
     d.instrument_id,

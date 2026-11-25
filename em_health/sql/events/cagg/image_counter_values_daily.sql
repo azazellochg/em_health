@@ -27,6 +27,7 @@ CREATE MATERIALIZED VIEW events.image_counter_values_daily WITH (timescaledb.con
                      'BM-Ceta-NumberOfAcquisitionJobs',
                      'AcquisitionNumber'
       )
+    AND d.value_num <> 0
   GROUP BY
     day,
     d.instrument_id,

@@ -25,6 +25,7 @@ CREATE MATERIALIZED VIEW events.data_counter_values_daily WITH (timescaledb.cont
                      'BM-Falcon-NumberOffloadedTB',
                      'BM-Ceta-NumberOffloadedTB'
       )
+    AND d.value_num <> 0
   GROUP BY
     day,
     d.instrument_id,
