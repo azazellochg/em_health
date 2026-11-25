@@ -1,6 +1,6 @@
 /* Create a materialized view of SEM states per day: e-beam unblank, i-beam unblank, FLM running,
    chamber not pumped, cryocycle, xT off.
-   Depends on sem_cryocycles and em_off (periods merged across midnight) and the state caggs.
+   Depends on sem_cryocycles and em_off (off and down periods, both counted as off) and the state caggs.
    Cryo cycles of the autoloader and the column overlap: they are merged per instrument.
    States are logged only when they change: the state at the start of a day comes from the previous
    day with data. A day without any point of a state cagg has no row for that state.

@@ -53,23 +53,29 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS events.vacuum_state_daily AS
         es.state IN ('cryocycle', 'closed', 'open')
     ),
 
-    -- truncate rows to remove tem off periods
+    -- cut the server off/down periods (em_off, both states) out of the vacuum periods: a vacuum state is logged
+    -- only when it changes, so one period can last days. What remains of it outside em_off is kept.
     cleaned_vacuum AS (
       SELECT
         ve.instrument_id,
-        ve.start_time,
-        ve.end_time,
+        lower(r) AS start_time,
+        upper(r) AS end_time,
         ve.state
       FROM
         vacuum_events ve
-        LEFT JOIN events.em_off o
-          ON ve.instrument_id = o.instrument_id AND ve.start_time < o.end_time AND ve.end_time > o.start_time
+        CROSS JOIN LATERAL (
+          SELECT range_agg(tstzrange(o.start_time, o.end_time)) AS off_ranges
+          FROM events.em_off o
+          WHERE o.instrument_id = ve.instrument_id AND o.start_time < ve.end_time AND o.end_time > ve.start_time
+        ) o
+        CROSS JOIN LATERAL unnest(
+          tstzmultirange(tstzrange(ve.start_time, ve.end_time)) - COALESCE(o.off_ranges, '{}'::tstzmultirange)
+        ) r
       WHERE
         ve.end_time IS NOT NULL
-        AND (o.start_time IS NULL OR ve.end_time <= o.start_time OR ve.start_time >= o.end_time)
     ),
 
-    -- join tem off periods back
+    -- add the off/down periods as 'off'
     all_states AS (
       SELECT
         instrument_id,
