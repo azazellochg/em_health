@@ -3,6 +3,18 @@
 # from these ARG lines by .github/workflows/docker-publish.yml, so keep the format
 # "ARG NAME=value" (one per line). The image tag itself lives in docker/compose.yaml.
 ARG PG_IMAGE=docker.io/library/postgres:18.7-trixie@sha256:ec003ee60c23d320d1b81868f255a6fc724ac06d8f1ced4468532f7d8593f357
+# Rust version required by the toolkit (see its README). Same Debian release as PG_IMAGE.
+ARG RUST_IMAGE=docker.io/library/rust:1.96.0-trixie@sha256:58fe97504a0e4cbba5d85599619a589923d3e779472a6fb0840d58d1c4ba99d7
+
+# ---------- cargo-pgrx ----------
+# Doesn't depend on PostgreSQL, so with the registry build cache (docker-publish.yml) it is only
+# rebuilt when RUST_IMAGE or PGRX_VERSION changes, not on every PostgreSQL bump
+FROM ${RUST_IMAGE} AS pgrx
+
+# Must match the pgrx version of the toolkit: https://github.com/timescale/timescaledb-toolkit/blob/main/extension/Cargo.toml
+ARG PGRX_VERSION=0.18.1
+
+RUN cargo install cargo-pgrx --version "=${PGRX_VERSION}" --locked
 
 # ---------- Common build dependencies ----------
 FROM ${PG_IMAGE} AS build-base
@@ -13,7 +25,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     clang \
     cmake \
-    curl \
     freetds-common \
     freetds-dev \
     gcc \
@@ -28,6 +39,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # The three extensions below are built in independent stages, so they can build in parallel
 # (BuildKit does this by default, podman needs --jobs) and bumping one version doesn't rebuild the others.
+# Sources and build output are removed at the end of each RUN: they would otherwise end up in the
+# registry build cache, which stores the layers of all stages.
 
 # ---------- Build TimescaleDB ----------
 FROM build-base AS timescaledb
@@ -49,21 +62,29 @@ RUN set -ex && \
     && for f in timescaledb--*--*.sql; do \
     from=${f#timescaledb--}; from=${from%%--*}; \
     case " $TS_VERSIONS " in *" $from "*) ;; *) rm "$f" ;; esac; \
-    done
+    done \
+    && rm -rf /build
 
 # ---------- Build Timescale Toolkit ----------
 FROM build-base AS toolkit
 
-ENV CARGO_HOME=/build/cargo \
-    CARGO_TARGET_DIR=/build/target \
-    RUSTUP_HOME=/build/rustup \
-    PGRX_HOME=/build/pgrx \
-    PATH=/build/cargo/bin:$PATH
+# Rust toolchain and cargo-pgrx from the pgrx stage
+COPY --from=pgrx /usr/local/rustup /usr/local/rustup
+COPY --from=pgrx /usr/local/cargo /usr/local/cargo
 
-# Before changing pgrx version, see https://github.com/timescale/timescaledb-toolkit/blob/main/extension/Cargo.toml
+# The toolkit's release profile uses fat LTO with 1 codegen unit (the final optimization runs on one core)
+# and debug info that is stripped anyway: thin LTO with cargo's default 16 codegen units uses all cores.
+# These variables override the profile in the toolkit's Cargo.toml.
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo \
+    PATH=/usr/local/cargo/bin:$PATH \
+    CARGO_TARGET_DIR=/build/target \
+    PGRX_HOME=/build/pgrx \
+    CARGO_PROFILE_RELEASE_LTO=thin \
+    CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16 \
+    CARGO_PROFILE_RELEASE_DEBUG=false
+
 RUN mkdir -p $PGRX_HOME \
-    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal \
-    && cargo install cargo-pgrx --version '=0.18.1' \
     && cargo pgrx init --pg${PG_MAJOR} pg_config
 
 ARG TLK_VERSION=1.28.0
@@ -73,7 +94,8 @@ RUN set -ex && \
     && cd /build/timescaledb-toolkit/extension \
     && cargo pgrx install --release \
     && cargo run --release --manifest-path ../tools/post-install/Cargo.toml -- pg_config \
-    && strip --strip-unneeded /usr/lib/postgresql/${PG_MAJOR}/lib/timescaledb_toolkit*.so
+    && strip --strip-unneeded /usr/lib/postgresql/${PG_MAJOR}/lib/timescaledb_toolkit*.so \
+    && rm -rf /build/timescaledb-toolkit $CARGO_TARGET_DIR
 
 # ---------- Build TDS-FDW ----------
 FROM build-base AS tds_fdw

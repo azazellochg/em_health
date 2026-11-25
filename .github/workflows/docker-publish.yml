@@ -104,3 +104,7 @@ jobs:
           platforms: linux/amd64
           sbom: false
           provenance: false
+          # Layers of all stages are kept in GHCR under the buildcache tag (an Actions cache would be evicted
+          # after 7 days without use), so e.g. cargo-pgrx is not recompiled when only PostgreSQL changes
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max
