@@ -7,6 +7,7 @@ Version 0.1a13
 * refactor psycopg transactions: use autocommit=true, refactor run_query and tasks that need to complete or fail in one transaction, __exit__ does not hide the original exception anymore
 * replace toolkit_experimental funcs due to all dependent views being dropped when toolkit extension is updated
 * updated Docker image 835 -> 527 Mb, extensions built in parallel stages
+* em_off is built from the raw server heartbeat and has a state column: off (controlled shutdown, a 0 was logged) or down (the heartbeat stopped without a 0, at least 2 missed beats: crash, power cut or missing data). Down periods were counted as server up before. Both states count as off in vacuum_state_daily and sem_beamtime_daily. The em_off_daily cagg is dropped. Rerun 'emhealth db -d tem create-stats' and 'emhealth db -d sem create-stats'
 
 Version 0.1a12
 ^^^^^^^^^^^^^^

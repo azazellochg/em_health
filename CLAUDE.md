@@ -77,7 +77,8 @@ ruff check && mypy                                       # lint and type check (
     increments in a plain view with the old name (`LAG(last_value)`), created in the same file. See
     `load_counter_values_daily.sql`.
   - States: carry the previous day's state with `interpolated_duration_in`/`interpolated_state_periods` and
-    `LAG(agg)`. Periods that cross midnight are merged in an mview (`em_off`, `sem_cryocycles`).
+    `LAG(agg)`. Periods that cross midnight are merged in an mview (`sem_cryocycles`).
+  - Gaps (e.g. a missing heartbeat) are invisible to a cagg: `em_off` reads the raw heartbeat with `LEAD(time)`.
 - Cagg expressions must be immutable (e.g. `EXTRACT(EPOCH FROM time - 'epoch'::timestamptz)`, not
   `EXTRACT(EPOCH FROM time)`), otherwise TimescaleDB warns.
 - Scheduled jobs use static procedures with a `config` JSONB, never generated per-object code:

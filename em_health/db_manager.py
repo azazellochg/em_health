@@ -291,8 +291,7 @@ def main(dbname, action, days=None):
         mviews = {
             "tem": {
                 # name: is_cagg
-                "events.em_off_daily": True,
-                "events.em_off": False, # depends on em_off_daily
+                "events.em_off": False,
                 "events.epu_sessions": False,
                 "events.tomo_sessions": False,
                 "events.load_counter_values_daily": True, # also creates the view load_counters_daily
@@ -304,7 +303,6 @@ def main(dbname, action, days=None):
                 "events.tem_pressure_hourly": True,
                 "events.tem_pressure_daily": True, # depends on tem_pressure_hourly
                 "events.tem_pressure_monthly": True, # depends on tem_pressure_daily
-                #"events.tem_feg_counter_daily": True,
 
                 # Depends on em_off
                 "events.vacuum_state_daily": False,
@@ -321,8 +319,7 @@ def main(dbname, action, days=None):
                 "events.tomo_running_daily": False,
             },
             "sem": {
-                "events.em_off_daily": True,
-                "events.em_off": False, # depends on em_off_daily
+                "events.em_off": False,
                 "events.load_counter_values_daily": True, # also creates the view load_counters_daily
                 "events.fib_baa_counter_values_daily": True, # also creates the view fib_baa_counters_daily
                 "events.fib_bda_counter_values_daily": True, # also creates the view fib_bda_counters_daily
@@ -337,8 +334,6 @@ def main(dbname, action, days=None):
                 "events.sem_pressure_hourly": True,
                 "events.sem_pressure_daily": True, # depends on sem_pressure_hourly
                 "events.sem_pressure_monthly": True, # depends on sem_pressure_daily
-                #"events.sem_source_counter_daily": True,
-                #"events.fibsem_apertures_daily": True,
 
                 # Depends on the views above
                 "events.sem_beamtime_daily": False,
