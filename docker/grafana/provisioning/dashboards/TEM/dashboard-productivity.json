@@ -291,136 +291,6 @@
           }
         }
       },
-      "panel-11": {
-        "kind": "Panel",
-        "spec": {
-          "id": 11,
-          "title": "EPU-D counters",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${sourceTEM}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "SELECT\n  COUNT(*) AS total_runs,\n  COALESCE(EXTRACT(EPOCH FROM SUM(total_duration)), 0) AS total_duration\nFROM epud_runs\nWHERE instrument_id = $instrument\n  AND $__timeFilter(start_time)",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [
-                {
-                  "kind": "Transformation",
-                  "group": "organize",
-                  "spec": {
-                    "options": {
-                      "excludeByName": {},
-                      "includeByName": {},
-                      "indexByName": {},
-                      "renameByName": {
-                        "avg_images_per_session": "Avg images/run",
-                        "completed_count": "Completed runs",
-                        "terminated_count": "Terminated runs",
-                        "total_duration": "Total duration",
-                        "total_images": "Total images",
-                        "total_running_duration": "Total running duration",
-                        "total_runs": "Completed runs",
-                        "total_skipped_images": "Skipped images"
-                      }
-                    }
-                  }
-                }
-              ],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "stat",
-            "version": "13.1.0-25893932881",
-            "spec": {
-              "options": {
-                "colorMode": "none",
-                "graphMode": "none",
-                "justifyMode": "center",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "/.*/",
-                  "values": true
-                },
-                "showPercentChange": false,
-                "textMode": "value_and_name",
-                "wideLayout": false
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "fixed"
-                  }
-                },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Total duration"
-                    },
-                    "properties": [
-                      {
-                        "id": "unit",
-                        "value": "s"
-                      }
-                    ]
-                  }
-                ]
-              }
-            }
-          }
-        }
-      },
       "panel-2": {
         "kind": "Panel",
         "spec": {
@@ -1531,7 +1401,7 @@
             "spec": {
               "x": 8,
               "y": 0,
-              "width": 7,
+              "width": 8,
               "height": 7,
               "element": {
                 "kind": "ElementReference",
@@ -1542,22 +1412,9 @@
           {
             "kind": "GridLayoutItem",
             "spec": {
-              "x": 15,
+              "x": 16,
               "y": 0,
-              "width": 2,
-              "height": 7,
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-11"
-              }
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "x": 17,
-              "y": 0,
-              "width": 7,
+              "width": 8,
               "height": 7,
               "element": {
                 "kind": "ElementReference",

@@ -24,7 +24,7 @@ The main overview which compares several key metrics across all active instrumen
 Productivity
 ````````````
 
-This view shows per-instrument counters for autoloader cartridges/cassettes, acquired images, and EPU/EPU-D/Tomo sessions.
+This view shows per-instrument counters for autoloader cartridges/cassettes, acquired images, and EPU/Tomo sessions.
 The utilization and beam time bar charts provide alternative representations of running acquisition time from the main dashboard.
 
 For each EPU session, we track:

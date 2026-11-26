@@ -309,7 +309,6 @@ def main(dbname, action, days=None):
 
                 # Depend on *_sessions
                 "events.epu_runs": False,
-                "events.epud_runs": False,
                 "events.tomo_runs": False,
                 "events.epu_counters": False,
                 "events.tomo_counters": False,
