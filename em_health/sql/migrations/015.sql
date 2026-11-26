@@ -29,7 +29,10 @@ $$
       DROP MATERIALIZED VIEW IF EXISTS events.epu_state_daily CASCADE;
       DROP MATERIALIZED VIEW IF EXISTS events.tomo_state_daily CASCADE;
 
-      -- 4. Update schema version
+      -- 4. Drop tem_cryocycle_daily cagg: replaced by the tem_cryocycles mview (create-stats)
+      DROP MATERIALIZED VIEW IF EXISTS events.tem_cryocycle_daily;
+
+      -- 5. Update schema version
       UPDATE public.schema_info SET version = 15, updated = NOW();
     END IF;
   END

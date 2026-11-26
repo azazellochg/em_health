@@ -18,6 +18,7 @@ Version 0.1a13
 * fix tomo_counters: tilt series and search maps are the sum of the counter increments like the images. Summing the last value before each 0 lost the last batch when its 0 was logged with the session close, and the value before a drop to a non-zero value (next job without a 0).
 * drop epud_runs and the EPU-D counters panel: EPU-D has no acquisition runs in the data. Migration 015 drops the view and its refresh job
 * fix epu_running_daily and tomo_running_daily (utilization panels): the epu/tomo_state_daily caggs have no row for a day without a state point, so whole days in Running were missing (e.g. 26 days on one instrument). The running periods of the sessions (as in epu_runs/tomo_runs, so a tomo session closed while Acquiring stops at its last activity) are split by day instead, the days add up to the runs. The old 5.x Tomo has no sessions and no running time. Migration 015 drops the epu/tomo_state_daily caggs
+* TEM cryo cycles: new tem_cryocycles mview (one row per cycle, read from the raw duration counters) replaces the tem_cryocycle_daily cagg (migration 015 drops it) and the cycle merging in the dashboard queries. Fixes: the SemiAutomatedLoader CLS/Microscope counters count minutes, not seconds; on instruments that log the counter hourly the cycle ends at its reset instead of the last hourly point (cycles were up to 1 h short); cycles shorter than 1 h (aborted starts) are ignored, also for the loads since the last cryo cycle
 
 Version 0.1a12
 ^^^^^^^^^^^^^^

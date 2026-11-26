@@ -297,7 +297,7 @@ def main(dbname, action, days=None):
                 "events.load_counter_values_daily": True, # also creates the view load_counters_daily
                 "events.data_counter_values_daily": True, # also creates the view data_counters_daily
                 "events.image_counter_values_daily": True, # also creates the view image_counters_daily
-                "events.tem_cryocycle_daily": True,
+                "events.tem_cryocycles": False,
                 "events.tem_pressure_hourly": True,
                 "events.tem_pressure_daily": True, # depends on tem_pressure_hourly
                 "events.tem_pressure_monthly": True, # depends on tem_pressure_daily

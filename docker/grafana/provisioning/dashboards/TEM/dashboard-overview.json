@@ -306,7 +306,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "-- Days since the start of the last cryo cycle: the counter counts seconds since the cycle start\nSELECT\n  param_name,\n  CURRENT_DATE - MAX(cycle_start)::date AS days_since_cryocycle_start\nFROM tem_cryocycle_daily\nWHERE instrument_id = $instrument\n  AND peak_value > 0\nGROUP BY param_name\nORDER BY param_name\n",
+                        "rawSql": "-- Days since the start of the last cryo cycle (tem_cryocycles: at least 1 h, also one still going on)\nSELECT\n  param_name,\n  CURRENT_DATE - MAX(start_time)::date AS days_since_cryocycle_start\nFROM tem_cryocycles\nWHERE instrument_id = $instrument\nGROUP BY param_name\nORDER BY param_name",
                         "sql": {
                           "columns": [
                             {
