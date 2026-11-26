@@ -19,7 +19,17 @@ $$
         AND config ->> 'view' = 'events.epud_runs';
       DROP MATERIALIZED VIEW IF EXISTS events.epud_runs;
 
-      -- 3. Update schema version
+      -- 3. Drop epu/tomo_state_daily caggs: the running_daily views are built from the sessions now.
+      -- CASCADE drops the old running_daily views, delete their refresh jobs (create-stats adds them again)
+      PERFORM delete_job(job_id)
+      FROM timescaledb_information.jobs
+      WHERE proc_schema = 'public'
+        AND proc_name = 'refresh_mview'
+        AND config ->> 'view' IN ('events.epu_running_daily', 'events.tomo_running_daily');
+      DROP MATERIALIZED VIEW IF EXISTS events.epu_state_daily CASCADE;
+      DROP MATERIALIZED VIEW IF EXISTS events.tomo_state_daily CASCADE;
+
+      -- 4. Update schema version
       UPDATE public.schema_info SET version = 15, updated = NOW();
     END IF;
   END

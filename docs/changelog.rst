@@ -7,7 +7,7 @@ Version 0.1a13
 * refactor psycopg transactions: use autocommit=true, refactor run_query and tasks that need to complete or fail in one transaction, __exit__ does not hide the original exception anymore
 * replace toolkit_experimental funcs due to all dependent views being dropped when toolkit extension is updated
 * updated Docker image 835 -> 527 Mb, extensions built in parallel stages
-* em_off is built from the raw server heartbeat and has a state column: off (controlled shutdown, a 0 was logged) or down (the heartbeat stopped without a 0, at least 2 missed beats: crash, power cut or missing data). Down periods were counted as server up before. Both states count as off in vacuum_state_daily and sem_beamtime_daily. The em_off_daily cagg is dropped. Rerun 'emhealth db -d tem create-stats' and 'emhealth db -d sem create-stats'
+* em_off is built from the raw server heartbeat and has a state column: off (controlled shutdown, a 0 was logged) or down (the heartbeat stopped without a 0, at least 2 missed beats: crash, power cut or missing data). Down periods were counted as server up before. Both states count as off in vacuum_state_daily and sem_beamtime_daily. The em_off_daily cagg is dropped.
 * image, data and load counter caggs filter out zero values
 * fix vacuum_state_daily: a vacuum period (logged only when the state changes, so it can last days) that overlapped a server off period was dropped completely instead of being cut around it. The off and down periods are now cut out and the rest of the vacuum period is kept
 * fix tomo_runs and epu_runs: the running time was summed only from the state points inside the session, so the state at the session start was lost (on some instruments Running is logged a few ms before the new session ID: about half of their sessions and running time were missing) and the last state ended at its last point. The state periods are now clipped to the session.
@@ -17,6 +17,7 @@ Version 0.1a13
 * tomo_sessions end at the last activity (tilt series state change or non-zero image, tilt series or search map counter point) instead of when the next session ID or 0 is logged, often hours later. A session closed while Acquiring ends with its last counter point.
 * fix tomo_counters: tilt series and search maps are the sum of the counter increments like the images. Summing the last value before each 0 lost the last batch when its 0 was logged with the session close, and the value before a drop to a non-zero value (next job without a 0).
 * drop epud_runs and the EPU-D counters panel: EPU-D has no acquisition runs in the data. Migration 015 drops the view and its refresh job
+* fix epu_running_daily and tomo_running_daily (utilization panels): the epu/tomo_state_daily caggs have no row for a day without a state point, so whole days in Running were missing (e.g. 26 days on one instrument). The running periods of the sessions (as in epu_runs/tomo_runs, so a tomo session closed while Acquiring stops at its last activity) are split by day instead, the days add up to the runs. The old 5.x Tomo has no sessions and no running time. Migration 015 drops the epu/tomo_state_daily caggs
 
 Version 0.1a12
 ^^^^^^^^^^^^^^

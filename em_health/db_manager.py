@@ -297,8 +297,6 @@ def main(dbname, action, days=None):
                 "events.load_counter_values_daily": True, # also creates the view load_counters_daily
                 "events.data_counter_values_daily": True, # also creates the view data_counters_daily
                 "events.image_counter_values_daily": True, # also creates the view image_counters_daily
-                "events.epu_state_daily": True,
-                "events.tomo_state_daily": True,
                 "events.tem_cryocycle_daily": True,
                 "events.tem_pressure_hourly": True,
                 "events.tem_pressure_daily": True, # depends on tem_pressure_hourly
@@ -312,8 +310,6 @@ def main(dbname, action, days=None):
                 "events.tomo_runs": False,
                 "events.epu_counters": False,
                 "events.tomo_counters": False,
-
-                # Depend on *_state_daily
                 "events.epu_running_daily": False,
                 "events.tomo_running_daily": False,
             },
