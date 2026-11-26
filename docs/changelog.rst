@@ -15,6 +15,7 @@ Version 0.1a13
 * fix epu_counters image count: zeros are skipped (EPU also logs 0 while a session is stopped, MIN was then 0 and the previous session's images were counted) and MAX - MIN + 1 counts the first image of the session.
 * fix epu_sessions: the end is 1 ms after the last state change, the views using the sessions read time < end_time and missed the last state: sessions ending in Terminated lost has_terminated in epu_runs.
 * tomo_sessions end at the last activity (tilt series state change or non-zero image, tilt series or search map counter point) instead of when the next session ID or 0 is logged, often hours later. A session closed while Acquiring ends with its last counter point.
+* fix tomo_counters: tilt series and search maps are the sum of the counter increments like the images. Summing the last value before each 0 lost the last batch when its 0 was logged with the session close, and the value before a drop to a non-zero value (next job without a 0).
 
 Version 0.1a12
 ^^^^^^^^^^^^^^
