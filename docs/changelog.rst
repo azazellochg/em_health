@@ -10,6 +10,7 @@ Version 0.1a13
 * em_off is built from the raw server heartbeat and has a state column: off (controlled shutdown, a 0 was logged) or down (the heartbeat stopped without a 0, at least 2 missed beats: crash, power cut or missing data). Down periods were counted as server up before. Both states count as off in vacuum_state_daily and sem_beamtime_daily. The em_off_daily cagg is dropped. Rerun 'emhealth db -d tem create-stats' and 'emhealth db -d sem create-stats'
 * image, data and load counter caggs filter out zero values
 * fix vacuum_state_daily: a vacuum period (logged only when the state changes, so it can last days) that overlapped a server off period was dropped completely instead of being cut around it. The off and down periods are now cut out and the rest of the vacuum period is kept
+* fix epu_runs: the running time was summed only from the state points inside the session, so the state at the session start was lost (on some instruments Running is logged a few ms before the new session ID: about half of their sessions and running time were missing) and the last state ended at its last point. The state periods are now clipped to the session.
 
 Version 0.1a12
 ^^^^^^^^^^^^^^
