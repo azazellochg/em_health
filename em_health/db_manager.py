@@ -320,6 +320,7 @@ def main(dbname, action, days=None):
                 "events.fib_bda_counter_values_daily": True, # also creates the view fib_bda_counters_daily
                 "events.gis_counter_values_daily": True, # also creates the view gis_counters_daily
                 "events.aperture_strip_replacements": False,
+                "events.fibsem_source_replacements": False,
                 "events.fib_beam_daily": True,
                 "events.sem_beam_daily": True,
                 "events.flm_beam_daily": True,
