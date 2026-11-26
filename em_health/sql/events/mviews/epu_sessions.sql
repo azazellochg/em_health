@@ -97,13 +97,15 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS events.epu_sessions AS
     ),
 
     -- the session ends at its last state change unless it is still Running (EPU crashed or the session goes on).
-    -- The last second is skipped: on some instruments the next session's Running is logged a few ms before its ID
+    -- The last second is skipped: on some instruments the next session's Running is logged a few ms before its ID.
+    -- The end is exclusive (time < end_time in the views using the sessions): 1 ms after the last state change
+    -- keeps it in the session, e.g. Terminated
     sessions_end AS (
       SELECT DISTINCT ON (s.instrument_id, s.start_time)
         s.instrument_id,
         s.session_id,
         s.start_time,
-        CASE WHEN c.is_running IS FALSE THEN c.time ELSE s.end_time END AS end_time
+        CASE WHEN c.is_running IS FALSE THEN c.time + '1 millisecond'::INTERVAL ELSE s.end_time END AS end_time
       FROM
         sessions s
         LEFT JOIN state_changes c

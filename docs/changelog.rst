@@ -13,6 +13,7 @@ Version 0.1a13
 * fix epu_runs: the running time was summed only from the state points inside the session, so the state at the session start was lost (on some instruments Running is logged a few ms before the new session ID: about half of their sessions and running time were missing) and the last state ended at its last point. The state periods are now clipped to the session.
 * epu_sessions end at the last acquisition state change (Stopped, Completed or Terminated) instead of when the next session ID is logged: without a reset of the ID to 0 a session lasted until the next session started, often hours or days later. Sessions still Running at the next ID keep that end.
 * fix epu_counters image count: zeros are skipped (EPU also logs 0 while a session is stopped, MIN was then 0 and the previous session's images were counted) and MAX - MIN + 1 counts the first image of the session.
+* fix epu_sessions: the end is 1 ms after the last state change, the views using the sessions read time < end_time and missed the last state: sessions ending in Terminated lost has_terminated in epu_runs.
 
 Version 0.1a12
 ^^^^^^^^^^^^^^
