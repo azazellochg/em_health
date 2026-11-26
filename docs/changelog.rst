@@ -22,6 +22,7 @@ Version 0.1a13
 * SEM Column dashboard, GIS daily usage: total usage divided by the days of the time range instead of an average over the days with data. A GIS counter logged only when it changes has no row on days without usage
 * new SEM mview aperture_strip_replacements: the replacement dates of each FIB/SEM aperture strip (at least half of its aperture counters drop to 0 or below half within minutes), with the erosion time of the most used aperture before the replacement. The Apertures dashboard BDA panel reads its last replacement from it instead of scanning raw data
 * new SEM mview sem_temperature_states: cryo / room temperature / transition periods of the column temperature state (autoloader systems: Cryo, Room) and of the cryo stage thermometer (Aquilos: below -150 C, above +15 C). Fleet overview: new Temperature state pie chart per instrument, the Last cryo cycle/warm-up row shows the last cryo stage warm-up as QuickLoader again
+* fix sem_beamtime_daily: vacuum actions are Pumping, Venting, Vented, PlasmaCleaning and Busy only, read from raw data (whole days without a chamber state change were missing). The off and down periods are cut out of all other states. Migration 015 drops the sem_chamber_state_daily cagg
 
 Version 0.1a12
 ^^^^^^^^^^^^^^

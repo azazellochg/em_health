@@ -325,7 +325,6 @@ def main(dbname, action, days=None):
                 "events.flm_beam_daily": True,
                 "events.sem_cryocycles": False,
                 "events.sem_temperature_states": False,
-                "events.sem_chamber_state_daily": True,
                 "events.sem_pressure_hourly": True,
                 "events.sem_pressure_daily": True, # depends on sem_pressure_hourly
                 "events.sem_pressure_monthly": True, # depends on sem_pressure_daily

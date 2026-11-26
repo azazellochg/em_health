@@ -43,7 +43,11 @@ $$
       DROP MATERIALIZED VIEW IF EXISTS events.sem_cryocycle_al_daily CASCADE;
       DROP MATERIALIZED VIEW IF EXISTS events.sem_cryocycle_noal_daily CASCADE;
 
-      -- 6. Update schema version
+      -- 6. Drop sem_chamber_state_daily cagg: sem_beamtime_daily reads the chamber state from raw data now
+      -- (sem_beamtime_daily is dropped and its refresh job deleted in step 5)
+      DROP MATERIALIZED VIEW IF EXISTS events.sem_chamber_state_daily CASCADE;
+
+      -- 7. Update schema version
       UPDATE public.schema_info SET version = 15, updated = NOW();
     END IF;
   END
