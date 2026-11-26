@@ -1,6 +1,8 @@
 /* Create a materialized view of EPU session counters:
    completed and skipped images. Sessions with 0 images are removed.
-   Counter does not necessarily start from 0.
+   CompletedExposuresCount counts the images of a session (1, 2, 3...), or continues the count of the previous
+   session. Zeros are skipped: EPU also logs 0 while a session is stopped (the count comes back on resume).
+   MAX - MIN misses the first image of the session, hence + 1.
    Depends on epu_sessions view
 */
 CREATE MATERIALIZED VIEW IF NOT EXISTS events.epu_counters AS
@@ -39,7 +41,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS events.epu_counters AS
       ON sc.instrument_id = seg.instrument_id
     JOIN LATERAL ( SELECT
                      MAX(CASE WHEN d.param_id = ic.image_counter_param_id THEN d.value_num END) -
-                     MIN(CASE WHEN d.param_id = ic.image_counter_param_id THEN d.value_num END) AS total_image_counter,
+                     MIN(CASE WHEN d.param_id = ic.image_counter_param_id THEN d.value_num END) + 1 AS total_image_counter,
                      COALESCE(MAX(CASE WHEN d.param_id = sc.skip_counter_param_id THEN d.value_num END),
                               0) AS skip_image_counter
                    FROM
@@ -48,7 +50,8 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS events.epu_counters AS
                      d.instrument_id = seg.instrument_id
                      AND d.param_id IN (ic.image_counter_param_id, sc.skip_counter_param_id)
                      AND d.time >= seg.start_time
-                     AND d.time < seg.end_time ) agg
+                     AND d.time < seg.end_time
+                     AND d.value_num <> 0 ) agg
       ON TRUE
   WHERE
     agg.total_image_counter > 0

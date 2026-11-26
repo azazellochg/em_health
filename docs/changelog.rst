@@ -12,6 +12,7 @@ Version 0.1a13
 * fix vacuum_state_daily: a vacuum period (logged only when the state changes, so it can last days) that overlapped a server off period was dropped completely instead of being cut around it. The off and down periods are now cut out and the rest of the vacuum period is kept
 * fix epu_runs: the running time was summed only from the state points inside the session, so the state at the session start was lost (on some instruments Running is logged a few ms before the new session ID: about half of their sessions and running time were missing) and the last state ended at its last point. The state periods are now clipped to the session.
 * epu_sessions end at the last acquisition state change (Stopped, Completed or Terminated) instead of when the next session ID is logged: without a reset of the ID to 0 a session lasted until the next session started, often hours or days later. Sessions still Running at the next ID keep that end.
+* fix epu_counters image count: zeros are skipped (EPU also logs 0 while a session is stopped, MIN was then 0 and the previous session's images were counted) and MAX - MIN + 1 counts the first image of the session.
 
 Version 0.1a12
 ^^^^^^^^^^^^^^
