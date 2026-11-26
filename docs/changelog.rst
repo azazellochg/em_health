@@ -14,6 +14,7 @@ Version 0.1a13
 * epu_sessions end at the last acquisition state change (Stopped, Completed or Terminated) instead of when the next session ID is logged: without a reset of the ID to 0 a session lasted until the next session started, often hours or days later. Sessions still Running at the next ID keep that end.
 * fix epu_counters image count: zeros are skipped (EPU also logs 0 while a session is stopped, MIN was then 0 and the previous session's images were counted) and MAX - MIN + 1 counts the first image of the session.
 * fix epu_sessions: the end is 1 ms after the last state change, the views using the sessions read time < end_time and missed the last state: sessions ending in Terminated lost has_terminated in epu_runs.
+* tomo_sessions end at the last activity (tilt series state change or non-zero image, tilt series or search map counter point) instead of when the next session ID or 0 is logged, often hours later. A session closed while Acquiring ends with its last counter point.
 
 Version 0.1a12
 ^^^^^^^^^^^^^^
