@@ -3,7 +3,8 @@
    A cagg sees only the points of its own bucket, so the increment between the last point of a day
    and the first point of the next day is not visible inside either day: the view adds the increment
    from the last value of the previous day with data. A counter drop (reset) is not counted.
-   Zeros are ignored: the counter sometimes logs a single 0 and then returns to its value.
+   Zeros are ignored: when a strip is replaced, all its apertures are reset to 0, and apertures not used
+   since then keep logging 0. The drop to the new strip's values is not counted as usage.
 */
 -- fib_bda_counters_daily was a cagg before: replace it with the view
 DROP MATERIALIZED VIEW IF EXISTS events.fib_bda_counters_daily;
