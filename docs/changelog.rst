@@ -21,6 +21,7 @@ Version 0.1a13
 * TEM cryo cycles: new tem_cryocycles mview (one row per cycle, read from the raw duration counters) replaces the tem_cryocycle_daily cagg (migration 015 drops it) and the cycle merging in the dashboard queries. Fixes: the SemiAutomatedLoader CLS/Microscope counters count minutes, not seconds; on instruments that log the counter hourly the cycle ends at its reset instead of the last hourly point (cycles were up to 1 h short); cycles shorter than 1 h (aborted starts) are ignored, also for the loads since the last cryo cycle
 * SEM Column dashboard, GIS daily usage: total usage divided by the days of the time range instead of an average over the days with data. A GIS counter logged only when it changes has no row on days without usage
 * new SEM mview aperture_strip_replacements: the replacement dates of each FIB/SEM aperture strip (at least half of its aperture counters drop to 0 or below half within minutes), with the erosion time of the most used aperture before the replacement. The Apertures dashboard BDA panel reads its last replacement from it instead of scanning raw data
+* new SEM mview sem_temperature_states: cryo / room temperature / transition periods of the column temperature state (autoloader systems: Cryo, Room) and of the cryo stage thermometer (Aquilos: below -150 C, above +15 C). Fleet overview: new Temperature state pie chart per instrument, the Last cryo cycle/warm-up row shows the last cryo stage warm-up as QuickLoader again
 
 Version 0.1a12
 ^^^^^^^^^^^^^^

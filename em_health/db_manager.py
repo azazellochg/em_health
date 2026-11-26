@@ -323,9 +323,8 @@ def main(dbname, action, days=None):
                 "events.fib_beam_daily": True,
                 "events.sem_beam_daily": True,
                 "events.flm_beam_daily": True,
-                "events.sem_cryocycle_al_daily": True,
-                "events.sem_cryocycle_noal_daily": True,
-                "events.sem_cryocycles": False, # depends on sem_cryocycle_al_daily and sem_cryocycle_noal_daily
+                "events.sem_cryocycles": False,
+                "events.sem_temperature_states": False,
                 "events.sem_chamber_state_daily": True,
                 "events.sem_pressure_hourly": True,
                 "events.sem_pressure_daily": True, # depends on sem_pressure_hourly

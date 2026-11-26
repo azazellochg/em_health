@@ -1,67 +1,78 @@
-/* Create a materialized view of SEM cryo cycle periods.
-   Depends on sem_cryocycle_al_daily (autoloader systems: Autoloader and Column TemperatureState = CryoCycle)
-   and sem_cryocycle_noal_daily (non-autoloader systems: cryo shield temperature > 0, param_name CryoShield).
-   The state is logged only when it changes, so a cycle that crosses midnight has no points on the next day:
-   the state at the start of a day comes from the previous day with data. Such a cycle comes as two periods
-   (until midnight, from midnight), merged here.
-   A cycle that is still going on at the end of the data ends at the end of that day (or now).
+/* Create a materialized view of SEM cryo cycles: Autoloader and Column of autoloader (Arctis) systems.
+   Other systems have no cryo cycle.
+   A cycle is a CryoCycle period of the AutoloaderTemperatureState / ColumnTemperatureState enum
+   (Cryo > CryoCycle > Undefined > Cooling > Cryo): it lasts until the state changes. The state is logged
+   only when it changes (a few hundred points), so the raw data is read directly.
+   A cycle is complete when the next state is logged. A cycle without one is still going on and ends now.
+   Cycles shorter than 1 h are aborted starts and are left out: cryo cycles last a few hours.
 */
 CREATE MATERIALIZED VIEW IF NOT EXISTS events.sem_cryocycles AS
-  WITH days AS (
-    SELECT
-      instrument_id,
-      param_name,
-      day,
-      agg,
-      LAG(agg) OVER (PARTITION BY instrument_id, param_name ORDER BY day) AS prev_agg
-    FROM
-      events.sem_cryocycle_al_daily
+  WITH
+    state_params AS (
+      SELECT
+        p.instrument_id,
+        p.param_id,
+        REPLACE(p.param_name, 'TemperatureState', '') AS param_name,
+        e.value AS cryocycle_value
+      FROM
+        events.parameters p
+        JOIN events.enum_values e
+          ON e.enum_id = p.enum_id AND e.member_name = 'CryoCycle'
+      WHERE
+        p.param_name LIKE '%TemperatureState'
+        AND p.subsystem LIKE '%TemperatureControl'
+    ),
 
-    UNION ALL
+    -- LATERAL per parameter: TimescaleDB skips compressed batches of other parameters, OFFSET 0 keeps it a LATERAL
+    points AS (
+      SELECT
+        sp.instrument_id,
+        sp.param_id,
+        sp.param_name,
+        d.time,
+        d.value_num = sp.cryocycle_value AS is_cycle,
+        LAG(d.value_num = sp.cryocycle_value) OVER (PARTITION BY sp.instrument_id, sp.param_id ORDER BY d.time)
+          AS prev_is_cycle
+      FROM
+        state_params sp
+        CROSS JOIN LATERAL (
+          SELECT
+            x.time,
+            x.value_num
+          FROM
+            events.data x
+          WHERE
+            x.instrument_id = sp.instrument_id
+            AND x.param_id = sp.param_id
+          OFFSET 0
+        ) d
+    ),
 
-    SELECT
-      instrument_id,
-      'CryoShield' AS param_name,
-      day,
-      agg,
-      LAG(agg) OVER (PARTITION BY instrument_id ORDER BY day) AS prev_agg
-    FROM
-      events.sem_cryocycle_noal_daily
-  ),
-
-  periods AS (
-    SELECT
-      d.instrument_id,
-      d.param_name,
-      d.day,
-      s.start_time,
-      s.end_time
-    FROM
-      days d
-      CROSS JOIN LATERAL interpolated_state_periods(d.agg, 1, d.day, '1 day', d.prev_agg) s -- 1 = cryo cycle
-  ),
-
-  -- a period that starts at midnight continues the cycle of the previous day
-  cycles AS (
-    SELECT
-      *,
-      COUNT(*) FILTER (WHERE start_time > day)
-        OVER (PARTITION BY instrument_id, param_name ORDER BY start_time) AS cycle_id
-    FROM
-      periods
-  )
+    -- changes in and out of CryoCycle: the same state can be logged again
+    changes AS (
+      SELECT
+        instrument_id,
+        param_name,
+        time,
+        is_cycle,
+        LEAD(time) OVER (PARTITION BY instrument_id, param_id ORDER BY time) AS next_change
+      FROM
+        points
+      WHERE
+        is_cycle IS DISTINCT FROM prev_is_cycle
+    )
 
   SELECT
     instrument_id,
     param_name,
-    MIN(start_time) AS start_time,
-    LEAST(MAX(end_time), now()) AS end_time
+    time AS start_time,
+    COALESCE(next_change, now()) AS end_time,
+    next_change IS NOT NULL AS is_complete
   FROM
-    cycles
-  GROUP BY
-    instrument_id,
-    param_name,
-    cycle_id
+    changes
+  WHERE
+    is_cycle
+    AND COALESCE(next_change, now()) - time >= '1 hour'::INTERVAL
   ORDER BY
     instrument_id,
     param_name,

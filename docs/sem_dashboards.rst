@@ -15,7 +15,8 @@ The main overview which compares several key metrics across all active instrumen
 
 - Beam Time: pie chart based on instrument utilization (ion beam, electron beam, iFLM, vacuum actions, cryo cycle or offline)
 - Ion source lifetime: source age and last replacement date
-- Last Cryo Cycle for autoloader/quickloader and column
+- Temperature state: pie chart of cryo, room temperature and warming/cooling time (column state on autoloader systems, cryo stage temperature on Aquilos)
+- Last Cryo Cycle for autoloader and column (autoloader systems), last cryo stage warm-up (QuickLoader, Aquilos)
 - Total GIS usage since counter start, in hours
 - Specimen Throughput: the number of cartridges and cassettes loaded daily (Arctis only)
 

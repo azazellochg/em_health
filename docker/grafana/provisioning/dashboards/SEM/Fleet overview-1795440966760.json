@@ -237,6 +237,150 @@
           }
         }
       },
+      "panel-16": {
+        "kind": "Panel",
+        "spec": {
+          "id": 16,
+          "title": "$instrument",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${sourceSEM}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "-- Time in each temperature state in the time range (sem_temperature_states): column state on autoloader\n-- (Arctis) systems, cryo stage temperature on systems with a cryo stage thermometer (Aquilos)\nWITH periods AS (\n  SELECT\n    state,\n    EXTRACT(EPOCH FROM LEAST(end_time, $__timeTo()::timestamptz) - GREATEST(start_time, $__timeFrom()::timestamptz)) AS seconds\n  FROM sem_temperature_states\n  WHERE instrument_id = $instrument\n    AND start_time < $__timeTo()::timestamptz\n    AND end_time > $__timeFrom()::timestamptz\n)\nSELECT\n  state,\n  SUM(seconds) AS duration_seconds,\n  ROUND(100.0 * SUM(seconds) / NULLIF(SUM(SUM(seconds)) OVER (), 0), 2) AS percentage\nFROM periods\nGROUP BY state\nORDER BY percentage DESC\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "rowsToFields",
+                  "spec": {
+                    "options": {
+                      "mappings": [
+                        {
+                          "fieldName": "duration_seconds",
+                          "handlerKey": "__ignore"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "organize",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {},
+                      "includeByName": {},
+                      "indexByName": {},
+                      "renameByName": {
+                        "cryo": "Cryo",
+                        "rt": "RT",
+                        "transition": "Warming/cooling",
+                        "unknown": "Unknown"
+                      }
+                    }
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "piechart",
+            "version": "12.4.1",
+            "spec": {
+              "options": {
+                "displayLabels": [
+                  "percent"
+                ],
+                "legend": {
+                  "displayMode": "list",
+                  "placement": "right",
+                  "showLegend": true,
+                  "values": [
+                    "percent"
+                  ]
+                },
+                "pieType": "donut",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": true
+                },
+                "sort": "desc",
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "percent",
+                  "min": 0,
+                  "max": 100,
+                  "color": {
+                    "mode": "palette-classic-by-name"
+                  },
+                  "custom": {
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    }
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
       "panel-11": {
         "kind": "Panel",
         "spec": {
@@ -304,7 +448,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "-- Days since the start of the last cryo cycle (non-autoloader systems: cryo shield temperature > 0)\nSELECT\n  CURRENT_DATE - MAX(start_time)::date AS days_since_cryocycle_start\nFROM sem_cryocycles\nWHERE instrument_id = $instrument\n  AND param_name = 'CryoShield'\nGROUP BY param_name\n",
+                        "rawSql": "-- Days since the last warm-up of the cryo stage (systems with a cryo stage thermometer, e.g. Aquilos):\n-- the start of the last room temperature period (sem_temperature_states: above +15 C)\nSELECT\n  CURRENT_DATE - MAX(start_time)::date AS days_since_cryocycle_start\nFROM sem_temperature_states\nWHERE instrument_id = $instrument\n  AND param_name = 'CryoStage'\n  AND state = 'rt'\nHAVING MAX(start_time) IS NOT NULL\n",
                         "sql": {
                           "columns": [
                             {
@@ -986,6 +1130,39 @@
               }
             }
           },
+      {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "Temperature state",
+              "collapse": false,
+              "layout": {
+                "kind": "GridLayout",
+                "spec": {
+                  "items": [
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 24,
+                        "height": 6,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-16"
+                        },
+                        "repeat": {
+                          "mode": "variable",
+                          "value": "instrument",
+                          "direction": "h",
+                          "maxPerRow": 6
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
           {
             "kind": "RowsLayoutRow",
             "spec": {
@@ -1022,7 +1199,7 @@
           {
             "kind": "RowsLayoutRow",
             "spec": {
-              "title": "Last cryo cycle",
+              "title": "Last cryo cycle/warm-up",
               "collapse": false,
               "layout": {
                 "kind": "GridLayout",

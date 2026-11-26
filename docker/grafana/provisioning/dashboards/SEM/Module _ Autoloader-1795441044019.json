@@ -944,7 +944,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "-- Cryo cycles that start and end inside the time range\nSELECT\n  start_time,\n  end_time,\n  EXTRACT(EPOCH FROM (end_time - start_time)) AS total_duration\nFROM sem_cryocycles\nWHERE instrument_id = $instrument\n  AND param_name = 'Autoloader'\n  AND start_time >= $__timeFrom()::timestamptz\n  AND end_time <= $__timeTo()::timestamptz\nORDER BY start_time\n",
+                        "rawSql": "-- Complete cryo cycles (sem_cryocycles: at least 1 h) that start and end inside the time range\nSELECT\n  start_time,\n  end_time,\n  EXTRACT(EPOCH FROM (end_time - start_time)) AS total_duration\nFROM sem_cryocycles\nWHERE instrument_id = $instrument\n  AND param_name = 'Autoloader'\n  AND is_complete\n  AND start_time >= $__timeFrom()::timestamptz\n  AND end_time <= $__timeTo()::timestamptz\nORDER BY start_time\n",
                         "sql": {
                           "columns": [
                             {

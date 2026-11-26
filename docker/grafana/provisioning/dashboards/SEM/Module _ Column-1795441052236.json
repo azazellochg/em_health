@@ -102,7 +102,7 @@
         "spec": {
           "id": 29,
           "title": "Avg cryo cycle duration",
-          "description": "For Aquilos, we calculate the time periods when the temperature is above 0C",
+          "description": "Arctis: column cryo cycles of at least 1 h that have ended",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -122,7 +122,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "-- Cryo cycles that start and end inside the time range\nSELECT\n  start_time,\n  end_time,\n  EXTRACT(EPOCH FROM (end_time - start_time)) AS total_duration\nFROM sem_cryocycles\nWHERE instrument_id = $instrument\n  AND param_name = 'Column'\n  AND start_time >= $__timeFrom()::timestamptz\n  AND end_time <= $__timeTo()::timestamptz\nORDER BY start_time\n",
+                        "rawSql": "-- Complete cryo cycles (sem_cryocycles: at least 1 h) that start and end inside the time range\nSELECT\n  start_time,\n  end_time,\n  EXTRACT(EPOCH FROM (end_time - start_time)) AS total_duration\nFROM sem_cryocycles\nWHERE instrument_id = $instrument\n  AND param_name = 'Column'\n  AND is_complete\n  AND start_time >= $__timeFrom()::timestamptz\n  AND end_time <= $__timeTo()::timestamptz\nORDER BY start_time\n",
                         "sql": {
                           "columns": [
                             {
@@ -147,48 +147,6 @@
                       }
                     },
                     "refId": "Arctis",
-                    "hidden": false
-                  }
-                },
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${sourceSEM}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "-- Cryo cycles that start and end inside the time range\nSELECT\n  start_time,\n  end_time,\n  EXTRACT(EPOCH FROM (end_time - start_time)) AS total_duration\nFROM sem_cryocycles\nWHERE instrument_id = $instrument\n  AND param_name = 'CryoShield'\n  AND start_time >= $__timeFrom()::timestamptz\n  AND end_time <= $__timeTo()::timestamptz\nORDER BY start_time\n",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "${sourceSEM}"
-                      }
-                    },
-                    "refId": "Aquilos",
                     "hidden": false
                   }
                 }
