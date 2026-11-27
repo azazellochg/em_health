@@ -27,6 +27,7 @@ Version 0.1a13
 * one SQL file per cagg, mview or view: the *_counters_daily views moved from the cagg files to sql/events/views/, migration 015 drops the old *_counters_daily caggs
 * new emhealth stats command replaces db create-stats. The views are registered with their dependencies: list, create (missing views only, so it can be rerun, -f to recreate a view and the views reading from it), drop and refresh take view names or all and handle the dependent views. Cagg refresh policies are set per view instead of by the name suffix
 * emhealth update runs stats create all for tem and sem: views that are new or were dropped by a migration are created automatically
+* stats create recreates the views whose SQL file changed (the md5 of the file is stored as the view comment), with the views that read from them; list shows them as changed. Views created before have no comment and are recreated once
 
 Version 0.1a12
 ^^^^^^^^^^^^^^

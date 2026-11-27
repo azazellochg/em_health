@@ -97,13 +97,7 @@ Due to Timescale extension, updating the database might get complicated, we reco
     * restore PostgreSQL and Grafana db from the backup
     * upgrade Timescale and other extensions
     * re-run `emhealth dev create-stats` for pganalyze
-    * create the statistics views that are new or were dropped by a migration (`emhealth stats create all`)
-
-Existing statistics views are kept. To rebuild a view whose definition has changed, together with the views that read from it:
-
-.. code-block:: bash
-
-    emhealth stats -d tem create -f <view>
+    * create the statistics views that are new, changed or were dropped by a migration (`emhealth stats create all`)
 
 Updating PostgreSQL from v17 to v18
 -----------------------------------

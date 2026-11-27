@@ -73,10 +73,12 @@ ruff check && mypy                                       # lint and type check (
   views the SQL reads from: keep them in sync by hand, no test checks them against the SQL.
   `emhealth stats create|drop|refresh VIEW...|all` work out the order: `create` adds missing views (and missing
   upstream ones), `create -f` and `drop` also rebuild/drop the downstream views, `refresh` refreshes downstream
-  views after the target. Drops use no CASCADE. A view change needs no migration, only a changelog entry
-  describing the fix (don't add "rerun stats create" to it). A dropped or renamed view does need a migration
-  that drops it (and its refresh job). `emhealth update` runs `stats create all` after migrating, so a new view
-  or one dropped by a migration is created there.
+  views after the target. Drops use no CASCADE. Each view's comment is the md5 of its SQL file (set last in
+  `create_one`, so don't put a `COMMENT ON` in the view SQL): `create` also recreates views whose file changed, with
+  their downstream views, and a view without the comment counts as changed. A view change needs no migration,
+  only a changelog entry describing the fix (don't add "rerun stats create" to it). A dropped or renamed view
+  does need a migration that drops it (and its refresh job). `emhealth update` runs `stats create all` after
+  migrating, so new, changed and dropped views are (re)created there.
 - A cagg only sees the points of its own day, and most parameters are logged only when they change:
   - Counters: never `delta(counter_agg)` per day (the step from yesterday's last value is lost, and a drop counts
     as a reset to 0). Store per-day first/last/min/max in a `*_counter_values_daily` cagg, and compute daily

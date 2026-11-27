@@ -28,11 +28,13 @@
 Each view is one file: sql/<schema>/caggs|mviews|views/<name>.sql. STATS lists them with their dependencies,
 the commands work out the order:
     create:    creates the views that are missing, with the missing views they read from.
-               force: drops and recreates the views and the views that read from them.
+               A view whose SQL file changed (md5 stored as the view comment) is recreated with the views
+               that read from them. force: drops and recreates the views and the views that read from them.
     drop:      drops the views and the views that read from them.
     refresh:   refreshes the views, then the views that read from them.
 """
 
+import hashlib
 import sys
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -72,6 +74,11 @@ class Stat:
     def path(self) -> str:
         schema, name = self.name.split(".")
         return f"{schema}/{self.kind}s/{name}.sql"
+
+    @property
+    def comment(self) -> str:
+        """ Stored as the view comment: md5 of the SQL file, a different comment means the file changed. """
+        return "md5:" + hashlib.md5(DatabaseManager.get_path(self.path).read_bytes()).hexdigest()
 
 
 TEM = ("tem",)
@@ -199,16 +206,21 @@ class StatsManager(DatabaseManager):
         super().__init__(dbname, **kwargs)
         self.reg = registry(dbname)
 
-    def existing(self) -> set[str]:
-        """ Views of the registry that exist (a cagg is a view in pg_class). """
+    def existing(self) -> dict[str, str | None]:
+        """ Views of the registry that exist (a cagg is a view in pg_class) with their comment. """
         rows = self.run_query("""
-            SELECT n.nspname || '.' || c.relname
+            SELECT n.nspname || '.' || c.relname, obj_description(c.oid, 'pg_class')
             FROM pg_class c
               JOIN pg_namespace n ON n.oid = c.relnamespace
             WHERE c.relkind IN ('v', 'm')
               AND n.nspname || '.' || c.relname = ANY(%s)
         """, values=(list(self.reg),), fetch="all")
-        return {r[0] for r in rows}
+        return dict(rows)
+
+    def changed(self, exists: dict[str, str | None], names: set[str]) -> set[str]:
+        """ Existing views whose SQL file changed since they were created (no comment: created before
+        the comments were stored). """
+        return {n for n in names if n in exists and exists[n] != self.reg[n].comment}
 
     def create_one(self, s: Stat) -> None:
         self.create_mview(s.name, s.path)
@@ -220,6 +232,10 @@ class StatsManager(DatabaseManager):
             self.enable_rt_cagg(s.name)
         elif s.kind == "mview":
             self.schedule_mview_refresh(s.name, interval=MVIEW_REFRESH_INTERVAL)
+        # last: if anything above fails, the next create rebuilds the view
+        on = "MATERIALIZED VIEW" if s.kind == "mview" else "VIEW"
+        self.run_query(f"COMMENT ON {on} {{view}} IS {{comment}}", {"view": s.name},
+                       strings={"comment": s.comment})
 
     def refresh_one(self, s: Stat) -> None:
         if s.kind == "cagg":
@@ -229,18 +245,24 @@ class StatsManager(DatabaseManager):
             logger.info("Refreshed MVIEW %s", s.name)
 
     def create(self, names: list[str], force: bool = False) -> None:
-        """ Create the views that are missing and the missing views they read from.
+        """ Create the views that are missing and the missing views they read from. Views whose SQL file
+        changed are recreated with the views that read from them.
         force: drop and recreate the views and the views that read from them. """
         todo = upstream(self.reg, names)
+        changed = self.changed(self.existing(), todo)
+        if changed:
+            logger.info("SQL file changed: %s", ", ".join(ordered(self.reg, changed)))
+        rebuild = downstream(self.reg, changed)
         if force:
-            rebuild = downstream(self.reg, names)
+            rebuild |= downstream(self.reg, names)
+        if rebuild:
             self.drop(list(rebuild))
             todo |= upstream(self.reg, rebuild)
 
         exists = self.existing()
         skipped = [n for n in names if n in exists]
         if skipped:
-            logger.info("Already exist (use -f to recreate): %s", ", ".join(skipped))
+            logger.info("Up to date (use -f to recreate): %s", ", ".join(skipped))
         for name in ordered(self.reg, todo):
             if name not in exists:
                 self.create_one(self.reg[name])
@@ -280,11 +302,14 @@ class StatsManager(DatabaseManager):
         schedules = dict(rows)
 
         width = max(len(n) for n in self.reg)
-        print(f"{'VIEW':<{width}}  {'KIND':<5}  {'EXISTS':<6}  {'REFRESH':<8}  DEPENDS ON")
+        changed = self.changed(exists, set(self.reg))
+
+        width = max(len(n) for n in self.reg)
+        print(f"{'VIEW':<{width}}  {'KIND':<5}  {'STATE':<7}  {'REFRESH':<8}  DEPENDS ON")
         for name, s in self.reg.items():
+            state = "missing" if name not in exists else "changed" if name in changed else "ok"
             refresh = schedules.get(name, "-")
-            print(f"{name:<{width}}  {s.kind:<5}  {'yes' if name in exists else 'no':<6}  {refresh:<8}  "
-                  f"{', '.join(s.deps) or '-'}")
+            print(f"{name:<{width}}  {s.kind:<5}  {state:<7}  {refresh:<8}  {', '.join(s.deps) or '-'}")
 
 
 def main(dbname: str, action: str, views: list[str] | None = None, force: bool = False) -> None:

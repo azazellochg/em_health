@@ -70,7 +70,7 @@ Description
 ^^^^^^^^^^^
 
 Make sure to run `git pull origin master` from the installation folder before running this command. The update command below will migrate the databases schema to the latest
-version, update container images and create the statistics views that are new or were dropped by a migration.
+version, update container images and create the statistics views that are new, changed or were dropped by a migration.
 
 Syntax
 ^^^^^^
@@ -110,11 +110,13 @@ historical data, they are refreshed automatically afterwards.
 Each command takes view names (the ``events`` schema is optional) or ``all`` (every view of the database), and
 works out the dependencies between the views:
 
-* ``list``: the views with their kind, whether they exist, their refresh schedule and the views they read from.
-* ``create``: creates the views that are missing, and the missing views they read from. Existing views are skipped,
-  so ``create all`` can be rerun at any time (e.g. after an update that adds a view).
-* ``create -f``: drops and recreates the views and all views that read from them, e.g. after a view definition
-  has changed. ``create -f all`` recreates everything.
+* ``list``: the views with their kind, state (``ok``, ``changed``: the SQL file changed since the view was created,
+  or ``missing``), refresh schedule and the views they read from.
+* ``create``: creates the views that are missing, and the missing views they read from. Views whose SQL file has
+  changed are recreated, together with the views that read from them. Up-to-date views are skipped, so
+  ``create all`` can be rerun at any time (``emhealth update`` runs it).
+* ``create -f``: drops and recreates the views and all views that read from them, even if they are up to date.
+  ``create -f all`` recreates everything.
 * ``drop``: drops the views and all views that read from them. ``create all`` brings them back.
 * ``refresh``: refreshes the views now (caggs over the whole history), then the views that read from them,
   e.g. after importing historical data.
