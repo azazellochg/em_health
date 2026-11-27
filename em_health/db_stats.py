@@ -33,6 +33,7 @@ the commands work out the order:
     refresh:   refreshes the views, then the views that read from them.
 """
 
+import sys
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Literal
@@ -142,7 +143,8 @@ def resolve(dbname: str, names: Iterable[str]) -> list[str]:
     for name in names:
         full = name if "." in name else f"events.{name}"
         if full not in reg:
-            raise ValueError(f"Unknown view '{name}' for database {dbname}, see 'emhealth stats -d {dbname} list'")
+            logger.error("Unknown view '%s' for database %s, see 'emhealth stats -d %s list'", name, dbname, dbname)
+            sys.exit(1)
         result.append(full)
     return result
 
@@ -253,7 +255,8 @@ class StatsManager(DatabaseManager):
         exists = self.existing()
         missing = [n for n in names if n not in exists]
         if missing:
-            raise ValueError(f"Missing views: {', '.join(missing)}. Run 'emhealth stats create' first")
+            logger.error("Missing views: %s. Run 'emhealth stats -d %s create' first", ", ".join(missing), self.db_name)
+            sys.exit(1)
 
         for name in ordered(self.reg, downstream(self.reg, names)):
             if name in exists:
