@@ -77,7 +77,7 @@ def db_cmd(args):
     dbname = args.database
     action = args.action
 
-    if action in ["create-stats", "erase", "prune"]:
+    if action in ["erase", "prune"]:
         if dbname not in ["tem", "sem"]:
             raise ValueError(f"Database '{dbname}' not recognized. 'tem' or 'sem' only")
         from em_health.db_manager import main as func
@@ -88,6 +88,14 @@ def db_cmd(args):
             raise ValueError(f"Database '{dbname}' not recognized. 'tem', 'sem' or 'grafana' only")
         from em_health.utils.maintenance import main as func
         func(action, dbname)
+
+
+def stats_cmd(args):
+    dbname = args.database
+    if dbname not in ["tem", "sem"]:
+        raise ValueError(f"Database '{dbname}' not recognized. 'tem' or 'sem' only")
+    from em_health.db_stats import main as func
+    func(dbname, args.action, getattr(args, "views", None), getattr(args, "force", False))
 
 
 def dev_cmd(args):
@@ -122,6 +130,7 @@ COMMAND_DISPATCH = {
     "update": update_cmd,
     "test": test_cmd,
     "db": db_cmd,
+    "stats": stats_cmd,
     "dev": dev_cmd
 }
 
@@ -178,7 +187,6 @@ def main():
                            help="Database name (default: tem)")
     db_subparsers = db_parser.add_subparsers(dest="action", required=True)
 
-    db_subparsers.add_parser("create-stats", help="Create data statistics")
     db_subparsers.add_parser("migrate", help="Migrate database to the latest schema")
     db_subparsers.add_parser("backup", help="Back up the database")
     db_subparsers.add_parser("restore", help="Restore database from backup")
@@ -187,6 +195,23 @@ def main():
     clean_parser = db_subparsers.add_parser("prune", help="Prune old data in the database")
     clean_parser.add_argument("--days", dest="days", type=int, required=True,
                                    help="Retain data newer than X days for ALL instruments")
+
+    # --- Statistics views ---
+    stats_parser = subparsers.add_parser("stats", help="Statistics views used by the dashboards")
+    stats_parser.add_argument("-d", dest="database", default="tem",
+                              help="Database name (default: tem)")
+    stats_subparsers = stats_parser.add_subparsers(dest="action", required=True)
+
+    stats_subparsers.add_parser("list", help="List the views with their dependencies and refresh schedule")
+    views_help = "View names or 'all'"
+    create_parser = stats_subparsers.add_parser("create", help="Create missing views")
+    create_parser.add_argument("views", nargs="+", metavar="VIEW", help=views_help)
+    create_parser.add_argument("-f", "--force", dest="force", action="store_true",
+                               help="Drop and recreate the views")
+    drop_parser = stats_subparsers.add_parser("drop", help="Drop views")
+    drop_parser.add_argument("views", nargs="+", metavar="VIEW", help=views_help)
+    refresh_parser = stats_subparsers.add_parser("refresh", help="Refresh views")
+    refresh_parser.add_argument("views", nargs="+", metavar="VIEW", help=views_help)
 
     # --- Developer tools ---
     dev_parser = subparsers.add_parser("dev", help="Developer tools")

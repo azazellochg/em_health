@@ -98,12 +98,14 @@ Due to Timescale extension, updating the database might get complicated, we reco
     * upgrade Timescale and other extensions
     * re-run `emhealth dev create-stats` for pganalyze
 
-3. Update historical stats:
+3. Create the statistics views that are new or were dropped by a migration, and recreate the ones the
+   changelog lists as changed (``-f``):
 
 .. code-block:: bash
 
-    emhealth db -d tem create-stats
-    emhealth db -d sem create-stats
+    emhealth stats -d tem create all
+    emhealth stats -d sem create all
+    emhealth stats -d tem create -f <view>
 
 Updating PostgreSQL from v17 to v18
 -----------------------------------

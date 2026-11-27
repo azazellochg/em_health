@@ -32,7 +32,7 @@ Most of the logic is in SQL (`em_health/sql/`). Python is the CLI, the importer 
 podman-compose -f docker/compose.yaml up -d             # or: docker compose -f docker/compose.yaml up -d
 emhealth import -i file.xml.gz -s em_health/instruments.json
 emhealth db -d tem migrate                               # apply pending migrations/NNN.sql
-emhealth db -d tem create-stats                          # (re)create caggs/mviews and their jobs
+emhealth stats -d tem create all                         # create missing caggs/mviews/views and their job
 emhealth test                                            # see Testing below
 ruff check && mypy                                       # lint and type check (pip install -e '.[dev]'), config in pyproject.toml
 ```
@@ -68,26 +68,27 @@ ruff check && mypy                                       # lint and type check (
   on a missing one. `psql -v var_name=raw_value` (the init scripts) quotes them itself, so pass raw values.
 - `init_db.sql` uses `\i /sql/...` and runs only through psql inside the container.
 - One object per file: caggs live in `sql/events/cagg/`, mviews in `sql/events/mviews/` and plain views in
-`sql/events/views/`, the file name is the object name. They're registered in `db_manager.main()`.
-  Their order there is the dependency order. `create-stats` drops and recreates them all, so a cagg/mview change
-  needs no migration, only a changelog entry describing the fix (don't add "rerun create-stats" to it). A dropped
-  or renamed cagg/mview does need a migration that drops it (and its refresh job). The name suffix
-  (`hourly`/`daily`/`monthly`) picks the refresh policy.
+  `sql/events/views/`, the file name is the object name. They're registered in `stats.STATS` with their kind,
+  databases, `deps` (the registered views their SQL reads from, checked by `test_stats_registry`) and, for caggs,
+  the refresh policy (`HOURLY`/`DAILY`/`MONTHLY`). `emhealth stats create|drop|refresh VIEW...|all` work out the
+  order: `create` adds missing views (and missing upstream ones), `create -f` and `drop` also rebuild/drop the
+  downstream views, `refresh` refreshes downstream views after the target. Drops use no CASCADE. A view change
+  needs no migration, only a changelog note to run `emhealth stats create -f <view>`.
 - A cagg only sees the points of its own day, and most parameters are logged only when they change:
-  - Counters: never `delta(counter_agg)` per day (the step from yesterday's last value is lost, and a drop counts
-    as a reset to 0). Store per-day first/last/min/max in a `*_counter_values_daily` cagg, and compute daily
-    increments in a plain view with the old name (`LAG(last_value)`) in `sql/events/views/`. See
-  `cagg/load_counter_values_daily.sql` and `views/load_counters_daily.sql`.
-  - States: carry the previous day's state with `interpolated_duration_in`/`interpolated_state_periods` and
-    `LAG(agg)`. Periods that cross midnight must be merged in an mview. A state logged only on change with few
-    points (e.g. `sem_cryocycles`) is simpler to read from raw data in an mview (`LEAD(time)`).
-  - Gaps (e.g. a missing heartbeat) are invisible to a cagg: `em_off` reads the raw heartbeat with `LEAD(time)`.
-  - Views that sum time per state cut the `em_off` periods out with multiranges (`range_agg`, `tstzmultirange -`),
-    see `vacuum_state_daily.sql`.
-  - Replacements/resets (aperture strips, sources) are a drop from a non-zero value to 0 or below half: after a
-    restart a counter can come back a little lower. Read them from raw data in an mview (`LAG(value_num)`), see
-    `fibsem_source_replacements.sql`. Mviews read `events.data` per parameter with the same LATERAL `OFFSET 0`
-    pattern as the dashboards.
+    - Counters: never `delta(counter_agg)` per day (the step from yesterday's last value is lost, and a drop counts
+      as a reset to 0). Store per-day first/last/min/max in a `*_counter_values_daily` cagg, and compute daily
+      increments in a plain view with the old name (`LAG(last_value)`) in `sql/events/views/`. See
+      `cagg/load_counter_values_daily.sql` and `views/load_counters_daily.sql`.
+    - States: carry the previous day's state with `interpolated_duration_in`/`interpolated_state_periods` and
+      `LAG(agg)`. Periods that cross midnight must be merged in an mview. A state logged only on change with few
+      points (e.g. `sem_cryocycles`) is simpler to read from raw data in an mview (`LEAD(time)`).
+    - Gaps (e.g. a missing heartbeat) are invisible to a cagg: `em_off` reads the raw heartbeat with `LEAD(time)`.
+    - Views that sum time per state cut the `em_off` periods out with multiranges (`range_agg`, `tstzmultirange -`),
+      see `vacuum_state_daily.sql`.
+    - Replacements/resets (aperture strips, sources) are a drop from a non-zero value to 0 or below half: after a
+      restart a counter can come back a little lower. Read them from raw data in an mview (`LAG(value_num)`), see
+      `fibsem_source_replacements.sql`. Mviews read `events.data` per parameter with the same LATERAL `OFFSET 0`
+      pattern as the dashboards.
 - Cagg expressions must be immutable (e.g. `EXTRACT(EPOCH FROM time - 'epoch'::timestamptz)`, not
   `EXTRACT(EPOCH FROM time)`), otherwise TimescaleDB warns.
 - Scheduled jobs use static procedures with a `config` JSONB, never generated per-object code:

@@ -158,30 +158,37 @@ class DatabaseManager(PgClient):
         logger.info("Updated events.data table (%d rows)", self.cur.rowcount,
                     extra={"prefix": self.instrument_name})
 
+    def delete_mview_refresh_job(self, view: str) -> None:
+        """ Delete the refresh job of a materialized view,
+        the view name is stored in the job config (see schedule_mview_refresh). """
+        self.run_query("""
+                       SELECT delete_job(job_id)
+                       FROM timescaledb_information.jobs
+                       WHERE proc_schema = 'public'
+                         AND proc_name = 'refresh_mview'
+                         AND config ->> 'view' = %s
+        """, values=(view,))
+
     def drop_mview(self, view: str, kind: str = "mview") -> None:
-        """ Delete a materialized view, a continuous aggregate (kind="cagg") or a plain view (kind="view"). """
+        """ Delete a materialized view, a continuous aggregate (kind="cagg") or a plain view (kind="view").
+        No CASCADE: the views that read from it must be dropped first. A cagg refresh policy is dropped
+        with the cagg, a materialized view refresh job is deleted here. """
         with self.conn.transaction():
             if kind == "mview":
-                # for standard mat. views we need to manually remove the refresh job,
-                # the view name is stored in the job config (see schedule_mview_refresh)
-                self.run_query("""
-                               SELECT delete_job(job_id)
-                               FROM timescaledb_information.jobs
-                               WHERE proc_schema = 'public'
-                                 AND proc_name = 'refresh_mview'
-                                 AND config ->> 'view' = %s
-                """, values=(view,))
+                self.delete_mview_refresh_job(view)
 
             if kind == "view":
-                self.run_query("DROP VIEW IF EXISTS {view} CASCADE", {"view": view})
+                self.run_query("DROP VIEW IF EXISTS {view}", {"view": view})
             else:
-                self.run_query("DROP MATERIALIZED VIEW IF EXISTS {view} CASCADE", {"view": view})
+                self.run_query("DROP MATERIALIZED VIEW IF EXISTS {view}", {"view": view})
 
-        logger.info("Dropped MVIEW %s", view)
+        logger.info("Dropped %s %s", kind.upper(), view)
 
     def schedule_mview_refresh(self, view: str, interval: str = "12 hours") -> None:
         """ Schedule a materialized view refresh with the shared
-        public.refresh_mview procedure. The view name goes into the job config. """
+        public.refresh_mview procedure. The view name goes into the job config.
+        An existing job for the same view is replaced. """
+        self.delete_mview_refresh_job(view)
         self.run_query("SELECT add_job('public.refresh_mview', %s::interval, config => %s)",
                        values=(interval, Jsonb({"view": view})))
 
@@ -238,7 +245,7 @@ class DatabaseManager(PgClient):
         """ Create a new materialized view or a continuous aggregate. """
         view_fn = self.get_path(target)
         self.execute_file(view_fn)
-        logger.info("Created MVIEW %s", view)
+        logger.info("Created %s", view)
 
     def import_uec(self):
         if any(os.getenv(var) in ["None", "", None] for var in ["MSSQL_USER", "MSSQL_PASSWORD"]):
@@ -288,88 +295,7 @@ class DatabaseManager(PgClient):
 
 
 def main(dbname, action, days=None):
-    if action == "create-stats":
-        logger.info("Running aggregation on database %s", dbname)
-        mviews = {
-            "tem": {
-                # name: kind (cagg, mview or view)
-                "events.em_off": "mview",
-                "events.epu_sessions": "mview",
-                "events.tomo_sessions": "mview",
-                "events.load_counter_values_daily": "cagg",
-                "events.load_counters_daily": "view",
-                "events.data_counter_values_daily": "cagg",
-                "events.data_counters_daily": "view",
-                "events.image_counter_values_daily": "cagg",
-                "events.image_counters_daily": "view",
-                "events.tem_cryocycles": "mview",
-                "events.tem_pressure_hourly": "cagg",
-                "events.tem_pressure_daily": "cagg", # depends on tem_pressure_hourly
-                "events.tem_pressure_monthly": "cagg", # depends on tem_pressure_daily
-
-                # Depends on em_off
-                "events.vacuum_state_daily": "mview",
-
-                # Depend on *_sessions
-                "events.epu_runs": "mview",
-                "events.tomo_runs": "mview",
-                "events.epu_counters": "mview",
-                "events.tomo_counters": "mview",
-                "events.epu_running_daily": "mview",
-                "events.tomo_running_daily": "mview",
-            },
-            "sem": {
-                "events.em_off": "mview",
-                "events.load_counter_values_daily": "cagg",
-                "events.load_counters_daily": "view",
-                "events.fib_baa_counter_values_daily": "cagg",
-                "events.fib_baa_counters_daily": "view",
-                "events.fib_bda_counter_values_daily": "cagg",
-                "events.fib_bda_counters_daily": "view",
-                "events.gis_counter_values_daily": "cagg",
-                "events.gis_counters_daily": "view",
-                "events.aperture_strip_replacements": "mview",
-                "events.fibsem_source_replacements": "mview",
-                "events.fib_beam_daily": "cagg",
-                "events.sem_beam_daily": "cagg",
-                "events.flm_beam_daily": "cagg",
-                "events.sem_cryocycles": "mview",
-                "events.sem_temperature_states": "mview",
-                "events.sem_pressure_hourly": "cagg",
-                "events.sem_pressure_daily": "cagg", # depends on sem_pressure_hourly
-                "events.sem_pressure_monthly": "cagg", # depends on sem_pressure_daily
-
-                # Depends on the views above
-                "events.sem_beamtime_daily": "mview",
-            }
-        }
-
-        with DatabaseManager(dbname) as db:
-            # Full rebuild reads all raw data: give sorts/hashes in this session more memory
-            db.run_query("SET work_mem = '256MB'")
-            for view, kind in mviews[dbname].items():
-                schema, name = view.split(".")
-                if kind == "view":
-                    db.drop_mview(view, kind="view")
-                    db.create_mview(view, f"{schema}/views/{name}.sql")
-                elif kind == "cagg":
-                    db.drop_mview(view, kind="cagg")
-                    db.create_mview(view, f"{schema}/cagg/{name}.sql")
-                    db.force_refresh_cagg(view)
-                    if name.endswith("hourly"):
-                        db.schedule_cagg_refresh(view, start_offset="6 hours", end_offset="1 hour", interval="1 hour")
-                    elif name.endswith("daily"):
-                        db.schedule_cagg_refresh(view, start_offset="4 days",  end_offset="1 day", interval="12 hours")
-                    elif name.endswith("monthly"):
-                        # a month bucket is refreshed only once it is complete: cover the last 2 full months
-                        db.schedule_cagg_refresh(view, start_offset="3 months", end_offset="1 day", interval="1 day")
-                    db.enable_rt_cagg(view)
-                else:
-                    db.drop_mview(view)
-                    db.create_mview(view, f"{schema}/mviews/{name}.sql")
-                    db.schedule_mview_refresh(view)
-
-    elif action == "erase":
+    if action == "erase":
         print(f"!!! WARNING: You are about to DELETE ALL DATA from database {dbname} !!!")
         confirm = input("Type YES to continue: ")
         if confirm != "YES":

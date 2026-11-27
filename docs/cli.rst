@@ -97,28 +97,43 @@ Syntax
 
     emhealth test
 
-Database Operations
--------------------
-
-Create Data Statistics
-~~~~~~~~~~~~~~~~~~~~~~
+Statistics
+----------
 
 Description
 ^^^^^^^^^^^
 
-This command is usually run after you have imported a large batch of historical data. It will aggregate daily
-statistics like autoloader counters, EPU/Tomo sessions etc that is used by various dashboards. You only need to run this
-command once, the statistics will be refreshed automatically.
+The dashboards read daily statistics like autoloader counters, EPU/Tomo sessions, pressures etc. from continuous
+aggregates (caggs), materialized views and views. Create them once after you have imported a large batch of
+historical data, they are refreshed automatically afterwards.
+
+Each command takes view names (the ``events`` schema is optional) or ``all`` (every view of the database), and
+works out the dependencies between the views:
+
+* ``list``: the views with their kind, whether they exist, their refresh schedule and the views they read from.
+* ``create``: creates the views that are missing, and the missing views they read from. Existing views are skipped,
+  so ``create all`` can be rerun at any time (e.g. after an update that adds a view).
+* ``create -f``: drops and recreates the views and all views that read from them, e.g. after a view definition
+  has changed. ``create -f all`` recreates everything.
+* ``drop``: drops the views and all views that read from them. ``create all`` brings them back.
+* ``refresh``: refreshes the views now (caggs over the whole history), then the views that read from them,
+  e.g. after importing historical data.
 
 Syntax
 ^^^^^^
 
 .. code-block::
 
-    emhealth db -d tem create-stats
-    emhealth db -d sem create-stats
+    emhealth stats -d tem list
+    emhealth stats -d tem create all
+    emhealth stats -d sem create -f sem_beamtime_daily
+    emhealth stats -d tem drop epu_sessions
+    emhealth stats -d tem refresh epu_sessions
 
 ----
+
+Database Operations
+-------------------
 
 Migrate database
 ~~~~~~~~~~~~~~~~

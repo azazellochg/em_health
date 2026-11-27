@@ -20,7 +20,7 @@ $$
       DROP MATERIALIZED VIEW IF EXISTS events.epud_runs;
 
       -- 3. Drop epu/tomo_state_daily caggs: the running_daily views are built from the sessions now.
-      -- CASCADE drops the old running_daily views, delete their refresh jobs (create-stats adds them again)
+      -- CASCADE drops the old running_daily views, delete their refresh jobs
       PERFORM delete_job(job_id)
       FROM timescaledb_information.jobs
       WHERE proc_schema = 'public'
@@ -29,12 +29,11 @@ $$
       DROP MATERIALIZED VIEW IF EXISTS events.epu_state_daily CASCADE;
       DROP MATERIALIZED VIEW IF EXISTS events.tomo_state_daily CASCADE;
 
-      -- 4. Drop tem_cryocycle_daily cagg: replaced by the tem_cryocycles mview (create-stats)
+      -- 4. Drop tem_cryocycle_daily cagg: replaced by the tem_cryocycles mview
       DROP MATERIALIZED VIEW IF EXISTS events.tem_cryocycle_daily;
 
       -- 5. Drop sem_cryocycle_al_daily and sem_cryocycle_noal_daily caggs: sem_cryocycles reads the raw data now
       -- (autoloader systems only). CASCADE drops sem_cryocycles and sem_beamtime_daily, delete their refresh jobs
-      -- (create-stats adds them again)
       PERFORM delete_job(job_id)
       FROM timescaledb_information.jobs
       WHERE proc_schema = 'public'
@@ -48,7 +47,6 @@ $$
       DROP MATERIALIZED VIEW IF EXISTS events.sem_chamber_state_daily CASCADE;
 
       -- 7. Drop the old *_counters_daily caggs: they are views of the *_counter_values_daily caggs now
-      -- (create-stats creates them)
       DROP MATERIALIZED VIEW IF EXISTS events.load_counters_daily;
       DROP MATERIALIZED VIEW IF EXISTS events.data_counters_daily;
       DROP MATERIALIZED VIEW IF EXISTS events.image_counters_daily;

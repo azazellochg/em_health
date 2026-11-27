@@ -31,6 +31,8 @@ from datetime import datetime as dt, timezone as tz
 from em_health.utils.import_xml import ImportXML
 from em_health.utils.tools import run_command
 from em_health.db_manager import DatabaseManager
+from em_health import db_stats
+
 
 TEST_SERIAL = 9999
 XML_FN = os.path.join(os.path.dirname(__file__), '%d_data.xml.gz' % TEST_SERIAL)
@@ -97,6 +99,7 @@ class TestEMHealth(unittest.TestCase):
         self.assertEqual(match_count, 2)
 
     def test_client(self):
+        """ Test import with and without modified data. """
         self.delete_test_instrument()
         self.addCleanup(self.delete_test_instrument)
 
@@ -133,10 +136,31 @@ class TestEMHealth(unittest.TestCase):
 
             pg_prove("tem", "/sql/tests/pgtap/05_import2.sql")
 
+    def test_stats_registry(self):
+        """ Test views/mviews/caggs. """
+        sql_dir = DatabaseManager.get_path("events")
+        files = {f"events.{f.stem}" for folder in ['caggs', 'views', 'mviews'] for f in (sql_dir / folder).glob("*.sql")}
+        names = {s.name for s in db_stats.STATS}
+        self.assertEqual(files, names)
+
+        for s in db_stats.STATS:
+            with self.subTest(view=s.name):
+                self.assertTrue(DatabaseManager.get_path(s.path).exists())
+                self.assertEqual(s.policy is not None, s.kind == "cagg")
+                for db in s.dbs:
+                    self.assertLessEqual(set(s.deps), set(db_stats.registry(db)))
+
+        sem = db_stats.registry("sem")
+        self.assertEqual(db_stats.downstream(sem, ["events.em_off"]), {"events.em_off", "events.sem_beamtime_daily"})
+        self.assertEqual(db_stats.ordered(sem, db_stats.upstream(sem, ["events.sem_pressure_monthly"])),
+                         ["events.sem_pressure_hourly", "events.sem_pressure_daily", "events.sem_pressure_monthly"])
+
     def test_pgtap_tem(self):
+        """ pgTAP tests for TEM. """
         pg_prove("tem", "/sql/tests/pgtap/0[1-3]*.sql")
 
     def test_pgtap_sem(self):
+        """ pgTAP tests for SEM. """
         pg_prove("sem", "/sql/tests/pgtap/0[1-3]*.sql")
 
 
