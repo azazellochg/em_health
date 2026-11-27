@@ -47,7 +47,16 @@ $$
       -- (sem_beamtime_daily is dropped and its refresh job deleted in step 5)
       DROP MATERIALIZED VIEW IF EXISTS events.sem_chamber_state_daily CASCADE;
 
-      -- 7. Update schema version
+      -- 7. Drop the old *_counters_daily caggs: they are views of the *_counter_values_daily caggs now
+      -- (create-stats creates them)
+      DROP MATERIALIZED VIEW IF EXISTS events.load_counters_daily;
+      DROP MATERIALIZED VIEW IF EXISTS events.data_counters_daily;
+      DROP MATERIALIZED VIEW IF EXISTS events.image_counters_daily;
+      DROP MATERIALIZED VIEW IF EXISTS events.gis_counters_daily;
+      DROP MATERIALIZED VIEW IF EXISTS events.fib_baa_counters_daily;
+      DROP MATERIALIZED VIEW IF EXISTS events.fib_bda_counters_daily;
+
+      -- 8. Update schema version
       UPDATE public.schema_info SET version = 15, updated = NOW();
     END IF;
   END

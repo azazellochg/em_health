@@ -67,7 +67,8 @@ ruff check && mypy                                       # lint and type check (
   `:'var_name'` (psql quoting). `execute_file(variables=...)` substitutes them as `sql.Literal` and raises
   on a missing one. `psql -v var_name=raw_value` (the init scripts) quotes them itself, so pass raw values.
 - `init_db.sql` uses `\i /sql/...` and runs only through psql inside the container.
-- Caggs live in `sql/events/cagg/` and mviews in `sql/events/mviews/`. They're registered in `db_manager.main()`.
+- One object per file: caggs live in `sql/events/cagg/`, mviews in `sql/events/mviews/` and plain views in
+`sql/events/views/`, the file name is the object name. They're registered in `db_manager.main()`.
   Their order there is the dependency order. `create-stats` drops and recreates them all, so a cagg/mview change
   needs no migration, only a changelog entry describing the fix (don't add "rerun create-stats" to it). A dropped
   or renamed cagg/mview does need a migration that drops it (and its refresh job). The name suffix
@@ -75,8 +76,8 @@ ruff check && mypy                                       # lint and type check (
 - A cagg only sees the points of its own day, and most parameters are logged only when they change:
   - Counters: never `delta(counter_agg)` per day (the step from yesterday's last value is lost, and a drop counts
     as a reset to 0). Store per-day first/last/min/max in a `*_counter_values_daily` cagg, and compute daily
-    increments in a plain view with the old name (`LAG(last_value)`), created in the same file. See
-    `load_counter_values_daily.sql`.
+    increments in a plain view with the old name (`LAG(last_value)`) in `sql/events/views/`. See
+  `cagg/load_counter_values_daily.sql` and `views/load_counters_daily.sql`.
   - States: carry the previous day's state with `interpolated_duration_in`/`interpolated_state_periods` and
     `LAG(agg)`. Periods that cross midnight must be merged in an mview. A state logged only on change with few
     points (e.g. `sem_cryocycles`) is simpler to read from raw data in an mview (`LEAD(time)`).

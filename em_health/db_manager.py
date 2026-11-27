@@ -158,10 +158,10 @@ class DatabaseManager(PgClient):
         logger.info("Updated events.data table (%d rows)", self.cur.rowcount,
                     extra={"prefix": self.instrument_name})
 
-    def drop_mview(self, view: str, is_cagg: bool = False) -> None:
-        """ Delete a materialized view. """
+    def drop_mview(self, view: str, kind: str = "mview") -> None:
+        """ Delete a materialized view, a continuous aggregate (kind="cagg") or a plain view (kind="view"). """
         with self.conn.transaction():
-            if not is_cagg:
+            if kind == "mview":
                 # for standard mat. views we need to manually remove the refresh job,
                 # the view name is stored in the job config (see schedule_mview_refresh)
                 self.run_query("""
@@ -172,8 +172,10 @@ class DatabaseManager(PgClient):
                                  AND config ->> 'view' = %s
                 """, values=(view,))
 
-            self.run_query("DROP MATERIALIZED VIEW IF EXISTS {view} CASCADE",
-                           {"view": view})
+            if kind == "view":
+                self.run_query("DROP VIEW IF EXISTS {view} CASCADE", {"view": view})
+            else:
+                self.run_query("DROP MATERIALIZED VIEW IF EXISTS {view} CASCADE", {"view": view})
 
         logger.info("Dropped MVIEW %s", view)
 
@@ -290,58 +292,68 @@ def main(dbname, action, days=None):
         logger.info("Running aggregation on database %s", dbname)
         mviews = {
             "tem": {
-                # name: is_cagg
-                "events.em_off": False,
-                "events.epu_sessions": False,
-                "events.tomo_sessions": False,
-                "events.load_counter_values_daily": True, # also creates the view load_counters_daily
-                "events.data_counter_values_daily": True, # also creates the view data_counters_daily
-                "events.image_counter_values_daily": True, # also creates the view image_counters_daily
-                "events.tem_cryocycles": False,
-                "events.tem_pressure_hourly": True,
-                "events.tem_pressure_daily": True, # depends on tem_pressure_hourly
-                "events.tem_pressure_monthly": True, # depends on tem_pressure_daily
+                # name: kind (cagg, mview or view)
+                "events.em_off": "mview",
+                "events.epu_sessions": "mview",
+                "events.tomo_sessions": "mview",
+                "events.load_counter_values_daily": "cagg",
+                "events.load_counters_daily": "view",
+                "events.data_counter_values_daily": "cagg",
+                "events.data_counters_daily": "view",
+                "events.image_counter_values_daily": "cagg",
+                "events.image_counters_daily": "view",
+                "events.tem_cryocycles": "mview",
+                "events.tem_pressure_hourly": "cagg",
+                "events.tem_pressure_daily": "cagg", # depends on tem_pressure_hourly
+                "events.tem_pressure_monthly": "cagg", # depends on tem_pressure_daily
 
                 # Depends on em_off
-                "events.vacuum_state_daily": False,
+                "events.vacuum_state_daily": "mview",
 
                 # Depend on *_sessions
-                "events.epu_runs": False,
-                "events.tomo_runs": False,
-                "events.epu_counters": False,
-                "events.tomo_counters": False,
-                "events.epu_running_daily": False,
-                "events.tomo_running_daily": False,
+                "events.epu_runs": "mview",
+                "events.tomo_runs": "mview",
+                "events.epu_counters": "mview",
+                "events.tomo_counters": "mview",
+                "events.epu_running_daily": "mview",
+                "events.tomo_running_daily": "mview",
             },
             "sem": {
-                "events.em_off": False,
-                "events.load_counter_values_daily": True, # also creates the view load_counters_daily
-                "events.fib_baa_counter_values_daily": True, # also creates the view fib_baa_counters_daily
-                "events.fib_bda_counter_values_daily": True, # also creates the view fib_bda_counters_daily
-                "events.gis_counter_values_daily": True, # also creates the view gis_counters_daily
-                "events.aperture_strip_replacements": False,
-                "events.fibsem_source_replacements": False,
-                "events.fib_beam_daily": True,
-                "events.sem_beam_daily": True,
-                "events.flm_beam_daily": True,
-                "events.sem_cryocycles": False,
-                "events.sem_temperature_states": False,
-                "events.sem_pressure_hourly": True,
-                "events.sem_pressure_daily": True, # depends on sem_pressure_hourly
-                "events.sem_pressure_monthly": True, # depends on sem_pressure_daily
+                "events.em_off": "mview",
+                "events.load_counter_values_daily": "cagg",
+                "events.load_counters_daily": "view",
+                "events.fib_baa_counter_values_daily": "cagg",
+                "events.fib_baa_counters_daily": "view",
+                "events.fib_bda_counter_values_daily": "cagg",
+                "events.fib_bda_counters_daily": "view",
+                "events.gis_counter_values_daily": "cagg",
+                "events.gis_counters_daily": "view",
+                "events.aperture_strip_replacements": "mview",
+                "events.fibsem_source_replacements": "mview",
+                "events.fib_beam_daily": "cagg",
+                "events.sem_beam_daily": "cagg",
+                "events.flm_beam_daily": "cagg",
+                "events.sem_cryocycles": "mview",
+                "events.sem_temperature_states": "mview",
+                "events.sem_pressure_hourly": "cagg",
+                "events.sem_pressure_daily": "cagg", # depends on sem_pressure_hourly
+                "events.sem_pressure_monthly": "cagg", # depends on sem_pressure_daily
 
                 # Depends on the views above
-                "events.sem_beamtime_daily": False,
+                "events.sem_beamtime_daily": "mview",
             }
         }
 
         with DatabaseManager(dbname) as db:
             # Full rebuild reads all raw data: give sorts/hashes in this session more memory
             db.run_query("SET work_mem = '256MB'")
-            for view, is_cagg in mviews[dbname].items():
+            for view, kind in mviews[dbname].items():
                 schema, name = view.split(".")
-                if is_cagg:
-                    db.drop_mview(view, is_cagg=True)
+                if kind == "view":
+                    db.drop_mview(view, kind="view")
+                    db.create_mview(view, f"{schema}/views/{name}.sql")
+                elif kind == "cagg":
+                    db.drop_mview(view, kind="cagg")
                     db.create_mview(view, f"{schema}/cagg/{name}.sql")
                     db.force_refresh_cagg(view)
                     if name.endswith("hourly"):
