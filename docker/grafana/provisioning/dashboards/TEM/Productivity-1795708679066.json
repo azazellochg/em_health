@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "6b926c0e-9894-4124-9c6e-75cf6d9d898a",
-    "generation": 1,
-    "creationTimestamp": "2026-07-09T09:04:12Z",
+    "generation": 10,
+    "creationTimestamp": "2026-11-17T16:11:51Z",
     "labels": {},
     "annotations": {}
   },
@@ -17,9 +17,6 @@
             "kind": "DataQuery",
             "group": "grafana",
             "version": "v0",
-            "labels": {
-              "grafana.app/export-label": "grafana-1"
-            },
             "spec": {}
           },
           "enable": true,
@@ -76,6 +73,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceTEM}"
                       }
                     },
                     "refId": "A",
@@ -90,7 +91,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "barchart",
-            "version": "13.1.0-25893932881",
+            "version": "13.3.1",
             "spec": {
               "options": {
                 "barRadius": 0,
@@ -203,6 +204,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceTEM}"
                       }
                     },
                     "refId": "A",
@@ -239,23 +244,13 @@
           },
           "vizConfig": {
             "kind": "VizConfig",
-            "group": "stat",
-            "version": "13.1.0-25893932881",
+            "group": "table",
+            "version": "13.3.1",
             "spec": {
               "options": {
-                "colorMode": "none",
-                "graphMode": "none",
-                "justifyMode": "center",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "/.*/",
-                  "values": true
-                },
-                "showPercentChange": false,
-                "textMode": "value_and_name",
-                "wideLayout": false
+                "cellHeight": "sm",
+                "showHeader": true,
+                "zebraStriping": false
               },
               "fieldConfig": {
                 "defaults": {
@@ -269,7 +264,17 @@
                     ]
                   },
                   "color": {
-                    "mode": "fixed"
+                    "mode": "thresholds"
+                  },
+                  "custom": {
+                    "align": "center",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false
                   }
                 },
                 "overrides": [
@@ -334,6 +339,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceTEM}"
                       }
                     },
                     "refId": "A",
@@ -348,7 +357,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "barchart",
-            "version": "13.1.0-25893932881",
+            "version": "13.3.1",
             "spec": {
               "options": {
                 "barRadius": 0,
@@ -558,6 +567,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceTEM}"
                       }
                     },
                     "refId": "A",
@@ -572,7 +585,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.1.0-25893932881",
+            "version": "13.3.1",
             "spec": {
               "options": {
                 "colorMode": "none",
@@ -654,6 +667,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceTEM}"
                       }
                     },
                     "refId": "A",
@@ -692,6 +709,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceTEM}"
                       }
                     },
                     "refId": "B",
@@ -706,7 +727,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.1.0-25893932881",
+            "version": "13.3.1",
             "spec": {
               "options": {
                 "colorMode": "none",
@@ -812,6 +833,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceTEM}"
                       }
                     },
                     "refId": "A",
@@ -845,23 +870,13 @@
           },
           "vizConfig": {
             "kind": "VizConfig",
-            "group": "stat",
-            "version": "13.1.0-25893932881",
+            "group": "table",
+            "version": "13.3.1",
             "spec": {
               "options": {
-                "colorMode": "none",
-                "graphMode": "none",
-                "justifyMode": "center",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [],
-                  "fields": "/.*/",
-                  "values": true
-                },
-                "showPercentChange": false,
-                "textMode": "value_and_name",
-                "wideLayout": false
+                "cellHeight": "sm",
+                "showHeader": true,
+                "zebraStriping": false
               },
               "fieldConfig": {
                 "defaults": {
@@ -875,7 +890,17 @@
                     ]
                   },
                   "color": {
-                    "mode": "fixed"
+                    "mode": "thresholds"
+                  },
+                  "custom": {
+                    "align": "center",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false
                   }
                 },
                 "overrides": [
@@ -940,6 +965,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceTEM}"
                       }
                     },
                     "refId": "A",
@@ -968,7 +997,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "barchart",
-            "version": "13.1.0-25893932881",
+            "version": "13.3.1",
             "spec": {
               "options": {
                 "barRadius": 0,
@@ -1174,6 +1203,10 @@
                           ],
                           "limit": 50
                         }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceTEM}"
                       }
                     },
                     "refId": "A",
@@ -1202,7 +1235,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "barchart",
-            "version": "13.1.0-25893932881",
+            "version": "13.3.1",
             "spec": {
               "options": {
                 "barRadius": 0,
@@ -1376,7 +1409,7 @@
               "x": 0,
               "y": 0,
               "width": 4,
-              "height": 7,
+              "height": 8,
               "element": {
                 "kind": "ElementReference",
                 "name": "panel-3"
@@ -1389,7 +1422,7 @@
               "x": 4,
               "y": 0,
               "width": 4,
-              "height": 7,
+              "height": 8,
               "element": {
                 "kind": "ElementReference",
                 "name": "panel-4"
@@ -1401,8 +1434,8 @@
             "spec": {
               "x": 8,
               "y": 0,
-              "width": 8,
-              "height": 7,
+              "width": 16,
+              "height": 4,
               "element": {
                 "kind": "ElementReference",
                 "name": "panel-5"
@@ -1412,10 +1445,10 @@
           {
             "kind": "GridLayoutItem",
             "spec": {
-              "x": 16,
-              "y": 0,
-              "width": 8,
-              "height": 7,
+              "x": 8,
+              "y": 4,
+              "width": 16,
+              "height": 4,
               "element": {
                 "kind": "ElementReference",
                 "name": "panel-10"
@@ -1426,7 +1459,7 @@
             "kind": "GridLayoutItem",
             "spec": {
               "x": 0,
-              "y": 7,
+              "y": 8,
               "width": 24,
               "height": 7,
               "element": {
@@ -1439,7 +1472,7 @@
             "kind": "GridLayoutItem",
             "spec": {
               "x": 0,
-              "y": 14,
+              "y": 15,
               "width": 24,
               "height": 9,
               "element": {
@@ -1452,7 +1485,7 @@
             "kind": "GridLayoutItem",
             "spec": {
               "x": 0,
-              "y": 23,
+              "y": 24,
               "width": 24,
               "height": 7,
               "element": {
@@ -1465,7 +1498,7 @@
             "kind": "GridLayoutItem",
             "spec": {
               "x": 0,
-              "y": 30,
+              "y": 31,
               "width": 24,
               "height": 7,
               "element": {
@@ -1572,6 +1605,10 @@
             },
             "spec": {
               "__legacyStringValue": "SELECT\n  id AS __value,\n  name || ' [' || model || '] (' || serial || ')' AS __text\nFROM instruments\nWHERE is_active IS TRUE\nORDER BY name;\n"
+            },
+            "labels": {
+              "grafana.app/export-label": "grafana-postgresql-datasource-1",
+              "grafana.app/export-datasource-name": "${sourceTEM}"
             }
           },
           "regex": "",

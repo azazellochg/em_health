@@ -69,8 +69,9 @@ ruff check && mypy                                       # lint and type check (
 - `init_db.sql` uses `\i /sql/...` and runs only through psql inside the container.
 - Caggs live in `sql/events/cagg/` and mviews in `sql/events/mviews/`. They're registered in `db_manager.main()`.
   Their order there is the dependency order. `create-stats` drops and recreates them all, so a cagg/mview change
-  needs no migration, only a changelog note to rerun `create-stats`. The name suffix (`hourly`/`daily`/`monthly`)
-  picks the refresh policy.
+  needs no migration, only a changelog entry describing the fix (don't add "rerun create-stats" to it). A dropped
+  or renamed cagg/mview does need a migration that drops it (and its refresh job). The name suffix
+  (`hourly`/`daily`/`monthly`) picks the refresh policy.
 - A cagg only sees the points of its own day, and most parameters are logged only when they change:
   - Counters: never `delta(counter_agg)` per day (the step from yesterday's last value is lost, and a drop counts
     as a reset to 0). Store per-day first/last/min/max in a `*_counter_values_daily` cagg, and compute daily
@@ -80,6 +81,12 @@ ruff check && mypy                                       # lint and type check (
     `LAG(agg)`. Periods that cross midnight must be merged in an mview. A state logged only on change with few
     points (e.g. `sem_cryocycles`) is simpler to read from raw data in an mview (`LEAD(time)`).
   - Gaps (e.g. a missing heartbeat) are invisible to a cagg: `em_off` reads the raw heartbeat with `LEAD(time)`.
+  - Views that sum time per state cut the `em_off` periods out with multiranges (`range_agg`, `tstzmultirange -`),
+    see `vacuum_state_daily.sql`.
+  - Replacements/resets (aperture strips, sources) are a drop from a non-zero value to 0 or below half: after a
+    restart a counter can come back a little lower. Read them from raw data in an mview (`LAG(value_num)`), see
+    `fibsem_source_replacements.sql`. Mviews read `events.data` per parameter with the same LATERAL `OFFSET 0`
+    pattern as the dashboards.
 - Cagg expressions must be immutable (e.g. `EXTRACT(EPOCH FROM time - 'epoch'::timestamptz)`, not
   `EXTRACT(EPOCH FROM time)`), otherwise TimescaleDB warns.
 - Scheduled jobs use static procedures with a `config` JSONB, never generated per-object code:

@@ -3,8 +3,8 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "4350492f-ef51-4e3f-a22b-14c66eee6a97",
-    "generation": 3,
-    "creationTimestamp": "2026-11-17T16:11:48Z",
+    "generation": 8,
+    "creationTimestamp": "2026-11-23T13:37:10Z",
     "labels": {},
     "annotations": {}
   },
@@ -17,19 +17,13 @@
             "kind": "DataQuery",
             "group": "grafana",
             "version": "v0",
-            "labels": {
-              "grafana.app/export-label": "grafana-1"
-            },
             "spec": {}
           },
           "enable": true,
           "hide": true,
           "iconColor": "rgba(0, 211, 255, 1)",
           "name": "Annotations & Alerts",
-          "builtIn": true,
-          "legacyOptions": {
-            "type": "dashboard"
-          }
+          "builtIn": true
         }
       },
       {
@@ -186,7 +180,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "piechart",
-            "version": "12.4.1",
+            "version": "13.3.1",
             "spec": {
               "options": {
                 "displayLabels": [
@@ -221,151 +215,8 @@
                   "min": 0,
                   "max": 100,
                   "color": {
-                    "mode": "palette-classic-by-name"
-                  },
-                  "custom": {
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    }
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-16": {
-        "kind": "Panel",
-        "spec": {
-          "id": 16,
-          "title": "$instrument",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "grafana-postgresql-datasource",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "${sourceSEM}"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "format": "table",
-                        "rawQuery": true,
-                        "rawSql": "-- Time in each temperature state in the time range (sem_temperature_states): column state on autoloader\n-- (Arctis) systems, cryo stage temperature on systems with a cryo stage thermometer (Aquilos)\nWITH periods AS (\n  SELECT\n    state,\n    EXTRACT(EPOCH FROM LEAST(end_time, $__timeTo()::timestamptz) - GREATEST(start_time, $__timeFrom()::timestamptz)) AS seconds\n  FROM sem_temperature_states\n  WHERE instrument_id = $instrument\n    AND start_time < $__timeTo()::timestamptz\n    AND end_time > $__timeFrom()::timestamptz\n)\nSELECT\n  state,\n  SUM(seconds) AS duration_seconds,\n  ROUND(100.0 * SUM(seconds) / NULLIF(SUM(SUM(seconds)) OVER (), 0), 2) AS percentage\nFROM periods\nGROUP BY state\nORDER BY percentage DESC\n",
-                        "sql": {
-                          "columns": [
-                            {
-                              "parameters": [],
-                              "type": "function"
-                            }
-                          ],
-                          "groupBy": [
-                            {
-                              "property": {
-                                "type": "string"
-                              },
-                              "type": "groupBy"
-                            }
-                          ],
-                          "limit": 50
-                        }
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
-                        "grafana.app/export-datasource-name": "${sourceSEM}"
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [
-                {
-                  "kind": "Transformation",
-                  "group": "rowsToFields",
-                  "spec": {
-                    "options": {
-                      "mappings": [
-                        {
-                          "fieldName": "duration_seconds",
-                          "handlerKey": "__ignore"
-                        }
-                      ]
-                    }
-                  }
-                },
-                {
-                  "kind": "Transformation",
-                  "group": "organize",
-                  "spec": {
-                    "options": {
-                      "excludeByName": {},
-                      "includeByName": {},
-                      "indexByName": {},
-                      "renameByName": {
-                        "cryo": "Cryo",
-                        "rt": "RT",
-                        "transition": "Warming/cooling",
-                        "unknown": "Unknown"
-                      }
-                    }
-                  }
-                }
-              ],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "piechart",
-            "version": "12.4.1",
-            "spec": {
-              "options": {
-                "displayLabels": [
-                  "percent"
-                ],
-                "legend": {
-                  "displayMode": "list",
-                  "placement": "right",
-                  "showLegend": true,
-                  "values": [
-                    "percent"
-                  ]
-                },
-                "pieType": "donut",
-                "reduceOptions": {
-                  "calcs": [
-                    "lastNotNull"
-                  ],
-                  "fields": "",
-                  "values": true
-                },
-                "sort": "desc",
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "single",
-                  "sort": "none"
-                }
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "percent",
-                  "min": 0,
-                  "max": 100,
-                  "color": {
-                    "mode": "palette-classic-by-name"
+                    "mode": "palette-classic",
+                    "fixedColor": "#73BF69"
                   },
                   "custom": {
                     "hideFrom": {
@@ -509,7 +360,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.4.1",
+            "version": "13.3.1",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -632,7 +483,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.4.1",
+            "version": "13.3.1",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -757,7 +608,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.4.1",
+            "version": "13.3.1",
             "spec": {
               "options": {
                 "colorMode": "none",
@@ -791,6 +642,184 @@
                   }
                 },
                 "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-16": {
+        "kind": "Panel",
+        "spec": {
+          "id": 16,
+          "title": "$instrument",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${sourceSEM}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "-- Time in each temperature state in the time range (sem_temperature_states): column state on autoloader\n-- (Arctis) systems, cryo stage temperature on systems with a cryo stage thermometer (Aquilos)\nWITH periods AS (\n  SELECT\n    state,\n    EXTRACT(EPOCH FROM LEAST(end_time, $__timeTo()::timestamptz) - GREATEST(start_time, $__timeFrom()::timestamptz)) AS seconds\n  FROM sem_temperature_states\n  WHERE instrument_id = $instrument\n    AND start_time < $__timeTo()::timestamptz\n    AND end_time > $__timeFrom()::timestamptz\n)\nSELECT\n  state,\n  SUM(seconds) AS duration_seconds,\n  ROUND(100.0 * SUM(seconds) / NULLIF(SUM(SUM(seconds)) OVER (), 0), 2) AS percentage\nFROM periods\nGROUP BY state\nORDER BY percentage DESC\n",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "${sourceSEM}"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "rowsToFields",
+                  "spec": {
+                    "options": {
+                      "mappings": [
+                        {
+                          "fieldName": "duration_seconds",
+                          "handlerKey": "__ignore"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "organize",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {},
+                      "includeByName": {},
+                      "indexByName": {},
+                      "renameByName": {
+                        "cryo": "Cryo",
+                        "rt": "RT",
+                        "transition": "Warming/cooling",
+                        "unknown": "Unknown"
+                      }
+                    }
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "piechart",
+            "version": "13.3.1",
+            "spec": {
+              "options": {
+                "displayLabels": [
+                  "percent"
+                ],
+                "legend": {
+                  "displayMode": "list",
+                  "placement": "right",
+                  "showLegend": true,
+                  "values": [
+                    "percent"
+                  ]
+                },
+                "pieType": "donut",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": true
+                },
+                "sort": "desc",
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "percent",
+                  "min": 0,
+                  "max": 100,
+                  "color": {
+                    "mode": "fixed",
+                    "fixedColor": "#73BF69"
+                  },
+                  "custom": {
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    }
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Cryo"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "light-blue",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "RT"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "light-orange",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  }
+                ]
               }
             }
           }
@@ -868,7 +897,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "12.4.1",
+            "version": "13.3.1",
             "spec": {
               "options": {
                 "legend": {
@@ -1016,7 +1045,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "12.4.1",
+            "version": "13.3.1",
             "spec": {
               "options": {
                 "legend": {
@@ -1130,39 +1159,6 @@
               }
             }
           },
-      {
-            "kind": "RowsLayoutRow",
-            "spec": {
-              "title": "Temperature state",
-              "collapse": false,
-              "layout": {
-                "kind": "GridLayout",
-                "spec": {
-                  "items": [
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 0,
-                        "y": 0,
-                        "width": 24,
-                        "height": 6,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-16"
-                        },
-                        "repeat": {
-                          "mode": "variable",
-                          "value": "instrument",
-                          "direction": "h",
-                          "maxPerRow": 6
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
           {
             "kind": "RowsLayoutRow",
             "spec": {
@@ -1182,6 +1178,39 @@
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-14"
+                        },
+                        "repeat": {
+                          "mode": "variable",
+                          "value": "instrument",
+                          "direction": "h",
+                          "maxPerRow": 6
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "Temperature state",
+              "collapse": false,
+              "layout": {
+                "kind": "GridLayout",
+                "spec": {
+                  "items": [
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 24,
+                        "height": 6,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-16"
                         },
                         "repeat": {
                           "mode": "variable",
