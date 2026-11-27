@@ -70,7 +70,7 @@ Description
 ^^^^^^^^^^^
 
 Make sure to run `git pull origin master` from the installation folder before running this command. The update command below will migrate the databases schema to the latest
-version and update container images.
+version, update container images and create the statistics views that are new or were dropped by a migration.
 
 Syntax
 ^^^^^^

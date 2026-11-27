@@ -247,6 +247,11 @@ def update() -> None:
     func("tem", "create-stats")
     func("sem", "create-stats")
 
+    # create statistics views that are new or were dropped by a migration
+    from em_health.db_stats import main as stats_func
+    stats_func("tem", "create", ["all"])
+    stats_func("sem", "create", ["all"])
+
     logger.info("Finished updating")
 
 

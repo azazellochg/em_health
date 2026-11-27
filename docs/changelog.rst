@@ -26,6 +26,7 @@ Version 0.1a13
 * new SEM mview fibsem_source_replacements: the replacement times of the FIB and FEG sources with the age of the replaced source (the source age counter drops to 0 or below half; a counter restored a little lower after a restart is not a replacement).
 * one SQL file per cagg, mview or view: the *_counters_daily views moved from the cagg files to sql/events/views/, migration 015 drops the old *_counters_daily caggs
 * new emhealth stats command replaces db create-stats. The views are registered with their dependencies: list, create (missing views only, so it can be rerun, -f to recreate a view and the views reading from it), drop and refresh take view names or all and handle the dependent views. Cagg refresh policies are set per view instead of by the name suffix
+* emhealth update runs stats create all for tem and sem: views that are new or were dropped by a migration are created automatically
 
 Version 0.1a12
 ^^^^^^^^^^^^^^
